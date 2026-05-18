@@ -1,0 +1,101 @@
+/* tokens.css - Variables :root y reset universal
+   Extraido de styles.css (sub-paso 2b, mayo 2026)
+   Originalmente parte del bloque 1 inline de index.html. */
+
+/* ══════════ DESIGN TOKENS ══════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --parch-bg:#E8D5A3;--parch-bg2:#DFC88F;
+  --parch-ink:#3B2A1A;--parch-border:#B8945A;
+  --parch-shadow:0 4px 18px rgba(59,42,26,.18),0 0 0 1px rgba(59,42,26,.08);
+  --parch-shadow-lg:0 12px 40px rgba(59,42,26,.25),0 0 1px rgba(59,42,26,.1);
+  --paper:#FAF8F4;--paper2:#F4F0E8;--paper3:#EAE3D4;
+  --ink:#1C1510;--ink2:#44342A;--muted:#7A6655;--border:#D4C4A8;
+  --blue:#2563EB;--blue-lt:#DBEAFE;--blue-dk:#1D4ED8;
+  --green:#16A34A;--green-lt:#DCFCE7;
+  --red:#DC2626;--red-lt:#FEF2F2;
+  --amber:#D97706;--amber-lt:#FEF3C7;
+  --purple:#7C3AED;--purple-lt:#EDE9FE;
+  --r:14px;--r-lg:20px;
+  --sh:0 3px 16px rgba(59,42,26,.14),0 0 0 1px rgba(59,42,26,.06);
+  --sh-lg:0 12px 40px rgba(59,42,26,.22),0 0 1px rgba(59,42,26,.08);
+  --sh-card:0 4px 22px rgba(59,42,26,.1),0 0 0 1px rgba(59,42,26,.05);
+  --fire:#FF4500;--fire-lt:#FFF1EE;--gold:#F59E0B;--gold-lt:#FFFBEB;
+
+  /* ─────────────────────────────────────────────────────────────
+     UI DESIGN SYSTEM — Premium educational SaaS palette
+     Used app-wide. Per-domain tokens (syntactic colours, arcade
+     neón, etc.) override these locally.
+     ───────────────────────────────────────────────────────────── */
+  /* Surfaces */
+  --ui-bg:        #F4F2EC;   /* page background — warm, not beige-heavy */
+  --ui-surface:   #FFFFFF;   /* cards, modals */
+  --ui-surface-2: #FAF7F1;   /* subtle alt surface (e.g. inset panels) */
+  --ui-border:    #E2DFD5;   /* default borders, subtle */
+  --ui-border-strong: #C9C3B5; /* dividers, active edges */
+
+  /* Text */
+  --ui-ink:       #0F2342;   /* primary text — deep navy, not pure black */
+  --ui-ink-2:     #1E3A5F;   /* secondary headings */
+  --ui-muted:     #5C6B7E;   /* body muted text */
+  --ui-muted-2:   #94A3B8;   /* captions, helper text */
+
+  /* Brand & interaction */
+  --ui-navy:        #0F2342;
+  --ui-navy-soft:   #1E3A5F;
+  --ui-navy-tint:   #EAEEF5; /* navy at ~6% — for hover bg, tag bg */
+  --ui-teal:        #0F766E; /* primary action / CTA accent */
+  --ui-teal-dk:     #115E59;
+  --ui-teal-tint:   #E5F4F1;
+  --ui-cyan:        #0891B2; /* secondary accent / links */
+  --ui-cyan-tint:   #E5F2F6;
+  --ui-magenta:     #BE185D; /* tertiary / arcade-like energy */
+  --ui-magenta-tint:#FBE8EE;
+
+  /* Status (semantic) */
+  --ui-ok:        #15803D;
+  --ui-ok-tint:   #DCFCE7;
+  --ui-warn:      #B45309;
+  --ui-warn-tint: #FEF3C7;
+  --ui-err:       #BE123C;
+  --ui-err-tint:  #FFE4E6;
+  --ui-info:      #1E40AF;
+  --ui-info-tint: #DBEAFE;
+
+  /* Radii */
+  --ui-r-sm: 8px;
+  --ui-r:    12px;
+  --ui-r-lg: 16px;
+  --ui-r-xl: 22px;
+  --ui-r-pill: 999px;
+
+  /* Shadows (soft, navy-tinted instead of brown) */
+  --ui-sh-1: 0 1px 2px rgba(15,35,66,.05), 0 2px 6px rgba(15,35,66,.06);
+  --ui-sh-2: 0 1px 2px rgba(15,35,66,.05), 0 6px 18px rgba(15,35,66,.09);
+  --ui-sh-3: 0 2px 4px rgba(15,35,66,.06), 0 14px 32px rgba(15,35,66,.13);
+  --ui-sh-focus: 0 0 0 3px rgba(15,118,110,.30);
+
+  /* Type system */
+  --ui-font-display: 'Fraunces', 'Lora', Georgia, serif;
+  --ui-font-body:    'Lora', 'Georgia', serif;
+  --ui-font-ui:      'DM Sans', 'Nunito', system-ui, sans-serif;
+  --ui-font-mono:    'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  /* Motion */
+  --ui-ease:       cubic-bezier(.16,1,.3,1);
+  --ui-ease-bounce:cubic-bezier(.34,1.56,.64,1);
+  --ui-dur-fast:   .14s;
+  --ui-dur:        .22s;
+  --ui-dur-slow:   .42s;
+
+  /* Portada aliases — keep the old portada CSS working untouched */
+  --portada-navy:      var(--ui-navy);
+  --portada-navy-soft: var(--ui-navy-soft);
+  --portada-teal:      var(--ui-teal);
+  --portada-cyan:      var(--ui-cyan);
+  --portada-magenta:   var(--ui-magenta);
+  --portada-bg:        var(--ui-bg);
+  --portada-card:      var(--ui-surface);
+  --portada-border:    var(--ui-border);
+  --portada-muted:     var(--ui-muted);
+}
