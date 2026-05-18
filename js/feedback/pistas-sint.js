@@ -1,0 +1,53 @@
+/* pistas-sint.js — Matrices de feedback escalonado + lookupScaffold
+   Extraido de index.html (Paso 7 de la migracion, mayo 2026)
+   Lineas originales: 1402-1425, 1475-1493. */
+
+import { DICCIONARIO_BASE_MORFOLOGIA } from '../data/diccionario-morfologia.js';
+import { DICCIONARIO_BASE_SINTAXIS } from '../data/diccionario-sintaxis.js';
+import { DICCIONARIO_BASE_SINTAGMAS } from '../data/diccionario-sintagmas.js';
+
+export const FEEDBACK_SINTAXIS = [
+  {real:"Sujeto",marcada:"CD",fijo:"Has marcado Complemento Directo, lo que significa que debería poder sustituirse por LO o LA. Pero fíjate en su relación con el verbo.",pista:"Haz la prueba de la concordancia: cambia el verbo de singular a plural. Si este sintagma se ve obligado a cambiar, entonces será…"},
+  {real:"CD",marcada:"Sujeto",fijo:"Has marcado Sujeto, pero recuerda que el Sujeto manda sobre el verbo. Si cambias el número del verbo, el Sujeto debe cambiar. Compruébalo.",pista:"Cambia el verbo a plural. ¿Este sintagma cambia? No. Sustitúyelo por LO, LA, LOS o LAS. Si funciona es…"},
+  {real:"Atr.",marcada:"CD",fijo:"¿Este verbo expresa una acción que recae sobre algo, o simplemente está funcionando como un 'puente' para unir al sujeto con una de sus cualidades?",pista:"Los verbos de estado funcionan como un espejo. La palabra que buscas no es un objeto que el sujeto 'usa', sino una característica que es el propio sujeto. Prueba a sustituir todo el bloque por la palabra 'lo'."},
+  {real:"CPvo",marcada:"Atr.",fijo:"Has marcado Atributo, pero recuerda: el Atributo es VIP y solo aparece con verbos copulativos (ser, estar, parecer). Mira el verbo.",pista:"Fíjate en su 'doble cara': parece un adverbio de modo (responde al '¿cómo?'), pero se comporta como un adjetivo (está obligado a concordar con el sujeto). Busca la función que es capaz de modificar al verbo y al nombre al mismo tiempo."},
+  {real:"CPvo",marcada:"CC Modo",fijo:"Has marcado CC de Modo. Es cierto que responde a '¿cómo?', pero los CC suelen ser invariables (adverbios). Fíjate en la forma de esta palabra.",pista:"¿Esta palabra es una pieza 'congelada' que solo describe la acción, o has notado que está 'atada' al género y número del protagonista de la frase? Cambia el sujeto de singular a plural. Si esta palabra se ve obligada a cambiar también, no puede ser un simple circunstancial."},
+  {real:"C.Rég.",marcada:"CD",fijo:"¿Crees que esa preposición está ahí por casualidad para dar un detalle extra, o es que el verbo la necesita 'por contrato' para poder expresar esa idea?",pista:"Haz la prueba definitiva: sustituye el nombre por la palabra 'eso'. Si al hacerlo la preposición se queda 'pegada' al verbo y se niega a desaparecer, es porque el verbo la exige para completar su significado."},
+  {real:"CD",marcada:"C.Rég.",fijo:"¿Qué pasaría si en lugar de a una persona, la acción se dirigiera a un objeto inanimado (como un libro o una mesa)? ¿Seguiría siendo necesaria esa preposición para que el verbo tenga sentido?",pista:"Haz la prueba de los pronombres: intenta sustituir todo el grupo por lo o la. Si al hacerlo la preposición desaparece por completo y la frase sigue siendo perfecta, es porque solo era un 'marcador de persona'."},
+  {real:"C.Ag.",marcada:"CC Causa",fijo:"Has marcado CC de Causa pensando '¿por qué?'. Pero fíjate en la estructura de la oración: el verbo es ser + participio.",pista:"Fíjate en el 'reparto de papeles': el sujeto sufre la acción y este grupo de palabras, introducido por 'por', es el encargado de ejecutarla en la sombra. Busca la función que representa al ejecutor real en las oraciones pasivas."},
+  {real:"CC Causa",marcada:"C.Ag.",fijo:"Has marcado C. Agente. Recuerda que el Agente solo aparece en oraciones pasivas y es un ser capaz de realizar la acción. ¿Es el caso?",pista:"Haz la prueba de la 'voluntad': ¿Podría ese bloque de palabras realizar la acción por sí mismo si cambiáramos la frase a voz activa? Si lo que tienes es un sentimiento, un evento o una circunstancia que explica el 'porqué', es un contexto de la acción, no su ejecutor."},
+  {real:"CI",marcada:"CD",fijo:"Has marcado CD. Es un error común con personas. Para distinguirlos, aplica la prueba de la voz pasiva.",pista:"Si pasas a pasiva, este sintagma NO se convierte en Sujeto Paciente. Su sustituto natural es LE o LES."},
+  {real:"Marca.Pas.Ref.",marcada:"Marca.Imp.",fijo:"Has marcado Impersonal, lo que significa que la oración no tiene Sujeto. Mira a la derecha del verbo a ver si hay algo que concuerde con él.",pista:"¿Qué ocurre si pasas el verbo a plural? ¿Hay alguna palabra que, de repente, 'suene mal' y te obligue a cambiarla también? Si al cambiar el verbo detectas que una palabra 'reacciona' y cambia su número, ¡has encontrado a un sujeto!"},
+  {real:"PN",marcada:"PV",fijo:"Has marcado Predicado Verbal. Eso sería lo correcto si el verbo fuera el 'motor' de la frase y expresara una acción real (como comer, saltar o estudiar). Pero mira bien tu verbo: ¿realmente está pasando algo o solo se está describiendo cómo 'es' o 'está' el sujeto?",pista:"Fíjate en el grupo de verbos al que pertenece: son verbos 'vacíos' de acción que funcionan como un puente. En estos casos, lo más importante de la frase no es el verbo, sino la cualidad que lo acompaña. Busca el tipo de predicado que se construye exclusivamente con verbos de estado o identidad."},
+];
+export const FEEDBACK_MORFOLOGIA = [
+  {real:"Determinante",marcada:"Pronombre",fijo:"Has marcado Pronombre, pero 'pro-nombre' significa 'en lugar del nombre'. Esta palabra no está sustituyendo a nadie, no está sola.",pista:"Haz la 'prueba del vecino': la palabra de su derecha es un sustantivo. Si borraras el sustantivo que aparece justo después, ¿esta palabra seguiría teniendo sentido por sí sola o se quedaría 'coja', esperando a alguien a quien presentar?"},
+  {real:"Pronombre",marcada:"Determinante",fijo:"Los determinantes acompañan a un sustantivo para presentarlo. Fíjate: ¿ves algún sustantivo a su lado?",pista:"Fíjate en lo que viene después. Si lo que sigue es un verbo o una pausa, es porque esta palabra ya contiene toda la información del objeto o persona."},
+  {real:"Adverbio",marcada:"Adjetivo",fijo:"Has marcado Adjetivo, lo que significaría que indica una cualidad de un sustantivo y concuerda con él. ¿A qué palabra está modificando realmente?",pista:"¿Esta palabra está describiendo cómo es una cosa, o nos está diciendo cómo, cuándo o cuánto se realiza una acción? Pasa la oración a plural o a femenino. Esta palabra se queda exactamente igual (es invariable)."},
+  {real:"Adjetivo",marcada:"Adverbio",fijo:"Los adverbios son invariables: no tienen género ni número. Fíjate en la terminación de esta palabra. ¿Seguro que no puede cambiar?",pista:"¿Esta palabra nos está explicando cómo se realiza una acción, o más bien nos está describiendo una propiedad o estado de una persona, animal o cosa? Busca la categoría que se dedica a expresar las cualidades de los sustantivos."},
+  {real:"Adverbio",marcada:"Determinante",fijo:"Has marcado Determinante. Eso obligaría a que cuantificara a un sustantivo, pero mira a quién está acompañando.",pista:"¿Esta palabra nos está diciendo la cantidad de 'cosas o personas' que hay, o más bien funciona como un termómetro que mide cuánto o con qué intensidad ocurre una acción o cualidad? Está modificando a un verbo o adjetivo, no a un nombre."},
+  {real:"Determinante",marcada:"Adverbio",fijo:"Has marcado Adverbio. Es normal dudar con las palabras que indican cantidad, pero recuerda nuestra regla: los adverbios son piezas rígidas que nunca cambian.",pista:"Cambia el sustantivo a plural o femenino. Verás que esta palabra se ve obligada a cambiar (ej: muchos libros). Busca la categoría cuya misión principal es acompañar, presentar o cuantificar a un sustantivo."},
+  {real:"Sustantivo",marcada:"Verbo",fijo:"Aunque en otro contexto esta palabra indique una acción, en esta frase no funciona como motor del predicado.",pista:"Intenta conjugarla con 'yo, tú, él' aquí. No encaja. Mira si lleva (o podría llevar) un determinante delante. Aquí nombra una entidad: es un Sustantivo."},
+  {real:"Conjunción",marcada:"Pronombre",fijo:"Si fuera un Pronombre Relativo, sustituiría a un sustantivo anterior. Vamos a comprobarlo.",pista:"Intenta sustituir este 'que' por 'el cual' o 'la cual'. Suena muy raro. Su única función es unir ideas. Es una Conjunción."},
+];
+
+/** Busca feedback escalonado para un error. Devuelve {fijo,pista} — NUNCA null */
+export function lookupScaffold(marcada, real, tipo){
+  const matrix = tipo==='morph' ? FEEDBACK_MORFOLOGIA : FEEDBACK_SINTAXIS;
+  const base   = tipo==='morph' ? DICCIONARIO_BASE_MORFOLOGIA
+               : tipo==='sintagma' ? DICCIONARIO_BASE_SINTAGMAS
+               : DICCIONARIO_BASE_SINTAXIS;
+  // 1. Buscar en matriz específica
+  const specific = matrix.find(e=>e.real===real && e.marcada===marcada);
+  if(specific) return {fijo:specific.fijo, pista:specific.pista};
+  // 2. Fallback: diccionario base de la categoría/función real
+  if(base[real]) return {
+    fijo: 'Has marcado '+marcada+', pero fíjate bien: '+base[real].fijo,
+    pista: base[real].pista
+  };
+  // 3. Fallback universal — SIEMPRE devuelve algo
+  return {
+    fijo: 'Has marcado '+marcada+'. Piensa bien: ¿esa es realmente la función que cumple este elemento?',
+    pista: 'Revisa las características de '+real+'. Piensa en qué palabra depende este elemento y qué relación establece con ella.'
+  };
+}
