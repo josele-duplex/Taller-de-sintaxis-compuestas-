@@ -54,6 +54,18 @@ Tras eliminar la fase 4 antigua de CP y mover todo a la fusionada (fase 5 intern
 
 Las proposiciones coordinadas en el JSON tienen `subtipo: null` y el subtipo real vive en la relación. El helper `subtipoCorrectoDePropos(p, ej)` lo resuelve, pero hay rincones del código que aún acceden directamente a `p.subtipo` sin pasar por el helper. Riesgo de regresión si alguien edita esas zonas sin saber.
 
+### 1.8 Definición duplicada de `function mostrarToast` dentro del IIFE de CP
+
+**Estado**: detectado durante la migración (Paso 9.1, mayo 2026).
+
+**Problema**: el IIFE de CP en `index.html` declara `function mostrarToast(...)` dos veces (líneas 10793 y 10831). En sloppy mode (donde corre el `<script>` actual) el hoisting hace que la segunda definición sobreescriba a la primera, así que el código en runtime usa siempre la segunda. En strict mode (ES modules) sería un `SyntaxError`.
+
+**Solución provisional**: en el módulo extraído `js/modules/compuestas/index.js` se eliminó la primera definición (líneas 10788-10817 del original, incluyendo su docstring). Comportamiento en runtime idéntico al original. El `index.html` no se ha modificado todavía (sigue con las dos copias hasta el Paso 10).
+
+**Acción pendiente**: cuando se elimine el JS inline del HTML en el Paso 10 esta deuda desaparece sola, porque ya no quedará la versión sloppy con el duplicado.
+
+**Impacto**: nulo en runtime, bloqueador para la modularización si no se elimina una de las dos.
+
 ---
 
 ## 2. Deuda técnica estructural
