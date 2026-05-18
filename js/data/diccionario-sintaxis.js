@@ -1,0 +1,22 @@
+/* diccionario-sintaxis.js — DICCIONARIO_BASE_SINTAXIS
+   Extraido de index.html (Paso 4 de la migracion, mayo 2026)
+   Lineas originales: 1446-1463. */
+
+export const DICCIONARIO_BASE_SINTAXIS = {
+  "Sujeto":{fijo:"¿Estás seguro de que este grupo de palabras es el que 'manda' sobre la terminación del verbo principal?",pista:"Haz la prueba de la concordancia. Cambia el número del verbo. El elemento que obligatoriamente se vea forzado a cambiar es el Sujeto. Además, por regla general nunca lleva preposición delante."},
+  "CD":{fijo:"¿Es este el elemento sobre el que recae directamente la acción del verbo y restringe su significado?",pista:"Dos pruebas de fuego: 1) Sustitúyelo por lo/la/los/las. 2) Si pasas a voz pasiva, se convertirá en el nuevo Sujeto paciente."},
+  "CI":{fijo:"¿Este elemento designa al destinatario, beneficiario o perjudicado de una acción que ya tiene su recorrido principal?",pista:"Se sustituye únicamente por le/les, independientemente del género. Siempre introducido por la preposición 'a' (nunca 'para')."},
+  "Atr.":{fijo:"Fíjate en el verbo. ¿Expresa una acción real, o es solo una 'cinta adhesiva' que conecta al sujeto con una propiedad suya?",pista:"Solo aparece con verbos copulativos (ser, estar, parecer). Concuerda con el sujeto y puedes sustituir todo el bloque por 'lo'."},
+  "CPvo":{fijo:"Es cierto que nos dice cómo ocurre algo, pero ¿has notado que este elemento cambia si cambias el género o número del sujeto?",pista:"Función doble: modifica al verbo (diciendo 'cómo') pero es un adjetivo obligado a concordar con un elemento nominal. ¡Los CC verdaderos nunca concuerdan!"},
+  "C.Rég.":{fijo:"Si intentas borrar la preposición que introduce este grupo, ¿el verbo sigue significando lo mismo o la frase se 'rompe'?",pista:"El verbo exige esa preposición específica. Si sustituyes por 'eso/algo', la preposición se queda obligatoriamente delante."},
+  "C.Ag.":{fijo:"En esta estructura donde el sujeto sufre pasivamente la acción, ¿es este grupo el que realmente está ejecutando la acción originaria?",pista:"El verbo debe ser 'ser + participio'. Si le das la vuelta a voz activa, este bloque se convierte en el Sujeto principal."},
+  "CC Tiempo":{fijo:"¿Este grupo de palabras es vital para el sentido, o nos da un simple contexto temporal que podríamos borrar?",pista:"Es el 'decorado' temporal. Puedes moverlo o eliminarlo y el esqueleto central sigue intacto. Responde a ¿cuándo?"},
+  "CC Lugar":{fijo:"¿Este grupo de palabras es vital para el sentido, o nos da un simple contexto espacial que podríamos borrar?",pista:"Puedes moverlo o eliminarlo y la oración sigue intacta. Responde a ¿dónde?"},
+  "CC Modo":{fijo:"¿Este grupo de palabras es vital para el sentido, o nos da un simple contexto de manera que podríamos borrar?",pista:"Puedes moverlo o eliminarlo. Responde a ¿cómo? Suele ser un adverbio o SP con 'con/sin'."},
+  "CC Causa":{fijo:"¿Este grupo de palabras es vital para el sentido, o nos da un simple contexto causal que podríamos borrar?",pista:"Responde a ¿por qué? y es prescindible. No confundir con C. Agente (solo en voz pasiva)."},
+  "CC":{fijo:"¿Este grupo de palabras aporta una circunstancia (tiempo, lugar, modo, causa…) que podríamos eliminar sin romper la oración?",pista:"Los CC son prescindibles y móviles. Piensa en qué pregunta responde: ¿cuándo? (tiempo), ¿dónde? (lugar), ¿cómo? (modo), ¿por qué? (causa)."},
+  "Marca.Pas.Ref.":{fijo:"El 'se' de pasiva refleja acompaña a un verbo que tiene sujeto paciente.",pista:"Comprueba si hay un SN que concuerde con el verbo en número. Si 'Se venden pisos' → 'pisos' es sujeto, es pasiva refleja."},
+  "Marca.Imp.":{fijo:"El 'se' impersonal indica que no hay sujeto en la oración.",pista:"Intenta encontrar un sujeto. Si no lo hay y el verbo está fijo en 3ª persona singular, es marca de impersonalidad."},
+  "PN":{fijo:"¿El verbo expresa una acción real o solo funciona como un 'puente' para conectar al sujeto con una cualidad? Los verbos copulativos (ser, estar, parecer) construyen predicados nominales.",pista:"Fíjate en si la palabra más importante de la frase es la cualidad que sigue al verbo, no el verbo en sí. Si puedes sustituir esa cualidad por 'lo', es predicado nominal."},
+  "PV":{fijo:"¿El verbo expresa una acción, un proceso o un estado dinámico? Si el verbo tiene significado pleno por sí mismo, es el motor de un predicado verbal.",pista:"Comprueba si el verbo pertenece al grupo de los copulativos (ser, estar, parecer). Si no pertenece a ese grupo exclusivo, construye predicado verbal."},
+};
