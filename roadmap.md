@@ -151,6 +151,14 @@ Cada elemento incluye:
 
 ## 5. Prioridad BAJA · Mejoras "nice to have"
 
+### 5.0 Cambiar fuente de `.cp-prop-text` a una más pedagógica
+
+- **Estado**: Pendiente. Detectado durante la migración (Paso 2 CSS, mayo 2026): el texto de cada proposición en compuestas usa `font-family:'Fraunces',serif` (línea ~3686 de `css/styles.css`). Es la fuente "display" del proyecto, poco pedagógica para textos de análisis.
+- **Tipo**: UI / Pedagógico.
+- **Estimación**: 5 minutos.
+- **Cómo implementarlo**: en `.cp-prop-text` cambiar a `'Lora',serif` (serif suave, legible) o a `'DM Sans','Nunito',sans-serif` (sans-serif, coherente con `.cp-oracion-text`). Verificar también si hay otros selectores CP con `'Fraunces'` que también deban revisarse.
+- **Nota**: hubo un intento previo de cambio que no llegó a guardarse en este `index.html`.
+
 ### 5.1 Tests automatizados básicos
 
 - **Estado**: No existe ningún test.
