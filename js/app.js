@@ -60,6 +60,7 @@ import * as gDashboard from './gamification/dashboard.js';
 // ─────────────────────────────────────────────────────────────
 import * as fMicro from './feedback/micro-lecciones.js';
 import * as fPistasSint from './feedback/pistas-sint.js';
+import * as fPistasCP from './feedback/pistas-compuestas.js';
 import * as fTracking from './feedback/tracking.js';
 import * as fPistaUi from './feedback/pista-ui.js';
 
@@ -73,7 +74,7 @@ Object.assign(window,
   dictMorf, dictSintax, dictSintag, haberForms,
   glosTags, glosData, glosRender,
   gLevels, gMissions, gStreak, gXp, gDashboard,
-  fMicro, fPistasSint, fTracking, fPistaUi
+  fMicro, fPistasSint, fPistasCP, fTracking, fPistaUi
 );
 
 // ─────────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@
 import { DICCIONARIO_BASE_MORFOLOGIA } from '../data/diccionario-morfologia.js';
 import { DICCIONARIO_BASE_SINTAXIS } from '../data/diccionario-sintaxis.js';
 import { DICCIONARIO_BASE_SINTAGMAS } from '../data/diccionario-sintagmas.js';
+import { FEEDBACK_COMPUESTAS, DICCIONARIO_BASE_COMPUESTAS } from './pistas-compuestas.js';
 
 export const FEEDBACK_SINTAXIS = [
   {real:"Sujeto",marcada:"CD",fijo:"Has marcado Complemento Directo, lo que significa que debería poder sustituirse por LO o LA. Pero fíjate en su relación con el verbo.",pista:"Haz la prueba de la concordancia: cambia el verbo de singular a plural. Si este sintagma se ve obligado a cambiar, entonces será…"},
@@ -31,11 +32,15 @@ export const FEEDBACK_MORFOLOGIA = [
   {real:"Conjunción",marcada:"Pronombre",fijo:"Si fuera un Pronombre Relativo, sustituiría a un sustantivo anterior. Vamos a comprobarlo.",pista:"Intenta sustituir este 'que' por 'el cual' o 'la cual'. Suena muy raro. Su única función es unir ideas. Es una Conjunción."},
 ];
 
-/** Busca feedback escalonado para un error. Devuelve {fijo,pista} — NUNCA null */
+/** Busca feedback escalonado para un error. Devuelve {fijo,pista} — NUNCA null.
+ *  tipo: 'morph' | 'sintagma' | 'compuesta' | (otro → sintaxis simples por defecto). */
 export function lookupScaffold(marcada, real, tipo){
-  const matrix = tipo==='morph' ? FEEDBACK_MORFOLOGIA : FEEDBACK_SINTAXIS;
-  const base   = tipo==='morph' ? DICCIONARIO_BASE_MORFOLOGIA
-               : tipo==='sintagma' ? DICCIONARIO_BASE_SINTAGMAS
+  const matrix = tipo==='morph'    ? FEEDBACK_MORFOLOGIA
+               : tipo==='compuesta' ? FEEDBACK_COMPUESTAS
+               : FEEDBACK_SINTAXIS;
+  const base   = tipo==='morph'    ? DICCIONARIO_BASE_MORFOLOGIA
+               : tipo==='sintagma'  ? DICCIONARIO_BASE_SINTAGMAS
+               : tipo==='compuesta' ? DICCIONARIO_BASE_COMPUESTAS
                : DICCIONARIO_BASE_SINTAXIS;
   // 1. Buscar en matriz específica
   const specific = matrix.find(e=>e.real===real && e.marcada===marcada);
