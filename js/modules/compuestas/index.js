@@ -2245,25 +2245,42 @@
   // - relativa_libre/semilibre → función puede ser cualquiera. NO redundante.
   // - Construcciones (causal/final/...) → función predecible. Redundante.
   // ─────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────
+  // ¿Es redundante preguntar "función de la subordinada" tras conocer
+  // el subtipo? (decisión pedagógica del autor, mayo 2026).
+  //
+  // Cuando el subtipo determina por definición la función, no hace falta
+  // pedirla — sería un paso vacío. Casos:
+  //
+  //   sustantiva_sujeto              → función = sujeto       (redundante)
+  //   sustantiva_cd                  → función = cd           (redundante)
+  //   sustantiva_atributo            → función = atributo     (redundante)
+  //   sustantiva_aposicion           → función = aposición    (redundante)
+  //   sustantiva_termino_preposicion → función = término + funcion_sp
+  //                                                            (NO redundante,
+  //                                                             se pregunta SP)
+  //   relativa_especificativa        → función = CN           (redundante)
+  //   relativa_explicativa           → función = CN           (redundante)
+  //   relativa_libre / _semilibre    → función variable        (NO redundante)
+  //   causal / final / temporal /
+  //   condicional / concesiva /
+  //   locativa / modal /
+  //   ilativa_constr                 → función = CC del valor (redundante)
+  //
+  // IMPORTANTE: la decisión se basa SOLO en el subtipo, no en rel.funcion.
+  // (Antes de mayo 2026 el check exigía además que rel.funcion del banco
+  // coincidiera con la esperada; eso hacía que ejercicios con el campo
+  // funcion vacío o ligeramente diferente preguntaran un paso innecesario.)
+  // ─────────────────────────────────────────────────────────────────────
   function funcionEsRedundante(rel){
     if(!rel || rel.tipo !== 'subordinacion') return false;
     const sub = rel.subtipo || '';
-    const fn = rel.funcion || '';
-    // Sustantivas con función obvia a partir del subtipo
-    const sustantivasRedundantes = {
-      'sustantiva_sujeto': 'sujeto',
-      'sustantiva_cd': 'cd',
-      'sustantiva_atributo': 'atributo',
-      'sustantiva_aposicion': 'aposicion'
-    };
-    if(sustantivasRedundantes[sub] && fn === sustantivasRedundantes[sub]) return true;
-    // Relativas con antecedente → CN
-    if((sub === 'relativa_especificativa' || sub === 'relativa_explicativa') && fn === 'cn') return true;
-    // Construcciones: la función habitualmente es CC con valor del subtipo
-    if(['causal','final','condicional','concesiva','temporal','locativa','modal','ilativa_constr'].includes(sub)){
-      // Sí, todas estas construcciones tienen función CC predecible
-      return true;
-    }
+    // Sustantivas con función obvia (excepto término de preposición)
+    if(['sustantiva_sujeto','sustantiva_cd','sustantiva_atributo','sustantiva_aposicion'].includes(sub)) return true;
+    // Relativas con antecedente expreso → siempre CN
+    if(sub === 'relativa_especificativa' || sub === 'relativa_explicativa') return true;
+    // Construcciones: la función es CC con valor del subtipo (causal, final…)
+    if(['causal','final','condicional','concesiva','temporal','locativa','modal','ilativa_constr'].includes(sub)) return true;
     return false;
   }
 
