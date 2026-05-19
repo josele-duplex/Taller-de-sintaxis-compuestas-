@@ -6,6 +6,7 @@
    cuando Sint se extraiga en el Paso 9). */
 
 import { ML_THRESHOLD, ERROR_TO_LECCION, MICRO_LECCIONES } from './micro-lecciones.js';
+import { MICRO_LECCIONES_CP, ERROR_TO_LECCION_CP } from './micro-lecciones-cp.js';
 
 // Estado privado del módulo (reset por sesión = recarga de página)
 let _sessionFuncErrors = {};
@@ -21,12 +22,29 @@ export function trackError(modo, funcion) {
   _sessionFuncErrors[funcion]++;
 }
 
-// Check if micro-lesson should be suggested for this function
-export function shouldSuggestMicroLeccion(funcion) {
-  if (G.mode !== 'practice' && G.mode !== 'projector') return false;
+/**
+ * Decide si proponer una micro-lección al alumno tras un error.
+ *
+ * @param {string} funcion   ID de la función/categoría correcta del fallo
+ *                           (en Sint son cosas como 'CD', 'Sujeto', 'Atr.';
+ *                            en CP son cosas como 'sustantiva_cd', 'relativa_libre').
+ * @param {string} [tipo]    'sint' (por defecto) o 'compuesta'.
+ *
+ * Devuelve true cuando: la categoría tiene lección asignada y el contador
+ * de errores de sesión está exactamente en un múltiplo de ML_THRESHOLD (3).
+ * En 'sint' se restringe además a modos practice/projector; en 'compuesta'
+ * el módulo CP no tiene un G.mode equivalente y no se restringe.
+ */
+export function shouldSuggestMicroLeccion(funcion, tipo) {
+  if (tipo !== 'compuesta') {
+    // Comportamiento original Sint: solo en practice/projector
+    if (typeof G === 'undefined' || (G.mode !== 'practice' && G.mode !== 'projector')) return false;
+  }
   const count = _sessionFuncErrors[funcion] || 0;
-  const lecId = ERROR_TO_LECCION[funcion];
-  if (!lecId || !MICRO_LECCIONES[lecId]) return false;
+  const map    = tipo === 'compuesta' ? ERROR_TO_LECCION_CP   : ERROR_TO_LECCION;
+  const lecMap = tipo === 'compuesta' ? MICRO_LECCIONES_CP    : MICRO_LECCIONES;
+  const lecId = map[funcion];
+  if (!lecId || !lecMap[lecId]) return false;
   // Show suggestion at threshold, then every 3 errors after
   return count >= ML_THRESHOLD && count % ML_THRESHOLD === 0;
 }

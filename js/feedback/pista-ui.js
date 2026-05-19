@@ -8,17 +8,36 @@
 
 import { playClick, playSuccess, playError } from '../core/audio.js';
 import { MICRO_LECCIONES, ERROR_TO_LECCION } from './micro-lecciones.js';
+import { MICRO_LECCIONES_CP, ERROR_TO_LECCION_CP } from './micro-lecciones-cp.js';
 import { shouldSuggestMicroLeccion } from './tracking.js';
 
 // ── Estado privado del módulo ──
 let _pistaTimer = null;
 let _pistaCountdown = null;
-let _pendingMicroLeccion = null;
+let _pendingMicroLeccion = null;     // ID de la lección a mostrar
+let _pendingMicroLeccionTipo = 'sint'; // 'sint' o 'compuesta'
 let _mlStep = 0;
+
+// Helper interno: devuelve el diccionario de lecciones que corresponde al tipo actual.
+function _getCurrentLecMap() {
+  return _pendingMicroLeccionTipo === 'compuesta' ? MICRO_LECCIONES_CP : MICRO_LECCIONES;
+}
 
 // ════════════════════════════════════════════════════════
 // Pistas escalonadas en el overlay de feedback
 // ════════════════════════════════════════════════════════
+
+/**
+ * Limpia los timers de pista del módulo (timeout + countdown). Tras la
+ * migración (Paso 7) _pistaTimer y _pistaCountdown son variables privadas
+ * de este módulo, así que ni Sint ni CP pueden hacer clearTimeout(_pistaTimer)
+ * directamente. Esta función expone el comportamiento al exterior.
+ */
+export function clearPistaTimers() {
+  clearTimeout(_pistaTimer);
+  clearInterval(_pistaCountdown);
+}
+
 export function showPista() {
   clearTimeout(_pistaTimer);
   clearInterval(_pistaCountdown);
@@ -61,24 +80,41 @@ export function _startPistaCountdown() {
 // Micro-lección: overlay con bloques (concepto + quiz)
 // ════════════════════════════════════════════════════════
 
-// Show/hide micro-lesson button in feedback overlay
+// Show/hide micro-lesson button in Sint's feedback overlay (#fb-leccion-wrap).
+// Comportamiento original Sint sin cambios — solo añado el reset del tipo a 'sint'.
 export function updateMicroLeccionButton(funcion) {
   const wrap = document.getElementById('fb-leccion-wrap');
   if (!wrap) return;
   if (shouldSuggestMicroLeccion(funcion)) {
     _pendingMicroLeccion = ERROR_TO_LECCION[funcion];
+    _pendingMicroLeccionTipo = 'sint';
     wrap.style.display = 'block';
   } else {
     wrap.style.display = 'none';
   }
 }
 
-// Open the micro-lesson overlay
+// Variante para CP: no usa #fb-leccion-wrap (CP tiene su propio UI inline).
+// Si la lección debe sugerirse, almacena el ID pendiente y devuelve true.
+// CP usa el booleano para decidir si pinta su propio botón "Ver lección".
+export function shouldShowMicroLeccionCP(funcion) {
+  if (shouldSuggestMicroLeccion(funcion, 'compuesta')) {
+    _pendingMicroLeccion = ERROR_TO_LECCION_CP[funcion];
+    _pendingMicroLeccionTipo = 'compuesta';
+    return true;
+  }
+  return false;
+}
+
+// Open the micro-lesson overlay. Usa la lección guardada en
+// _pendingMicroLeccion + el tipo en _pendingMicroLeccionTipo para
+// determinar de qué diccionario (MICRO_LECCIONES o MICRO_LECCIONES_CP)
+// hay que leer la lección.
 export function openMicroLeccion() {
   if (!_pendingMicroLeccion) return;
-  const lec = MICRO_LECCIONES[_pendingMicroLeccion];
+  const lec = _getCurrentLecMap()[_pendingMicroLeccion];
   if (!lec) return;
-  closeFb(); // close feedback first
+  if (typeof closeFb === 'function') closeFb(); // close Sint feedback if applicable
   _mlStep = 0;
   document.getElementById('ml-tag').textContent = lec.tag;
   document.getElementById('ml-title').textContent = lec.titulo;
@@ -135,11 +171,11 @@ export function renderMlProgress(lec) {
 export function mlNext() {
   if (!_pendingMicroLeccion) return;
   _mlStep++;
-  renderMlStep(MICRO_LECCIONES[_pendingMicroLeccion]);
+  renderMlStep(_getCurrentLecMap()[_pendingMicroLeccion]);
 }
 
 export function mlAnswer(chosen, correct, lecId, stepIdx) {
-  const lec = MICRO_LECCIONES[lecId];
+  const lec = _getCurrentLecMap()[lecId];
   if (!lec) return;
   const bloque = lec.bloques[stepIdx];
   // Disable all buttons
@@ -168,4 +204,5 @@ export function mlAnswer(chosen, correct, lecId, stepIdx) {
 export function closeMicroLeccion() {
   closeOverlay('ml-overlay');
   _pendingMicroLeccion = null;
+  _pendingMicroLeccionTipo = 'sint';
 }

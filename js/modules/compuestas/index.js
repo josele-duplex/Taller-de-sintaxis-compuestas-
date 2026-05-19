@@ -1810,6 +1810,54 @@
     return null;
   }
 
+  // ─────────────────────────────────────────────────────────────────────
+  // Helper de feedback escalonado para CP (Fase 1.3 mayo 2026)
+  //
+  // Llama a lookupScaffoldCP(marcada, real) para obtener {fijo, pista}
+  // contextualizado, llama a trackError('compuestas', realId) para
+  // contabilizar el fallo, decide vía shouldShowMicroLeccionCP si añadir
+  // un botón "Ver lección", y devuelve un fragmento HTML listo para
+  // insertar en eng.mensajeFeedback.html.
+  //
+  // Todas las dependencias (trackError, lookupScaffoldCP,
+  // shouldShowMicroLeccionCP, openMicroLeccion) son funciones globales
+  // expuestas por app.js. Se llaman vía window.X y se protegen con
+  // typeof por si el módulo de feedback aún no estuviera cargado.
+  // ─────────────────────────────────────────────────────────────────────
+  function buildScaffoldFeedbackCP({titulo, realId, marcadaId, razon}){
+    // 1. Track error (no bloqueante)
+    if(typeof trackError === 'function'){
+      try{ trackError('compuestas', realId); }catch(e){}
+    }
+    // 2. Lookup contextual fijo + pista
+    let scaffold = {fijo:'', pista:''};
+    if(typeof lookupScaffoldCP === 'function'){
+      try{ scaffold = lookupScaffoldCP(marcadaId, realId); }catch(e){}
+    }
+    // 3. ¿Mostrar botón de lección? (también guarda el ID pendiente)
+    let showLec = false;
+    if(typeof shouldShowMicroLeccionCP === 'function'){
+      try{ showLec = !!shouldShowMicroLeccionCP(realId); }catch(e){}
+    }
+    // 4. Construir HTML del feedback escalonado
+    const titHtml = `<div class="cp-feedback-title">✗ ${titulo}${razon ? '. ' + escHtml(razon) : '.'}</div>`;
+    const fijoHtml = scaffold.fijo
+      ? `<div class="cp-feedback-fijo" style="margin-top:8px;font-size:.92rem;line-height:1.45">${escHtml(scaffold.fijo)}</div>`
+      : '';
+    const pistaHtml = scaffold.pista
+      ? `<div class="cp-feedback-pista-wrap" style="margin-top:10px">
+           <button type="button" class="cp-feedback-pista-btn" style="background:#FEF9C3;border:1.5px solid #CA8A04;color:#78350F;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:700" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">💡 Ver pista</button>
+           <div class="cp-feedback-pista" style="display:none;margin-top:8px;padding:10px 12px;background:#FEF9C3;border-left:3px solid #CA8A04;border-radius:0 8px 8px 0;font-size:.88rem;color:#78350F;line-height:1.45">${escHtml(scaffold.pista)}</div>
+         </div>`
+      : '';
+    const lecHtml = showLec
+      ? `<div style="margin-top:12px;text-align:center">
+           <button type="button" class="cp-feedback-lec-btn" style="background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#fff;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-size:.85rem;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3)" onclick="if(window.openMicroLeccion)window.openMicroLeccion()">📖 Ver micro-lección</button>
+         </div>`
+      : '';
+    return titHtml + fijoHtml + pistaHtml + lecHtml;
+  }
+
   function onClasifClick(q, v){
     const eng = state.engine;
     const ej = state.filtered[state.idx];
@@ -1834,15 +1882,21 @@
         eng.f4Errores += 1;
         eng.mensajeFeedback = {
           tipo:'err',
-          html: `✗ P${propIdx+1} no es ${escHtml(etiquetaTipoProp(v).toLowerCase())}. ${razonTipoIncorrecto(v, p)}`
+          html: buildScaffoldFeedbackCP({
+            titulo: `P${propIdx+1} no es ${escHtml(etiquetaTipoProp(v).toLowerCase())}`,
+            realId: p.tipo,
+            marcadaId: v,
+            razon: razonTipoIncorrecto(v, p)
+          })
         };
-        // Permitir que vuelva a intentar (solo si sigue en la misma proposición)
+        // Permitir que vuelva a intentar (timeout extendido a 4500ms para
+        // dar tiempo a leer la pista contextualizada y el botón de lección)
         setTimeout(()=>{
           if(eng.f4IdxActual === propIdx){
             resp.tipoOk = null;
             renderFase();
           }
-        }, 1800);
+        }, 4500);
       }
       renderFase();
       return;
@@ -1865,14 +1919,19 @@
         eng.f4Errores += 1;
         eng.mensajeFeedback = {
           tipo:'err',
-          html: `✗ No es de la familia ${escHtml(v)}. Inténtalo de nuevo: piensa en qué hace esta proposición dentro de la principal.`
+          html: buildScaffoldFeedbackCP({
+            titulo: `No es de la familia ${escHtml(v)}`,
+            realId: familiaCorrecta,
+            marcadaId: v,
+            razon: ''
+          })
         };
         setTimeout(()=>{
           if(eng.f4IdxActual === propIdx){
             resp.familiaOk = null;
             renderFase();
           }
-        }, 1800);
+        }, 4500);
       }
       renderFase();
       return;
@@ -1896,7 +1955,12 @@
         eng.f4Errores += 1;
         eng.mensajeFeedback = {
           tipo:'err',
-          html: `✗ No es ${escHtml(etiquetaSubtipoExtendida(v).toLowerCase())}. Inténtalo de nuevo.`
+          html: buildScaffoldFeedbackCP({
+            titulo: `No es ${escHtml(etiquetaSubtipoExtendida(v).toLowerCase())}`,
+            realId: subtipoOk,  // ojo: aquí subtipoOk es el ID del subtipo correcto
+            marcadaId: v,
+            razon: ''
+          })
         };
         setTimeout(()=>{
           // Solo desbloqueamos si el alumno sigue en la misma proposición
@@ -1904,7 +1968,7 @@
             resp.subtipoOk = null;
             renderFase();
           }
-        }, 1800);
+        }, 4500);
       }
       renderFase();
       return;
@@ -2319,15 +2383,22 @@
       } else {
         resp.tipoOk = false;
         eng.f5Errores += 1;
+        // El helper ya llama a trackError internamente con el realId correcto
+        // (rel.tipo). Sustituye al antiguo trackError('compuestas','tipo_relacion')
+        // que no encajaba con FEEDBACK_COMPUESTAS ni con ERROR_TO_LECCION_CP.
         eng.mensajeFeedback = {
           tipo:'err',
-          html: `✗ No es ${escHtml(v)}. Piensa bien si las proposiciones están al mismo nivel o si una depende de la otra.`
+          html: buildScaffoldFeedbackCP({
+            titulo: `No es ${escHtml(v)}`,
+            realId: rel.tipo,
+            marcadaId: v,
+            razon: 'Piensa bien si las proposiciones están al mismo nivel o si una depende de la otra'
+          })
         };
         if(typeof playError === 'function') playError();
-        if(typeof trackError === 'function') trackError('compuestas', 'tipo_relacion');
         setTimeout(()=>{
           if(eng.f5IdxActual === relIdx){ resp.tipoOk = null; renderFase(); }
-        }, 1800);
+        }, 4500);
       }
       renderFase();
       return;
@@ -2348,15 +2419,20 @@
       } else {
         resp.familiaOk = false;
         eng.f5Errores += 1;
+        // El helper trackError con el realId correcto (familia correcta)
         eng.mensajeFeedback = {
           tipo:'err',
-          html: `✗ No es de la familia ${escHtml(v)}. Piensa en qué hace esta proposición dentro de la principal.`
+          html: buildScaffoldFeedbackCP({
+            titulo: `No es de la familia ${escHtml(v)}`,
+            realId: familiaCorrecta,
+            marcadaId: v,
+            razon: 'Piensa en qué hace esta proposición dentro de la principal'
+          })
         };
         if(typeof playError === 'function') playError();
-        if(typeof trackError === 'function') trackError('compuestas', 'familia_' + v);
         setTimeout(()=>{
           if(eng.f5IdxActual === relIdx){ resp.familiaOk = null; renderFase(); }
-        }, 1800);
+        }, 4500);
       }
       renderFase();
       return;
@@ -2379,13 +2455,17 @@
         eng.f5Errores += 1;
         eng.mensajeFeedback = {
           tipo:'err',
-          html: `✗ No es ${escHtml(etiquetaSubtipoExtendida(v).toLowerCase())}. Inténtalo de nuevo.`
+          html: buildScaffoldFeedbackCP({
+            titulo: `No es ${escHtml(etiquetaSubtipoExtendida(v).toLowerCase())}`,
+            realId: rel.subtipo,
+            marcadaId: v,
+            razon: ''
+          })
         };
         if(typeof playError === 'function') playError();
-        if(typeof trackError === 'function') trackError('compuestas', 'subtipo_' + (rel.subtipo || 'desconocido'));
         setTimeout(()=>{
           if(eng.f5IdxActual === relIdx){ resp.subtipoOk = null; renderFase(); }
-        }, 1800);
+        }, 4500);
       }
       renderFase();
       return;

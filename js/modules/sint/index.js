@@ -1845,7 +1845,7 @@ function showFeedback(type,title,consejo,pista='',funcForMicroLeccion=''){
   const pistaBtn  = document.getElementById('fb-pista-btn');
   const pistaBox  = document.getElementById('fb-pista-content');
   const btnTxt    = document.getElementById('fb-pista-btn-txt');
-  clearTimeout(_pistaTimer); clearInterval(_pistaCountdown);
+  if(typeof clearPistaTimers === 'function') clearPistaTimers();
 
   const mode = (typeof G!=='undefined'&&G.mode)||'';
   const hp   = getHintsPractice();
@@ -1872,7 +1872,7 @@ function showFeedback(type,title,consejo,pista='',funcForMicroLeccion=''){
   openOverlay('fb-overlay');
 }
 function closeFb(){
-  clearTimeout(_pistaTimer); clearInterval(_pistaCountdown);
+  if(typeof clearPistaTimers === 'function') clearPistaTimers();
   closeOverlay('fb-overlay');
 }
 
