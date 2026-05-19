@@ -578,7 +578,7 @@ window.addEventListener('beforeunload', function(){
   } catch(e) {}
 });
 
-let G={};
+var G={}; // var (no let) para que se exponga como window.G y los modulos ES (tracking.js) puedan leerlo
 function initState(opts){
   _sessionFuncErrors = {};
   _examSent = false; // reset per session
