@@ -580,7 +580,10 @@ window.addEventListener('beforeunload', function(){
 
 var G={}; // var (no let) para que se exponga como window.G y los modulos ES (tracking.js) puedan leerlo
 function initState(opts){
-  _sessionFuncErrors = {};
+  // Reset contador de errores de la sesión (vive en tracking.js como
+  // _sessionFuncErrors privado; tras la migración hay que llamar a la
+  // función exportada en vez de reasignar la variable directamente).
+  if(typeof clearSessionFuncErrors === 'function') clearSessionFuncErrors();
   _examSent = false; // reset per session
   G={
     name:opts.name, email:opts.email,

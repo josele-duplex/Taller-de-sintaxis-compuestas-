@@ -33,3 +33,15 @@ export function shouldSuggestMicroLeccion(funcion) {
 
 // Accesor para que pista-ui.js consulte el contador de sesión sin manipularlo
 export function getSessionFuncErrors() { return _sessionFuncErrors; }
+
+/**
+ * Reinicia el contador de errores de la sesión actual.
+ * Debe llamarse al inicio de cada práctica/examen (desde initState
+ * de Sint o desde el equivalente en CP). Antes de la migración esto
+ * se hacía con `_sessionFuncErrors = {};` directamente desde Sint;
+ * tras la modularización _sessionFuncErrors es privado de este módulo
+ * y hace falta una función pública.
+ */
+export function clearSessionFuncErrors() {
+  _sessionFuncErrors = {};
+}

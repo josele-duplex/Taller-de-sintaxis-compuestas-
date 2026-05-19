@@ -66,6 +66,34 @@ Las proposiciones coordinadas en el JSON tienen `subtipo: null` y el subtipo rea
 
 **Impacto**: nulo en runtime, bloqueador para la modularización si no se elimina una de las dos.
 
+### 1.9 Funciones sin micro-lección asignada en Sint
+
+**Estado**: detectado en revisión de mayo 2026 (post-Fase 1.2 CP). El usuario recordaba que las micro-lecciones no saltaban como esperaba; investigando se vio que la lógica del umbral (3 errores) funciona, pero varias funciones no tienen entrada en `ERROR_TO_LECCION` y por tanto NUNCA disparan micro-lección por mucho que el alumno se equivoque.
+
+**Funciones SIN lección asignada** (en `js/feedback/micro-lecciones.js → ERROR_TO_LECCION`):
+
+- `Sujeto` (la más sangrante: es donde el alumnado se equivoca más).
+- `NP` (núcleo del predicado).
+- `CC Cantidad`, `CC Compañía`, `CC Finalidad`, `CC Instrumento` (solo CC Tiempo/Lugar/Modo/Causa tienen `regimen_cc`).
+- `Mod.Or.`, `Vocat.`, `Conector` (las "marcas").
+
+**Funciones que SÍ están mapeadas correctamente**: CD, CI, C.Ag., Marca.Pas.Ref., Marca.Imp., Atr., CPvo, PN, PV, C.Rég., CC Tiempo/Lugar/Modo/Causa, CC.
+
+**Solución pendiente**: crear contenido didáctico (concepto + 2-3 quizzes) para una nueva micro-lección `'sujeto'` que aborde la prueba de la concordancia, sujetos tácitos, impersonales y los principales errores tipo "Sujeto vs CD". Después, añadir `'Sujeto': 'sujeto'` a `ERROR_TO_LECCION`. Lo mismo para NP y las CCs faltantes.
+
+**Impacto**: pedagógico. El alumno que falle 30 veces en Sujeto nunca recibirá la lección de refuerzo. No es un bug de código sino de contenido faltante.
+
+### 1.10 Regresión de migración: reset de `_sessionFuncErrors` no funcionaba
+
+**Estado**: detectado y CORREGIDO en mayo 2026.
+
+**Problema**: tras la modularización, `_sessionFuncErrors` se convirtió en variable privada del módulo `js/feedback/tracking.js`. Sint en `initState` seguía haciendo `_sessionFuncErrors = {};`, pero esa línea ya no tocaba el contador real — silenciosamente creaba `window._sessionFuncErrors = {}` que no afectaba a tracking.js. Resultado: los errores acumulados de una práctica seguían contando en la siguiente, y la lógica del módulo `count % ML_THRESHOLD === 0` podía dar resultados extraños.
+
+**Fix aplicado**:
+- `tracking.js` exporta nueva función `clearSessionFuncErrors()` que reinicia el contador privado.
+- `js/modules/sint/index.js` en `initState()` llama a `clearSessionFuncErrors()` (con `typeof === 'function'` para no romper si el módulo de feedback aún no ha cargado).
+- Verificado en el navegador: tras reset, count=0 y micro-lección NO se sugiere; al 3er error fresco vuelve a sugerirse correctamente.
+
 ---
 
 ## 2. Deuda técnica estructural
