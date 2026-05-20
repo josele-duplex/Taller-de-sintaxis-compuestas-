@@ -35,6 +35,17 @@
     solucionVisible: false, // toggle de la caja de soluciones
     loaded: false,
     loadError: '',
+    // ── Modo examen (Fase 1.5, mayo 2026) ────────────────────────────
+    modoExamen: false,      // true cuando se cargó un examen por PIN
+    examPin: '',            // PIN del examen activo
+    examGrupo: '',          // grupo del examen (devuelto por GAS)
+    examEval: '',           // evaluación del examen
+    examName: '',           // nombre legible del examen
+    examTimerMin: 0,        // duración (reservado para futuro timer)
+    pinInputView: false,    // estamos mostrando el formulario de PIN
+    pinError: '',           // último mensaje de error del PIN
+    pinLoading: false,      // hay una petición de carga en curso
+    ejerciciosBanco: null,  // copia del banco antes de cargar el examen (para restaurar al salir)
     // ── Persistencia ────────────────────────────────────────────────
     sessionId: generarSessionId(),   // ID anónimo de esta carga de página
     enviosPendientes: new Map()      // Map<ejercicioId, payload> para reintentos
@@ -286,6 +297,11 @@
       renderError();
       return;
     }
+    // Fase 1.5: si estamos en la pantalla de entrada de PIN, renderizar eso
+    if(state.pinInputView){
+      renderEntradaPIN();
+      return;
+    }
     aplicarFiltros();
     const opc = calcularOpcionesFiltro();
     const total = state.ejercicios.length;
@@ -346,6 +362,11 @@
           </button>
           <button type="button" class="cp-btn-secondary" onclick="CP.limpiarFiltros()">Limpiar filtros</button>
         </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:.85rem;color:var(--muted)">¿Tienes un PIN del profesor?</span>
+          <button type="button" class="cp-btn-secondary" onclick="CP.entrarModoExamen()">🎓 Modo examen</button>
+        </div>
       </div>
 
       <div class="cp-tip">
@@ -363,6 +384,167 @@
         renderFiltros();
       });
     });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Fase 1.5.A: ENTRADA AL MODO EXAMEN
+  // El alumno introduce un PIN y el módulo carga los ejercicios pre-
+  // computados desde GAS (endpoint getExamenCompuesta). Una vez cargados,
+  // se llama a iniciarPractica() y el flujo continúa como práctica normal.
+  // ─────────────────────────────────────────────────────────────────────
+
+  // Activa la pantalla de entrada de PIN (sustituye el card de filtros).
+  function entrarModoExamen(){
+    state.pinInputView = true;
+    state.pinError = '';
+    state.pinLoading = false;
+    renderFiltros();
+  }
+
+  // Cancela la entrada de PIN y vuelve a la pantalla de filtros.
+  function cancelarPIN(){
+    state.pinInputView = false;
+    state.pinError = '';
+    state.pinLoading = false;
+    renderFiltros();
+  }
+
+  // Pinta el formulario de PIN (sustituye al card de filtros mientras
+  // state.pinInputView === true).
+  function renderEntradaPIN(){
+    const wrap = document.getElementById('cp-wrap');
+    if(!wrap) return;
+    document.getElementById('cp-counter').textContent = '🎓 Modo examen';
+    const loading = state.pinLoading;
+    const error = state.pinError;
+
+    wrap.innerHTML = `
+      <div class="cp-card" style="max-width:480px;margin:0 auto">
+        <h2 style="display:flex;align-items:center;gap:10px"><span>🎓</span> Modo examen</h2>
+        <p class="cp-sub">Introduce el PIN que te ha dado tu profesor para cargar el examen.</p>
+
+        <div style="margin:20px 0">
+          <label for="cp-pin-input" style="display:block;font-weight:700;margin-bottom:6px;font-size:.88rem;color:var(--ink2)">PIN del examen</label>
+          <input type="text" id="cp-pin-input" inputmode="numeric" pattern="\\d{4,6}" maxlength="6"
+            placeholder="4-6 dígitos"
+            ${loading ? 'disabled' : ''}
+            style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-size:1.2rem;letter-spacing:.3em;text-align:center;font-weight:700;font-family:inherit">
+        </div>
+
+        ${error ? `<div style="color:#991B1B;background:#FEF2F2;padding:10px 14px;border-radius:8px;font-size:.85rem;margin-bottom:14px;border-left:3px solid #DC2626">⚠ ${escHtml(error)}</div>` : ''}
+
+        ${loading
+          ? `<div style="text-align:center;padding:20px;color:var(--muted)"><div class="spinner"></div><div style="margin-top:8px">Cargando examen…</div></div>`
+          : `<div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button type="button" class="cp-btn-primary" onclick="CP.validarPIN()">✓ Validar PIN</button>
+              <button type="button" class="cp-btn-secondary" onclick="CP.cancelarPIN()">← Cancelar</button>
+            </div>`
+        }
+      </div>
+    `;
+
+    // Auto-focus en el input + Enter dispara la validación
+    if(!loading){
+      setTimeout(()=>{
+        const inp = document.getElementById('cp-pin-input');
+        if(!inp) return;
+        inp.focus();
+        inp.addEventListener('keydown', e=>{
+          if(e.key === 'Enter'){ e.preventDefault(); validarPIN(); }
+        });
+      }, 50);
+    }
+  }
+
+  // Llama al endpoint getExamenCompuesta del GAS y devuelve el objeto
+  // { ok, ejercicios, timer, fasesActivas, pin, grupo, evaluacion, nombreExamen }.
+  // Lanza Error en caso de fallo.
+  async function fetchExamenCompuesta(pin){
+    const apiUrl = getApiUrl();
+    if(!apiUrl) throw new Error('No hay URL de API configurada. Avisa al profesor.');
+    const url = `${apiUrl}?action=getExamenCompuesta&pin=${encodeURIComponent(pin)}`;
+    console.log('[CP examen] fetching:', url);
+    const r = await fetchWithRetry(url, {}, { timeoutMs: 12000, retries: 1 });
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const text = await r.text();
+    let d;
+    try { d = JSON.parse(text); }
+    catch(e){ throw new Error('Respuesta no válida del servidor.'); }
+    if(d && d.ok === false) throw new Error(d.error || 'Error desconocido del servidor.');
+    if(!Array.isArray(d.ejercicios) || d.ejercicios.length === 0){
+      throw new Error('El examen no contiene ejercicios.');
+    }
+    return d;
+  }
+
+  // Handler del botón "Validar PIN": lee el input, valida formato,
+  // llama al backend y, si todo va bien, sustituye el banco por los
+  // ejercicios del examen y arranca iniciarPractica().
+  async function validarPIN(){
+    const inp = document.getElementById('cp-pin-input');
+    if(!inp) return;
+    const pin = String(inp.value || '').trim();
+    if(!pin || !/^\d{4,6}$/.test(pin)){
+      state.pinError = 'El PIN debe tener entre 4 y 6 dígitos numéricos.';
+      renderFiltros();
+      return;
+    }
+    state.pinError = '';
+    state.pinLoading = true;
+    renderFiltros();
+
+    try {
+      const data = await fetchExamenCompuesta(pin);
+      // Validar mínimamente los ejercicios (mismo filtro que el banco normal)
+      const validos = data.ejercicios.filter(isValidEjercicio);
+      if(validos.length === 0){
+        throw new Error('El examen tiene ejercicios pero ninguno pasa la validación mínima.');
+      }
+      // Guardar el banco original para poder volver
+      if(state.ejerciciosBanco === null){
+        state.ejerciciosBanco = state.ejercicios;
+      }
+      // Sustituir el banco por los ejercicios del examen
+      state.ejercicios = validos;
+      state.filtered   = validos.slice();
+      state.idx        = 0;
+      // Metadata del examen
+      state.modoExamen  = true;
+      state.examPin     = pin;
+      state.examGrupo   = data.grupo        || '';
+      state.examEval    = data.evaluacion   || '';
+      state.examName    = data.nombreExamen || '';
+      state.examTimerMin= parseInt(data.timer) || 0;
+      state.pinInputView= false;
+      state.pinLoading  = false;
+      state.pinError    = '';
+      console.log('[CP examen] PIN', pin, '·', validos.length, 'ejercicios cargados · grupo:', state.examGrupo, '· eval:', state.examEval);
+      // Arrancar la práctica directamente
+      iniciarPractica();
+    } catch(e){
+      state.pinLoading = false;
+      state.pinError   = String(e && e.message || e);
+      renderFiltros();
+    }
+  }
+
+  // Sale del modo examen y restaura el banco original.
+  // Llamado desde abandonar/volverFiltros cuando state.modoExamen es true.
+  function salirModoExamen(){
+    if(!state.modoExamen) return;
+    state.modoExamen   = false;
+    state.examPin      = '';
+    state.examGrupo    = '';
+    state.examEval     = '';
+    state.examName     = '';
+    state.examTimerMin = 0;
+    // Restaurar el banco original (si lo teníamos guardado)
+    if(state.ejerciciosBanco !== null){
+      state.ejercicios     = state.ejerciciosBanco;
+      state.filtered       = state.ejercicios.slice();
+      state.ejerciciosBanco= null;
+    }
+    state.idx = 0;
   }
   window.CP_renderFiltros = renderFiltros;
 
@@ -4304,6 +4486,7 @@ export const CP = {
     avanzarFase, avanzarPropF4, avanzarRelacionF5, pedirPista, saltarFase,
     iniciarAnalisisInterno, irAResumen,
     onInternaPredBtn, onInternaSujBtn, onInternaFuncBtn, avanzarInternaSubPaso,
+    entrarModoExamen, cancelarPIN, validarPIN,
     verAnalisis, siguientePractica, abandonar,
     guardarManual,
     reintentar,
