@@ -46,6 +46,14 @@
     pinError: '',           // último mensaje de error del PIN
     pinLoading: false,      // hay una petición de carga en curso
     ejerciciosBanco: null,  // copia del banco antes de cargar el examen (para restaurar al salir)
+    // ── Recolección de resultados del examen (Fase 1.5.C) ────────────
+    // En examen NO enviamos por ejercicio (como hacemos en práctica).
+    // Recolectamos cada resultado aquí y, al final, hacemos un único
+    // envío agregado al endpoint saveResultadoCompuesta (singular).
+    examResultados: [],     // array de payloads por ejercicio
+    examEnviado: false,     // true tras envío agregado exitoso
+    examEnviando: false,    // hay un envío en curso
+    examErrorEnvio: '',     // último error del envío agregado
     // ── Persistencia ────────────────────────────────────────────────
     sessionId: generarSessionId(),   // ID anónimo de esta carga de página
     enviosPendientes: new Map()      // Map<ejercicioId, payload> para reintentos
@@ -520,6 +528,11 @@
       state.pinInputView= false;
       state.pinLoading  = false;
       state.pinError    = '';
+      // Reset del estado de envío del examen
+      state.examResultados   = [];
+      state.examEnviado      = false;
+      state.examEnviando     = false;
+      state.examErrorEnvio   = '';
       console.log('[CP examen] PIN', pin, '·', validos.length, 'ejercicios cargados · grupo:', state.examGrupo, '· eval:', state.examEval);
       // Mostrar banner del modo examen y arrancar la práctica
       showExamenBanner();
@@ -541,6 +554,11 @@
     state.examEval     = '';
     state.examName     = '';
     state.examTimerMin = 0;
+    // Reset del estado de envío (los datos se mantienen en localStorage hasta confirmar)
+    state.examResultados   = [];
+    state.examEnviado      = false;
+    state.examEnviando     = false;
+    state.examErrorEnvio   = '';
     // Restaurar el banco original (si lo teníamos guardado)
     if(state.ejerciciosBanco !== null){
       state.ejercicios     = state.ejerciciosBanco;
@@ -3556,10 +3574,19 @@
       errores_delimitar:    eng.f3Errores || 0,
       aciertos_clasificar:  (eng.f4Aciertos || 0) + (eng.f5Aciertos || 0),
       errores_clasificar:   (eng.f4Errores || 0) + (eng.f5Errores || 0),
+      // Fase 1.4: contadores del análisis interno (si el alumno lo hizo)
+      aciertos_interna:     (eng.interna && eng.interna.activo) ? eng.interna.aciertos : 0,
+      errores_interna:      (eng.interna && eng.interna.activo) ? eng.interna.errores : 0,
       fases_saltadas:       saltadas.join(','),
       pistas_usadas:        pistas.join(','),
       duracion_segundos:    duracion,
-      user_agent:           navigator.userAgent || ''
+      user_agent:           navigator.userAgent || '',
+      // Fase 1.5: metadata del examen (vacíos en práctica)
+      pin:                  state.modoExamen ? state.examPin : '',
+      modo:                 state.modoExamen ? 'examen' : 'practica',
+      grupo:                state.examGrupo || '',
+      evaluacion:           state.examEval || '',
+      nombre_examen:        state.examName || ''
     };
   }
 
@@ -3575,6 +3602,32 @@
     }
     const payload = construirPayloadResultado(ej);
     if(!payload) return;
+
+    // Fase 1.5.C: en modo examen NO enviamos por ejercicio. Recolectamos
+    // todos los resultados en state.examResultados y al final mandamos
+    // un único payload agregado vía saveResultadoCompuesta (singular)
+    // desde enviarResultadoExamen().
+    if(state.modoExamen){
+      // Evitar duplicados si el alumno entra/sale del resumen del mismo ej
+      const yaRecolectado = state.examResultados.some(r => r.ejercicio_id === payload.ejercicio_id);
+      if(!yaRecolectado){
+        state.examResultados.push(payload);
+        // Backup en localStorage por si el navegador se cierra
+        try {
+          localStorage.setItem('cp_exam_progress_' + state.examPin, JSON.stringify({
+            sessionId: state.sessionId,
+            ts: Date.now(),
+            resultados: state.examResultados
+          }));
+        } catch(e){ /* localStorage lleno o desactivado: ignorar */ }
+      }
+      eng.enviado = true;          // marca el ejercicio como tratado
+      eng.enviando = false;
+      eng.errorEnvio = '';
+      if(eng.fase === 'resumen') renderFase();
+      return;
+    }
+
     eng.enviando = true;
     eng.errorEnvio = '';
     if(eng.fase === 'resumen') renderFase();
@@ -3628,6 +3681,138 @@
       eng.errorEnvio = String(err && err.message || err);
     }
     if(eng.fase === 'resumen') renderFase();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Fase 1.5.C: envío AGREGADO del examen al endpoint singular
+  // saveResultadoCompuesta (hoja Compuestas_Resultados con cabeceras PIN,
+  // Modo, Total_Ejercicios, Completados, Nota, Fase0_Pts..Fase6_Pts,
+  // Detalle_JSON). Se llama UNA VEZ al final del examen, agregando los
+  // datos recolectados en state.examResultados durante la sesión.
+  // ─────────────────────────────────────────────────────────────────────
+
+  function construirPayloadExamenAgregado(){
+    const ress = state.examResultados || [];
+    const totalEjercicios = state.filtered.length;
+    const completados = ress.length;
+
+    // Aciertos/errores totales (todas las fases sumadas)
+    let acTotal = 0, erTotal = 0;
+    ress.forEach(r => {
+      acTotal += (r.aciertos_verbos||0) + (r.aciertos_nexos||0) + (r.aciertos_delimitar||0) + (r.aciertos_clasificar||0);
+      erTotal += (r.errores_verbos||0)  + (r.errores_nexos||0)  + (r.errores_delimitar||0)  + (r.errores_clasificar||0);
+    });
+    const total = acTotal + erTotal;
+    const pct   = total > 0 ? acTotal / total : 0;
+    // Nota sobre 10 con 2 decimales
+    const nota  = Math.round(pct * 10 * 100) / 100;
+
+    // Puntuación media por fase (% sobre 1, o null si la fase no se hizo en ningún ejercicio).
+    // El backend acepta null y lo guarda como celda vacía.
+    function avgFase(acKey, erKey){
+      let ac = 0, er = 0;
+      ress.forEach(r => { ac += r[acKey]||0; er += r[erKey]||0; });
+      const t = ac + er;
+      return t > 0 ? Math.round((ac/t) * 100) / 100 : null;
+    }
+    const fasesPts = {
+      f0: null,                                                       // no aplica (intro)
+      f1: avgFase('aciertos_verbos',     'errores_verbos'),
+      f2: avgFase('aciertos_nexos',      'errores_nexos'),
+      f3: avgFase('aciertos_delimitar',  'errores_delimitar'),
+      f4: avgFase('aciertos_clasificar', 'errores_clasificar'),       // fusionada (4+5)
+      f5: null,                                                       // fusionada en f4
+      f6: avgFase('aciertos_interna',    'errores_interna')           // Fase 1.4 análisis interno
+    };
+
+    // Detalle por ejercicio (compact)
+    const detalle = ress.map(r => ({
+      id:                r.ejercicio_id,
+      texto:             (r.texto || '').slice(0, 120),
+      aciertos_verbos:   r.aciertos_verbos     || 0,
+      errores_verbos:    r.errores_verbos      || 0,
+      aciertos_nexos:    r.aciertos_nexos      || 0,
+      errores_nexos:     r.errores_nexos       || 0,
+      aciertos_delimitar: r.aciertos_delimitar || 0,
+      errores_delimitar:  r.errores_delimitar  || 0,
+      aciertos_clasificar:r.aciertos_clasificar|| 0,
+      errores_clasificar: r.errores_clasificar || 0,
+      aciertos_interna:   r.aciertos_interna   || 0,
+      errores_interna:    r.errores_interna    || 0,
+      duracion_segundos:  r.duracion_segundos  || 0,
+      fases_saltadas:     r.fases_saltadas     || '',
+      pistas_usadas:      r.pistas_usadas      || ''
+    }));
+
+    return {
+      // CP no tiene pantalla de login todavía (item 4.2 del roadmap).
+      // El backend acepta email/name vacíos (sin dedup en ese caso).
+      email:           '',
+      name:            '',
+      grupo:           state.examGrupo || '',
+      evaluacion:      state.examEval  || '',
+      pin:             state.examPin   || '',
+      modo:            'examen',
+      totalEjercicios: totalEjercicios,
+      completados:     completados,
+      nota:            nota,
+      fasesPts:        fasesPts,
+      detalle:         detalle
+    };
+  }
+
+  async function enviarResultadoExamen(){
+    if(state.examEnviado || state.examEnviando) return;
+    const url = getApiUrl();
+    if(!url){
+      state.examErrorEnvio = 'API URL no configurada';
+      if(state.engine && state.engine.fase === 'resumen') renderFase();
+      return;
+    }
+    if(!state.examResultados || state.examResultados.length === 0){
+      state.examErrorEnvio = 'No hay resultados que enviar.';
+      if(state.engine && state.engine.fase === 'resumen') renderFase();
+      return;
+    }
+    state.examEnviando = true;
+    state.examErrorEnvio = '';
+    if(state.engine && state.engine.fase === 'resumen') renderFase();
+
+    const payload = construirPayloadExamenAgregado();
+    const body = JSON.stringify({
+      action:  'saveResultadoCompuesta',  // SINGULAR
+      ...payload
+    });
+
+    try {
+      const ctrl = new AbortController();
+      const timeoutId = setTimeout(()=>ctrl.abort(), 15000);
+      const res = await fetch(url, {
+        method: 'POST',
+        body: body,
+        signal: ctrl.signal,
+        mode: 'cors',
+        credentials: 'omit',
+        redirect: 'follow'
+      });
+      clearTimeout(timeoutId);
+      const json = await res.json();
+      if(json && json.ok){
+        state.examEnviado    = true;
+        state.examEnviando   = false;
+        state.examErrorEnvio = '';
+        // Limpiar el backup de localStorage tras envío exitoso
+        try { localStorage.removeItem('cp_exam_progress_' + state.examPin); } catch(e){}
+        console.log('[CP examen] Resultado agregado enviado', json.duplicate ? '(duplicado, ignorado por backend)' : '');
+      } else {
+        state.examEnviando   = false;
+        state.examErrorEnvio = (json && json.error) || 'Respuesta no válida del servidor';
+      }
+    } catch(err){
+      state.examEnviando   = false;
+      state.examErrorEnvio = String(err && err.message || err);
+    }
+    if(state.engine && state.engine.fase === 'resumen') renderFase();
   }
 
   function renderResumenHtml(ej){
@@ -3717,16 +3902,93 @@
 
       ${eng.interna.activo ? renderResumenInternaHtml(ej, eng.interna) : ''}
 
+      ${state.modoExamen ? renderEstadoExamenHtml() : ''}
+
       <div class="cp-actions" style="border-top:none;padding-top:0">
         <button type="button" class="cp-btn-secondary" onclick="CP.verAnalisis()">🔍 Ver análisis completo</button>
         <div class="cp-spacer"></div>
-        ${renderEstadoGuardado()}
+        ${state.modoExamen ? '' : renderEstadoGuardado()}
         ${(state.idx > 0 && !state.modoExamen) ? `<button type="button" class="cp-btn-secondary" onclick="CP.anterior()">← Anterior</button>` : ''}
-        ${state.idx < state.filtered.length - 1
-          ? `<button type="button" class="cp-btn-primary" onclick="CP.siguientePractica()">Siguiente ejercicio →</button>`
-          : `<button type="button" class="cp-btn-primary" onclick="CP.volverFiltros()">Volver a filtros</button>`}
+        ${renderBotonFinalResumen()}
       </div>
     `;
+  }
+
+  // Botón final del resumen — depende de si estamos en examen o práctica
+  // y de si es el último ejercicio o no.
+  function renderBotonFinalResumen(){
+    const esUltimo = state.idx >= state.filtered.length - 1;
+    if(!state.modoExamen){
+      // Práctica: comportamiento original
+      return esUltimo
+        ? `<button type="button" class="cp-btn-primary" onclick="CP.volverFiltros()">Volver a filtros</button>`
+        : `<button type="button" class="cp-btn-primary" onclick="CP.siguientePractica()">Siguiente ejercicio →</button>`;
+    }
+    // Modo examen
+    if(!esUltimo){
+      return `<button type="button" class="cp-btn-primary" onclick="CP.siguientePractica()">Siguiente ejercicio →</button>`;
+    }
+    // Último ejercicio + examen
+    if(state.examEnviado){
+      return `<button type="button" class="cp-btn-primary" onclick="CP.salirTrasEnvio()">✓ Salir del examen</button>`;
+    }
+    if(state.examEnviando){
+      return `<button type="button" class="cp-btn-primary" disabled>⏳ Enviando examen…</button>`;
+    }
+    return `<button type="button" class="cp-btn-primary" onclick="CP.enviarResultadoExamen()">📤 Enviar examen y terminar</button>`;
+  }
+
+  // Indicador del estado del envío agregado del examen (sustituye al
+  // estado por-ejercicio renderEstadoGuardado() durante el examen).
+  function renderEstadoExamenHtml(){
+    const nResultados = state.examResultados.length;
+    const total = state.filtered.length;
+    const esUltimo = state.idx >= total - 1;
+
+    if(state.examEnviado){
+      return `
+        <div style="margin:12px 0;padding:14px 16px;background:#F0FDF4;border-left:4px solid #059669;border-radius:8px;color:#166534">
+          <div style="font-weight:800;font-size:.95rem">✅ Examen enviado correctamente</div>
+          <div style="font-size:.82rem;margin-top:4px;color:#15803D">Tu profesor podrá ver el resultado en el panel del profesor.</div>
+        </div>`;
+    }
+    if(state.examEnviando){
+      return `
+        <div style="margin:12px 0;padding:14px 16px;background:#EFF6FF;border-left:4px solid #2563EB;border-radius:8px;color:#1E3A8A">
+          <div style="font-weight:800;font-size:.95rem">⏳ Enviando examen al profesor…</div>
+          <div style="font-size:.82rem;margin-top:4px;color:#1D4ED8">Espera unos segundos sin cerrar la página.</div>
+        </div>`;
+    }
+    if(state.examErrorEnvio){
+      return `
+        <div style="margin:12px 0;padding:14px 16px;background:#FEF2F2;border-left:4px solid #DC2626;border-radius:8px;color:#991B1B">
+          <div style="font-weight:800;font-size:.95rem">⚠ No se pudo enviar el examen</div>
+          <div style="font-size:.82rem;margin-top:4px">${escHtml(state.examErrorEnvio)}</div>
+          <div style="margin-top:8px"><button type="button" class="cp-btn-secondary" onclick="CP.enviarResultadoExamen()">🔄 Reintentar envío</button></div>
+        </div>`;
+    }
+    // Estado inicial (ejercicio en curso o último sin enviar todavía)
+    if(esUltimo){
+      return `
+        <div style="margin:12px 0;padding:14px 16px;background:#FFFBEB;border-left:4px solid #F59E0B;border-radius:8px;color:#92400E">
+          <div style="font-weight:800;font-size:.95rem">📤 Examen listo para enviar</div>
+          <div style="font-size:.82rem;margin-top:4px">Has completado ${nResultados} de ${total} ejercicios. Pulsa <b>Enviar examen y terminar</b> para mandar tu resultado al profesor.</div>
+        </div>`;
+    }
+    return `
+      <div style="margin:12px 0;padding:10px 14px;background:#F8FAFC;border-left:3px solid var(--muted);border-radius:6px;color:var(--ink2);font-size:.82rem">
+        💾 Resultado del ejercicio guardado localmente. Se enviará al profesor cuando completes el examen (${nResultados}/${total}).
+      </div>`;
+  }
+
+  // Tras envío exitoso, el botón "Salir del examen" hace una limpieza
+  // sin el confirm() habitual (porque el examen ya está enviado y no
+  // hay nada que perder).
+  function salirTrasEnvio(){
+    if(state.modoExamen) salirModoExamen();
+    state.engine = null;
+    state.modoLectura = false;
+    renderFiltros();
   }
 
   // Sección plegable del resumen que muestra los resultados del análisis
@@ -4541,6 +4803,7 @@ export const CP = {
     iniciarAnalisisInterno, irAResumen,
     onInternaPredBtn, onInternaSujBtn, onInternaFuncBtn, avanzarInternaSubPaso,
     entrarModoExamen, cancelarPIN, validarPIN,
+    enviarResultadoExamen, salirTrasEnvio,
     verAnalisis, siguientePractica, abandonar,
     guardarManual,
     reintentar,
