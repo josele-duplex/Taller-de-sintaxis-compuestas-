@@ -554,6 +554,62 @@ if(window.location.protocol === 'file:') {
       </div>
       <p id="tp-dash-msg" style="font-size:.82rem;color:var(--muted);display:none;margin-top:8px"></p>
     </div>
+
+    <!-- ── Fase 1.6: Resultados de Compuestas ──────────────────────── -->
+    <div class="s-box" style="border:2px solid #7C3AED;background:#FAF5FF">
+      <div class="s-title" style="color:#6D28D9">🧩 Resultados de Compuestas</div>
+      <div class="s-desc">Sesiones guardadas en <code>Compuestas_Resultados</code>. Filtra por grupo, evaluación o modo.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="flex:1;min-width:80px">
+          <label style="font-size:.72rem;font-weight:700;color:var(--muted)">Grupo</label>
+          <input id="tp-cp-grupo" class="input" type="text" placeholder="3ºA" style="font-size:.88rem;padding:5px 8px">
+        </div>
+        <div style="flex:1;min-width:60px">
+          <label style="font-size:.72rem;font-weight:700;color:var(--muted)">Evaluación</label>
+          <input id="tp-cp-eval" class="input" type="text" placeholder="1ª" style="font-size:.88rem;padding:5px 8px">
+        </div>
+        <div style="min-width:90px">
+          <label style="font-size:.72rem;font-weight:700;color:var(--muted)">Modo</label>
+          <select id="tp-cp-modo" class="input" style="font-size:.88rem;padding:5px 8px">
+            <option value="">Todos</option>
+            <option value="examen">Examen</option>
+            <option value="practica">Práctica</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:end;gap:6px">
+          <button type="button" class="btn btn-primary btn-sm" onclick="loadCpDashboard()">Cargar</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="exportCpCSV()">📥 CSV</button>
+        </div>
+      </div>
+      <div id="tp-cp-stats" style="display:none;padding:10px 14px;background:#fff;border-radius:10px;border:1.5px solid #DDD6FE;margin-bottom:10px">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem">
+          <div><strong>Sesiones:</strong> <span id="cp-dash-total">0</span></div>
+          <div><strong>Media:</strong> <span id="cp-dash-media" style="font-weight:900">—</span></div>
+          <div style="color:#059669"><strong>Aprobadas:</strong> <span id="cp-dash-aprob">0</span></div>
+          <div style="color:#DC2626"><strong>Suspendidas:</strong> <span id="cp-dash-susp">0</span></div>
+        </div>
+        <div style="margin-top:8px;height:8px;background:#E5E7EB;border-radius:99px;overflow:hidden">
+          <div id="cp-dash-bar" style="height:100%;background:#7C3AED;border-radius:99px;transition:width .6s"></div>
+        </div>
+      </div>
+      <div id="tp-cp-table" style="display:none;max-height:300px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+          <thead><tr style="background:#F5F3FF;position:sticky;top:0">
+            <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #DDD6FE">Fecha</th>
+            <th style="padding:6px 4px;text-align:left;border-bottom:2px solid #DDD6FE">Alumno</th>
+            <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #DDD6FE">Grupo</th>
+            <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #DDD6FE">Eval.</th>
+            <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #DDD6FE">PIN</th>
+            <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #DDD6FE">Modo</th>
+            <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #DDD6FE">Hechos</th>
+            <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #DDD6FE">Nota</th>
+          </tr></thead>
+          <tbody id="cp-dash-tbody"></tbody>
+        </table>
+      </div>
+      <p id="tp-cp-msg" style="font-size:.82rem;color:var(--muted);display:none;margin-top:8px"></p>
+    </div>
+
     <div class="gas-guide">
       <h3>📋 Estructura de Alumnos_Resultados</h3>
       <pre>A: Fecha · B: Correo · C: Nombre · D: Grupo · E: Evaluación · F: Examen

@@ -213,6 +213,152 @@ async function testCurrentPin(){
 }
 
 // ════════════════════════════════════════════════════════
+// CP DASHBOARD — Fase 1.6 (mayo 2026)
+// Lee la hoja Compuestas_Resultados via el endpoint
+// getResultadosCompuestas del GAS y la pinta en una tabla
+// con filtros (grupo, evaluación, modo). Exporta CSV.
+// Patrón clonado de loadDashboard/exportCSV de Sint.
+// ════════════════════════════════════════════════════════
+let _cpDashData = []; // cache de resultados para exportar CSV
+
+async function loadCpDashboard(){
+  const apiUrl = getApiUrl();
+  const msg = document.getElementById('tp-cp-msg');
+  if(!apiUrl){
+    msg.textContent = '⚠ Configura la URL de la API primero.';
+    msg.style.color = 'var(--red)';
+    msg.style.display = 'block';
+    return;
+  }
+  const grupo      = document.getElementById('tp-cp-grupo').value.trim();
+  const evaluacion = document.getElementById('tp-cp-eval').value.trim();
+  const modo       = document.getElementById('tp-cp-modo').value;
+  msg.textContent = '⏳ Cargando resultados de Compuestas…';
+  msg.style.color = 'var(--blue)';
+  msg.style.display = 'block';
+  try {
+    const params = new URLSearchParams({ action: 'getResultadosCompuestas' });
+    if(grupo)      params.set('grupo', grupo);
+    if(evaluacion) params.set('evaluacion', evaluacion);
+    if(modo)       params.set('modo', modo);
+    const r = await fetchWithTimeout(apiUrl + '?' + params.toString(), {}, 12000);
+    const d = await r.json();
+    if(!d.ok){
+      msg.textContent = '⚠ Error: ' + (d.error || 'desconocido');
+      msg.style.color = 'var(--red)';
+      document.getElementById('tp-cp-stats').style.display = 'none';
+      document.getElementById('tp-cp-table').style.display = 'none';
+      _cpDashData = [];
+      return;
+    }
+    const results = d.results || [];
+    if(results.length === 0){
+      const filtros = [];
+      if(grupo)      filtros.push('grupo '+grupo);
+      if(evaluacion) filtros.push('eval. '+evaluacion);
+      if(modo)       filtros.push(modo);
+      msg.textContent = 'Sin resultados' + (filtros.length ? ' para ' + filtros.join(', ') : '') + '.';
+      msg.style.color = 'var(--muted)';
+      document.getElementById('tp-cp-stats').style.display = 'none';
+      document.getElementById('tp-cp-table').style.display = 'none';
+      _cpDashData = [];
+      return;
+    }
+    _cpDashData = results;
+
+    // Estadísticas (solo cuentan filas con Nota numérica)
+    const notas = results.map(r => parseFloat(r.Nota)).filter(n => !isNaN(n));
+    const media = notas.length > 0 ? notas.reduce((a,b)=>a+b,0) / notas.length : 0;
+    const aprob = notas.filter(n => n >= 5).length;
+    const susp  = notas.length - aprob;
+    document.getElementById('cp-dash-total').textContent = results.length;
+    const mediaEl = document.getElementById('cp-dash-media');
+    mediaEl.textContent = notas.length > 0 ? media.toFixed(1) : '—';
+    mediaEl.style.color = media >= 5 ? '#059669' : '#DC2626';
+    document.getElementById('cp-dash-aprob').textContent = aprob;
+    document.getElementById('cp-dash-susp').textContent  = susp;
+    const pctAprob = notas.length > 0 ? Math.round(aprob / notas.length * 100) : 0;
+    document.getElementById('cp-dash-bar').style.width = pctAprob + '%';
+    document.getElementById('tp-cp-stats').style.display = 'block';
+
+    // Tabla
+    const fmt = v => v == null ? '' : String(v);
+    const fmtFecha = f => {
+      if(!f) return '';
+      // GAS devuelve Date como ISO string o como timestamp; intentamos formatear
+      try {
+        const d = new Date(f);
+        if(isNaN(d.getTime())) return String(f);
+        return d.toISOString().slice(0,16).replace('T',' ');
+      } catch(e){ return String(f); }
+    };
+    const tbody = document.getElementById('cp-dash-tbody');
+    tbody.innerHTML = results.map(row => {
+      const nota = parseFloat(row.Nota);
+      const notaOk = !isNaN(nota);
+      const color = !notaOk ? 'var(--muted)' : nota >= 8 ? '#059669' : nota >= 5 ? '#D97706' : '#DC2626';
+      const alumno = fmt(row.Nombre) || fmt(row.Correo) || '—';
+      const completados = (row.Completados!=null && row.Total_Ejercicios!=null)
+        ? `${row.Completados}/${row.Total_Ejercicios}` : '—';
+      const incompleto = (row.Completados != null && row.Total_Ejercicios != null
+                          && Number(row.Completados) < Number(row.Total_Ejercicios));
+      const modoLbl = fmt(row.Modo).toLowerCase() === 'examen' ? '🎓 Examen' : '📖 Práctica';
+      return `<tr style="border-bottom:1px solid rgba(0,0,0,.06)">
+        <td style="padding:5px 8px;font-size:.74rem;color:var(--muted)">${escHtml(fmtFecha(row.Fecha))}</td>
+        <td style="padding:5px 4px;font-weight:600">${escHtml(alumno)}</td>
+        <td style="padding:5px 4px;text-align:center;color:var(--muted)">${escHtml(fmt(row.Grupo))}</td>
+        <td style="padding:5px 4px;text-align:center;color:var(--muted)">${escHtml(fmt(row.Evaluacion))}</td>
+        <td style="padding:5px 4px;text-align:center;font-family:monospace;font-size:.74rem">${escHtml(fmt(row.PIN))}</td>
+        <td style="padding:5px 4px;text-align:center;font-size:.74rem">${modoLbl}</td>
+        <td style="padding:5px 4px;text-align:center;font-size:.78rem;${incompleto?'color:#DC2626;font-weight:700':''}">${completados}</td>
+        <td style="padding:5px 4px;text-align:center;font-weight:900;color:${color}">${notaOk ? nota.toFixed(1) : '—'}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('tp-cp-table').style.display = 'block';
+
+    msg.textContent = `✓ ${results.length} resultados cargados.`;
+    msg.style.color = 'var(--green)';
+    setTimeout(()=>{ msg.style.display = 'none'; }, 3000);
+  } catch(e){
+    msg.textContent = '⚠ Error: ' + (e && e.message || e);
+    msg.style.color = 'var(--red)';
+  }
+}
+
+function exportCpCSV(){
+  if(!_cpDashData || _cpDashData.length === 0){
+    flashTp('Carga resultados primero.', 'var(--amber)');
+    return;
+  }
+  // Las cabeceras siguen exactamente las columnas de Compuestas_Resultados
+  // (incluido Detalle_JSON, en bruto).
+  const HEADERS = ['Fecha','Correo','Nombre','Grupo','Evaluacion','PIN','Modo',
+                   'Total_Ejercicios','Completados','Nota',
+                   'Fase0_Pts','Fase1_Pts','Fase2_Pts','Fase3_Pts',
+                   'Fase4_Pts','Fase5_Pts','Fase6_Pts','Detalle_JSON'];
+  const escCSV = v => {
+    if(v == null) return '';
+    const s = String(v).replace(/"/g, '""');
+    return `"${s}"`;
+  };
+  let csv = HEADERS.join(',') + '\n';
+  _cpDashData.forEach(r => {
+    csv += HEADERS.map(h => escCSV(r[h])).join(',') + '\n';
+  });
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const grupo  = document.getElementById('tp-cp-grupo').value.trim() || 'todos';
+  const eval_  = document.getElementById('tp-cp-eval').value.trim() || 'todas';
+  const modo   = document.getElementById('tp-cp-modo').value || 'all';
+  a.download = `compuestas_resultados_${grupo}_eval${eval_}_${modo}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  flashTp('✓ CSV de Compuestas descargado.', 'var(--green)');
+}
+
+// ════════════════════════════════════════════════════════
 // MISSION SYSTEM v6.0
 // ════════════════════════════════════════════════════════
 let _pendingMissionLaunch = null; // stores launch params while mission selector is open
@@ -396,7 +542,9 @@ export {
   testCurrentPin, activateExam, flashTp,
   createMision, viewMisiones, deleteMision, getMisionesForMode,
   showMissionSelector, closeMissionSelector, launchMission,
-  launchReinforcement, startFreePlay
+  launchReinforcement, startFreePlay,
+  // Fase 1.6 — dashboard de Compuestas
+  loadCpDashboard, exportCpCSV
 };
 
 if (typeof window !== 'undefined') {
@@ -405,6 +553,8 @@ if (typeof window !== 'undefined') {
     genPin, saveTimer, testApiUrl, testCurrentPin, activateExam,
     createMision, viewMisiones, deleteMision, showMissionSelector,
     closeMissionSelector, launchMission, launchReinforcement, startFreePlay,
-    flashTp
+    flashTp,
+    // Fase 1.6 — dashboard de Compuestas
+    loadCpDashboard, exportCpCSV
   });
 }
