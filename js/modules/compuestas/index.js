@@ -78,6 +78,8 @@
   }
 
   function exit(){
+    if(!confirmarSalidaExamen()) return;
+    if(state.modoExamen) salirModoExamen();
     showPortada();
   }
   window.cpExit = exit;
@@ -519,7 +521,8 @@
       state.pinLoading  = false;
       state.pinError    = '';
       console.log('[CP examen] PIN', pin, '·', validos.length, 'ejercicios cargados · grupo:', state.examGrupo, '· eval:', state.examEval);
-      // Arrancar la práctica directamente
+      // Mostrar banner del modo examen y arrancar la práctica
+      showExamenBanner();
       iniciarPractica();
     } catch(e){
       state.pinLoading = false;
@@ -545,6 +548,51 @@
       state.ejerciciosBanco= null;
     }
     state.idx = 0;
+    hideExamenBanner();
+  }
+
+  // ── Fase 1.5.B: Banner visual del modo examen ──
+  // Se inserta como hermano del .cp-topbar dentro de #screen-compuestas.
+  // Muestra "🎓 EXAMEN · NombreExamen · Grupo X · Eval. Y · PIN xxxx".
+  // Se crea con showExamenBanner() (idempotente) y se quita con hideExamenBanner().
+
+  function showExamenBanner(){
+    const screen = document.getElementById('screen-compuestas');
+    if(!screen) return;
+    let banner = document.getElementById('cp-examen-banner');
+    if(!banner){
+      banner = document.createElement('div');
+      banner.id = 'cp-examen-banner';
+      banner.style.cssText = 'background:linear-gradient(135deg,#A855F7,#7C3AED);color:#fff;padding:7px 14px;font-size:.82rem;font-weight:700;text-align:center;border-bottom:2px solid #6D28D9;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;letter-spacing:.01em';
+      const topbar = screen.querySelector('.cp-topbar');
+      if(topbar && topbar.nextSibling){
+        screen.insertBefore(banner, topbar.nextSibling);
+      } else if(topbar){
+        topbar.parentNode.insertBefore(banner, topbar.nextSibling);
+      } else {
+        screen.insertBefore(banner, screen.firstChild);
+      }
+    }
+    const sepHtml = '<span style="opacity:.55">·</span>';
+    const parts = ['<span>🎓 EXAMEN</span>'];
+    if(state.examName)  parts.push('<span>' + escHtml(state.examName) + '</span>');
+    if(state.examGrupo) parts.push('<span>Grupo ' + escHtml(state.examGrupo) + '</span>');
+    if(state.examEval)  parts.push('<span>Eval. ' + escHtml(state.examEval) + '</span>');
+    parts.push('<span>PIN ' + escHtml(state.examPin) + '</span>');
+    banner.innerHTML = parts.join(sepHtml);
+    banner.style.display = '';
+  }
+
+  function hideExamenBanner(){
+    const banner = document.getElementById('cp-examen-banner');
+    if(banner) banner.remove();
+  }
+
+  // Helper que pide confirmación al alumno antes de salir del examen.
+  // Devuelve true si el alumno confirma (o si no estaba en modo examen).
+  function confirmarSalidaExamen(){
+    if(!state.modoExamen) return true;
+    return window.confirm('¿Seguro que quieres salir del examen?\n\nPerderás todo el progreso de esta sesión y no podrás continuar con este PIN.');
   }
   window.CP_renderFiltros = renderFiltros;
 
@@ -3673,7 +3721,7 @@
         <button type="button" class="cp-btn-secondary" onclick="CP.verAnalisis()">🔍 Ver análisis completo</button>
         <div class="cp-spacer"></div>
         ${renderEstadoGuardado()}
-        ${state.idx > 0 ? `<button type="button" class="cp-btn-secondary" onclick="CP.anterior()">← Anterior</button>` : ''}
+        ${(state.idx > 0 && !state.modoExamen) ? `<button type="button" class="cp-btn-secondary" onclick="CP.anterior()">← Anterior</button>` : ''}
         ${state.idx < state.filtered.length - 1
           ? `<button type="button" class="cp-btn-primary" onclick="CP.siguientePractica()">Siguiente ejercicio →</button>`
           : `<button type="button" class="cp-btn-primary" onclick="CP.volverFiltros()">Volver a filtros</button>`}
@@ -3955,6 +4003,8 @@
 
   // Abandonar el ejercicio actual y volver a filtros (sin perder estado del banco)
   function abandonar(){
+    if(!confirmarSalidaExamen()) return;
+    if(state.modoExamen) salirModoExamen();
     state.engine = null;
     state.modoLectura = false;
     renderFiltros();
@@ -4364,7 +4414,11 @@
   // ─────────────────────────────────────────────────────────────────────
   function siguiente(){ if(state.idx < state.filtered.length-1){ state.idx++; state.solucionVisible=false; renderEjercicio(); } }
   function anterior(){  if(state.idx > 0){ state.idx--; state.solucionVisible=false; renderEjercicio(); } }
-  function volverFiltros(){ state.engine = null; state.modoLectura = false; renderFiltros(); }
+  function volverFiltros(){
+    if(!confirmarSalidaExamen()) return;
+    if(state.modoExamen) salirModoExamen();
+    state.engine = null; state.modoLectura = false; renderFiltros();
+  }
   function toggleSolucion(){ state.solucionVisible = !state.solucionVisible; renderEjercicio(); }
 
   async function reintentar(){
