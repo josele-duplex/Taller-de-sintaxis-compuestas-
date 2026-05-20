@@ -622,6 +622,12 @@
       return;
     }
 
+    // ── Fase 1.4: análisis interno de proposiciones ──────────────────────
+    if(eng.fase === 'interna'){
+      wrap.innerHTML = renderInternaHtml(ej);
+      return;
+    }
+
     if(eng.fase === 'resumen'){
       wrap.innerHTML = renderResumenHtml(ej);
       // Auto-envío a Sheets una sola vez (los flags `enviado` y `enviando` previenen duplicados)
@@ -2681,6 +2687,409 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────
+  // Fase 1.4.B: ANÁLISIS INTERNO — Render + handlers
+  //
+  // El mini-motor recorre cada proposición con 3 sub-pasos:
+  //   'predicado'  → tipo de predicado (PV / PN)
+  //   'sujeto'     → tipo de sujeto (léxico / tácito / impersonal)
+  //   'funciones'  → identificar cada complemento del predicado (CD, CI…)
+  //
+  // El estado vive en eng.interna (inicializado en iniciarAnalisisInterno).
+  // Todas las funciones render son puras (devuelven HTML); los handlers
+  // mutan eng.interna.respuestas[] y llaman a renderFase().
+  // ─────────────────────────────────────────────────────────────────────
+
+  // Normaliza el tipo de predicado a 'verbal' o 'nominal' sea cual sea el
+  // valor exacto que use el banco ('PV', 'nominal', 'predicado verbal'…).
+  function _normPredTipo(t){
+    const s = (t||'').toLowerCase().trim();
+    if(!s) return '';
+    if(s === 'pv' || s.includes('verbal')) return 'verbal';
+    if(s === 'pn' || s.includes('nominal')) return 'nominal';
+    return s;
+  }
+
+  // ── Render principal del modo interna ──────────────────────────────
+
+  function renderInternaHtml(ej){
+    const eng = state.engine;
+    const interna = eng.interna;
+    const props = ej.proposiciones || [];
+    const propIdx = interna.propIdx;
+    const prop = props[propIdx];
+    if(!prop){
+      return '<div style="padding:20px;color:var(--muted)">Error: proposición no disponible.</div>';
+    }
+    const ai = prop.analisis_interno || {};
+    const resp = interna.respuestas[propIdx] || {};
+    const subPaso = interna.subPaso;
+    const propNum = propIdx + 1;
+    const totalProps = props.length;
+    const colorVar = `var(--cp-p${Math.min(propNum, 4)})`;
+
+    // Barra de progreso del análisis interno
+    const subPasoLabels = {predicado: 'Predicado', sujeto: 'Sujeto', funciones: 'Funciones'};
+    const progressHtml = `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface2);border-radius:10px;margin-bottom:12px;font-size:.83rem;flex-wrap:wrap">
+        <span style="font-weight:800;color:${colorVar}">P${propNum}</span>
+        <span style="color:var(--muted)">de ${totalProps} proposición${totalProps > 1 ? 'es' : ''}</span>
+        <span style="margin-left:auto;font-weight:600;color:var(--ink2)">${subPasoLabels[subPaso] || subPaso}</span>
+      </div>`;
+
+    // Texto de la proposición
+    const propTextHtml = `
+      <div style="padding:10px 14px;background:var(--surface2);border-radius:10px;margin-bottom:14px;font-style:italic;font-size:.97rem;color:var(--ink);line-height:1.55">
+        «${escHtml(prop.texto || '')}»
+      </div>`;
+
+    let bodyHtml = '';
+    if(subPaso === 'predicado')  bodyHtml = _renderInternaPredHtml(prop, ai, resp);
+    else if(subPaso === 'sujeto') bodyHtml = _renderInternaSujHtml(ej, prop, ai, resp);
+    else if(subPaso === 'funciones') bodyHtml = _renderInternaFuncsHtml(ej, ai, resp);
+
+    return `
+      <div style="max-width:600px;margin:0 auto">
+        ${progressHtml}
+        ${propTextHtml}
+        ${bodyHtml}
+        <div style="margin-top:16px">
+          <button type="button" class="cp-btn-secondary" onclick="CP.abandonar()">← Volver a filtros</button>
+        </div>
+      </div>`;
+  }
+
+  // ── Sub-paso: Predicado (PV vs PN) ─────────────────────────────────
+
+  function _renderInternaPredHtml(prop, ai, resp){
+    const predTipoCorr = _normPredTipo((ai.predicado || {}).tipo || '');
+    const verbForm = escHtml(prop.verbo?.forma || '?');
+
+    // Sin datos → pantalla informativa + avanzar
+    if(!predTipoCorr){
+      return `
+        <div class="cp-instr cp-instr-grande">
+          <span class="cp-instr-emoji">ℹ️</span>
+          <div class="cp-instr-body">
+            <h3 class="cp-instr-titulo">Tipo de predicado</h3>
+            <p class="cp-instr-desc" style="color:var(--muted)">Este ejercicio no incluye datos sobre el tipo de predicado.</p>
+            <div style="margin-top:10px">
+              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">Siguiente →</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // Ya respondido → feedback
+    if(resp.predicadoOk !== null && resp.predicadoOk !== undefined){
+      const esOk = resp.predicadoOk;
+      const esVerbal = predTipoCorr === 'verbal';
+      return `
+        <div class="cp-instr cp-instr-grande">
+          <span class="cp-instr-emoji">${esOk ? '✅' : '❌'}</span>
+          <div class="cp-instr-body">
+            <h3 class="cp-instr-titulo">${esOk ? '¡Correcto!' : 'No era eso.'}</h3>
+            <p class="cp-instr-desc">Esta proposición tiene un <b>Predicado ${esVerbal ? 'Verbal (PV)' : 'Nominal (PN)'}</b>.
+              ${esVerbal
+                ? `El verbo «<b>${verbForm}</b>» es pleno (no copulativo): el predicado verbal expresa la acción, proceso o estado.`
+                : `El verbo «<b>${verbForm}</b>» es copulativo (<i>ser, estar, parecer…</i>): enlaza el sujeto con el atributo.`
+              }
+            </p>
+            <div style="margin-top:10px">
+              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">Siguiente →</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // Pregunta
+    return `
+      <div class="cp-instr cp-instr-grande">
+        <span class="cp-instr-emoji">🔍</span>
+        <div class="cp-instr-body">
+          <h3 class="cp-instr-titulo">¿Qué tipo de predicado tiene esta proposición?</h3>
+          <p class="cp-instr-desc">Fíjate en el verbo «<b>${verbForm}</b>»: ¿es un verbo pleno (acción/estado) o es un verbo copulativo (<i>ser, estar, parecer</i>) que enlaza sujeto con atributo?</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+            <button type="button" class="cp-btn-secondary" onclick="CP.onInternaPredBtn('verbal')">Predicado Verbal (PV)</button>
+            <button type="button" class="cp-btn-secondary" onclick="CP.onInternaPredBtn('nominal')">Predicado Nominal (PN)</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Sub-paso: Sujeto (léxico / tácito / impersonal) ────────────────
+
+  function _renderInternaSujHtml(ej, prop, ai, resp){
+    const suj = ai.sujeto || {};
+    const sujTipoCorr = suj.tipo || '';
+    const verbForm = escHtml(prop.verbo?.forma || '?');
+
+    // Sin datos → skip
+    if(!sujTipoCorr){
+      return `
+        <div class="cp-instr cp-instr-grande">
+          <span class="cp-instr-emoji">ℹ️</span>
+          <div class="cp-instr-body">
+            <h3 class="cp-instr-titulo">Sujeto</h3>
+            <p class="cp-instr-desc" style="color:var(--muted)">Este ejercicio no incluye datos sobre el sujeto.</p>
+            <div style="margin-top:10px">
+              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">Siguiente →</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // Ya respondido → feedback
+    if(resp.sujetoOk !== null && resp.sujetoOk !== undefined){
+      const esOk = resp.sujetoOk;
+      const labelMap = {
+        'lexico':      'léxico (aparece explícito en el texto)',
+        'tacito':      'tácito o elíptico (se deduce por la desinencia verbal)',
+        'impersonal':  'oración impersonal (no hay sujeto)'
+      };
+      const sujLabel = labelMap[sujTipoCorr] || sujTipoCorr;
+      // Si el sujeto es léxico, mostrar su texto
+      let sujTextoHtml = '';
+      if(sujTipoCorr === 'lexico' && Array.isArray(suj.indices) && suj.indices.length > 0){
+        const sujTexto = suj.indices.map(i => ej.tokens[i]?.texto || '').filter(Boolean).join(' ');
+        sujTextoHtml = ` El sujeto es «<b>${escHtml(sujTexto)}</b>».`;
+      }
+      return `
+        <div class="cp-instr cp-instr-grande">
+          <span class="cp-instr-emoji">${esOk ? '✅' : '❌'}</span>
+          <div class="cp-instr-body">
+            <h3 class="cp-instr-titulo">${esOk ? '¡Correcto!' : 'No era eso.'}</h3>
+            <p class="cp-instr-desc">El sujeto de esta proposición es <b>${sujLabel}</b>.${sujTextoHtml}</p>
+            <div style="margin-top:10px">
+              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">Siguiente →</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // Pregunta
+    return `
+      <div class="cp-instr cp-instr-grande">
+        <span class="cp-instr-emoji">👤</span>
+        <div class="cp-instr-body">
+          <h3 class="cp-instr-titulo">¿Cuál es el sujeto de esta proposición?</h3>
+          <p class="cp-instr-desc">Observa el verbo «<b>${verbForm}</b>» y la proposición entera: ¿aparece el sujeto en el texto, está sobrentendido por la forma verbal, o es una construcción impersonal?</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+            <button type="button" class="cp-btn-secondary" onclick="CP.onInternaSujBtn('lexico')">👁️ Sujeto léxico</button>
+            <button type="button" class="cp-btn-secondary" onclick="CP.onInternaSujBtn('tacito')">🌫️ Sujeto tácito</button>
+            <button type="button" class="cp-btn-secondary" onclick="CP.onInternaSujBtn('impersonal')">⚡ Impersonal</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Sub-paso: Funciones del predicado (CD, CI, CC…) ────────────────
+
+  function _renderInternaFuncsHtml(ej, ai, resp){
+    const funcs = Array.isArray(ai.funciones) ? ai.funciones : [];
+
+    // Sin funciones → informar + avanzar
+    if(funcs.length === 0){
+      return `
+        <div class="cp-instr cp-instr-grande">
+          <span class="cp-instr-emoji">✓</span>
+          <div class="cp-instr-body">
+            <h3 class="cp-instr-titulo">Sin complementos adicionales</h3>
+            <p class="cp-instr-desc">Esta proposición no tiene complementos del predicado registrados en el banco.</p>
+            <div style="margin-top:10px">
+              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">Siguiente →</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    const funcIdx = state.engine.interna.funcionIdx;
+    const func = funcs[funcIdx];
+    if(!func) return '<div style="color:var(--muted);padding:12px">Error interno.</div>';
+
+    const funcTexto = (func.indices || []).map(i => ej.tokens[i]?.texto || '').filter(Boolean).join(' ');
+    const funcTipoCorr = func.tipo || '';
+    const funcLabelCorr = etiquetaFuncion(funcTipoCorr);
+    const funcProgress = `<div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">Complemento ${funcIdx + 1} de ${funcs.length}</div>`;
+
+    // Ya respondido este funcIdx
+    const funcRespArr = Array.isArray(resp.funcionesUsuario) ? resp.funcionesUsuario : [];
+    const funcResp = funcRespArr[funcIdx];
+    if(funcResp && funcResp.ok !== null && funcResp.ok !== undefined){
+      const esOk = funcResp.ok;
+      return `
+        <div class="cp-instr cp-instr-grande">
+          ${funcProgress}
+          <span class="cp-instr-emoji">${esOk ? '✅' : '❌'}</span>
+          <div class="cp-instr-body">
+            <h3 class="cp-instr-titulo">${esOk ? '¡Correcto!' : 'No era eso.'}</h3>
+            <p class="cp-instr-desc">«<b>${escHtml(funcTexto)}</b>» es el <b>${escHtml(funcLabelCorr)}</b> de esta proposición.</p>
+            <div style="margin-top:10px">
+              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">
+                ${funcIdx < funcs.length - 1 ? 'Siguiente función →' : 'Siguiente →'}
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // Pregunta: botones con las funciones más comunes
+    const FUNC_BTNS = [
+      ['cd','CD'], ['ci','CI'], ['cc','CC'], ['atributo','Atributo'],
+      ['cpvo','CPvo'], ['c_regimen','C. Régimen'], ['c_agente','C. Agente'],
+      ['cn','CN'], ['aposicion','Aposición'], ['mod_oracional','Mod. Oracional'],
+      ['termino_preposicion','Término prep.'], ['vocativo','Vocativo'],
+      ['cc_temporal','CC Temporal'], ['cc_locativo','CC Locativo'],
+      ['cc_modal','CC Modal']
+    ];
+    const funcBtnsHtml = FUNC_BTNS.map(([tipo, lbl]) =>
+      `<button type="button" class="cp-btn-secondary" style="font-size:.82rem;padding:6px 10px" onclick="CP.onInternaFuncBtn('${tipo}')">${lbl}</button>`
+    ).join('');
+
+    return `
+      <div class="cp-instr cp-instr-grande">
+        ${funcProgress}
+        <span class="cp-instr-emoji">🏷️</span>
+        <div class="cp-instr-body">
+          <h3 class="cp-instr-titulo">¿Qué función desempeña este sintagma?</h3>
+          <p class="cp-instr-desc" style="margin-bottom:10px">«<b>${escHtml(funcTexto)}</b>»</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${funcBtnsHtml}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Handlers públicos del análisis interno ──────────────────────────
+
+  function onInternaPredBtn(tipoPulsado){
+    const eng = state.engine;
+    const ej = state.filtered[state.idx];
+    if(!eng || !ej) return;
+    const interna = eng.interna;
+    const prop = (ej.proposiciones || [])[interna.propIdx];
+    if(!prop) return;
+    const ai = prop.analisis_interno || {};
+    const predTipoCorr = _normPredTipo((ai.predicado || {}).tipo || '');
+    const esOk = _normPredTipo(tipoPulsado) === predTipoCorr;
+    const resp = interna.respuestas[interna.propIdx] || {};
+    resp.predicadoOk = esOk;
+    interna.respuestas[interna.propIdx] = resp;
+    if(esOk){ interna.aciertos++; if(typeof playSuccess === 'function') playSuccess(); }
+    else     { interna.errores++;  if(typeof playError   === 'function') playError(); }
+    renderFase();
+  }
+
+  function onInternaSujBtn(tipoPulsado){
+    const eng = state.engine;
+    const ej = state.filtered[state.idx];
+    if(!eng || !ej) return;
+    const interna = eng.interna;
+    const prop = (ej.proposiciones || [])[interna.propIdx];
+    if(!prop) return;
+    const ai = prop.analisis_interno || {};
+    const sujTipoCorr = (ai.sujeto || {}).tipo || '';
+    const esOk = tipoPulsado === sujTipoCorr;
+    const resp = interna.respuestas[interna.propIdx] || {};
+    resp.sujetoTipo = tipoPulsado;
+    resp.sujetoOk = esOk;
+    interna.respuestas[interna.propIdx] = resp;
+    if(esOk){ interna.aciertos++; if(typeof playSuccess === 'function') playSuccess(); }
+    else     { interna.errores++;  if(typeof playError   === 'function') playError(); }
+    renderFase();
+  }
+
+  function onInternaFuncBtn(tipoPulsado){
+    const eng = state.engine;
+    const ej = state.filtered[state.idx];
+    if(!eng || !ej) return;
+    const interna = eng.interna;
+    const prop = (ej.proposiciones || [])[interna.propIdx];
+    if(!prop) return;
+    const ai = prop.analisis_interno || {};
+    const funcs = Array.isArray(ai.funciones) ? ai.funciones : [];
+    const funcIdx = interna.funcionIdx;
+    const func = funcs[funcIdx];
+    if(!func) return;
+    const esOk = tipoPulsado === func.tipo;
+    const resp = interna.respuestas[interna.propIdx] || {};
+    if(!Array.isArray(resp.funcionesUsuario)) resp.funcionesUsuario = [];
+    resp.funcionesUsuario[funcIdx] = { tipoElegido: tipoPulsado, ok: esOk };
+    interna.respuestas[interna.propIdx] = resp;
+    if(esOk){ interna.aciertos++; if(typeof playSuccess === 'function') playSuccess(); }
+    else     { interna.errores++;  if(typeof playError   === 'function') playError(); }
+    renderFase();
+  }
+
+  // Avanza al siguiente sub-paso dentro de la proposición actual,
+  // o a la siguiente proposición cuando acabamos los 3 sub-pasos.
+  function avanzarInternaSubPaso(){
+    const eng = state.engine;
+    const ej = state.filtered[state.idx];
+    if(!eng || !ej) return;
+    const interna = eng.interna;
+    const prop = (ej.proposiciones || [])[interna.propIdx];
+    const ai = (prop || {}).analisis_interno || {};
+    const tieneSuj = !!(ai.sujeto || {}).tipo;
+    const funcs = Array.isArray(ai.funciones) ? ai.funciones : [];
+
+    if(interna.subPaso === 'predicado'){
+      if(tieneSuj){
+        interna.subPaso = 'sujeto';
+        renderFase();
+      } else if(funcs.length > 0){
+        interna.subPaso = 'funciones';
+        interna.funcionIdx = 0;
+        renderFase();
+      } else {
+        _avanzarInternaProp(eng, ej);
+      }
+
+    } else if(interna.subPaso === 'sujeto'){
+      if(funcs.length > 0){
+        interna.subPaso = 'funciones';
+        interna.funcionIdx = 0;
+        renderFase();
+      } else {
+        _avanzarInternaProp(eng, ej);
+      }
+
+    } else if(interna.subPaso === 'funciones'){
+      if(interna.funcionIdx < funcs.length - 1){
+        interna.funcionIdx++;
+        renderFase();
+      } else {
+        _avanzarInternaProp(eng, ej);
+      }
+    }
+  }
+
+  // Avanza a la siguiente proposición o finaliza el análisis interno.
+  // Llama a renderFase() internamente — no llamar a renderFase fuera.
+  function _avanzarInternaProp(eng, ej){
+    const totalProps = (ej.proposiciones || []).length;
+    const prevIdx = eng.interna.propIdx;
+    if(prevIdx < totalProps - 1){
+      eng.interna.propIdx = prevIdx + 1;
+      eng.interna.subPaso = 'predicado';
+      eng.interna.funcionIdx = 0;
+      mostrarToast({
+        titulo: `P${prevIdx + 1} analizada ✓`,
+        subtitulo: `Continuamos con P${prevIdx + 2}`,
+        colorIdx: 0
+      });
+    } else {
+      eng.fase = 'resumen';
+      eng.mensajeFeedback = null;
+      mostrarToast({
+        titulo: '¡Análisis interno completado!',
+        subtitulo: 'Aquí tienes el resumen',
+        colorIdx: 1
+      });
+    }
+    renderFase();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
   // REDACCIÓN DEL ANÁLISIS SINTÁCTICO DISCURSIVO
   // Genera un párrafo explicativo del análisis al estilo profesor, basado en
   // el JSON del ejercicio. No depende de las respuestas del alumno: es lo que
@@ -3829,6 +4238,7 @@ export const CP = {
     siguiente, anterior, volverFiltros, toggleSolucion,
     avanzarFase, avanzarPropF4, avanzarRelacionF5, pedirPista, saltarFase,
     iniciarAnalisisInterno, irAResumen,
+    onInternaPredBtn, onInternaSujBtn, onInternaFuncBtn, avanzarInternaSubPaso,
     verAnalisis, siguientePractica, abandonar,
     guardarManual,
     reintentar,
