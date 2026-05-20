@@ -689,6 +689,7 @@ if (typeof window !== 'undefined') {
     genPin, saveTimer, testApiUrl, testCurrentPin, activateExam,
     createMision, viewMisiones, deleteMision, showMissionSelector,
     closeMissionSelector, launchMission, launchReinforcement, startFreePlay,
+    getMisionesForMode,
     flashTp,
     // Fase 1.6 — dashboard de Compuestas
     loadCpDashboard, exportCpCSV,

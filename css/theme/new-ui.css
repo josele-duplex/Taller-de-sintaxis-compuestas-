@@ -1343,7 +1343,9 @@ body.theme-new-ui #screen-login .sel-card:hover{
   box-shadow: var(--ui-sh-2);
 }
 body.theme-new-ui #screen-login .sel-card.is-selected,
-body.theme-new-ui #screen-login [class*="sel-"][aria-pressed="true"]{
+body.theme-new-ui #screen-login .sel-card.sel-active,
+body.theme-new-ui #screen-login [class*="sel-"][aria-pressed="true"],
+body.theme-new-ui #screen-login [class*="sel-"][aria-checked="true"]{
   border: 2px solid var(--ui-teal);
   background: var(--ui-teal-tint);
 }
