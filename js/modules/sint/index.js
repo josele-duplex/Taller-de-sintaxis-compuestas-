@@ -1060,7 +1060,25 @@ function renderGame(){
       skipW.style.display='none';
     }
   }
+  // Ajustar offset del sticky de la oración (mayo 2026): mide la altura
+  // real de la topbar + barra de filtros (si está abierta) y la expone
+  // como variable CSS para que .ctx-strip.ctx-sticky se pegue justo debajo.
+  updateStickyTop();
 }
+
+function updateStickyTop(){
+  try{
+    const tb = document.querySelector('#screen-game .topbar');
+    const fb = document.getElementById('practice-filters-bar');
+    if(!tb) return;
+    let h = tb.offsetHeight;
+    if(fb && fb.offsetParent !== null) h += fb.offsetHeight;
+    document.documentElement.style.setProperty('--sint-topbar-h', h+'px');
+  }catch(e){}
+}
+// Recalcular en resize y al desplegar/plegar los filtros
+window.addEventListener('resize', ()=>{ try{ updateStickyTop(); }catch(e){} });
+
 function transitionPhase(next){
   const el=document.getElementById('game-phase');
   el.classList.add('afo');
@@ -2562,6 +2580,8 @@ function togglePracticeFilters(){
   // Stop attention pulse once user has opened it for the first time
   const btn = document.getElementById('pf-toggle-btn');
   if(btn) btn.classList.add('pf-opened');
+  // Recalcular sticky top tras cambio de altura
+  try{ updateStickyTop(); }catch(e){}
 }
 
 function pfSetAll(val){
