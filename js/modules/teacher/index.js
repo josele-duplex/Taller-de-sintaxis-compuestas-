@@ -213,6 +213,140 @@ async function testCurrentPin(){
 }
 
 // ════════════════════════════════════════════════════════
+// CP EXAM CREATION — Fase 1.6.B (mayo 2026)
+// El profesor configura un examen y llama al endpoint
+// createExamenCompuesta del GAS, que pre-computa los
+// ejercicios y los deja en Compuestas_Examenes con
+// Estado='activo'. Patrón clonado de activateExam de Sint.
+// ════════════════════════════════════════════════════════
+
+// Genera un PIN aleatorio de 4 dígitos y lo escribe en el input.
+function genCpExamPin(){
+  const pin = String(Math.floor(1000 + Math.random() * 9000));
+  document.getElementById('tp-cp-exam-pin').value = pin;
+}
+
+// Helper para mostrar/colorear el mensaje de estado del formulario.
+function _setCpExamStatus(msg, colorVar){
+  const el = document.getElementById('tp-cp-exam-status');
+  el.style.display = 'block';
+  el.textContent = msg;
+  el.style.color = colorVar;
+  el.style.background = colorVar === 'var(--red)'   ? '#FEF2F2'
+                      : colorVar === 'var(--green)' ? '#F0FDF4'
+                      : colorVar === 'var(--amber)' ? '#FFFBEB'
+                      : '#EFF6FF';
+  el.style.borderLeft = '3px solid ' + (colorVar || 'var(--blue)');
+}
+
+async function createExamenCompuestaUI(){
+  const pin         = document.getElementById('tp-cp-exam-pin').value.trim();
+  const grupo       = document.getElementById('tp-cp-exam-grupo').value.trim();
+  const evaluacion  = document.getElementById('tp-cp-exam-eval').value.trim();
+  const nombreExamen= document.getElementById('tp-cp-exam-name').value.trim();
+  const tipoOracion = document.getElementById('tp-cp-exam-tipo').value;
+  const nivelMax    = document.getElementById('tp-cp-exam-nivel').value;
+  const nPropMax    = parseInt(document.getElementById('tp-cp-exam-nprops').value) || 0;
+  const nEjercicios = parseInt(document.getElementById('tp-cp-exam-n').value)     || 0;
+  const timerMin    = parseInt(document.getElementById('tp-cp-exam-timer').value) || 0;
+  const subtiposChk = Array.from(document.querySelectorAll('#tp-cp-exam-subtipos input:checked')).map(c => c.value);
+  const subtipo     = subtiposChk.length > 0 ? subtiposChk.join(',') : '*';
+
+  // Validación de PIN
+  if(!pin || !/^\d{4,6}$/.test(pin)){
+    _setCpExamStatus('⚠ El PIN debe tener entre 4 y 6 dígitos numéricos.', 'var(--red)');
+    return;
+  }
+  const apiUrl = getApiUrl();
+  if(!apiUrl){
+    _setCpExamStatus('⚠ Configura la URL de la API primero.', 'var(--red)');
+    return;
+  }
+
+  _setCpExamStatus('⏳ Enviando configuración al Sheet…', 'var(--blue)');
+
+  try {
+    const params = new URLSearchParams({
+      action: 'createExamenCompuesta',
+      pin, grupo, evaluacion, nombreExamen,
+      tipoOracion, subtipo, nivelMax,
+      nProposicionesMax: String(nPropMax),
+      nEjercicios:       String(nEjercicios),
+      timerMin:          String(timerMin),
+      fasesActivas:      '[0,1,2,3,4,5,6]'
+    });
+    const r = await fetchWithRetry(apiUrl + '?' + params.toString(), {}, {
+      timeoutMs: 15000,
+      retries: 2,
+      onRetry: (n)=>{
+        _setCpExamStatus('⏳ Reintentando ('+n+'/2)…', 'var(--amber)');
+      }
+    });
+    const d = await r.json();
+    if(d.ok){
+      const nReal = d.nEjerciciosReales || nEjercicios || '?';
+      const parts = ['PIN: ' + pin, nReal + ' ejercicios pre-cargados'];
+      if(timerMin > 0)       parts.push(timerMin + ' min');
+      if(tipoOracion !== '*')parts.push('Tipo: ' + tipoOracion);
+      if(subtipo !== '*')    parts.push('Subtipos: ' + subtiposChk.length);
+      if(nPropMax > 0)       parts.push('Max. ' + nPropMax + ' propos.');
+      parts.push('Nivel: ' + nivelMax);
+      _setCpExamStatus('✓ Examen activado. ' + parts.join(' · '), 'var(--green)');
+    } else {
+      _setCpExamStatus('⚠ Error: ' + (d.error || 'desconocido'), 'var(--red)');
+    }
+  } catch(e){
+    // Verificar si el examen se creó pese al timeout (igual que activateExam de Sint).
+    _setCpExamStatus('⏳ Sin respuesta. Verificando si el examen se creó…', 'var(--amber)');
+    try {
+      await new Promise(r => setTimeout(r, 1500));
+      const verifyParams = new URLSearchParams({ action: 'getExamenCompuesta', pin });
+      const verify = await fetchWithTimeout(apiUrl + '?' + verifyParams.toString(), {}, 10000);
+      const vd = await verify.json();
+      if(vd.ok && Array.isArray(vd.ejercicios) && vd.ejercicios.length > 0){
+        _setCpExamStatus('✓ El examen se creó correctamente (PIN ' + pin + ', ' + vd.ejercicios.length + ' ejercicios). El timeout era solo de la respuesta.', 'var(--green)');
+      } else {
+        _setCpExamStatus('⚠ Error: ' + e.message + '. El examen no se creó. Inténtalo de nuevo.', 'var(--red)');
+      }
+    } catch(e2){
+      _setCpExamStatus('⚠ Error de conexión: ' + e.message, 'var(--red)');
+    }
+  }
+}
+
+// Verifica que el PIN del formulario está activo (simula la petición de un alumno).
+async function testCpExamPin(){
+  const pin = document.getElementById('tp-cp-exam-pin').value.trim();
+  if(!pin || !/^\d{4,6}$/.test(pin)){
+    _setCpExamStatus('⚠ Escribe primero un PIN de 4-6 dígitos.', 'var(--amber)');
+    return;
+  }
+  const apiUrl = getApiUrl();
+  if(!apiUrl){
+    _setCpExamStatus('⚠ Sin URL de API configurada.', 'var(--red)');
+    return;
+  }
+  _setCpExamStatus('⏳ Comprobando PIN ' + pin + '…', 'var(--blue)');
+  try {
+    const url = apiUrl + '?action=getExamenCompuesta&pin=' + encodeURIComponent(pin);
+    const r = await fetchWithRetry(url, {}, { timeoutMs: 10000, retries: 1 });
+    const d = await r.json();
+    if(d.ok){
+      const n = (d.ejercicios && d.ejercicios.length) || 0;
+      const parts = ['✓ PIN ' + pin + ' funciona', n + ' ejercicios'];
+      if(d.grupo)        parts.push('Grupo ' + d.grupo);
+      if(d.evaluacion)   parts.push('Eval. ' + d.evaluacion);
+      if(d.nombreExamen) parts.push('«' + d.nombreExamen + '»');
+      _setCpExamStatus(parts.join(' · '), 'var(--green)');
+    } else {
+      _setCpExamStatus('⚠ ' + (d.error || 'PIN no válido'), 'var(--red)');
+    }
+  } catch(e){
+    _setCpExamStatus('⚠ Error de conexión: ' + (e && e.message || e), 'var(--red)');
+  }
+}
+
+// ════════════════════════════════════════════════════════
 // CP DASHBOARD — Fase 1.6 (mayo 2026)
 // Lee la hoja Compuestas_Resultados via el endpoint
 // getResultadosCompuestas del GAS y la pinta en una tabla
@@ -544,7 +678,9 @@ export {
   showMissionSelector, closeMissionSelector, launchMission,
   launchReinforcement, startFreePlay,
   // Fase 1.6 — dashboard de Compuestas
-  loadCpDashboard, exportCpCSV
+  loadCpDashboard, exportCpCSV,
+  // Fase 1.6.B — creación de exámenes de Compuestas
+  genCpExamPin, createExamenCompuestaUI, testCpExamPin
 };
 
 if (typeof window !== 'undefined') {
@@ -555,6 +691,8 @@ if (typeof window !== 'undefined') {
     closeMissionSelector, launchMission, launchReinforcement, startFreePlay,
     flashTp,
     // Fase 1.6 — dashboard de Compuestas
-    loadCpDashboard, exportCpCSV
+    loadCpDashboard, exportCpCSV,
+    // Fase 1.6.B — creación de exámenes de Compuestas
+    genCpExamPin, createExamenCompuestaUI, testCpExamPin
   });
 }

@@ -555,6 +555,145 @@ if(window.location.protocol === 'file:') {
       <p id="tp-dash-msg" style="font-size:.82rem;color:var(--muted);display:none;margin-top:8px"></p>
     </div>
 
+    <!-- ── Fase 1.6.B: Crear examen de Compuestas ──────────────────── -->
+    <div class="s-box" style="border:2px solid #16A34A;background:#F0FDF4">
+      <div class="s-title" style="color:#15803D">🚀 Crear examen de Compuestas</div>
+      <div class="s-desc">Configura un examen, genera un PIN y actívalo. Los alumnos lo cargarán desde "🎓 Modo examen" en el módulo de Compuestas.</div>
+
+      <!-- Fila 1: PIN, Grupo, Evaluación -->
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 8px">
+        <div style="min-width:128px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">PIN (4 dígitos)</label>
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <input id="tp-cp-exam-pin" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="1234"
+              style="width:88px;text-align:center;font-size:1.1rem;font-weight:900;letter-spacing:.15em;padding:6px 8px">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="genCpExamPin()" title="Generar PIN aleatorio">🎲</button>
+          </div>
+        </div>
+        <div style="flex:1;min-width:80px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Grupo</label>
+          <input id="tp-cp-exam-grupo" class="input" type="text" placeholder="2ºA" style="font-size:.88rem;padding:6px 8px;margin-top:4px">
+        </div>
+        <div style="flex:1;min-width:60px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Evaluación</label>
+          <input id="tp-cp-exam-eval" class="input" type="text" placeholder="1ª" style="font-size:.88rem;padding:6px 8px;margin-top:4px">
+        </div>
+      </div>
+
+      <!-- Fila 2: Nombre del examen -->
+      <div style="margin-bottom:10px">
+        <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nombre del examen</label>
+        <input id="tp-cp-exam-name" class="input" type="text" placeholder="Ej: Examen unidad 3 — Subordinadas" style="width:100%;font-size:.88rem;padding:6px 8px;margin-top:4px">
+      </div>
+
+      <!-- Fila 3: filtros de contenido -->
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+        <div style="min-width:130px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Tipo de oración</label>
+          <select id="tp-cp-exam-tipo" class="input" style="font-size:.85rem;padding:6px 8px;margin-top:4px;width:100%">
+            <option value="*">Todas</option>
+            <option value="coordinada">Coordinada</option>
+            <option value="subordinada">Subordinada</option>
+            <option value="yuxtapuesta">Yuxtapuesta</option>
+            <option value="mixta">Mixta</option>
+          </select>
+        </div>
+        <div style="min-width:110px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nivel máximo</label>
+          <select id="tp-cp-exam-nivel" class="input" style="font-size:.85rem;padding:6px 8px;margin-top:4px;width:100%">
+            <option value="avanzado">Avanzado</option>
+            <option value="medio">Medio</option>
+            <option value="basico">Básico</option>
+          </select>
+        </div>
+        <div style="min-width:100px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Max. proposiciones</label>
+          <input id="tp-cp-exam-nprops" class="input" type="number" min="0" max="6" value="0" title="0 = sin límite" style="width:100%;font-size:.88rem;padding:6px 8px;margin-top:4px;text-align:center">
+        </div>
+      </div>
+
+      <!-- Fila 4: subtipos colapsables -->
+      <details style="margin-bottom:10px">
+        <summary style="cursor:pointer;font-size:.78rem;font-weight:700;color:var(--ink2);padding:6px 0">Subtipos concretos <span style="color:var(--muted);font-weight:400">(vacío = todos los del tipo elegido)</span></summary>
+        <div id="tp-cp-exam-subtipos" style="display:flex;flex-direction:column;gap:8px;padding:8px 0">
+          <fieldset style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin:0">
+            <legend style="font-size:.74rem;color:#0F766E;font-weight:700;padding:0 4px">Coordinación</legend>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0">
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="copulativa"> Copulativa</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="adversativa"> Adversativa</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="disyuntiva"> Disyuntiva</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="distributiva"> Distributiva</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="explicativa"> Explicativa</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="ilativa_coord"> Ilativa</label>
+            </div>
+          </fieldset>
+          <fieldset style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin:0">
+            <legend style="font-size:.74rem;color:#7C3AED;font-weight:700;padding:0 4px">Sustantivas</legend>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0">
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="sustantiva_sujeto"> Sujeto</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="sustantiva_cd"> CD</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="sustantiva_atributo"> Atributo</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="sustantiva_termino_preposicion"> Término prep.</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="sustantiva_aposicion"> Aposición</label>
+            </div>
+          </fieldset>
+          <fieldset style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin:0">
+            <legend style="font-size:.74rem;color:#4338CA;font-weight:700;padding:0 4px">Relativas</legend>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0">
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="relativa_especificativa"> Especificativa</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="relativa_explicativa"> Explicativa</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="relativa_libre"> Libre</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="relativa_semilibre"> Semilibre</label>
+            </div>
+          </fieldset>
+          <fieldset style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin:0">
+            <legend style="font-size:.74rem;color:#D97706;font-weight:700;padding:0 4px">Construcciones</legend>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0">
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="condicional"> Condicional</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="final"> Final</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="causal"> Causal</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="concesiva"> Concesiva</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="ilativa_constr"> Ilativa</label>
+            </div>
+          </fieldset>
+          <fieldset style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin:0">
+            <legend style="font-size:.74rem;color:#0F766E;font-weight:700;padding:0 4px">Adverbiales propias</legend>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0">
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="temporal"> Temporal</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="locativa"> Locativa</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="modal"> Modal</label>
+              <label style="font-size:.78rem;cursor:pointer"><input type="checkbox" value="comparativa"> Comparativa</label>
+            </div>
+          </fieldset>
+        </div>
+      </details>
+
+      <!-- Fila 5: nº ejercicios + timer -->
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+        <div style="min-width:130px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nº de ejercicios</label>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <input id="tp-cp-exam-n" class="input" type="number" min="0" max="50" value="0" style="width:70px;font-size:.88rem;padding:6px 8px;text-align:center">
+            <span style="font-size:.72rem;color:var(--muted)">0 = todos</span>
+          </div>
+        </div>
+        <div style="min-width:130px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Timer (minutos)</label>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <input id="tp-cp-exam-timer" class="input" type="number" min="0" max="180" value="0" style="width:70px;font-size:.88rem;padding:6px 8px;text-align:center">
+            <span style="font-size:.72rem;color:var(--muted)">0 = sin límite</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado + botón activar -->
+      <p id="tp-cp-exam-status" style="font-size:.85rem;display:none;padding:8px 12px;border-radius:8px;margin-bottom:8px" role="status"></p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn btn-primary btn-sm" onclick="createExamenCompuestaUI()">🚀 Activar examen</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="testCpExamPin()">🔎 Probar PIN actual</button>
+      </div>
+    </div>
+
     <!-- ── Fase 1.6: Resultados de Compuestas ──────────────────────── -->
     <div class="s-box" style="border:2px solid #7C3AED;background:#FAF5FF">
       <div class="s-title" style="color:#6D28D9">🧩 Resultados de Compuestas</div>
