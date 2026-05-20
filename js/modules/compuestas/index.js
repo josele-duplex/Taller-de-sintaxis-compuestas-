@@ -564,6 +564,16 @@
       f5Respuestas: [],                    // [{tipo, tipoOk, origen, direccionOk, funcion, funcionOk, funcionSp, funcionSpOk}]
       f5Aciertos: 0,
       f5Errores: 0,
+      // ── Fase 6: análisis interno de proposiciones (Entrega 4 / Fase 1.4) ─
+      interna: {
+        activo:     false,           // se activa cuando el alumno elige "Analizar por dentro"
+        propIdx:    0,               // qué proposición se está analizando (0..N-1)
+        subPaso:    'predicado',     // 'predicado' | 'sujeto' | 'funciones'
+        funcionIdx: 0,               // qué función dentro de la proposición se está analizando
+        respuestas: [],              // [{predicadoIndices, predicadoOk, sujetoIndices, sujetoTipo, sujetoOk, funcionesUsuario, funcionesOk}]
+        aciertos:   0,
+        errores:    0
+      },
       // ── General ──────────────────────────────────────────────────────
       mensajeFeedback: null
     };
@@ -586,6 +596,31 @@
 
     const wrap = document.getElementById('cp-wrap');
     if(!wrap) return;
+
+    // ── Fase 1.4 (mayo 2026): pantalla de elección post-clasificación ──
+    if(eng.fase === 'interna_choice'){
+      const totalProps = (ej.proposiciones || []).length;
+      const tieneInterno = (ej.proposiciones || []).every(p => p && p.analisis_interno);
+      wrap.innerHTML = `
+        <div class="cp-summary" style="text-align:center">
+          <div class="cp-summary-icon">🎯</div>
+          <h2 class="cp-summary-title">Has clasificado las proposiciones</h2>
+          <p style="color:var(--muted);font-size:.95rem;max-width:480px;margin:8px auto 22px;line-height:1.55">
+            ¿Quieres ver el <b>resumen del análisis</b> ya, o prefieres <b>profundizar</b> analizando cada
+            proposición por dentro (sujeto, predicado y funciones)?
+          </p>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px">
+            <button type="button" class="cp-btn-secondary" onclick="CP.irAResumen()">📋 Ver resumen</button>
+            ${tieneInterno ? `<button type="button" class="cp-btn-primary" onclick="CP.iniciarAnalisisInterno()">🔬 Analizar por dentro</button>` : ''}
+          </div>
+          ${!tieneInterno ? `
+            <p style="color:var(--muted);font-size:.78rem;margin-top:14px;font-style:italic">
+              Este ejercicio no incluye análisis interno de las ${totalProps} proposiciones.
+            </p>` : ''}
+        </div>
+      `;
+      return;
+    }
 
     if(eng.fase === 'resumen'){
       wrap.innerHTML = renderResumenHtml(ej);
@@ -2585,16 +2620,64 @@
       eng.mensajeFeedback = null;
       renderFase();
     } else {
-      // Última relación → resumen
+      // Última relación → pantalla de elección (Fase 1.4 mayo 2026):
+      // antes de ir al resumen ofrecer al alumno la opción de analizar
+      // las proposiciones por dentro (sujeto, predicado, funciones).
+      // Si elige "Ver resumen" se va directo; si elige "Analizar por dentro"
+      // se entra al mini-motor de análisis interno (eng.fase = 'interna').
       mostrarToast({
-        titulo: '¡Análisis completado!',
-        subtitulo: 'Vamos al resumen',
+        titulo: '¡Clasificación completada!',
+        subtitulo: '¿Quieres profundizar en cada proposición?',
         colorIdx: 1
       });
-      eng.fase = 'resumen';
+      eng.fase = 'interna_choice';
       eng.mensajeFeedback = null;
       renderFase();
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Fase 1.4: análisis interno de proposiciones (Entrega 4)
+  //
+  // Punto de entrada cuando el alumno acepta "Analizar por dentro" tras
+  // la clasificación. Inicializa eng.interna.respuestas[] (una por cada
+  // proposición), pone eng.fase = 'interna' y arranca por la primera
+  // proposición, sub-paso 'predicado'.
+  // ─────────────────────────────────────────────────────────────────────
+  function iniciarAnalisisInterno(){
+    const eng = state.engine;
+    const ej = state.filtered[state.idx];
+    if(!eng || !ej) return;
+    const props = ej.proposiciones || [];
+    // Inicializar una respuesta vacía por proposición
+    eng.interna.activo = true;
+    eng.interna.propIdx = 0;
+    eng.interna.subPaso = 'predicado';
+    eng.interna.funcionIdx = 0;
+    eng.interna.respuestas = props.map(()=>({
+      predicadoIndices: new Set(),
+      predicadoOk: null,
+      sujetoIndices: new Set(),
+      sujetoTipo: null,           // 'lexico' | 'tacito' | 'impersonal' | null
+      sujetoOk: null,
+      funcionesUsuario: [],       // [{tokensIndices: Set, tipoElegido: string, ok: true|false|null}]
+      funcionesOk: null
+    }));
+    eng.interna.aciertos = 0;
+    eng.interna.errores = 0;
+    eng.mensajeFeedback = null;
+    eng.fase = 'interna';
+    renderFase();
+  }
+
+  // Atajo desde la pantalla de elección: ir directamente al resumen,
+  // sin pasar por el análisis interno.
+  function irAResumen(){
+    const eng = state.engine;
+    if(!eng) return;
+    eng.fase = 'resumen';
+    eng.mensajeFeedback = null;
+    renderFase();
   }
 
   // ─────────────────────────────────────────────────────────────────────
@@ -3745,6 +3828,7 @@ export const CP = {
     limpiarFiltros,
     siguiente, anterior, volverFiltros, toggleSolucion,
     avanzarFase, avanzarPropF4, avanzarRelacionF5, pedirPista, saltarFase,
+    iniciarAnalisisInterno, irAResumen,
     verAnalisis, siguientePractica, abandonar,
     guardarManual,
     reintentar,
