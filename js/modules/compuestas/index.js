@@ -3420,7 +3420,9 @@
       ['Nexos', eng.nexosAciertos, eng.nexosErrores],
       ['Delimitar', eng.f3Aciertos, eng.f3Errores],
       ['Clasificar', eng.f4Aciertos, eng.f4Errores],
-      ['Relaciones', (eng.f5Aciertos||0), (eng.f5Errores||0)]
+      ['Relaciones', (eng.f5Aciertos||0), (eng.f5Errores||0)],
+      // Fase 1.4: análisis interno (solo si el alumno lo realizó)
+      ...(eng.interna.activo ? [['Análisis interno', eng.interna.aciertos, eng.interna.errores]] : [])
     ].filter(([_, ok, er])=>(ok+er) > 0);
 
     const desgloseHtml = desglose.map(([lbl, ok, er])=>{
@@ -3483,6 +3485,8 @@
           </div>
         </details>` : ''}
 
+      ${eng.interna.activo ? renderResumenInternaHtml(ej, eng.interna) : ''}
+
       <div class="cp-actions" style="border-top:none;padding-top:0">
         <button type="button" class="cp-btn-secondary" onclick="CP.verAnalisis()">🔍 Ver análisis completo</button>
         <div class="cp-spacer"></div>
@@ -3493,6 +3497,67 @@
           : `<button type="button" class="cp-btn-primary" onclick="CP.volverFiltros()">Volver a filtros</button>`}
       </div>
     `;
+  }
+
+  // Sección plegable del resumen que muestra los resultados del análisis
+  // interno (Fase 1.4) por proposición — solo si el alumno lo hizo.
+  function renderResumenInternaHtml(ej, interna){
+    const props = ej.proposiciones || [];
+    if(!props.length || !interna.respuestas.length) return '';
+
+    const filas = props.map((prop, idx)=>{
+      const resp = interna.respuestas[idx] || {};
+      const ai = prop.analisis_interno || {};
+      const propNum = idx + 1;
+      const colorVar = `var(--cp-p${Math.min(propNum, 4)})`;
+
+      // Predicado
+      let predFila = '';
+      const predTipoCorr = _normPredTipo((ai.predicado || {}).tipo || '');
+      if(predTipoCorr && resp.predicadoOk !== null && resp.predicadoOk !== undefined){
+        const lbl = predTipoCorr === 'verbal' ? 'PV' : predTipoCorr === 'nominal' ? 'PN' : predTipoCorr;
+        predFila = `<div style="font-size:.8rem">${resp.predicadoOk ? '✅' : '❌'} Predicado: <b>${lbl}</b></div>`;
+      }
+
+      // Sujeto
+      let sujFila = '';
+      const sujTipoCorr = (ai.sujeto || {}).tipo || '';
+      if(sujTipoCorr && resp.sujetoOk !== null && resp.sujetoOk !== undefined){
+        const lblMap = {lexico: 'léxico', tacito: 'tácito', impersonal: 'impersonal'};
+        sujFila = `<div style="font-size:.8rem">${resp.sujetoOk ? '✅' : '❌'} Sujeto: <b>${lblMap[sujTipoCorr] || sujTipoCorr}</b></div>`;
+      }
+
+      // Funciones
+      const funcs = Array.isArray(ai.funciones) ? ai.funciones : [];
+      const funcFilas = funcs.map((f, fi)=>{
+        const funcResp = (resp.funcionesUsuario || [])[fi];
+        if(!funcResp || funcResp.ok === null || funcResp.ok === undefined) return '';
+        return `<div style="font-size:.8rem">${funcResp.ok ? '✅' : '❌'} ${escHtml(etiquetaFuncion(f.tipo||''))}: «${escHtml((f.indices||[]).map(i=>ej.tokens[i]?.texto||'').filter(Boolean).join(' '))}»</div>`;
+      }).join('');
+
+      const contenido = (predFila || sujFila || funcFilas)
+        ? `${predFila}${sujFila}${funcFilas}`
+        : `<span style="font-size:.78rem;color:var(--muted)">Sin datos registrados</span>`;
+
+      return `
+        <div style="padding:10px 14px;background:var(--paper2);border-radius:8px;display:flex;flex-direction:column;gap:4px">
+          <div style="font-weight:700;font-size:.83rem;color:${colorVar};margin-bottom:2px">P${propNum} · «${escHtml(prop.texto||'')}»</div>
+          ${contenido}
+        </div>`;
+    }).join('');
+
+    const total = interna.aciertos + interna.errores;
+    const pct = total > 0 ? Math.round((interna.aciertos / total) * 100) : 0;
+
+    return `
+      <details style="margin-bottom:14px">
+        <summary style="cursor:pointer;font-weight:700;color:var(--ink2);font-size:.88rem;padding:10px 14px;background:var(--paper2);border-radius:10px">
+          🔬 Análisis interno · ${interna.aciertos} aciertos / ${interna.errores} errores (${pct}%)
+        </summary>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+          ${filas}
+        </div>
+      </details>`;
   }
 
   // Indicador visual + botón manual de guardado.
