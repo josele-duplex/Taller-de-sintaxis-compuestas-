@@ -91,7 +91,7 @@ async function startSintagmas({name,email}){
 
   // Apply sintagma type filter (from teacher panel or mission)
   let filtered = prioritized;
-  const sintTypeFilter = _activeMission?.sintTypes || [...document.querySelectorAll('#tp-mis-sint-types input:checked')].map(c=>c.value);
+  const sintTypeFilter = window._activeMission?.sintTypes || [...document.querySelectorAll('#tp-mis-sint-types input:checked')].map(c=>c.value);
   if(sintTypeFilter && sintTypeFilter.length > 0){
     filtered = prioritized.filter(s => {
       const tipo = extractSintType(s.titulo);

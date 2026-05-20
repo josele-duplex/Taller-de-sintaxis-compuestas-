@@ -495,8 +495,11 @@ function exportCpCSV(){
 // ════════════════════════════════════════════════════════
 // MISSION SYSTEM v6.0
 // ════════════════════════════════════════════════════════
-let _pendingMissionLaunch = null; // stores launch params while mission selector is open
-let _activeMission = null; // current mission being played
+// Mission state — expuesto en window para que sint (script defer, sloppy mode)
+// pueda leerlas como identificador suelto. Si declaramos `let _activeMission`
+// aquí, queda confinado al scope del módulo ES y sint no lo ve → ReferenceError.
+window._pendingMissionLaunch = null; // stores launch params while mission selector is open
+window._activeMission = null; // current mission being played
 
 async function createMision(){
   const name = document.getElementById('tp-mis-name').value.trim();
@@ -579,7 +582,7 @@ async function getMisionesForMode(modo){
   const now=Date.now();
   if(apiUrl && (!_cachedMisiones || now-_misionesCacheTime>30000)){
     try{
-      const r=await fetchWithTimeout(apiUrl+'?action=getMisiones&modo='+encodeURIComponent(modo),{},5000);
+      const r=await fetchWithTimeout(apiUrl+'?action=getMisiones&modo='+encodeURIComponent(modo),{},10000);
       const d=await r.json();
       if(d.misiones && d.misiones.length>0){
         _cachedMisiones=d.misiones;
@@ -595,7 +598,7 @@ async function getMisionesForMode(modo){
 }
 
 async function showMissionSelector(launchParams){
-  _pendingMissionLaunch = launchParams;
+  window._pendingMissionLaunch = launchParams;
   const modo = launchParams.modo || 'sintaxis';
   const misiones = await getMisionesForMode(modo);
   // Also add auto-generated reinforcement mission based on error history
@@ -634,39 +637,39 @@ async function showMissionSelector(launchParams){
   openOverlay('mission-overlay');
 }
 
-function closeMissionSelector(){closeOverlay('mission-overlay');_pendingMissionLaunch=null;}
+function closeMissionSelector(){closeOverlay('mission-overlay');window._pendingMissionLaunch=null;}
 
 async function launchMission(misionId){
   closeOverlay('mission-overlay');
-  const misiones = await getMisionesForMode(_pendingMissionLaunch?.modo||'sintaxis');
-  _activeMission = misiones.find(m=>m.id===misionId)||null;
-  if(_activeMission){
+  const misiones = await getMisionesForMode(window._pendingMissionLaunch?.modo||'sintaxis');
+  window._activeMission = misiones.find(m=>m.id===misionId)||null;
+  if(window._activeMission){
     // Override filters with mission constraints
-    if(_activeMission.funciones?.length>0){
-      localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:_activeMission.funciones,dificultad:_activeMission.dificultad||0}));
+    if(window._activeMission.funciones?.length>0){
+      localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:window._activeMission.funciones,dificultad:window._activeMission.dificultad||0}));
     }
   }
-  if(_pendingMissionLaunch?._continue) _pendingMissionLaunch._continue();
+  if(window._pendingMissionLaunch?._continue) window._pendingMissionLaunch._continue();
 }
 
 function launchReinforcement(){
   closeOverlay('mission-overlay');
-  const modo = _pendingMissionLaunch?.modo||'sintaxis';
+  const modo = window._pendingMissionLaunch?.modo||'sintaxis';
   const errorHist = JSON.parse(localStorage.getItem('taller_error_history')||'{}');
   const modoErrors = errorHist[modo]||{};
   const topErrors = Object.entries(modoErrors).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]);
-  _activeMission = {id:'REFUERZO',nombre:'Refuerzo personalizado',modo,funciones:topErrors,nOraciones:5};
+  window._activeMission = {id:'REFUERZO',nombre:'Refuerzo personalizado',modo,funciones:topErrors,nOraciones:5};
   if(topErrors.length>0){
     localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:topErrors,dificultad:0}));
   }
-  if(_pendingMissionLaunch?._continue) _pendingMissionLaunch._continue();
+  if(window._pendingMissionLaunch?._continue) window._pendingMissionLaunch._continue();
 }
 
 function startFreePlay(){
   closeOverlay('mission-overlay');
-  _activeMission = null;
+  window._activeMission = null;
   localStorage.removeItem('taller_exam_filters');
-  if(_pendingMissionLaunch?._continue) _pendingMissionLaunch._continue();
+  if(window._pendingMissionLaunch?._continue) window._pendingMissionLaunch._continue();
 }
 
 // Public API exports + window bindings para inline onclick
