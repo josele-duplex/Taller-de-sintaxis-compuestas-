@@ -2529,7 +2529,7 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   padding:14px 16px;
   box-shadow:0 2px 8px rgba(59,42,26,.06);
 }
-.cp-prop.principal{border-left-color:#0F2342}
+.cp-prop.principal{border-left-color:var(--cp-marca)}
 .cp-prop.subordinada{border-left-color:#7C3AED}
 .cp-prop.coordinada{border-left-color:#0F766E}
 .cp-prop.yuxtapuesta{border-left-color:#94A3B8}
@@ -2549,7 +2549,7 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   font-size:.7rem;font-weight:700;
   color:var(--muted);text-transform:uppercase;letter-spacing:.04em;
 }
-.cp-prop.principal .cp-prop-id{background:#0F2342;color:#fff}
+.cp-prop.principal .cp-prop-id{background:var(--cp-marca);color:#fff}
 .cp-prop.subordinada .cp-prop-id{background:#7C3AED;color:#fff}
 .cp-prop.coordinada .cp-prop-id{background:#0F766E;color:#fff}
 
@@ -2905,7 +2905,7 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 
 /* Colores semánticos por proposición (no dependen del tipo lingüístico) */
 :root{
-  --cp-p1: #0F2342;      /* navy */
+  --cp-p1: var(--cp-marca);      /* navy */
   --cp-p1-bg: #DBEAFE;
   --cp-p1-border: #3B82F6;
   --cp-p2: #7C3AED;      /* violeta */
@@ -3124,7 +3124,7 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   z-index:9999;
   display:flex;align-items:center;gap:14px;
   padding:14px 22px 14px 18px;
-  background:linear-gradient(135deg, #0F2342 0%, #1E3A5F 100%);
+  background:linear-gradient(135deg, var(--cp-marca) 0%, #1E3A5F 100%);
   color:#fff;
   border-radius:14px;
   box-shadow:0 12px 32px rgba(15,35,66,.35), 0 0 0 1px rgba(255,255,255,.08) inset;
@@ -3254,7 +3254,7 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 /* Sub-paso 1 de fase 4 (P1 = navy, OK). Sub-paso 2 colores armonizados. */
 :root{
   /* Paleta proposicional revisada: P1 y P2 en gama navy-teal coherente */
-  --cp-p1: #0F2342;       /* navy oscuro */
+  --cp-p1: var(--cp-marca);       /* navy oscuro */
   --cp-p1-bg: #DBEAFE;
   --cp-p1-border: #3B82F6;
   --cp-p2: #0F766E;       /* teal */
