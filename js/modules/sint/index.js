@@ -203,6 +203,34 @@ const FUNC_ADJUNTOS   = new Set([...CC_SUBTIPOS,'C.Ag.']);
 function isAdjunto(f){ return FUNC_ADJUNTOS.has(f)||f==='CC'; }
 const FUNC_MARCAS     = new Set(['Mod.Or.','Conector','Vocat.','Marca.Imp.','Marca.Pas.Ref.']);
 
+// Mapa de sintagmas válidos por función — evita combinaciones imposibles
+// en las cajas trampa (p.ej. "SV | CD" o "SAdj | CI"). Añadido mayo 2026.
+const SINTAGMAS_VALIDOS = {
+  // Argumentos del predicado
+  'CD':            ['SN','SP'],                 // SN común; SP con 'a' personal o clítico
+  'CI':            ['SN','SP'],                 // SP con preposición; SN con clítico ("le","les")
+  'C.Rég.':        ['SP'],
+  'Atr.':          ['SN','SAdj','SP','SAdv'],
+  'CPvo':          ['SAdj','SN','SP'],
+  // Adjuntos
+  'C.Ag.':         ['SP'],
+  'CC Lugar':      ['SP','SAdv','SN'],
+  'CC Tiempo':     ['SP','SAdv','SN'],
+  'CC Modo':       ['SP','SAdv','SN'],
+  'CC Causa':      ['SP'],
+  'CC Cantidad':   ['SAdv','SN'],
+  'CC Compañía':   ['SP'],
+  'CC Finalidad':  ['SP'],
+  'CC Instrumento':['SP'],
+  'CC':            ['SP','SAdv','SN'],          // genérico (se subdivide en submenú)
+  // Marcas y periféricos
+  'Mod.Or.':       ['SAdv','SP'],
+  'Vocat.':        ['SN'],
+  'Marca.Pas.Ref.':['SN'],                       // el "se" pronominal forma SN
+  'Marca.Imp.':    ['SN'],                       // ídem
+  'Conector':      [],                           // conjunción/locución, sin sintagma
+};
+
 const PRE_RESOLVED_FUNCS = new Set(['Sujeto','NP']);
 
 // Pronombres personales sujeto
@@ -443,19 +471,37 @@ function isTacitoBlock(bloque) {
   return bloque.tacito === true || bloque.solucion.startsWith('Ø |');
 }
 
-// Distribuye trampas entre Argumentos, Adjuntos y Marcas
+// Distribuye trampas entre Argumentos, Adjuntos y Marcas.
+// FIX mayo 2026: usa SINTAGMAS_VALIDOS para evitar combinaciones imposibles
+// (p.ej. "SV | CD", "SAdj | CI", "SAdv | C.Rég.") y excluir PN/PV como
+// funciones de bloque (son tipos de predicado entero, no funciones internas).
 function genTraps3Split(correctLabels, nEach=2) {
-  // Build all possible label combinations (tipo | función)
+  // Funciones argumentales reales de bloque (PN/PV fuera: son el predicado entero)
+  const ARG_FUNCS_BLOQUE = ['CD','CI','C.Rég.','Atr.','CPvo'];
+  // Build all possible label combinations (tipo | función) — solo válidas
   const allWithTipo=[];
-  for(const t of TIPOS){
-    for(const f of [...FUNC_ARGUMENTOS,...CC_SUBTIPOS,'C.Ag.']){
+  for(const f of [...ARG_FUNCS_BLOQUE, ...CC_SUBTIPOS, 'C.Ag.']){
+    const sintagmas = SINTAGMAS_VALIDOS[f] || [];
+    for(const t of sintagmas){
       allWithTipo.push({tipo:t,func:f,label:`${t} | ${f}`});
     }
   }
-  // Marcas y periféricos don't carry a Sintagma tipo
-  const allMarcas=[...FUNC_MARCAS].map(f=>({tipo:'',func:f,label:f}));
+  // Marcas y periféricos: ahora con sintagma cuando aplique (SN para Vocat./
+  // Marca.Pas.Ref./Marca.Imp.; SAdv/SP para Mod.Or.; Conector sin tipo).
+  const allMarcas=[];
+  for(const f of FUNC_MARCAS){
+    const sintagmas = SINTAGMAS_VALIDOS[f] || [];
+    if(sintagmas.length===0){
+      allMarcas.push({tipo:'',func:f,label:f});
+    } else {
+      for(const t of sintagmas){
+        allMarcas.push({tipo:t,func:f,label:`${t} | ${f}`});
+      }
+    }
+  }
   const used=new Set(correctLabels);
-  const availArg=shuffle(allWithTipo.filter(x=>FUNC_ARGUMENTOS.has(x.func)&&!used.has(x.label)));
+  const isArgFunc = f => ARG_FUNCS_BLOQUE.includes(f);
+  const availArg=shuffle(allWithTipo.filter(x=>isArgFunc(x.func)&&!used.has(x.label)));
   const availAdj=shuffle(allWithTipo.filter(x=>isAdjunto(x.func)&&!used.has(x.label)));
   const availMar=shuffle(allMarcas.filter(x=>!used.has(x.label)));
   return {
@@ -502,6 +548,12 @@ function normalizeOracion(raw){
       b.solucion=b.solucion.replace(/\bC\.Ag\b(?!\.)/g,'C.Ag.');
       b.solucion=b.solucion.replace(/\bC\.Rég\b(?!\.)/g,'C.Rég.');
       b.solucion=b.solucion.replace(/\bAtr\b(?!\.)/g,'Atr.');
+      // FIX mayo 2026: añadir SN a Marca.Pas.Ref., Marca.Imp. y Vocat. cuando
+      // el sheet las manda sin tipo. Estas marcas SIEMPRE son SN (el "se"
+      // pronominal y el sustantivo del vocativo forman SN).
+      if(b.solucion==='Marca.Pas.Ref.') b.solucion='SN | Marca.Pas.Ref.';
+      if(b.solucion==='Marca.Imp.')     b.solucion='SN | Marca.Imp.';
+      if(b.solucion==='Vocat.')         b.solucion='SN | Vocat.';
       return b;
     });
   }
