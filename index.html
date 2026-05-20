@@ -138,9 +138,10 @@ if(window.location.protocol === 'file:') {
       <div class="field" id="campo-grupo" style="display:none">
         <label for="inp-grupo" style="display:flex;align-items:center;gap:6px">
           Grupo
-          <span style="font-size:.72rem;font-weight:500;color:var(--muted)">(opcional)</span>
+          <span id="grupo-req-hint" style="font-size:.72rem;font-weight:500;color:var(--muted)">(opcional)</span>
         </label>
         <input id="inp-grupo" class="input" type="text" placeholder="Ej: 3ºA o 1ºBach" maxlength="12" autocomplete="off">
+        <p id="e-grupo" class="ferr" role="alert"></p>
       </div>
       <hr class="divider">
       <!-- Dynamic module login panel — filled by goModule() -->

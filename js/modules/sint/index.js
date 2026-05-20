@@ -744,9 +744,15 @@ function setMode(m){
   selectedMode=m;
   ['mc-practice','mc-exam'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.toggle('sel-active',el.id==='mc-'+m);el.setAttribute('aria-checked',String(el.id==='mc-'+m));}});
   document.getElementById('pin-block').style.display=m==='exam'?'block':'none';
-  // Show grupo field only in practice mode (no grupo needed for exam: comes from PIN config)
+  // Mostrar grupo en ambos modos: opcional en práctica, obligatorio en examen
+  // (mayo 2026 — permite reutilizar el mismo PIN para distintos grupos).
   const grupoField=document.getElementById('campo-grupo');
-  if(grupoField) grupoField.style.display=m==='practice'?'block':'none';
+  if(grupoField) grupoField.style.display='block';
+  const hint=document.getElementById('grupo-req-hint');
+  if(hint){
+    hint.textContent = m==='exam' ? '(obligatorio)' : '(opcional)';
+    hint.style.color = m==='exam' ? 'var(--red)' : 'var(--muted)';
+  }
 }
 function ferr(id,msg){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.classList.toggle('show',!!msg);}
 
@@ -799,11 +805,12 @@ async function loadOraciones(mode, apiUrl) {
 
 async function handleStart(){
   // ── 1. Validate form fields ────────────────────────────────────────
-  ferr('e-name',''); ferr('e-email',''); ferr('e-mode',''); ferr('e-pin','');
+  ferr('e-name',''); ferr('e-email',''); ferr('e-mode',''); ferr('e-pin',''); ferr('e-grupo','');
   document.getElementById('api-err')?.style && (document.getElementById('api-err').style.display='none');
   const name  = document.getElementById('inp-name').value.trim();
   const email = document.getElementById('inp-email').value.trim().toLowerCase();
   const pin   = document.getElementById('inp-pin').value.trim();
+  const grupo = (document.getElementById('inp-grupo')?.value||'').trim();
   let ok = true;
   if (!name)  { ferr('e-name','Escribe tu nombre completo.'); ok = false; }
   if (!email) { ferr('e-email','El correo es obligatorio.'); ok = false; }
@@ -811,6 +818,10 @@ async function handleStart(){
   if (!selectedMode) { ferr('e-mode','Selecciona un modo de sesión.'); ok = false; }
   if (selectedMode === 'exam' && (!pin || pin.length !== PIN_LEN || !/^\d+$/.test(pin))) {
     ferr('e-pin', `El PIN debe ser ${PIN_LEN} dígitos numéricos.`); ok = false;
+  }
+  // Grupo obligatorio en examen (mayo 2026): permite reutilizar el PIN entre grupos
+  if (selectedMode === 'exam' && !grupo) {
+    ferr('e-grupo', 'Indica tu grupo (ej: 3ºA). Es obligatorio en modo examen.'); ok = false;
   }
   if (!ok) return;
 
@@ -889,8 +900,11 @@ async function _doHandleStart(name,email,pin,examSubfase){
       const subfase = d.subfase || examSubfase || 'completo';
       console.log('[Exam] PIN:',pin,'oraciones:',oraciones.length,'timer:',d.timer,'min subfase:',subfase);
       clearTimeout(slowTimer);
+      // El grupo del alumno (formulario) tiene prioridad sobre el del PIN
+      // config para permitir reutilizar el mismo examen entre grupos.
+      const studentGrupo = (document.getElementById('inp-grupo')?.value||'').trim();
       _launchGame({ name, email, pin, subfase, oraciones, usingMock:false, timerDuration:timerSec,
-        examGrupo:d.grupo||'', examEval:d.evaluacion||'', examName:d.nombreExamen||'' });
+        examGrupo: studentGrupo || d.grupo || '', examEval:d.evaluacion||'', examName:d.nombreExamen||'' });
     }catch(e){
       clearTimeout(slowTimer);
       ferr('e-pin','⚠ Error de conexión: '+(e.message||'timeout')+'. Inténtalo de nuevo.');showScreen('login');
