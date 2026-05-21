@@ -76,13 +76,34 @@
 
   // ─────────────────────────────────────────────────────────────────────
   // Entrada al módulo
+  //
+  // Nuevo flujo (mayo 2026, paridad con Sint): tras cargar el banco se
+  // arranca DIRECTAMENTE con una oración aleatoria. El panel de filtros
+  // se oculta y queda accesible mediante el botón "Filtros" del topbar
+  // (volverFiltros). Cualquier filtro que aplique el alumno mezcla el
+  // resultado y vuelve a la primera oración.
   // ─────────────────────────────────────────────────────────────────────
+  function shuffleArr(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]] = [a[j],a[i]];
+    }
+    return a;
+  }
+
   async function enter(){
     showScreen('screen-compuestas');
     if(!state.loaded){
       await loadBanco();
     }
-    renderFiltros();
+    if(state.loadError){
+      renderError();
+      return;
+    }
+    // Por defecto: banco completo (sin filtros), mezclado, primera oración.
+    state.filtered = state.ejercicios.slice();
+    iniciarPractica();
   }
 
   function exit(){
@@ -637,6 +658,11 @@
 
   function iniciarPractica(){
     if(state.filtered.length === 0) return;
+    // Aleatoriedad: salvo en examen (orden fijado por el profesor),
+    // mezclamos el banco filtrado antes de empezar.
+    if(!state.modoExamen){
+      state.filtered = shuffleArr(state.filtered);
+    }
     state.idx = 0;
     state.modoLectura = false;
     iniciarFase0();
