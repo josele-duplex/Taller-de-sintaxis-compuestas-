@@ -3282,6 +3282,159 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   #screen-compuestas #cp-ctx-strip{ padding:8px 12px 10px; }
 }
 
+/* ── Pista flotante (A.1, mayo 2026) ──────────────────────────────────
+   Reemplaza la caja amarilla inline por una tarjeta flotante que
+   siempre queda visible. Paleta teal/navy (no amarillo), consistente
+   con la imagen general de la app. Reutilizable por CP y Sint. */
+#pista-flotante{
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  left: auto;
+  z-index: 9000;
+  max-width: 380px;
+  width: calc(100% - 44px);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(20px) scale(.96);
+  transition: opacity .22s ease, transform .22s cubic-bezier(.34,1.56,.64,1);
+}
+#pista-flotante.pf-open{
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.pf-card{
+  background: linear-gradient(160deg, #ECFEFF 0%, #F0FDFA 60%, #FFFFFF 100%);
+  border: 1.5px solid #5EEAD4;
+  border-radius: 16px;
+  box-shadow:
+    0 14px 38px rgba(15, 118, 110, .22),
+    0 4px 12px rgba(15, 35, 66, .08),
+    inset 0 1px 0 rgba(255,255,255,.6);
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+}
+.pf-card-hdr{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(94, 234, 212, .35);
+  background: linear-gradient(90deg, rgba(15,118,110,.08), transparent);
+}
+.pf-card-chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: #115E59;
+  background: #CCFBF1;
+  border: 1px solid #5EEAD4;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+}
+.pf-card-icon{ font-size: .9rem; line-height: 1; }
+.pf-card-close{
+  background: transparent;
+  border: none;
+  color: #475569;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background .15s, color .15s;
+}
+.pf-card-close:hover{
+  background: rgba(15, 35, 66, .08);
+  color: #0F2342;
+}
+.pf-card-body{
+  padding: 12px 16px 14px;
+  font-size: .92rem;
+  line-height: 1.55;
+  color: #0F2342;
+  font-family: 'DM Sans','Nunito',sans-serif;
+  font-weight: 500;
+}
+.pf-card-body b, .pf-card-body strong{
+  color: #115E59;
+  font-weight: 800;
+}
+.pf-card-body em, .pf-card-body i{
+  color: #475569;
+  font-style: italic;
+}
+.pf-card-footer{
+  padding: 0 12px 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+.pf-card-leccion-btn{
+  background: linear-gradient(135deg, #0F2342, #1E3A5F);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: .8rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(15, 35, 66, .25);
+  transition: transform .12s, box-shadow .12s;
+}
+.pf-card-leccion-btn:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(15, 35, 66, .35);
+}
+.pf-card-leccion-btn:active{ transform: translateY(0); }
+
+/* Móvil: bottom-sheet a ancho completo */
+@media (max-width: 600px){
+  #pista-flotante{
+    right: 8px;
+    left: 8px;
+    bottom: 12px;
+    max-width: none;
+    width: auto;
+  }
+  .pf-card{ border-radius: 14px; }
+  .pf-card-body{ font-size: .88rem; padding: 10px 14px 12px; }
+}
+
+/* Botones inline para abrir pista flotante o lección desde el feedback CP */
+.cp-btn-pista,
+.cp-btn-leccion{
+  border: none;
+  padding: 7px 13px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 800;
+  font-family: 'DM Sans','Nunito',sans-serif;
+  transition: transform .12s, box-shadow .12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.cp-btn-pista{
+  background: #CCFBF1;
+  color: #115E59;
+  border: 1.5px solid #5EEAD4;
+  box-shadow: 0 2px 0 #14B8A6;
+}
+.cp-btn-pista:hover{ transform: translateY(-1px); box-shadow: 0 3px 0 #14B8A6, 0 4px 10px rgba(15,118,110,.18); }
+.cp-btn-pista:active{ transform: translateY(1px); box-shadow: 0 1px 0 #14B8A6; }
+.cp-btn-leccion{
+  background: linear-gradient(135deg, #0F2342, #1E3A5F);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(15,35,66,.25);
+}
+.cp-btn-leccion:hover{ transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15,35,66,.35); }
+.cp-btn-leccion:active{ transform: translateY(0); }
+
 /* ── Análisis interno: Drag-and-Drop (D) mayo 2026 ────────────────────
    Sistema arrastrar-y-soltar al estilo del módulo de Simples.
    Clases con prefijo iidd- para no colisionar con Sint. */

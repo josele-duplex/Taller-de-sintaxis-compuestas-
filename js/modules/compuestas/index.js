@@ -2016,38 +2016,28 @@
   function pedirPista(){
     const eng = state.engine;
     if(!eng) return;
+    let titulo = 'Pista', html = '';
     if(eng.fase === 1){
       eng.pistaUsadaF1 = true;
       const pendientes = Array.from(eng.verbosCorrectos).filter(i=>!eng.verbosConfirmados.has(i));
-      eng.mensajeFeedback = {
-        tipo:'info',
-        html: `💡 Pista: te faltan <b>${pendientes.length}</b> verbo${pendientes.length===1?'':'s'}. Mira con atención las formas conjugadas.`
-      };
+      html = `Te faltan <b>${pendientes.length}</b> verbo${pendientes.length===1?'':'s'} por marcar. Mira con atención las formas conjugadas.`;
     } else if(eng.fase === 2){
       eng.pistaUsadaF2 = true;
       const pendientes = Array.from(eng.nexosCorrectos).filter(i=>!eng.nexosConfirmados.has(i));
-      eng.mensajeFeedback = {
-        tipo:'info',
-        html: `💡 Pista: te falta${pendientes.length===1?'':'n'} <b>${pendientes.length}</b> nexo${pendientes.length===1?'':'s'}. Busca conjunciones o pronombres relativos.`
-      };
+      html = `Te falta${pendientes.length===1?'':'n'} <b>${pendientes.length}</b> nexo${pendientes.length===1?'':'s'} por marcar. Busca conjunciones o pronombres relativos.`;
     } else if(eng.fase === 3){
       eng.pistaUsadaF3 = true;
       const totalPorAsignar = eng.tokenAProp.size - eng.f3Confirmados.size;
-      // Detectar a qué proposiciones le faltan tokens
       const faltantesPorProp = new Map();
       eng.tokenAProp.forEach((numProp, i)=>{
-        if(!eng.f3Confirmados.has(i)){
-          faltantesPorProp.set(numProp, (faltantesPorProp.get(numProp)||0)+1);
-        }
+        if(!eng.f3Confirmados.has(i)) faltantesPorProp.set(numProp, (faltantesPorProp.get(numProp)||0)+1);
       });
       const partes = [];
-      faltantesPorProp.forEach((c, p)=>{
-        partes.push(`P${p}: ${c}`);
-      });
-      eng.mensajeFeedback = {
-        tipo:'info',
-        html: `💡 Pista: te faltan <b>${totalPorAsignar}</b> tokens por asignar (${partes.join(', ')}). Recuerda que algunos tokens pueden NO pertenecer a ninguna proposición (los nexos completivos).`
-      };
+      faltantesPorProp.forEach((c, p)=>{ partes.push(`P${p}: ${c}`); });
+      html = `Te faltan <b>${totalPorAsignar}</b> tokens por asignar (${partes.join(', ')}). Recuerda que algunos tokens pueden no pertenecer a ninguna proposición (los nexos completivos).`;
+    }
+    if(html && typeof window.showPistaFlotante === 'function'){
+      window.showPistaFlotante({titulo, html, tipo:'compuesta'});
     }
     renderFase();
   }
@@ -2279,22 +2269,44 @@
       try{ showLec = !!shouldShowMicroLeccionCP(realId); }catch(e){}
     }
     // 4. Construir HTML del feedback escalonado
+    // El TÍTULO y el SCAFFOLD FIJO se quedan inline (feedback contextual breve).
+    // La PISTA y la LECCIÓN se ofrecen como botones que abren la pista flotante
+    // (A.1, mayo 2026) — siempre visible sin scroll, paleta teal/navy.
     const titHtml = `<div class="cp-feedback-title">✗ ${titulo}${razon ? '. ' + escHtml(razon) : '.'}</div>`;
     const fijoHtml = scaffold.fijo
       ? `<div class="cp-feedback-fijo" style="margin-top:8px;font-size:.92rem;line-height:1.45">${escHtml(scaffold.fijo)}</div>`
       : '';
-    const pistaHtml = scaffold.pista
-      ? `<div class="cp-feedback-pista-wrap" style="margin-top:10px">
-           <button type="button" class="cp-feedback-pista-btn" style="background:#FEF9C3;border:1.5px solid #CA8A04;color:#78350F;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:700" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">💡 Ver pista</button>
-           <div class="cp-feedback-pista" style="display:none;margin-top:8px;padding:10px 12px;background:#FEF9C3;border-left:3px solid #CA8A04;border-radius:0 8px 8px 0;font-size:.88rem;color:#78350F;line-height:1.45">${escHtml(scaffold.pista)}</div>
+    // Guardamos los datos para que el botón los pase a la ventana flotante.
+    const pistaText = scaffold.pista || '';
+    // shouldShowMicroLeccionCP ya guardó _pendingMicroLeccion en pista-ui.js,
+    // pero también pedimos el id directo aquí por si lo usamos en el botón.
+    const actionsHtml = (scaffold.pista || showLec)
+      ? `<div class="cp-feedback-actions" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+           ${scaffold.pista
+             ? `<button type="button" class="cp-btn-pista" data-pista="${escAttr(pistaText)}" data-show-lec="${showLec?'1':''}" onclick="CP.abrirPistaFlotante(this)">💡 Ver pista</button>`
+             : ''}
+           ${showLec
+             ? `<button type="button" class="cp-btn-leccion" onclick="if(window.openMicroLeccion)window.openMicroLeccion()">📖 Ver micro-lección</button>`
+             : ''}
          </div>`
       : '';
-    const lecHtml = showLec
-      ? `<div style="margin-top:12px;text-align:center">
-           <button type="button" class="cp-feedback-lec-btn" style="background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#fff;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-size:.85rem;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3)" onclick="if(window.openMicroLeccion)window.openMicroLeccion()">📖 Ver micro-lección</button>
-         </div>`
-      : '';
-    return titHtml + fijoHtml + pistaHtml + lecHtml;
+    return titHtml + fijoHtml + actionsHtml;
+  }
+
+  // Helper invocado desde el botón "💡 Ver pista" del feedback. Abre la
+  // pista flotante con el texto guardado en data-pista y, si procede,
+  // ofrece también el botón "Ver micro-lección" en su footer.
+  function abrirPistaFlotante(btn){
+    if(!btn) return;
+    const pista = btn.dataset.pista || '';
+    const showLec = btn.dataset.showLec === '1';
+    if(typeof window.showPistaFlotante !== 'function') return;
+    window.showPistaFlotante({
+      titulo: 'Pista',
+      html: escHtml(pista),
+      leccionId: showLec ? '__pending__' : '',
+      tipo: 'compuesta'
+    });
   }
 
   function onClasifClick(q, v){
@@ -5059,6 +5071,7 @@ export const CP = {
     limpiarFiltros,
     siguiente, anterior, volverFiltros, toggleSolucion,
     avanzarFase, avanzarPropF4, avanzarRelacionF5, pedirPista, saltarFase,
+    abrirPistaFlotante,
     iniciarAnalisisInterno, irAResumen,
     iiddDragStart, iiddOver, iiddLeave, iiddDrop,
     iiddTagClick, iiddTagClickSlot, iiddSlotClick,

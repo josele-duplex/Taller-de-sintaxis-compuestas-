@@ -64,6 +64,7 @@ import * as fPistasSint from './feedback/pistas-sint.js';
 import * as fPistasCP from './feedback/pistas-compuestas.js';
 import * as fTracking from './feedback/tracking.js';
 import * as fPistaUi from './feedback/pista-ui.js';
+import * as fPistaFlotante from './feedback/pista-flotante.js';
 
 // ─────────────────────────────────────────────────────────────
 // Exponer todas las exportaciones en window para los onclick=""
@@ -75,7 +76,8 @@ Object.assign(window,
   dictMorf, dictSintax, dictSintag, haberForms,
   glosTags, glosData, glosRender,
   gLevels, gMissions, gStreak, gXp, gDashboard,
-  fMicro, fMicroCP, fPistasSint, fPistasCP, fTracking, fPistaUi
+  fMicro, fMicroCP, fPistasSint, fPistasCP, fTracking, fPistaUi,
+  fPistaFlotante
 );
 
 // ─────────────────────────────────────────────────────────────
