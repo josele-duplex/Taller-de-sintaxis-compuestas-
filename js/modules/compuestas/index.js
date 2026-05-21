@@ -103,6 +103,18 @@
     }
     // Por defecto: banco completo (sin filtros), mezclado, primera oración.
     state.filtered = state.ejercicios.slice();
+
+    // Fase 1.7: selector de misiones antes de empezar (paridad con Sint)
+    if(typeof getMisionesForMode === 'function'){
+      const misiones = await getMisionesForMode('compuestas');
+      const errorHist = JSON.parse(localStorage.getItem('taller_error_history')||'{}');
+      const hasErrors = Object.keys(errorHist.compuestas||{}).length > 0;
+      if(misiones.length > 0 || hasErrors){
+        showMissionSelector({modo:'compuestas', _continue: iniciarPractica});
+        return;
+      }
+    }
+
     iniciarPractica();
   }
 
