@@ -334,6 +334,8 @@
   // Render: vista de FILTROS
   // ─────────────────────────────────────────────────────────────────────
   function renderFiltros(){
+    const strip = document.getElementById('cp-ctx-strip');
+    if(strip) strip.style.display = 'none';
     const wrap = document.getElementById('cp-wrap');
     if(!wrap) return;
     if(state.loadError){
@@ -879,6 +881,8 @@
     if(!eng){ iniciarFase0(); return; }
 
     document.getElementById('cp-counter').textContent = `${state.idx+1} / ${state.filtered.length}`;
+    updateCpStickyTop();
+    updateCpCtxStrip();
 
     const wrap = document.getElementById('cp-wrap');
     if(!wrap) return;
@@ -1212,6 +1216,114 @@
     html += `</div>`;
     return html;
   }
+
+  // ── CP STICKY ─────────────────────────────────────────────────────────
+  // Ventana fija bajo la topbar que muestra el progreso del alumno:
+  // fases 0-3 → tokens coloreados por rol; fases 4+ → chips de proposición.
+
+  function updateCpStickyTop(){
+    try{
+      const tb = document.querySelector('#screen-compuestas .cp-topbar');
+      if(!tb) return;
+      document.documentElement.style.setProperty('--cp-topbar-h', tb.offsetHeight+'px');
+    }catch(e){}
+  }
+  window.addEventListener('resize', ()=>{ try{ updateCpStickyTop(); }catch(e){} });
+
+  function updateCpCtxStrip(){
+    const strip = document.getElementById('cp-ctx-strip');
+    if(!strip) return;
+    const ej = state.filtered && state.filtered[state.idx];
+    if(!ej || !state.engine){ strip.style.display = 'none'; return; }
+    const html = renderCpCtxStripHtml(ej);
+    if(!html){ strip.style.display = 'none'; return; }
+    strip.style.display = '';
+    strip.innerHTML = html;
+  }
+
+  function renderCpCtxStripHtml(ej){
+    const eng = state.engine;
+    if(!eng) return '';
+    const tokens = ej.tokens || [];
+    let label = '', content = '';
+    if(eng.fase === 0){
+      label = 'Lee la oración';
+      content = `<div class="cp-ctx-words">${renderCpStickyToks(tokens, eng, 0)}</div>`;
+    } else if(eng.fase === 1){
+      label = 'Paso 1 · Verbos';
+      content = `<div class="cp-ctx-words">${renderCpStickyToks(tokens, eng, 1)}</div>`;
+    } else if(eng.fase === 2){
+      label = 'Paso 2 · Nexos';
+      content = `<div class="cp-ctx-words">${renderCpStickyToks(tokens, eng, 2)}</div>`;
+    } else if(eng.fase === 3){
+      label = 'Paso 3 · Proposiciones';
+      content = `<div class="cp-ctx-words">${renderCpStickyToks(tokens, eng, 3)}</div>`;
+    } else {
+      label = 'Proposiciones';
+      content = renderCpStickyProps(ej, eng);
+    }
+    if(!content) return '';
+    return `<div class="ctx-label">${label}</div><div class="ctx-scroll">${content}</div>`;
+  }
+
+  function renderCpStickyToks(tokens, eng, fase){
+    let html = '';
+    for(let idx = 0; idx < tokens.length; idx++){
+      const t = tokens[idx];
+      const i = t.i;
+      const cat = t.categoria || 'otro';
+      let cls = 'cp-ctx-tok', badge = '';
+      if(cat === 'puntuacion'){
+        cls += ' cp-ctx-punt';
+      } else if(fase >= 1 && eng.verbosConfirmados.has(i)){
+        cls += ' cp-ctx-verbo';
+        badge = '<span class="cp-ctx-badge">V</span>';
+      } else if(fase >= 2 && eng.nexosConfirmados.has(i)){
+        cls += ' cp-ctx-nexo';
+        badge = '<span class="cp-ctx-badge" style="background:#92400E">Nx</span>';
+      } else if(fase >= 3){
+        const pN = eng.f3Asignaciones.get(i);
+        if(pN) cls += ' cp-ctx-p' + Math.min(pN, 4);
+      }
+      const next = tokens[idx+1];
+      const esAp = cat === 'puntuacion' && /^[¿¡]$/.test(t.texto||'');
+      const join = esAp || (next && next.categoria === 'puntuacion');
+      html += `<span class="${cls}">${escHtml(t.texto)}${badge}</span>${join?'⁠':' '}`;
+    }
+    return html.trimEnd();
+  }
+
+  function renderCpStickyProps(ej, eng){
+    const props = ej.proposiciones || [];
+    const tokens = ej.tokens || [];
+    let html = '<div class="cp-ctx-props">';
+    props.forEach((prop, idx)=>{
+      const pNum = idx + 1;
+      const pCls = 'p' + Math.min(pNum, 4);
+      const isActiva = eng.fase === 'interna' && eng.interna && eng.interna.propIdx === idx;
+      const idxs = (prop.indices || []).slice(0, 8);
+      const shortText = idxs
+        .map(i => tokens.find(t => t.i === i))
+        .filter(Boolean)
+        .map(t => t.texto)
+        .join(' ');
+      const needsDots = (prop.indices || []).length > 8;
+      let clasifBadge = '';
+      const f4r = eng.f4Respuestas && eng.f4Respuestas[idx];
+      if(f4r && f4r.tipoOk){
+        const tipos = {principal:'Principal', subordinada:'Sub.', coordinada:'Coord.', yuxtapuesta:'Yux.'};
+        clasifBadge = `<span class="cp-ctx-clasif-badge ${pCls}">${tipos[prop.tipo]||prop.tipo}</span>`;
+      }
+      html += `<div class="cp-ctx-prop-chip ${pCls}${isActiva?' cp-ctx-prop-activa':''}">
+        <span class="cp-ctx-prop-num">P${pNum}</span>
+        <span class="cp-ctx-prop-text">${escHtml(shortText)}${needsDots?'…':''}</span>
+        ${clasifBadge}
+      </div>`;
+    });
+    html += '</div>';
+    return html;
+  }
+  // ─────────────────────────────────────────────────────────────────────
 
   function renderInteractTokens(ej){
     const eng = state.engine;
