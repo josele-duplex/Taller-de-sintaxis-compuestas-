@@ -600,4 +600,9 @@ if (typeof window !== 'undefined') {
     animateHeartLoss, animateHeartGain, updateHeartsBar,
     showComboBurst, showArcadeHint, showScoreFloat
   });
+  // ARC es el estado interno del juego (timer, hearts, score…). Lo exponemos
+  // como getter para que el cleanAllTimers de sint pueda hacer
+  // `typeof ARC === 'object'` y leer ARC.timerInterval para limpiarlo al
+  // navegar. Mismo patrón que MG (morph), MC/MM (maestro), SIN (sintagmas).
+  Object.defineProperty(window, "ARC", { get: () => ARC, configurable: true });
 }
