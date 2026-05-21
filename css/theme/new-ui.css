@@ -3278,6 +3278,19 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 .cp-ctx-clasif-badge.p2{ background:var(--cp-p2); }
 .cp-ctx-clasif-badge.p3{ background:var(--cp-p3); }
 .cp-ctx-clasif-badge.p4{ background:var(--cp-p4); }
+
+/* Flecha de relación entre chips (B, mayo 2026) */
+.cp-ctx-rel{
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-family: 'DM Sans','Nunito',sans-serif;
+  padding: 0 2px;
+  user-select: none;
+}
+.cp-ctx-rel-pending{ color: rgba(15,35,66,.25); }
+.cp-ctx-rel-sub  { color: #1E3A8A; }  /* subordinación: azul oscuro */
+.cp-ctx-rel-coord{ color: #0D9488; }  /* coordinación: teal */
+.cp-ctx-rel-yux  { color: #6B7280; }  /* yuxtaposición: gris */
 @media(max-width:540px){
   #screen-compuestas #cp-ctx-strip{ padding:8px 12px 10px; }
 }

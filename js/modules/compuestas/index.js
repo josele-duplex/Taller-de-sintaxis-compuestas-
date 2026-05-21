@@ -1381,6 +1381,7 @@
   function renderCpStickyProps(ej, eng){
     const props = ej.proposiciones || [];
     const tokens = ej.tokens || [];
+    const relaciones = ej.relaciones || [];
     let html = '<div class="cp-ctx-props">';
     props.forEach((prop, idx)=>{
       const pNum = idx + 1;
@@ -1404,6 +1405,25 @@
         <span class="cp-ctx-prop-text">${escHtml(shortText)}${needsDots?'…':''}</span>
         ${clasifBadge}
       </div>`;
+
+      // ── Flecha de relación entre chips consecutivos ─────────────
+      // Solo si el alumno ya respondió correctamente el TIPO de relación.
+      if(idx < props.length - 1){
+        const rel = relaciones.find(r =>
+          (r.de === prop.id && r.a === props[idx+1].id) ||
+          (r.de === props[idx+1].id && r.a === prop.id) ||
+          (r.entre && r.entre.includes(prop.id) && r.entre.includes(props[idx+1].id))
+        );
+        const relIdx = relaciones.indexOf(rel);
+        const f5r = relIdx >= 0 ? (eng.f5Respuestas && eng.f5Respuestas[relIdx]) : null;
+        let sym = '·', cls = 'cp-ctx-rel-pending', titulo = 'Por resolver';
+        if(rel && f5r && f5r.tipoOk){
+          if(rel.tipo === 'subordinacion'){ sym = '→'; cls = 'cp-ctx-rel-sub';   titulo = 'Subordinación'; }
+          else if(rel.tipo === 'coordinacion'){ sym = '↔'; cls = 'cp-ctx-rel-coord'; titulo = 'Coordinación';   }
+          else { sym = '∥'; cls = 'cp-ctx-rel-yux'; titulo = 'Yuxtaposición'; }
+        }
+        html += `<span class="cp-ctx-rel ${cls}" title="${titulo}">${sym}</span>`;
+      }
     });
     html += '</div>';
     return html;
