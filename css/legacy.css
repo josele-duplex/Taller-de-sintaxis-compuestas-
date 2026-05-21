@@ -282,10 +282,22 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 .fb-card{text-align:left;border-radius:14px;padding:14px 16px;margin-bottom:14px;position:relative;line-height:1.55}
 .fb-card-label{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px}
 .fb-card-body{font-size:1.02rem;line-height:1.55;color:var(--ink)}
-.fb-consejo-card{background:linear-gradient(135deg,#FEF9C3 0%,#FEF3C7 100%);border:2px solid #CA8A04}
-.fb-consejo-card .fb-card-label{color:#854D0E}
-.fb-pista-card{background:linear-gradient(135deg,#DBEAFE 0%,#BFDBFE 100%);border:2px solid #2563EB;animation:fbPistaIn .35s cubic-bezier(.16,1,.3,1)}
-.fb-pista-card .fb-card-label{color:#1E3A8A}
+/* Consejo: tono cyan-cielo suave, "información útil" */
+.fb-consejo-card{
+  background: linear-gradient(160deg,#EFF8FF 0%, #E0F2FE 100%);
+  border: 1.5px solid #BAE6FD;
+  box-shadow: 0 4px 10px rgba(8,145,178,.10), inset 0 1px 0 rgba(255,255,255,.6);
+}
+.fb-consejo-card .fb-card-label{color:#0C4A6E}
+/* Pista: tono teal — coincide con la pista flotante de CP (.pf-card) para
+   dar coherencia visual a toda la app (C.1, mayo 2026). */
+.fb-pista-card{
+  background: linear-gradient(160deg,#ECFEFF 0%,#F0FDFA 60%,#FFFFFF 100%);
+  border: 1.5px solid #5EEAD4;
+  box-shadow: 0 6px 16px rgba(15,118,110,.14), inset 0 1px 0 rgba(255,255,255,.7);
+  animation: fbPistaIn .35s cubic-bezier(.16,1,.3,1);
+}
+.fb-pista-card .fb-card-label{color:#115E59}
 @keyframes fbPistaIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 .succ-bg{position:fixed;inset:0;z-index:200;background:linear-gradient(135deg,rgba(255,251,243,.97) 0%,rgba(254,243,199,.92) 100%);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;padding:24px;animation:succFadeIn .35s ease-out}
 .succ-bg.open{display:flex}

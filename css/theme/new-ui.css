@@ -112,7 +112,7 @@
 .theme-new-ui .mc-arcade:hover .mod-card-icon{filter:drop-shadow(0 0 12px rgba(255,140,0,.8));}
 
 /* ── 5. Topbar & progress ── */
-.theme-new-ui .topbar{background:rgba(237,228,204,.96);border-bottom:1.5px solid var(--parch-border);}
+.theme-new-ui .topbar{background:rgba(244,245,248,.96);border-bottom:1.5px solid var(--parch-border);backdrop-filter:blur(14px) saturate(1.1);}
 .theme-new-ui .prog-fill{background:linear-gradient(90deg,var(--blue),var(--purple));transition:width .9s cubic-bezier(.4,0,.2,1);}
 .theme-new-ui .ppill{font-weight:700;}
 .theme-new-ui .pp-active{box-shadow:0 2px 8px rgba(37,99,235,.45);animation:nu-ph-pop .4s cubic-bezier(.34,1.56,.64,1);}
@@ -286,24 +286,51 @@
   background:#0F0F0F;color:#FEF9C3;padding:1px 7px;border-radius:6px;
   font-family:monospace;letter-spacing:.04em;
 }
+/* ── Pista de Sint (C.1, mayo 2026) ───────────────────────────────────
+   Rediseño coherente con la pista flotante de CP (.pf-card):
+   misma paleta teal/navy, mismo chip "PISTA", elimina el amarillo
+   ochroso y el borde neobrutalista negro 2010. Mantiene posición
+   inline dentro del modal de feedback de Sint (la flotación solo
+   tiene sentido cuando el contenido empuja al alumno fuera de vista,
+   como en CP). Aquí estamos en un modal centrado, basta con elegancia. */
 .fb-pista-box{
-  margin-top:11px;padding:14px 16px;border-radius:13px;
-  font-size:.88rem;font-weight:700;line-height:1.65;color:#064E3B;text-align:left;
-  background:
-    radial-gradient(circle,rgba(255,255,255,.22) 1px,transparent 1px) 0 0/14px 14px,
-    linear-gradient(135deg,#D1FAE5 0%,#A7F3D0 40%,#FEF9C3 100%);
-  border:2.5px solid #0F0F0F;box-shadow:3px 3px 0 #059669;
-  animation:pista-drop-in .38s cubic-bezier(.34,1.56,.64,1);
-  position:relative;
+  margin-top: 14px;
+  padding: 14px 16px 14px 18px;
+  border-radius: 14px;
+  font-size: .92rem;
+  font-weight: 500;
+  line-height: 1.55;
+  color: #0F2342;
+  text-align: left;
+  font-family: 'DM Sans','Nunito',sans-serif;
+  background: linear-gradient(160deg, #ECFEFF 0%, #F0FDFA 60%, #FFFFFF 100%);
+  border: 1.5px solid #5EEAD4;
+  box-shadow:
+    0 6px 16px rgba(15, 118, 110, .14),
+    inset 0 1px 0 rgba(255, 255, 255, .7);
+  animation: pista-drop-in .38s cubic-bezier(.34,1.56,.64,1);
+  position: relative;
 }
+.fb-pista-box b, .fb-pista-box strong{ color:#115E59; font-weight:800; }
+.fb-pista-box em, .fb-pista-box i{ color:#475569; font-style:italic; }
 .fb-pista-box::before{
-  content:'💡 PISTA';position:absolute;top:-12px;left:12px;
-  font-size:.62rem;font-weight:900;letter-spacing:.1em;
-  background:#0F0F0F;color:#FEF9C3;padding:2px 9px;border-radius:5px;
+  content: '💡 PISTA';
+  position: absolute;
+  top: -10px;
+  left: 14px;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  background: #CCFBF1;
+  color: #115E59;
+  border: 1px solid #5EEAD4;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  box-shadow: 0 2px 4px rgba(15, 118, 110, .12);
 }
 @keyframes pista-drop-in{
-  from{transform:translateY(-10px) scale(.94);opacity:0;}
-  to{transform:none;opacity:1;}
+  from{ transform: translateY(-10px) scale(.94); opacity: 0; }
+  to  { transform: none; opacity: 1; }
 }
 /* Feedback modal neobrut override */
 .theme-new-ui .modal{

@@ -27,10 +27,13 @@
      Used app-wide. Per-domain tokens (syntactic colours, arcade
      neón, etc.) override these locally.
      ───────────────────────────────────────────────────────────── */
-  /* Surfaces */
-  --ui-bg:        #F4F2EC;   /* page background — warm, not beige-heavy */
+  /* Surfaces
+     Background revisado (C.3, mayo 2026): el crema #F4F2EC viejo tiraba
+     a beige-tostado y chocaba con la paleta navy/teal. Sustituido por un
+     blanco-cool sutil que deja respirar el contenido sin competir. */
+  --ui-bg:        #F4F5F8;   /* page background — cool off-white, neutro elegante */
   --ui-surface:   #FFFFFF;   /* cards, modals */
-  --ui-surface-2: #FAF7F1;   /* subtle alt surface (e.g. inset panels) */
+  --ui-surface-2: #FAFAFC;   /* subtle alt surface (inset panels) — un punto más oscuro que surface */
   --ui-border:    #E2DFD5;   /* default borders, subtle */
   --ui-border-strong: #C9C3B5; /* dividers, active edges */
 
