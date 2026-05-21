@@ -1060,19 +1060,17 @@ function renderGame(){
       skipW.style.display='none';
     }
   }
-  // Ajustar offset del sticky de la oración (mayo 2026): mide la altura
-  // real de la topbar + barra de filtros (si está abierta) y la expone
-  // como variable CSS para que .ctx-strip.ctx-sticky se pegue justo debajo.
+  // Ajustar offset del sticky de la oración (mayo 2026): mide solo la
+  // altura de la topbar (NO sumar el practice-filters-bar, que no es
+  // sticky: dejaría un hueco al hacer scroll igual a su altura).
   updateStickyTop();
 }
 
 function updateStickyTop(){
   try{
     const tb = document.querySelector('#screen-game .topbar');
-    const fb = document.getElementById('practice-filters-bar');
     if(!tb) return;
-    let h = tb.offsetHeight;
-    if(fb && fb.offsetParent !== null) h += fb.offsetHeight;
+    const h = tb.offsetHeight;
     document.documentElement.style.setProperty('--sint-topbar-h', h+'px');
   }catch(e){}
 }

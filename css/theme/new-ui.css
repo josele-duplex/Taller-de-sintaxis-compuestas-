@@ -703,21 +703,31 @@ body.theme-new-ui #screen-game #game-skip-wrap .btn:hover{
   transform: none;
 }
 
-/* ── Oración sticky bajo la topbar (mayo 2026) ──
-   Mantiene la oración siempre visible al hacer scroll, sin solaparse con
-   la topbar. La variable --sint-topbar-h la actualiza Sint vía JS al
-   renderizar cada fase (mide topbar + practice-filters-bar si está abierto). */
+/* ── Oración sticky bajo la topbar (mayo 2026, revisada) ──
+   Mantiene la oración siempre visible al hacer scroll. La variable
+   --sint-topbar-h la actualiza Sint vía JS al renderizar cada fase
+   (mide SOLO la topbar — no sumar filters-bar, que no es sticky).
+   Cuando se engancha al topbar, las esquinas y el borde superior
+   desaparecen para que visualmente forme una sola pieza con él. */
 body.theme-new-ui #screen-game .ctx-strip.ctx-sticky{
   position: sticky;
   top: var(--sint-topbar-h, 96px);
   z-index: 20;
   background: var(--paper);
   border: 1px solid var(--ui-border);
-  border-radius: 12px;
-  padding: 12px 16px;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 14px 18px;
   margin: 0 auto 14px;
-  max-width: 880px;
+  max-width: 100%;
   box-shadow: 0 4px 14px rgba(15,35,66,.08), 0 1px 3px rgba(15,35,66,.05);
+}
+/* Centramos el contenido textual con ancho máximo razonable */
+body.theme-new-ui #screen-game .ctx-strip.ctx-sticky .ctx-scroll,
+body.theme-new-ui #screen-game .ctx-strip.ctx-sticky .ctx-label{
+  max-width: 880px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ── Mobile adjustments ── */
