@@ -3085,17 +3085,23 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // Fase 1.4.B: ANÁLISIS INTERNO — Render + handlers
-  //
-  // El mini-motor recorre cada proposición con 3 sub-pasos:
-  //   'predicado'  → tipo de predicado (PV / PN)
-  //   'sujeto'     → tipo de sujeto (léxico / tácito / impersonal)
-  //   'funciones'  → identificar cada complemento del predicado (CD, CI…)
-  //
-  // El estado vive en eng.interna (inicializado en iniciarAnalisisInterno).
-  // Todas las funciones render son puras (devuelven HTML); los handlers
-  // mutan eng.interna.respuestas[] y llaman a renderFase().
   // ─────────────────────────────────────────────────────────────────────
+  // Fase 1.4.B: ANÁLISIS INTERNO — Drag-and-drop (D) mayo 2026
+  //
+  // Reemplaza el sistema de cascada (3 sub-pasos con botones) por un
+  // sistema de arrastrar-y-soltar al estilo del módulo de Simples:
+  //   - Todos los bloques de la proposición se muestran a la vez.
+  //   - Un pool con 3 secciones (Predicado / Sujeto / Complementos)
+  //     ofrece las etiquetas correctas + 2-3 distractores.
+  //   - El alumno arrastra o hace clic para colocar etiquetas en los huecos.
+  //   - "Confirmar" comprueba todo de una vez y muestra ✓/✗ por bloque.
+  //
+  // Estado en _idd (módulo), resultados en eng.interna.respuestas[].
+  // ─────────────────────────────────────────────────────────────────────
+
+  let _idd = {};                      // estado D&D de la prop actual
+  let _iddDrag = {};                  // {id} etiqueta arrastrada
+  let _iddSel  = {box:null, el:null}; // etiqueta seleccionada por clic
 
   // Normaliza el tipo de predicado a 'verbal' o 'nominal' sea cual sea el
   // valor exacto que use el banco ('PV', 'nominal', 'predicado verbal'…).
@@ -3107,7 +3113,90 @@
     return s;
   }
 
-  // ── Render principal del modo interna ──────────────────────────────
+  // ── Render principal del modo interna (D&D) ───────────────────────
+
+  // Pool de distractores para la sección de complementos. Se eligen
+  // los que NO son la respuesta correcta de la proposición actual.
+  const _COMP_DIS_POOL = [
+    'cd','ci','cc_temporal','cc_locativo','cc_modal','cc_causal','cc_final',
+    'atributo','cpvo','c_regimen','c_agente','cn','c_adj','vocativo','mod_oracional'
+  ];
+
+  // Devuelve la etiqueta legible para los tipos internos del D&D.
+  function _iddLabel(tipo){
+    const m = {
+      'pv':'PV · Predicado Verbal', 'pn':'PN · Predicado Nominal',
+      'suj_lexico':'Sujeto léxico', 'suj_tacito':'Sujeto tácito (Ø)', 'suj_imp':'Impersonal'
+    };
+    return m[tipo] || etiquetaFuncion(tipo);
+  }
+
+  // Inicializa _idd para la proposición propIdx del ejercicio ej.
+  function _initIDD(ej, propIdx){
+    const prop = (ej.proposiciones||[])[propIdx] || {};
+    const ai = prop.analisis_interno || {};
+    const tokens = ej.tokens || [];
+
+    const getWords = idxs => idxs
+      .map(i => tokens.find(t=>t.i===i)?.texto||'')
+      .filter(Boolean).join(' ');
+
+    // Bloques ─────────────────────────────────────────────────
+    const blocks = [];
+
+    // Predicado
+    const predIndices = (ai.predicado||{}).indices || [];
+    const predWords = getWords(predIndices) || prop.verbo?.forma || '?';
+    const predCorr = _normPredTipo((ai.predicado||{}).tipo||'') === 'verbal' ? 'pv' : 'pn';
+    blocks.push({id:'pred', words:predWords, correctTipo:predCorr, section:'pred'});
+
+    // Sujeto (siempre, incluso Ø)
+    const sujTipo = (ai.sujeto||{}).tipo || '';
+    const sujIndices = (ai.sujeto||{}).indices || [];
+    const sujWords = sujIndices.length > 0 ? getWords(sujIndices)
+                   : sujTipo==='tacito' ? '(Ø)' : sujTipo==='impersonal' ? '—' : null;
+    if(sujWords !== null){
+      const sujCorr = sujTipo==='lexico' ? 'suj_lexico'
+                    : sujTipo==='tacito' ? 'suj_tacito' : 'suj_imp';
+      blocks.push({id:'suj', words:sujWords, correctTipo:sujCorr, section:'suj'});
+    }
+
+    // Funciones (una por cada complemento)
+    const funcs = Array.isArray(ai.funciones) ? ai.funciones : [];
+    funcs.forEach((f,i)=>{
+      const fWords = getWords(f.indices||[]) || '?';
+      blocks.push({id:`func_${i}`, words:fWords, correctTipo:f.tipo, section:'comp'});
+    });
+
+    // Pool de etiquetas ───────────────────────────────────────
+    const predPool = [
+      {id:'pd_pv', label:'PV · Predicado Verbal',   tipo:'pv'},
+      {id:'pd_pn', label:'PN · Predicado Nominal',   tipo:'pn'}
+    ];
+    const sujPool = [
+      {id:'sd_lex', label:'Sujeto léxico',           tipo:'suj_lexico'},
+      {id:'sd_tac', label:'Sujeto tácito (Ø)',        tipo:'suj_tacito'},
+      {id:'sd_imp', label:'Impersonal',               tipo:'suj_imp'}
+    ];
+    const correctFuncTipos = new Set(funcs.map(f=>f.tipo));
+    const distractors = _COMP_DIS_POOL
+      .filter(t=>!correctFuncTipos.has(t))
+      .sort(()=>Math.random()-.5)
+      .slice(0, Math.max(2, 5 - funcs.length));
+    const compPool = [
+      ...funcs.map((f,i)=>({id:`cd_${i}`, label:etiquetaFuncion(f.tipo), tipo:f.tipo})),
+      ...distractors.map((t,i)=>({id:`cd_d${i}`, label:etiquetaFuncion(t), tipo:t}))
+    ].sort(()=>Math.random()-.5);
+
+    // Estado de slots ─────────────────────────────────────────
+    const slots={}, slotOk={};
+    blocks.forEach(b=>{ slots[b.id]=null; slotOk[b.id]=null; });
+
+    _idd = {_propIdx:propIdx, blocks, slots, slotOk,
+             predPool, sujPool, compPool, confirmed:false};
+    _iddDrag = {};
+    _iddSel  = {box:null, el:null};
+  }
 
   function renderInternaHtml(ej){
     const eng = state.engine;
@@ -3115,246 +3204,266 @@
     const props = ej.proposiciones || [];
     const propIdx = interna.propIdx;
     const prop = props[propIdx];
-    if(!prop){
-      return '<div style="padding:20px;color:var(--muted)">Error: proposición no disponible.</div>';
-    }
-    const ai = prop.analisis_interno || {};
-    const resp = interna.respuestas[propIdx] || {};
-    const subPaso = interna.subPaso;
+    if(!prop) return '<div style="padding:20px;color:var(--muted)">Error: proposición no disponible.</div>';
+
+    // Inicializar D&D si cambiamos de proposición o primera vez
+    if(_idd._propIdx !== propIdx) _initIDD(ej, propIdx);
+
     const propNum = propIdx + 1;
     const totalProps = props.length;
-    const colorVar = `var(--cp-p${Math.min(propNum, 4)})`;
+    const colorVar = `var(--cp-p${Math.min(propNum,4)})`;
 
-    // Barra de progreso del análisis interno
-    const subPasoLabels = {predicado: 'Predicado', sujeto: 'Sujeto', funciones: 'Funciones'};
-    const progressHtml = `
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface2);border-radius:10px;margin-bottom:12px;font-size:.83rem;flex-wrap:wrap">
-        <span style="font-weight:800;color:${colorVar}">P${propNum}</span>
-        <span style="color:var(--muted)">de ${totalProps} proposición${totalProps > 1 ? 'es' : ''}</span>
-        <span style="margin-left:auto;font-weight:600;color:var(--ink2)">${subPasoLabels[subPaso] || subPaso}</span>
+    const headerHtml = `
+      <div class="iidd-header">
+        <span class="iidd-prop-badge" style="background:${colorVar}">P${propNum}</span>
+        <span class="iidd-prop-of">· ${totalProps} proposicion${totalProps>1?'es':''}</span>
+        <div class="iidd-prop-text">«${escHtml(prop.texto||'')}»</div>
       </div>`;
 
-    // Texto de la proposición
-    const propTextHtml = `
-      <div style="padding:10px 14px;background:var(--surface2);border-radius:10px;margin-bottom:14px;font-style:italic;font-size:.97rem;color:var(--ink);line-height:1.55">
-        «${escHtml(prop.texto || '')}»
+    const instrHtml = `
+      <p class="iidd-instr">
+        Arrastra (o haz clic en) cada etiqueta y suéltala en el bloque que le corresponde.
+        Cuando hayas asignado todas, pulsa <b>Confirmar</b>.
+      </p>`;
+
+    const blocksHtml = `
+      <div class="iidd-grid" id="iidd-blocks">
+        ${_idd.blocks.map(b=>_renderIddBlock(b)).join('')}
       </div>`;
 
-    let bodyHtml = '';
-    if(subPaso === 'predicado')  bodyHtml = _renderInternaPredHtml(prop, ai, resp);
-    else if(subPaso === 'sujeto') bodyHtml = _renderInternaSujHtml(ej, prop, ai, resp);
-    else if(subPaso === 'funciones') bodyHtml = _renderInternaFuncsHtml(ej, ai, resp);
+    const poolHtml = `
+      <div class="iidd-pool" id="iidd-pool">
+        <div class="iidd-pool-sec">
+          <div class="iidd-pool-hdr"><span class="iidd-pool-icon">🔧</span>
+            <div><div class="iidd-pool-title">Predicado</div>
+              <div class="iidd-pool-sub">¿Verbal o Nominal?</div></div></div>
+          <div class="iidd-tags-wrap" id="iidd-pool-pred">${_buildIddPoolHtml(_idd.predPool)}</div>
+        </div>
+        <div class="iidd-pool-sec">
+          <div class="iidd-pool-hdr"><span class="iidd-pool-icon">👤</span>
+            <div><div class="iidd-pool-title">Sujeto</div>
+              <div class="iidd-pool-sub">¿Léxico, tácito o impersonal?</div></div></div>
+          <div class="iidd-tags-wrap" id="iidd-pool-suj">${_buildIddPoolHtml(_idd.sujPool)}</div>
+        </div>
+        <div class="iidd-pool-sec">
+          <div class="iidd-pool-hdr"><span class="iidd-pool-icon">🏷️</span>
+            <div><div class="iidd-pool-title">Complementos</div>
+              <div class="iidd-pool-sub">CD, CI, CC, Atributo…</div></div></div>
+          <div class="iidd-tags-wrap" id="iidd-pool-comp">${_buildIddPoolHtml(_idd.compPool)}</div>
+        </div>
+      </div>`;
+
+    let actionHtml;
+    if(_idd.confirmed){
+      const allOk = _idd.blocks.every(b=>_idd.slotOk[b.id]===true);
+      const nextLabel = propIdx < totalProps-1 ? 'Siguiente proposición →' : '📋 Ver resumen';
+      actionHtml = `
+        <div class="iidd-action">
+          <div class="iidd-result-badge ${allOk?'iidd-res-ok':'iidd-res-partial'}">
+            ${allOk?'✅ ¡Todo correcto!':'⚠️ Revisa los marcados en rojo'}
+          </div>
+          <button type="button" class="cp-btn-primary" onclick="CP.iiddAvanzar()">${nextLabel}</button>
+        </div>`;
+    } else {
+      const allFilled = _idd.blocks.every(b=>_idd.slots[b.id]!==null);
+      actionHtml = `
+        <div class="iidd-action">
+          <button type="button" class="cp-btn-primary" id="iidd-confirm-btn"
+            ${allFilled?'':'disabled'} onclick="CP.iiddConfirm()">✓ Confirmar análisis</button>
+          <span class="iidd-hint" style="${allFilled?'display:none':''}">Asigna una etiqueta a cada bloque</span>
+        </div>`;
+    }
 
     return `
-      <div style="max-width:600px;margin:0 auto">
-        ${progressHtml}
-        ${propTextHtml}
-        ${bodyHtml}
-        <div style="margin-top:16px">
+      <div class="iidd-wrap">
+        ${headerHtml}
+        ${instrHtml}
+        ${blocksHtml}
+        ${poolHtml}
+        ${actionHtml}
+        <div style="margin-top:12px">
           <button type="button" class="cp-btn-secondary" onclick="CP.abandonar()">← Volver a filtros</button>
         </div>
       </div>`;
   }
 
-  // ── Sub-paso: Predicado (PV vs PN) ─────────────────────────────────
-
-  function _renderInternaPredHtml(prop, ai, resp){
-    const predTipoCorr = _normPredTipo((ai.predicado || {}).tipo || '');
-    const verbForm = escHtml(prop.verbo?.forma || '?');
-
-    // Sin datos → pantalla informativa + avanzar
-    if(!predTipoCorr){
-      return `
-        <div class="cp-instr cp-instr-grande">
-          <span class="cp-instr-emoji">ℹ️</span>
-          <div class="cp-instr-body">
-            <h3 class="cp-instr-titulo">Tipo de predicado</h3>
-            <p class="cp-instr-desc" style="color:var(--muted)">Este ejercicio no incluye datos sobre el tipo de predicado.</p>
-            <div style="margin-top:10px">
-              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">Siguiente →</button>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    // Ya respondido → feedback
-    if(resp.predicadoOk !== null && resp.predicadoOk !== undefined){
-      const esOk = resp.predicadoOk;
-      const esVerbal = predTipoCorr === 'verbal';
-      return `
-        <div class="cp-instr cp-instr-grande">
-          <span class="cp-instr-emoji">${esOk ? '✅' : '❌'}</span>
-          <div class="cp-instr-body">
-            <h3 class="cp-instr-titulo">${esOk ? '¡Correcto!' : 'No era eso.'}</h3>
-            <p class="cp-instr-desc">Esta proposición tiene un <b>Predicado ${esVerbal ? 'Verbal (PV)' : 'Nominal (PN)'}</b>.
-              ${esVerbal
-                ? `El verbo «<b>${verbForm}</b>» es pleno (no copulativo): el predicado verbal expresa la acción, proceso o estado.`
-                : `El verbo «<b>${verbForm}</b>» es copulativo (<i>ser, estar, parecer…</i>): enlaza el sujeto con el atributo.`
-              }
-            </p>
-            <div style="margin-top:10px">
-              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">Siguiente →</button>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    // Pregunta
+  // Render de un bloque con su hueco de drop
+  function _renderIddBlock(b){
+    const slot = _idd.slots[b.id];
+    const ok   = _idd.slotOk[b.id];
+    const slotCls = 'iidd-slot' + (ok===true?' iidd-slot-ok':ok===false?' iidd-slot-err':'');
+    const dragAttr = _idd.confirmed ? '' : `draggable="true" ondragstart="CP.iiddDragStart(event,'${slot?.id}')"`;
+    const slotContent = slot
+      ? `<span class="iidd-tag iidd-tag-placed${ok===false?' iidd-tag-wrong':''}"
+           id="iidd-tg-${slot.id}" data-id="${slot.id}"
+           ${dragAttr}
+           onclick="CP.iiddTagClickSlot('${b.id}')">
+           ${escHtml(slot.label)}
+         </span>`
+      : `<span class="iidd-slot-hint">← etiqueta</span>`;
+    const errNote = ok===false
+      ? `<div class="iidd-slot-correct">✓ ${escHtml(_iddLabel(b.correctTipo))}</div>` : '';
     return `
-      <div class="cp-instr cp-instr-grande">
-        <span class="cp-instr-emoji">🔍</span>
-        <div class="cp-instr-body">
-          <h3 class="cp-instr-titulo">¿Qué tipo de predicado tiene esta proposición?</h3>
-          <p class="cp-instr-desc">Fíjate en el verbo «<b>${verbForm}</b>»: ¿es un verbo pleno (acción/estado) o es un verbo copulativo (<i>ser, estar, parecer</i>) que enlaza sujeto con atributo?</p>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-            <button type="button" class="cp-btn-secondary" onclick="CP.onInternaPredBtn('verbal')">Predicado Verbal (PV)</button>
-            <button type="button" class="cp-btn-secondary" onclick="CP.onInternaPredBtn('nominal')">Predicado Nominal (PN)</button>
-          </div>
+      <div class="iidd-blk">
+        <div class="iidd-blk-words">${escHtml(b.words)}</div>
+        <div class="${slotCls}" id="iidd-ds-${b.id}"
+             ondragover="CP.iiddOver(event,'${b.id}')" ondragleave="CP.iiddLeave('${b.id}')"
+             ondrop="CP.iiddDrop(event,'${b.id}')"
+             onclick="CP.iiddSlotClick('${b.id}')">
+          ${slotContent}
         </div>
+        ${errNote}
       </div>`;
   }
 
-  // ── Sub-paso: Sujeto (léxico / tácito / impersonal) ────────────────
-
-  function _renderInternaSujHtml(ej, prop, ai, resp){
-    const suj = ai.sujeto || {};
-    const sujTipoCorr = suj.tipo || '';
-    const verbForm = escHtml(prop.verbo?.forma || '?');
-
-    // Sin datos → skip
-    if(!sujTipoCorr){
-      return `
-        <div class="cp-instr cp-instr-grande">
-          <span class="cp-instr-emoji">ℹ️</span>
-          <div class="cp-instr-body">
-            <h3 class="cp-instr-titulo">Sujeto</h3>
-            <p class="cp-instr-desc" style="color:var(--muted)">Este ejercicio no incluye datos sobre el sujeto.</p>
-            <div style="margin-top:10px">
-              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">Siguiente →</button>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    // Ya respondido → feedback
-    if(resp.sujetoOk !== null && resp.sujetoOk !== undefined){
-      const esOk = resp.sujetoOk;
-      const labelMap = {
-        'lexico':      'léxico (aparece explícito en el texto)',
-        'tacito':      'tácito o elíptico (se deduce por la desinencia verbal)',
-        'impersonal':  'oración impersonal (no hay sujeto)'
-      };
-      const sujLabel = labelMap[sujTipoCorr] || sujTipoCorr;
-      // Si el sujeto es léxico, mostrar su texto
-      let sujTextoHtml = '';
-      if(sujTipoCorr === 'lexico' && Array.isArray(suj.indices) && suj.indices.length > 0){
-        const sujTexto = suj.indices.map(i => ej.tokens[i]?.texto || '').filter(Boolean).join(' ');
-        sujTextoHtml = ` El sujeto es «<b>${escHtml(sujTexto)}</b>».`;
-      }
-      return `
-        <div class="cp-instr cp-instr-grande">
-          <span class="cp-instr-emoji">${esOk ? '✅' : '❌'}</span>
-          <div class="cp-instr-body">
-            <h3 class="cp-instr-titulo">${esOk ? '¡Correcto!' : 'No era eso.'}</h3>
-            <p class="cp-instr-desc">El sujeto de esta proposición es <b>${sujLabel}</b>.${sujTextoHtml}</p>
-            <div style="margin-top:10px">
-              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">Siguiente →</button>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    // Pregunta
-    return `
-      <div class="cp-instr cp-instr-grande">
-        <span class="cp-instr-emoji">👤</span>
-        <div class="cp-instr-body">
-          <h3 class="cp-instr-titulo">¿Cuál es el sujeto de esta proposición?</h3>
-          <p class="cp-instr-desc">Observa el verbo «<b>${verbForm}</b>» y la proposición entera: ¿aparece el sujeto en el texto, está sobrentendido por la forma verbal, o es una construcción impersonal?</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-            <button type="button" class="cp-btn-secondary" onclick="CP.onInternaSujBtn('lexico')">👁️ Sujeto léxico</button>
-            <button type="button" class="cp-btn-secondary" onclick="CP.onInternaSujBtn('tacito')">🌫️ Sujeto tácito</button>
-            <button type="button" class="cp-btn-secondary" onclick="CP.onInternaSujBtn('impersonal')">⚡ Impersonal</button>
-          </div>
-        </div>
-      </div>`;
+  // Render de una sección del pool (filtra las ya colocadas)
+  function _buildIddPoolHtml(poolArr){
+    const placed = new Set(
+      Object.values(_idd.slots).filter(Boolean).map(b=>b.id)
+    );
+    const visible = poolArr.filter(b=>!placed.has(b.id));
+    if(!visible.length)
+      return '<span class="iidd-pool-empty">Todas colocadas.</span>';
+    return visible.map(b=>`
+      <span class="iidd-tag" id="iidd-tg-${b.id}" data-id="${b.id}"
+        draggable="true"
+        ondragstart="CP.iiddDragStart(event,'${b.id}')"
+        onclick="CP.iiddTagClick(event,'${b.id}')">
+        ${escHtml(b.label)}
+      </span>`).join('');
   }
 
-  // ── Sub-paso: Funciones del predicado (CD, CI, CC…) ────────────────
+  // ── D&D handlers ──────────────────────────────────────────────────
 
-  function _renderInternaFuncsHtml(ej, ai, resp){
-    const funcs = Array.isArray(ai.funciones) ? ai.funciones : [];
-
-    // Sin funciones → informar + avanzar
-    if(funcs.length === 0){
-      return `
-        <div class="cp-instr cp-instr-grande">
-          <span class="cp-instr-emoji">✓</span>
-          <div class="cp-instr-body">
-            <h3 class="cp-instr-titulo">Sin complementos adicionales</h3>
-            <p class="cp-instr-desc">Esta proposición no tiene complementos del predicado registrados en el banco.</p>
-            <div style="margin-top:10px">
-              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">Siguiente →</button>
-            </div>
-          </div>
-        </div>`;
+  function iiddDragStart(e, id){
+    if(!id) return;
+    _iddDrag = {id};
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  function iiddOver(e, slotId){
+    e.preventDefault();
+    document.getElementById('iidd-ds-'+slotId)?.classList.add('iidd-ds-over');
+  }
+  function iiddLeave(slotId){
+    document.getElementById('iidd-ds-'+slotId)?.classList.remove('iidd-ds-over');
+  }
+  function iiddDrop(e, slotId){
+    e.preventDefault();
+    iiddLeave(slotId);
+    if(_iddDrag.id){ _iiddPlace(_iddDrag.id, slotId); _iddDrag = {}; }
+  }
+  function iiddTagClick(e, id){
+    e.stopPropagation();
+    if(_idd.confirmed) return;
+    if(_iddSel.el){ _iddSel.el.classList.remove('iidd-tag-sel');
+      if(_iddSel.box?.id===id){ _iddSel={box:null,el:null}; return; } }
+    const el = document.getElementById('iidd-tg-'+id);
+    if(el) el.classList.add('iidd-tag-sel');
+    const allTags = [...(_idd.predPool||[]),...(_idd.sujPool||[]),...(_idd.compPool||[])];
+    _iddSel = {box: allTags.find(b=>b.id===id)||null, el};
+  }
+  function iiddTagClickSlot(slotId){
+    if(_idd.confirmed) return;
+    const box = _idd.slots[slotId];
+    if(!box) return;
+    if(_iddSel.el) _iddSel.el.classList.remove('iidd-tag-sel');
+    _idd.slots[slotId] = null;
+    _iddSel = {box, el:null};
+    _rebuildIddBlocks(); _rebuildIddPool();
+  }
+  function iiddSlotClick(slotId){
+    if(_idd.confirmed) return;
+    if(!_iddSel.box) return;
+    if(_iddSel.el) _iddSel.el.classList.remove('iidd-tag-sel');
+    _iiddPlace(_iddSel.box.id, slotId);
+    _iddSel = {box:null, el:null};
+  }
+  function _iiddPlace(tagId, slotId){
+    if(_idd.confirmed) return;
+    const allTags = [...(_idd.predPool||[]),...(_idd.sujPool||[]),...(_idd.compPool||[])];
+    const tag = allTags.find(b=>b.id===tagId);
+    if(!tag) return;
+    // Si el tag estaba en otro slot, limpiarlo
+    Object.keys(_idd.slots).forEach(sid=>{ if(_idd.slots[sid]?.id===tagId) _idd.slots[sid]=null; });
+    _idd.slots[slotId] = tag;
+    _rebuildIddBlocks(); _rebuildIddPool();
+  }
+  function _rebuildIddBlocks(){
+    const cont = document.getElementById('iidd-blocks');
+    if(cont) cont.innerHTML = _idd.blocks.map(b=>_renderIddBlock(b)).join('');
+    // Actualizar botón confirmar
+    const btn = document.getElementById('iidd-confirm-btn');
+    if(btn && !_idd.confirmed){
+      const allFilled = _idd.blocks.every(b=>_idd.slots[b.id]!==null);
+      btn.disabled = !allFilled;
+      const hint = document.querySelector('.iidd-hint');
+      if(hint) hint.style.display = allFilled ? 'none' : '';
     }
+  }
+  function _rebuildIddPool(){
+    const pw = document.getElementById('iidd-pool-pred');
+    const sw = document.getElementById('iidd-pool-suj');
+    const cw = document.getElementById('iidd-pool-comp');
+    if(pw) pw.innerHTML = _buildIddPoolHtml(_idd.predPool);
+    if(sw) sw.innerHTML = _buildIddPoolHtml(_idd.sujPool);
+    if(cw) cw.innerHTML = _buildIddPoolHtml(_idd.compPool);
+  }
 
-    const funcIdx = state.engine.interna.funcionIdx;
-    const func = funcs[funcIdx];
-    if(!func) return '<div style="color:var(--muted);padding:12px">Error interno.</div>';
+  // ── Confirmar y avanzar ────────────────────────────────────────────
 
-    const funcTexto = (func.indices || []).map(i => ej.tokens[i]?.texto || '').filter(Boolean).join(' ');
-    const funcTipoCorr = func.tipo || '';
-    const funcLabelCorr = etiquetaFuncion(funcTipoCorr);
-    const funcProgress = `<div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">Complemento ${funcIdx + 1} de ${funcs.length}</div>`;
+  function iiddConfirm(){
+    const eng = state.engine;
+    const ej  = state.filtered[state.idx];
+    if(!eng || !ej) return;
+    const propIdx = eng.interna.propIdx;
+    const resp = eng.interna.respuestas[propIdx] || {};
 
-    // Ya respondido este funcIdx
-    const funcRespArr = Array.isArray(resp.funcionesUsuario) ? resp.funcionesUsuario : [];
-    const funcResp = funcRespArr[funcIdx];
-    if(funcResp && funcResp.ok !== null && funcResp.ok !== undefined){
-      const esOk = funcResp.ok;
-      return `
-        <div class="cp-instr cp-instr-grande">
-          ${funcProgress}
-          <span class="cp-instr-emoji">${esOk ? '✅' : '❌'}</span>
-          <div class="cp-instr-body">
-            <h3 class="cp-instr-titulo">${esOk ? '¡Correcto!' : 'No era eso.'}</h3>
-            <p class="cp-instr-desc">«<b>${escHtml(funcTexto)}</b>» es el <b>${escHtml(funcLabelCorr)}</b> de esta proposición.</p>
-            <div style="margin-top:10px">
-              <button type="button" class="cp-btn-primary" onclick="CP.avanzarInternaSubPaso()">
-                ${funcIdx < funcs.length - 1 ? 'Siguiente función →' : 'Siguiente →'}
-              </button>
-            </div>
-          </div>
-        </div>`;
+    let aciertos=0, errores=0;
+    _idd.blocks.forEach(b=>{
+      const placed = _idd.slots[b.id];
+      const isOk = !!placed && placed.tipo === b.correctTipo;
+      _idd.slotOk[b.id] = isOk;
+      if(isOk) aciertos++; else errores++;
+    });
+    eng.interna.aciertos += aciertos;
+    eng.interna.errores  += errores;
+
+    // Guardar en respuestas (compatible con renderResumenInternaHtml)
+    const predBlock = _idd.blocks.find(b=>b.id==='pred');
+    if(predBlock){ resp.predicadoOk = _idd.slotOk['pred']; }
+    const sujBlock = _idd.blocks.find(b=>b.id==='suj');
+    if(sujBlock){
+      resp.sujetoTipo = _idd.slots['suj']?.tipo;
+      resp.sujetoOk   = _idd.slotOk['suj'];
     }
+    const funcBlocks = _idd.blocks.filter(b=>b.id.startsWith('func_'));
+    resp.funcionesUsuario = funcBlocks.map(b=>({
+      tipoElegido: _idd.slots[b.id]?.tipo||'', ok: _idd.slotOk[b.id]===true
+    }));
+    eng.interna.respuestas[propIdx] = resp;
 
-    // Pregunta: botones con las funciones más comunes
-    const FUNC_BTNS = [
-      ['cd','CD'], ['ci','CI'], ['cc','CC'], ['atributo','Atributo'],
-      ['cpvo','CPvo'], ['c_regimen','C. Régimen'], ['c_agente','C. Agente'],
-      ['cn','CN'], ['aposicion','Aposición'], ['mod_oracional','Mod. Oracional'],
-      ['termino_preposicion','Término prep.'], ['vocativo','Vocativo'],
-      ['cc_temporal','CC Temporal'], ['cc_locativo','CC Locativo'],
-      ['cc_modal','CC Modal']
-    ];
-    const funcBtnsHtml = FUNC_BTNS.map(([tipo, lbl]) =>
-      `<button type="button" class="cp-btn-secondary" style="font-size:.82rem;padding:6px 10px" onclick="CP.onInternaFuncBtn('${tipo}')">${lbl}</button>`
-    ).join('');
+    _idd.confirmed = true;
+    if(aciertos===_idd.blocks.length && typeof playSuccess==='function') playSuccess();
+    else if(typeof playError==='function') playError();
 
-    return `
-      <div class="cp-instr cp-instr-grande">
-        ${funcProgress}
-        <span class="cp-instr-emoji">🏷️</span>
-        <div class="cp-instr-body">
-          <h3 class="cp-instr-titulo">¿Qué función desempeña este sintagma?</h3>
-          <p class="cp-instr-desc" style="margin-bottom:10px">«<b>${escHtml(funcTexto)}</b>»</p>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${funcBtnsHtml}
-          </div>
-        </div>
-      </div>`;
+    renderFase();
+  }
+
+  function iiddAvanzar(){
+    const eng = state.engine;
+    const ej  = state.filtered[state.idx];
+    if(!eng || !ej) return;
+    const totalProps = (ej.proposiciones||[]).length;
+    if(eng.interna.propIdx < totalProps-1){
+      eng.interna.propIdx++;
+      _idd = {};   // fuerza reinit en próximo render
+      renderFase();
+    } else {
+      eng.fase = 'resumen';
+      eng.mensajeFeedback = null;
+      mostrarToast({titulo:'¡Análisis interno completado!', subtitulo:'Aquí tienes el resumen', colorIdx:1});
+      renderFase();
+    }
   }
 
   // ── Handlers públicos del análisis interno ──────────────────────────
@@ -4951,6 +5060,9 @@ export const CP = {
     siguiente, anterior, volverFiltros, toggleSolucion,
     avanzarFase, avanzarPropF4, avanzarRelacionF5, pedirPista, saltarFase,
     iniciarAnalisisInterno, irAResumen,
+    iiddDragStart, iiddOver, iiddLeave, iiddDrop,
+    iiddTagClick, iiddTagClickSlot, iiddSlotClick,
+    iiddConfirm, iiddAvanzar,
     onInternaPredBtn, onInternaSujBtn, onInternaFuncBtn, avanzarInternaSubPaso,
     entrarModoExamen, cancelarPIN, validarPIN,
     enviarResultadoExamen, salirTrasEnvio,

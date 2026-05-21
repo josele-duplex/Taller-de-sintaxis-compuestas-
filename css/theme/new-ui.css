@@ -3282,6 +3282,167 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   #screen-compuestas #cp-ctx-strip{ padding:8px 12px 10px; }
 }
 
+/* ── Análisis interno: Drag-and-Drop (D) mayo 2026 ────────────────────
+   Sistema arrastrar-y-soltar al estilo del módulo de Simples.
+   Clases con prefijo iidd- para no colisionar con Sint. */
+.iidd-wrap{
+  max-width: 700px;
+  margin: 0 auto;
+  padding-bottom: 20px;
+}
+/* Cabecera de la proposición */
+.iidd-header{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.iidd-prop-badge{
+  color: #fff;
+  font-weight: 800;
+  font-size: .78rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.iidd-prop-of{ color: var(--muted); font-size: .82rem; }
+.iidd-prop-text{
+  width: 100%;
+  font-family: 'Fraunces',serif;
+  font-size: .97rem;
+  font-style: italic;
+  color: var(--ink);
+  padding: 8px 12px;
+  background: var(--surface2);
+  border-radius: 8px;
+  line-height: 1.5;
+}
+.iidd-instr{
+  font-size: .82rem;
+  color: var(--muted);
+  margin: 0 0 14px;
+  line-height: 1.45;
+}
+/* Rejilla de bloques */
+.iidd-grid{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.iidd-blk{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface2);
+  border: 1.5px solid var(--ui-border);
+  border-radius: 10px;
+  padding: 8px 10px 6px;
+  min-width: 80px;
+  max-width: 220px;
+}
+.iidd-blk-words{
+  font-family: 'Fraunces',serif;
+  font-size: .92rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: center;
+  word-break: break-word;
+}
+/* Hueco de drop */
+.iidd-slot{
+  min-width: 90px;
+  min-height: 34px;
+  padding: 4px 8px;
+  border: 2px dashed var(--ui-border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.iidd-slot-hint{ font-size:.72rem; color:var(--muted); pointer-events:none; }
+.iidd-slot.iidd-ds-over{ border-color: var(--cp-marca); background: #EEF2FF; }
+.iidd-slot.iidd-slot-ok{ border-style:solid; border-color:#16A34A; background:#F0FDF4; }
+.iidd-slot.iidd-slot-err{ border-style:solid; border-color:#DC2626; background:#FEF2F2; }
+/* Texto con respuesta correcta tras error */
+.iidd-slot-correct{
+  font-size: .68rem; color: #16A34A; font-weight: 700; margin-top: 2px; text-align:center;
+}
+/* Etiquetas (pool y colocadas) */
+.iidd-tag{
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 7px;
+  font-size: .8rem;
+  font-weight: 700;
+  background: var(--surface2);
+  border: 1.5px solid var(--ui-border);
+  color: var(--ink);
+  cursor: grab;
+  user-select: none;
+  transition: transform .1s, box-shadow .1s;
+  white-space: nowrap;
+}
+.iidd-tag:hover{ transform:translateY(-2px); box-shadow:0 3px 8px rgba(15,35,66,.12); }
+.iidd-tag.iidd-tag-sel{
+  outline: 3px solid var(--cp-marca);
+  outline-offset: 2px;
+  transform: scale(1.06) translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15,35,66,.2);
+}
+.iidd-tag.iidd-tag-placed{ cursor:pointer; }
+.iidd-tag.iidd-tag-wrong{ background:#FEF2F2; border-color:#DC2626; color:#DC2626; }
+/* Pool */
+.iidd-pool{
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.iidd-pool-sec{
+  background: var(--surface2);
+  border: 1.5px solid var(--ui-border);
+  border-radius: 10px;
+  padding: 10px 10px 8px;
+}
+.iidd-pool-hdr{
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.iidd-pool-icon{ font-size:1.1rem; line-height:1; }
+.iidd-pool-title{ font-size:.78rem; font-weight:800; color:var(--ink); }
+.iidd-pool-sub{ font-size:.62rem; color:var(--muted); }
+.iidd-tags-wrap{ display:flex; flex-wrap:wrap; gap:5px; }
+.iidd-pool-empty{ font-size:.72rem; color:var(--muted); font-style:italic; }
+/* Barra de acción */
+.iidd-action{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.iidd-hint{ font-size:.78rem; color:var(--muted); }
+.iidd-result-badge{
+  font-size: .85rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 8px;
+}
+.iidd-res-ok{ background:#F0FDF4; color:#16A34A; border:1.5px solid #86EFAC; }
+.iidd-res-partial{ background:#FEF3C7; color:#92400E; border:1.5px solid #FCD34D; }
+@media(max-width:600px){
+  .iidd-pool{ grid-template-columns:1fr; }
+  .iidd-grid{ flex-direction:column; }
+  .iidd-blk{ max-width:100%; }
+}
+
 /* ════════════════════════════════════════════════════════════════════════ */
 /* PATCH FINAL E3.4: TOAST · BOTÓN SKIP · REDISEÑO NAVY (parte A del informe) */
 /* ════════════════════════════════════════════════════════════════════════ */
