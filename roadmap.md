@@ -253,6 +253,26 @@ Trabajo paralelo de desarrollo de negocio:
 
 ---
 
+## 7.5 Apuntes de diseño visual (mayo 2026)
+
+### 7.5.1 Unificar colores de funciones sintácticas Sint↔CP
+- **Estado**: Pendiente. Apuntado durante la fase B del rediseño visual.
+- **Tipo**: De diseño / Coherencia visual.
+- **Estimación**: 30 min.
+- **Qué hacer**: hacer coincidir los colores de las funciones sintácticas
+  del predicado en las cajas D&D del análisis interno de **CP** con los
+  que ya usa **Sint** (`funcTagCss` → `tag-f-cd` naranja, `tag-f-ci`
+  violeta, `tag-f-cc` azul, `tag-f-atr` rosa, etc.).
+- **Por qué**: actualmente el D&D de CP usa colores genéricos por
+  categoría (Argumentos amarillo, Adjuntos teal, Marcas violeta) y los
+  tags individuales no llevan el color de su función. Tras unificar, el
+  alumno verá que "CD" tiene el mismo color en simples y en compuestas,
+  consolidando una pista visual transversal.
+- **Cómo**: reutilizar `funcTagCss(label)` de Sint (ya en window) sobre
+  el `label` o `tipo` de cada `iidd-tag` en `_buildIddPoolHtml`.
+
+---
+
 ## 8. Cómo organizar las próximas semanas
 
 Una propuesta de calendario realista:

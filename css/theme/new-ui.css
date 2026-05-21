@@ -3282,6 +3282,133 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   #screen-compuestas #cp-ctx-strip{ padding:8px 12px 10px; }
 }
 
+/* ── Sticky para fase 'interna' (B, mayo 2026) ────────────────────────
+   Estructura inspirada en fichas didácticas:
+     [   Sujeto       Predicado                           ]
+     [  Los invest.   publicaron   el informe    esta mañana ]
+     [  Sujeto léx.   PV·N.verbal  CD            CC Temporal  ]
+                                                      O1
+   Tres filas en grid, brackets que abarcan, marcador de oración. */
+.cp-stk-interna{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: 'Fraunces', serif;
+  width: 100%;
+  overflow-x: auto;
+}
+.cp-stk-bracket{
+  font-size: 1.7rem;
+  font-weight: 400;
+  line-height: 1;
+  font-family: 'Fraunces', serif;
+  color: #475569;
+  user-select: none;
+}
+.cp-stk-bracket.p1{ color: var(--cp-p1); }
+.cp-stk-bracket.p2{ color: var(--cp-p2); }
+.cp-stk-bracket.p3{ color: var(--cp-p3); }
+.cp-stk-bracket.p4{ color: var(--cp-p4); }
+
+.cp-stk-grid{
+  display: grid;
+  row-gap: 4px;
+  column-gap: 14px;
+  align-items: end;
+  justify-items: center;
+  padding: 0 4px;
+}
+
+/* Fila 1: Sujeto / Predicado (macro) */
+.cp-stk-macro{
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-align: center;
+  padding: 2px 8px 1px;
+  position: relative;
+  white-space: nowrap;
+}
+.cp-stk-macro-suj{ color: #DC2626; }
+.cp-stk-macro-suj::after{
+  content: '';
+  position: absolute;
+  left: 6px; right: 6px; bottom: -2px;
+  border-bottom: 2px solid #FCA5A5;
+  border-radius: 4px;
+}
+.cp-stk-macro-pred{ color: #1E3A8A; }
+.cp-stk-macro-pred::after{
+  content: '';
+  position: absolute;
+  left: 6px; right: 6px; bottom: -2px;
+  border-bottom: 2px solid #93C5FD;
+  border-radius: 4px;
+}
+
+/* Fila 2: las palabras */
+.cp-stk-words{
+  font-family: 'Fraunces', serif;
+  font-size: 1.02rem;
+  line-height: 1.25;
+  color: var(--ink);
+  text-align: center;
+  white-space: nowrap;
+  padding: 2px 4px;
+}
+
+/* Fila 3: función específica del bloque (Sujeto léxico, PV, CD…) */
+.cp-stk-fnc{
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-align: center;
+  padding: 2px 6px 0;
+  white-space: nowrap;
+  position: relative;
+  min-width: 30px;
+}
+.cp-stk-fnc::before{
+  content: '';
+  position: absolute;
+  left: 4px; right: 4px; top: -2px;
+  border-top: 2px solid currentColor;
+  border-radius: 4px;
+}
+.cp-stk-fnc-empty{
+  color: rgba(15, 35, 66, .35);
+}
+.cp-stk-fnc-empty::before{
+  border-top: 2px dashed rgba(15, 35, 66, .25);
+}
+.cp-stk-fnc-placed{ color: #64748B; }
+.cp-stk-fnc-ok{ color: #16A34A; }
+.cp-stk-fnc-err{ color: #DC2626; }
+
+/* Marcador de oración (O1, O2…) al final */
+.cp-stk-o-marker{
+  font-size: .72rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  margin-left: 8px;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  background: rgba(255,255,255,.7);
+}
+.cp-stk-o-marker.p1{ color: var(--cp-p1); }
+.cp-stk-o-marker.p2{ color: var(--cp-p2); }
+.cp-stk-o-marker.p3{ color: var(--cp-p3); }
+.cp-stk-o-marker.p4{ color: var(--cp-p4); }
+
+@media(max-width:540px){
+  .cp-stk-words{ font-size: .92rem; }
+  .cp-stk-grid{ column-gap: 8px; }
+  .cp-stk-bracket{ font-size: 1.4rem; }
+}
+
 /* ── Pista flotante (A.1, mayo 2026) ──────────────────────────────────
    Reemplaza la caja amarilla inline por una tarjeta flotante que
    siempre queda visible. Paleta teal/navy (no amarillo), consistente

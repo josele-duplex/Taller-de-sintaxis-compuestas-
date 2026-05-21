@@ -276,19 +276,19 @@
   // Texto descriptivo: «proposición principal», «proposición subordinada sustantiva»…
   // Se usa en la redacción explícita de relaciones.
   function descripcionPropTipo(p){
-    if(!p) return 'proposición';
-    if(p.tipo === 'principal') return 'proposición principal';
-    if(p.tipo === 'coordinada') return 'proposición coordinada';
-    if(p.tipo === 'yuxtapuesta') return 'proposición yuxtapuesta';
+    if(!p) return 'oración';
+    if(p.tipo === 'principal') return 'oración principal';
+    if(p.tipo === 'coordinada') return 'oración coordinada';
+    if(p.tipo === 'yuxtapuesta') return 'oración yuxtapuesta';
     if(p.tipo === 'subordinada'){
       const s = p.subtipo || '';
-      if(s.startsWith('sustantiva')) return 'proposición subordinada sustantiva';
-      if(s.startsWith('relativa'))   return 'proposición subordinada adjetiva (de relativo)';
-      if(['temporal','locativa','modal','comparativa'].includes(s)) return 'proposición subordinada adverbial';
+      if(s.startsWith('sustantiva')) return 'oración subordinada sustantiva';
+      if(s.startsWith('relativa'))   return 'oración subordinada adjetiva (de relativo)';
+      if(['temporal','locativa','modal','comparativa'].includes(s)) return 'oración subordinada adverbial';
       if(['condicional','final','causal','concesiva','ilativa_constr'].includes(s)) return 'construcción ' + s.replace('_constr','');
-      return 'proposición subordinada';
+      return 'oración subordinada';
     }
-    return 'proposición';
+    return 'oración';
   }
 
   // Listas de filtros visibles (calculadas a partir del banco real)
@@ -357,7 +357,7 @@
     wrap.innerHTML = `
       <div class="cp-card">
         <h2>Explora el banco de oraciones compuestas</h2>
-        <p class="cp-sub">Filtra por tipo, subtipo, nivel o número de proposiciones. Cuando estés listo, pulsa <b>Ver primera oración</b> para empezar a explorar.</p>
+        <p class="cp-sub">Filtra por tipo, subtipo, nivel o número de oraciones. Cuando estés listo, pulsa <b>Ver primera oración</b> para empezar a explorar.</p>
 
         <div class="cp-stats">
           <div class="cp-stat">
@@ -385,9 +385,9 @@
         </div>
 
         <div class="cp-filter-block">
-          <div class="cp-filter-label">Nº de proposiciones</div>
+          <div class="cp-filter-label">Nº de oraciones</div>
           <div class="cp-chip-grid" id="cp-f-nprops">
-            ${opc.nprops.map(n=>chipHtml('n_props', n, n+' propos.')).join('')}
+            ${opc.nprops.map(n=>chipHtml('n_props', n, n+' oraciones')).join('')}
           </div>
         </div>
 
@@ -894,10 +894,10 @@
       wrap.innerHTML = `
         <div class="cp-summary" style="text-align:center">
           <div class="cp-summary-icon">🎯</div>
-          <h2 class="cp-summary-title">Has clasificado las proposiciones</h2>
+          <h2 class="cp-summary-title">Has clasificado las oraciones</h2>
           <p style="color:var(--muted);font-size:.95rem;max-width:480px;margin:8px auto 22px;line-height:1.55">
             ¿Quieres ver el <b>resumen del análisis</b> ya, o prefieres <b>profundizar</b> analizando cada
-            proposición por dentro (sujeto, predicado y funciones)?
+            oración por dentro (sujeto, predicado y funciones)?
           </p>
           <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px">
             <button type="button" class="cp-btn-secondary" onclick="CP.irAResumen()">📋 Ver resumen</button>
@@ -905,7 +905,7 @@
           </div>
           ${!tieneInterno ? `
             <p style="color:var(--muted);font-size:.78rem;margin-top:14px;font-style:italic">
-              Este ejercicio no incluye análisis interno de las ${totalProps} proposiciones.
+              Este ejercicio no incluye análisis interno de las ${totalProps} oraciones.
             </p>` : ''}
         </div>
       `;
@@ -1060,7 +1060,7 @@
           <span class="cp-instr-emoji">🎯</span>
           <div class="cp-instr-body">
             <h3 class="cp-instr-titulo">Paso 1 · Identifica los verbos</h3>
-            <p class="cp-instr-desc">Esta oración tiene <b>${nProps} verbo${nProps===1?'':'s'}</b> que son núcleo de proposición. Toca cada uno. Si hay una perífrasis (como «está estudiando» o «había aprobado»), marca solo el verbo en participio o gerundio (el último).</p>
+            <p class="cp-instr-desc">Esta oración tiene <b>${nProps} verbo${nProps===1?'':'s'}</b> que son núcleo de oración. Toca cada uno. Si hay una perífrasis (como «está estudiando» o «había aprobado»), marca solo el verbo en participio o gerundio (el último).</p>
           </div>
         </div>`;
     }
@@ -1070,7 +1070,7 @@
           <span class="cp-instr-emoji">🔗</span>
           <div class="cp-instr-body">
             <h3 class="cp-instr-titulo">Paso 2 · Identifica los nexos</h3>
-            <p class="cp-instr-desc">¿Qué palabra (o palabras) une las proposiciones? Toca <b>${nNexos===1?'el nexo':'los '+nNexos+' nexos'}</b>. Pueden ser conjunciones («que», «y», «pero», «porque»…), pronombres relativos («que», «quien», «donde»…) o locuciones («para que», «a pesar de que»…).</p>
+            <p class="cp-instr-desc">¿Qué palabra (o palabras) une las oraciones? Toca <b>${nNexos===1?'el nexo':'los '+nNexos+' nexos'}</b>. Pueden ser conjunciones («que», «y», «pero», «porque»…), pronombres relativos («que», «quien», «donde»…) o locuciones («para que», «a pesar de que»…).</p>
           </div>
         </div>`;
     }
@@ -1083,8 +1083,8 @@
         <div class="cp-instr cp-instr-grande cp-instr-fase3">
           <span class="cp-instr-emoji">📐</span>
           <div class="cp-instr-body">
-            <h3 class="cp-instr-titulo">Paso 3 · Delimita las proposiciones</h3>
-            <p class="cp-instr-desc">Ahora vas a decir qué palabras forman cada proposición. <b>Empieza por <span style="color:var(--cp-p${Math.min(propActiva,4)});font-weight:800">${lblPropAct}</span></b>: toca todas las palabras que pertenecen a esa proposición. Cuando termines con ella, te llevaremos a la siguiente.</p>
+            <h3 class="cp-instr-titulo">Paso 3 · Delimita las oraciones</h3>
+            <p class="cp-instr-desc">Ahora vas a decir qué palabras forman cada oración. <b>Empieza por <span style="color:var(--cp-p${Math.min(propActiva,4)});font-weight:800">${lblPropAct}</span></b>: toca todas las palabras que pertenecen a esa oración. Cuando termines con ella, te llevaremos a la siguiente.</p>
           </div>
         </div>`;
     }
@@ -1107,10 +1107,10 @@
       const propNum = propIdx + 1;
       const colorP = `var(--cp-p${Math.min(propNum,4)})`;
       const titulos = {
-        'tipo': `¿Qué tipo de proposición es <span style="color:${colorP};font-weight:800">P${propNum}</span>?`,
-        'familia': `Has dicho que <span style="color:${colorP};font-weight:800">P${propNum}</span> es subordinada. ¿Qué clase de subordinada?`,
-        'subtipo': `Última pregunta sobre <span style="color:${colorP};font-weight:800">P${propNum}</span>. ¿Qué subtipo concreto?`,
-        'final': `<span style="color:${colorP};font-weight:800">P${propNum}</span> está clasificada. Continúa con la siguiente.`
+        'tipo': `¿Qué tipo de oración es <span style="color:${colorP};font-weight:800">O${propNum}</span>?`,
+        'familia': `Has dicho que <span style="color:${colorP};font-weight:800">O${propNum}</span> es subordinada. ¿Qué clase de subordinada?`,
+        'subtipo': `Última pregunta sobre <span style="color:${colorP};font-weight:800">O${propNum}</span>. ¿Qué subtipo concreto?`,
+        'final': `<span style="color:${colorP};font-weight:800">O${propNum}</span> está clasificada. Continúa con la siguiente.`
       };
       const descs = {
         'tipo': 'Elige una de las cuatro opciones de abajo.',
@@ -1122,9 +1122,9 @@
         <div class="cp-instr cp-instr-grande">
           <span class="cp-instr-emoji">🏷️</span>
           <div class="cp-instr-body">
-            <h3 class="cp-instr-titulo">Paso 4 · Clasifica cada proposición</h3>
+            <h3 class="cp-instr-titulo">Paso 4 · Clasifica cada oración</h3>
             <p class="cp-instr-desc">${titulos[subPaso]||''} ${descs[subPaso]||''}</p>
-            <p style="font-size:.74rem;color:var(--muted);margin:4px 0 0">Proposición ${propIdx+1} de ${(ej.proposiciones||[]).length}</p>
+            <p style="font-size:.74rem;color:var(--muted);margin:4px 0 0">Oración ${propIdx+1} de ${(ej.proposiciones||[]).length}</p>
           </div>
         </div>`;
     }
@@ -1166,11 +1166,11 @@
         }
       }
       const titulos = {
-        'tipo':       `¿Qué tipo de relación hay entre las proposiciones?`,
+        'tipo':       `¿Qué tipo de relación hay entre las oraciones?`,
         'familia':    `Has dicho que es subordinación. ¿Qué familia de subordinada es?`,
         'subtipo':    rel?.tipo === 'subordinacion' ? `¿Qué subtipo concreto de subordinada?` : `¿Qué tipo de coordinación?`,
         'direccion':  `¿Cuál depende de cuál?`,
-        'funcion':    `¿Qué función desempeña la proposición subordinada dentro de la principal?`,
+        'funcion':    `¿Qué función desempeña la oración subordinada dentro de la principal?`,
         'funcion_sp': `Has dicho que es término de preposición. ¿Qué función tiene el sintagma preposicional completo?`,
         'final':      `Esta relación está respondida. Avanza a la siguiente.`
       };
@@ -1211,7 +1211,7 @@
       // Contar cuántos tokens hay actualmente asignados a esta P_n
       let count = 0;
       eng.f3Asignaciones.forEach(v=>{ if(v===n) count++; });
-      html += `<button type="button" class="cp-prop-btn ${activo}" data-p="${n}">P${n}<span class="cp-prop-btn-count">${count}</span></button>`;
+      html += `<button type="button" class="cp-prop-btn ${activo}" data-p="${n}">O${n}<span class="cp-prop-btn-count">${count}</span></button>`;
     }
     html += `</div>`;
     return html;
@@ -1256,10 +1256,16 @@
       label = 'Paso 2 · Nexos';
       content = `<div class="cp-ctx-words">${renderCpStickyToks(tokens, eng, 2)}</div>`;
     } else if(eng.fase === 3){
-      label = 'Paso 3 · Proposiciones';
+      label = 'Paso 3 · Oraciones';
       content = `<div class="cp-ctx-words">${renderCpStickyToks(tokens, eng, 3)}</div>`;
+    } else if(eng.fase === 'interna'){
+      // Vista nueva (B): análisis interno de la O actual con Sujeto/Predicado
+      // arriba, funciones específicas debajo. Inspirada en las fichas didácticas.
+      label = 'Análisis interno';
+      content = renderCpStickyInterna(ej, eng);
+      if(!content){ content = renderCpStickyProps(ej, eng); }
     } else {
-      label = 'Proposiciones';
+      label = 'Oraciones';
       content = renderCpStickyProps(ej, eng);
     }
     if(!content) return '';
@@ -1293,6 +1299,85 @@
     return html.trimEnd();
   }
 
+  // ── Sticky para fase 'interna' (B, mayo 2026) ─────────────────────
+  // Inspirada en fichas didácticas: arriba etiquetas grandes Sujeto/Predicado
+  // que abarcan varios bloques, en medio las palabras en una sola línea con
+  // corchetes [...], debajo etiquetas pequeñas con la función específica de
+  // cada bloque. Al pie, marca de la oración (O1, O2...).
+  function renderCpStickyInterna(ej, eng){
+    const propIdx = eng.interna.propIdx;
+    // Si _idd aún no está inicializado para esta proposición, lo iniciamos
+    // (la sticky se renderiza antes que el body D&D).
+    if(!_idd || !_idd.blocks || _idd._propIdx !== propIdx){
+      _initIDD(ej, propIdx);
+    }
+    if(!_idd.blocks || _idd.blocks.length === 0) return '';
+    const prop = (ej.proposiciones||[])[propIdx];
+    if(!prop) return '';
+    const propNum = propIdx + 1;
+    const pCls = 'p' + Math.min(propNum, 4);
+
+    // Agrupa bloques consecutivos por macro-categoría (Sujeto / Predicado)
+    const blocks = _idd.blocks.map(b=>({
+      ...b,
+      macro: b.id === 'suj' ? 'Sujeto' : 'Predicado',
+      placed: _idd.slots[b.id] || null
+    }));
+    const groups = [];
+    blocks.forEach(b=>{
+      const last = groups[groups.length-1];
+      if(last && last.macro === b.macro) last.cols++;
+      else groups.push({macro:b.macro, cols:1, startCol: groups.reduce((s,g)=>s+g.cols, 1)});
+    });
+    // Recalcular startCol con los cols ya asignados
+    let c = 1;
+    groups.forEach(g=>{ g.startCol = c; c += g.cols; });
+    const totalCols = blocks.length;
+
+    // Fila 1 (macro): Sujeto / Predicado abarcando varias columnas
+    const macroHtml = groups.map(g=>{
+      const cls = g.macro === 'Sujeto' ? 'cp-stk-macro-suj' : 'cp-stk-macro-pred';
+      return `<div class="cp-stk-macro ${cls}" style="grid-column:${g.startCol}/${g.startCol+g.cols}">${g.macro}</div>`;
+    }).join('');
+
+    // Fila 2 (palabras): cada bloque ocupa una columna
+    let col = 1;
+    const wordsHtml = blocks.map(b=>{
+      const html = `<div class="cp-stk-words" style="grid-column:${col}/${col+1}">${escHtml(b.words)}</div>`;
+      col++; return html;
+    }).join('');
+
+    // Fila 3 (etiqueta específica): rellena cuando el alumno ha colocado un tag
+    col = 1;
+    const fncHtml = blocks.map(b=>{
+      const isPlaced = !!b.placed;
+      const isCorrect = _idd.confirmed && _idd.slotOk[b.id] === true;
+      const isWrong   = _idd.confirmed && _idd.slotOk[b.id] === false;
+      const label = isPlaced
+        ? escHtml(b.placed.label)
+        : (b.id === 'pred' ? '?' : b.id === 'suj' ? '?' : '?');
+      let cls = 'cp-stk-fnc';
+      if(isCorrect) cls += ' cp-stk-fnc-ok';
+      else if(isWrong) cls += ' cp-stk-fnc-err';
+      else if(isPlaced) cls += ' cp-stk-fnc-placed';
+      else cls += ' cp-stk-fnc-empty';
+      const html = `<div class="${cls}" style="grid-column:${col}/${col+1}">${label}</div>`;
+      col++; return html;
+    }).join('');
+
+    return `
+      <div class="cp-stk-interna">
+        <span class="cp-stk-bracket cp-stk-bracket-l ${pCls}">[</span>
+        <div class="cp-stk-grid" style="grid-template-columns:repeat(${totalCols},auto)">
+          ${macroHtml}
+          ${wordsHtml}
+          ${fncHtml}
+        </div>
+        <span class="cp-stk-bracket cp-stk-bracket-r ${pCls}">]</span>
+        <span class="cp-stk-o-marker ${pCls}">O${propNum}</span>
+      </div>`;
+  }
+
   function renderCpStickyProps(ej, eng){
     const props = ej.proposiciones || [];
     const tokens = ej.tokens || [];
@@ -1315,7 +1400,7 @@
         clasifBadge = `<span class="cp-ctx-clasif-badge ${pCls}">${tipos[prop.tipo]||prop.tipo}</span>`;
       }
       html += `<div class="cp-ctx-prop-chip ${pCls}${isActiva?' cp-ctx-prop-activa':''}">
-        <span class="cp-ctx-prop-num">P${pNum}</span>
+        <span class="cp-ctx-prop-num">O${pNum}</span>
         <span class="cp-ctx-prop-text">${escHtml(shortText)}${needsDots?'…':''}</span>
         ${clasifBadge}
       </div>`;
@@ -3278,8 +3363,8 @@
 
     const headerHtml = `
       <div class="iidd-header">
-        <span class="iidd-prop-badge" style="background:${colorVar}">P${propNum}</span>
-        <span class="iidd-prop-of">· ${totalProps} proposicion${totalProps>1?'es':''}</span>
+        <span class="iidd-prop-badge" style="background:${colorVar}">O${propNum}</span>
+        <span class="iidd-prop-of">· ${totalProps} oracion${totalProps>1?'es':''}</span>
         <div class="iidd-prop-text">«${escHtml(prop.texto||'')}»</div>
       </div>`;
 
@@ -3452,6 +3537,7 @@
     _idd.slots[slotId] = null;
     _iddSel = {box, el:null};
     _rebuildIddBlocks(); _rebuildIddPool();
+    updateCpCtxStrip();
   }
   function iiddSlotClick(slotId){
     if(_idd.confirmed) return;
@@ -3468,6 +3554,8 @@
     Object.keys(_idd.slots).forEach(sid=>{ if(_idd.slots[sid]?.id===tagId) _idd.slots[sid]=null; });
     _idd.slots[slotId] = tag;
     _rebuildIddBlocks(); _rebuildIddPool();
+    // Sticky: refrescar etiquetas de la fila inferior en tiempo real
+    updateCpCtxStrip();
   }
   function _rebuildIddBlocks(){
     const cont = document.getElementById('iidd-blocks');
