@@ -1104,33 +1104,50 @@ function renderContextStrip(o,showBlocks=false){
   const sIdxs=new Set(G.subjectIdxs);
   const isTacito=o.fase2?.sujeto_tacito===true||o.fase2?.sujeto_indices?.length===0;
 
+  // Fase 3: cada bloque etiquetado con SOLO la función (no el sintagma),
+  // coloreada por función, con la etiqueta DEBAJO de las palabras.
   if(showBlocks&&Object.keys(G.phase3Results).length>0){
     const bloques=o.fase3.bloques;
     const used=new Set(bloques.flatMap(b=>b.indices));
-    let html=`<div class="ctx-strip ctx-sticky"><div class="ctx-label">Análisis oracional — contexto completo</div><div class="ctx-scroll"><div class="ctx-words">`;
+    let html=`<div class="ctx-strip ctx-sticky"><div class="ctx-label">Análisis oracional — funciones</div><div class="ctx-scroll"><div class="ctx-words">`;
     if(isTacito&&G.sujetoTacito){
       html+=`<span class="ctx-tacito-tag" aria-label="Sujeto tácito">Ø&nbsp;<em>${G.sujetoTacito}</em></span>`;
     }
     bloques.filter(b=>!isTacitoBlock(b)).forEach(b=>{
       const res=G.phase3Results[b.id];
-      const tip=res?res.tipo:'';const cls=({SN:'cbg-sn',SP:'cbg-sp',SAdj:'cbg-sadj',SAdv:'cbg-sadv',SV:'cbg-sv'})[tip]||'cbg-def';
-      const lbl=res?res.label:'?';
-      html+=`<div class="ctx-block"><div class="ctx-blk-badge ${cls}">${lbl}</div>
+      const resolved=!!res;
+      // Función "sola" para mostrar (sin el tipo de sintagma).
+      const func=resolved?(res.func||(res.label?.includes(' | ')?res.label.split(' | ')[1]:res.label)):'';
+      const tagCls=resolved?funcTagCss(res.label||func):'';
+      const blockCls=resolved?`ctx-block ctx-block-resolved ${tagCls}`:'ctx-block ctx-block-pending';
+      html+=`<div class="${blockCls}">
         <div class="ctx-blk-words">${b.indices.map(i=>{const isV=npSet.has(i),isS=sIdxs.has(i);
           return`<span class="ctx-w ${isV?'ctx-verb':isS?'ctx-subj':''}"><span class="ctx-wt">${words[i]}</span>${isV?'<span class="ctx-wb">NP</span>':isS?'<span class="ctx-wb">Suj.</span>':''}</span>`;
-        }).join('')}</div></div>`;
+        }).join('')}</div>
+        <div class="ctx-blk-badge-below">${resolved?func:'?'}</div>
+      </div>`;
     });
     words.forEach((w,i)=>{if(!used.has(i))html+=`<span class="ctx-w"><span class="ctx-wt">${w}</span></span>`;});
     return html+`</div></div></div>`;
   }
 
-  let html=`<div class="ctx-strip ctx-sticky"><div class="ctx-label">Oración — NP${G.subjectIdxs.length>0?' y Sujeto':''} identificados</div><div class="ctx-scroll"><div class="ctx-words">`;
+  // Fases 1-2: NP y Sujeto a nivel de palabra. Predicado implícito = lo demás
+  // (lo marcamos con un subrayado tenue tras identificar el sujeto).
+  const subjectIdentified=G.subjectIdxs.length>0||(isTacito&&G.sujetoTacito);
+  let html=`<div class="ctx-strip ctx-sticky"><div class="ctx-label">Oración — NP${subjectIdentified?', Sujeto y Predicado':''} identificados</div><div class="ctx-scroll"><div class="ctx-words">`;
   if(isTacito&&G.sujetoTacito){
     html+=`<span class="ctx-tacito-tag">Ø&nbsp;<em>${G.sujetoTacito}</em></span>`;
   }
   words.forEach((w,i)=>{
     const isV=npSet.has(i),isS=sIdxs.has(i);
-    html+=`<span class="ctx-w ${isV?'ctx-verb':isS?'ctx-subj':''}">
+    // Predicado: si ya se identificó el sujeto, marcamos como predicado todo
+    // lo que no sea sujeto (incluyendo el verbo, que también forma parte de él).
+    const isPred=subjectIdentified&&!isS;
+    let cls='ctx-w';
+    if(isV) cls+=' ctx-verb';
+    else if(isS) cls+=' ctx-subj';
+    if(isPred&&!isV) cls+=' ctx-pred';
+    html+=`<span class="${cls}">
       <span class="ctx-wt">${w}</span>
       ${isV?'<span class="ctx-wb">NP</span>':isS?'<span class="ctx-wb">Suj.</span>':''}
     </span>`;

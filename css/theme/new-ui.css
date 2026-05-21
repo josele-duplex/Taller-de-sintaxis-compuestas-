@@ -730,6 +730,69 @@ body.theme-new-ui #screen-game .ctx-strip.ctx-sticky .ctx-label{
   margin-right: auto;
 }
 
+/* ── B1: anotaciones del análisis dentro de la sticky ─────────────
+   Cuando se resuelve un bloque en fase 3, lo coloreamos por función
+   (no por sintagma) y mostramos la función DEBAJO. Etiquetas pequeñas
+   pero claramente visibles. */
+body.theme-new-ui #screen-game .ctx-block{
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 6px;
+  padding: 2px 4px 0;
+  flex-shrink: 0;
+  border-radius: 6px;
+}
+body.theme-new-ui #screen-game .ctx-block-resolved{
+  /* Subrayado coloreado por la función — usa la border-color de tag-f-* */
+  border-bottom: 3px solid currentColor;
+  padding-bottom: 1px;
+  background: rgba(0,0,0,0); /* placeholder, función pinta abajo */
+}
+body.theme-new-ui #screen-game .ctx-blk-badge-below{
+  font-family: 'DM Sans','Nunito',sans-serif;
+  font-size: .62rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+body.theme-new-ui #screen-game .ctx-block-pending .ctx-blk-badge-below{
+  background: rgba(15,35,66,.05);
+  color: rgba(15,35,66,.4);
+  border: 1px dashed rgba(15,35,66,.18);
+}
+/* Cuando el bloque tiene una clase tag-f-* heredamos su color */
+body.theme-new-ui #screen-game .ctx-block-resolved .ctx-blk-badge-below{
+  background: rgba(255,255,255,.7);
+}
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-cd     { color:#C2410C; border-bottom-color:#FB923C; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-ci     { color:#7E22CE; border-bottom-color:#C084FC; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-creg   { color:#065F46; border-bottom-color:#34D399; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-atr    { color:#BE185D; border-bottom-color:#F472B6; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-cpvo   { color:#9A3412; border-bottom-color:#FDBA74; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-cc     { color:#1E40AF; border-bottom-color:#93C5FD; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-cag    { color:#854D0E; border-bottom-color:#FCD34D; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-pn     { color:#0F172A; border-bottom-color:#94A3B8; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-pv     { color:#166534; border-bottom-color:#86EFAC; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-modor2 { color:#374151; border-bottom-color:#9CA3AF; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-voc2   { color:#5B21B6; border-bottom-color:#A78BFA; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-imp    { color:#374151; border-bottom-color:#6B7280; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-f-pasref { color:#374151; border-bottom-color:#6B7280; }
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-sn       { color:#1E40AF; border-bottom-color:#60A5FA; } /* Sujeto */
+body.theme-new-ui #screen-game .ctx-block-resolved.tag-sv       { color:#166534; border-bottom-color:#4ADE80; } /* NP */
+
+/* Predicado implícito en fases 1-2: las palabras que no son sujeto se
+   subrayan tenuemente para sugerir la zona del predicado. */
+body.theme-new-ui #screen-game .ctx-pred .ctx-wt{
+  border-bottom: 2px solid rgba(22,101,52,.25);
+  padding-bottom: 1px;
+}
+
 /* ── Mobile adjustments ── */
 @media (max-width: 540px){
   body.theme-new-ui #screen-game .ctx-strip.ctx-sticky{
