@@ -3549,19 +3549,33 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 }
 .iidd-tag.iidd-tag-placed{ cursor:pointer; }
 .iidd-tag.iidd-tag-wrong{ background:#FEF2F2; border-color:#DC2626; color:#DC2626; }
-/* Pool */
+/* Pool con 5 secciones: 2+3 (A.3, mayo 2026) */
 .iidd-pool{
   display: grid;
-  grid-template-columns: repeat(3,1fr);
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-areas:
+    "pred suj  suj"
+    "arg  adj  mar";
   gap: 10px;
   margin-bottom: 14px;
 }
+.iidd-pool-pred{ grid-area: pred; }
+.iidd-pool-suj { grid-area: suj;  }
+.iidd-pool-arg { grid-area: arg;  }
+.iidd-pool-adj { grid-area: adj;  }
+.iidd-pool-mar { grid-area: mar;  }
 .iidd-pool-sec{
   background: var(--surface2);
   border: 1.5px solid var(--ui-border);
   border-radius: 10px;
   padding: 10px 10px 8px;
 }
+/* Colores de borde-superior por categoría — guía visual */
+.iidd-pool-pred{ border-top: 3px solid #0F2342; }
+.iidd-pool-suj { border-top: 3px solid #DC2626; }
+.iidd-pool-arg { border-top: 3px solid #D97706; }
+.iidd-pool-adj { border-top: 3px solid #0D9488; }
+.iidd-pool-mar { border-top: 3px solid #7C3AED; }
 .iidd-pool-hdr{
   display: flex;
   align-items: flex-start;
@@ -3591,7 +3605,15 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 .iidd-res-ok{ background:#F0FDF4; color:#16A34A; border:1.5px solid #86EFAC; }
 .iidd-res-partial{ background:#FEF3C7; color:#92400E; border:1.5px solid #FCD34D; }
 @media(max-width:600px){
-  .iidd-pool{ grid-template-columns:1fr; }
+  .iidd-pool{
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "pred"
+      "suj"
+      "arg"
+      "adj"
+      "mar";
+  }
   .iidd-grid{ flex-direction:column; }
   .iidd-blk{ max-width:100%; }
 }

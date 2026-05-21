@@ -3127,12 +3127,25 @@
 
   // ── Render principal del modo interna (D&D) ───────────────────────
 
-  // Pool de distractores para la sección de complementos. Se eligen
-  // los que NO son la respuesta correcta de la proposición actual.
-  const _COMP_DIS_POOL = [
-    'cd','ci','cc_temporal','cc_locativo','cc_modal','cc_causal','cc_final',
-    'atributo','cpvo','c_regimen','c_agente','cn','c_adj','vocativo','mod_oracional'
-  ];
+  // Categorías de funciones para el pool de 3 secciones (A.3, mayo 2026).
+  // Réplica conceptual del esquema Argumentos / Adjuntos / Marcas de Sint.
+  const _ARGUMENTO_TIPOS = new Set([
+    'cd','ci','atributo','cpvo','c_regimen','c_agente','termino_preposicion'
+  ]);
+  const _ADJUNTO_TIPOS = new Set([
+    'cc','cc_temporal','cc_locativo','cc_modal','cc_causal','cc_final','cc_comparativo'
+  ]);
+  const _MARCA_TIPOS = new Set([
+    'mod_oracional','vocativo','aposicion','cn','c_adj','c_adv',
+    'incidental','marca_pas_ref'
+  ]);
+
+  function _categoriaFunc(tipo){
+    if(_ARGUMENTO_TIPOS.has(tipo)) return 'arg';
+    if(_ADJUNTO_TIPOS.has(tipo))   return 'adj';
+    if(_MARCA_TIPOS.has(tipo))     return 'mar';
+    return 'arg';                  // default conservador
+  }
 
   // Devuelve la etiqueta legible para los tipos internos del D&D.
   function _iddLabel(tipo){
@@ -3152,6 +3165,8 @@
     const getWords = idxs => idxs
       .map(i => tokens.find(t=>t.i===i)?.texto||'')
       .filter(Boolean).join(' ');
+    const minIdx = idxs => (Array.isArray(idxs) && idxs.length>0)
+      ? Math.min(...idxs) : 999;
 
     // Bloques ─────────────────────────────────────────────────
     const blocks = [];
@@ -3160,7 +3175,10 @@
     const predIndices = (ai.predicado||{}).indices || [];
     const predWords = getWords(predIndices) || prop.verbo?.forma || '?';
     const predCorr = _normPredTipo((ai.predicado||{}).tipo||'') === 'verbal' ? 'pv' : 'pn';
-    blocks.push({id:'pred', words:predWords, correctTipo:predCorr, section:'pred'});
+    blocks.push({
+      id:'pred', words:predWords, correctTipo:predCorr,
+      section:'pred', sortIdx: minIdx(predIndices)
+    });
 
     // Sujeto (siempre, incluso Ø)
     const sujTipo = (ai.sujeto||{}).tipo || '';
@@ -3170,42 +3188,75 @@
     if(sujWords !== null){
       const sujCorr = sujTipo==='lexico' ? 'suj_lexico'
                     : sujTipo==='tacito' ? 'suj_tacito' : 'suj_imp';
-      blocks.push({id:'suj', words:sujWords, correctTipo:sujCorr, section:'suj'});
+      // Si el sujeto no tiene posición textual (tácito/impersonal),
+      // lo colocamos justo ANTES del predicado en el orden visual.
+      const sujSort = sujIndices.length > 0 ? minIdx(sujIndices)
+                                            : minIdx(predIndices) - 0.5;
+      blocks.push({
+        id:'suj', words:sujWords, correctTipo:sujCorr,
+        section:'suj', sortIdx: sujSort
+      });
     }
 
     // Funciones (una por cada complemento)
     const funcs = Array.isArray(ai.funciones) ? ai.funciones : [];
     funcs.forEach((f,i)=>{
       const fWords = getWords(f.indices||[]) || '?';
-      blocks.push({id:`func_${i}`, words:fWords, correctTipo:f.tipo, section:'comp'});
+      blocks.push({
+        id:`func_${i}`, words:fWords, correctTipo:f.tipo,
+        section:'comp', sortIdx: minIdx(f.indices||[])
+      });
     });
 
-    // Pool de etiquetas ───────────────────────────────────────
+    // ── A.2: ordenar bloques por orden NATURAL de lectura ────────
+    blocks.sort((a,b) => a.sortIdx - b.sortIdx);
+
+    // ── A.3: pool con 5 secciones (Predicado, Sujeto, Argumentos,
+    //         Adjuntos, Marcas y periféricos) con distractores ─────
     const predPool = [
-      {id:'pd_pv', label:'PV · Predicado Verbal',   tipo:'pv'},
-      {id:'pd_pn', label:'PN · Predicado Nominal',   tipo:'pn'}
+      {id:'pd_pv', label:'PV · Predicado Verbal', tipo:'pv'},
+      {id:'pd_pn', label:'PN · Predicado Nominal', tipo:'pn'}
     ];
     const sujPool = [
-      {id:'sd_lex', label:'Sujeto léxico',           tipo:'suj_lexico'},
-      {id:'sd_tac', label:'Sujeto tácito (Ø)',        tipo:'suj_tacito'},
-      {id:'sd_imp', label:'Impersonal',               tipo:'suj_imp'}
+      {id:'sd_lex', label:'Sujeto léxico',     tipo:'suj_lexico'},
+      {id:'sd_tac', label:'Sujeto tácito (Ø)', tipo:'suj_tacito'},
+      {id:'sd_imp', label:'Impersonal',         tipo:'suj_imp'}
     ];
-    const correctFuncTipos = new Set(funcs.map(f=>f.tipo));
-    const distractors = _COMP_DIS_POOL
-      .filter(t=>!correctFuncTipos.has(t))
-      .sort(()=>Math.random()-.5)
-      .slice(0, Math.max(2, 5 - funcs.length));
-    const compPool = [
-      ...funcs.map((f,i)=>({id:`cd_${i}`, label:etiquetaFuncion(f.tipo), tipo:f.tipo})),
-      ...distractors.map((t,i)=>({id:`cd_d${i}`, label:etiquetaFuncion(t), tipo:t}))
-    ].sort(()=>Math.random()-.5);
+
+    // Clasificar funciones correctas por categoría
+    const correctsByCat = {arg:[], adj:[], mar:[]};
+    funcs.forEach((f,i)=>{
+      const cat = _categoriaFunc(f.tipo);
+      correctsByCat[cat].push({
+        id:`cd_${i}`, label:etiquetaFuncion(f.tipo), tipo:f.tipo
+      });
+    });
+
+    // Distractores por categoría: 1-2 por sección que NO estén en las correctas
+    const usados = new Set(funcs.map(f=>f.tipo));
+    const buildDistractors = (set, prefix, n) => {
+      const pool = [...set].filter(t => !usados.has(t));
+      pool.sort(()=>Math.random()-.5);
+      return pool.slice(0, n).map((t,i)=>({
+        id:`${prefix}_d${i}`, label:etiquetaFuncion(t), tipo:t
+      }));
+    };
+    const argDis = buildDistractors(_ARGUMENTO_TIPOS, 'ad', 2);
+    const adjDis = buildDistractors(_ADJUNTO_TIPOS,   'dd', 2);
+    const marDis = buildDistractors(_MARCA_TIPOS,     'md', 1);
+
+    const shuffle = arr => arr.sort(()=>Math.random()-.5);
+    const argPool = shuffle([...correctsByCat.arg, ...argDis]);
+    const adjPool = shuffle([...correctsByCat.adj, ...adjDis]);
+    const marPool = shuffle([...correctsByCat.mar, ...marDis]);
 
     // Estado de slots ─────────────────────────────────────────
     const slots={}, slotOk={};
     blocks.forEach(b=>{ slots[b.id]=null; slotOk[b.id]=null; });
 
     _idd = {_propIdx:propIdx, blocks, slots, slotOk,
-             predPool, sujPool, compPool, confirmed:false};
+             predPool, sujPool, argPool, adjPool, marPool,
+             confirmed:false};
     _iddDrag = {};
     _iddSel  = {box:null, el:null};
   }
@@ -3245,23 +3296,35 @@
 
     const poolHtml = `
       <div class="iidd-pool" id="iidd-pool">
-        <div class="iidd-pool-sec">
+        <div class="iidd-pool-sec iidd-pool-pred">
           <div class="iidd-pool-hdr"><span class="iidd-pool-icon">🔧</span>
             <div><div class="iidd-pool-title">Predicado</div>
               <div class="iidd-pool-sub">¿Verbal o Nominal?</div></div></div>
           <div class="iidd-tags-wrap" id="iidd-pool-pred">${_buildIddPoolHtml(_idd.predPool)}</div>
         </div>
-        <div class="iidd-pool-sec">
+        <div class="iidd-pool-sec iidd-pool-suj">
           <div class="iidd-pool-hdr"><span class="iidd-pool-icon">👤</span>
             <div><div class="iidd-pool-title">Sujeto</div>
               <div class="iidd-pool-sub">¿Léxico, tácito o impersonal?</div></div></div>
           <div class="iidd-tags-wrap" id="iidd-pool-suj">${_buildIddPoolHtml(_idd.sujPool)}</div>
         </div>
-        <div class="iidd-pool-sec">
-          <div class="iidd-pool-hdr"><span class="iidd-pool-icon">🏷️</span>
-            <div><div class="iidd-pool-title">Complementos</div>
-              <div class="iidd-pool-sub">CD, CI, CC, Atributo…</div></div></div>
-          <div class="iidd-tags-wrap" id="iidd-pool-comp">${_buildIddPoolHtml(_idd.compPool)}</div>
+        <div class="iidd-pool-sec iidd-pool-arg">
+          <div class="iidd-pool-hdr"><span class="iidd-pool-icon">⚓</span>
+            <div><div class="iidd-pool-title">Argumentos</div>
+              <div class="iidd-pool-sub">Lo que el verbo exige</div></div></div>
+          <div class="iidd-tags-wrap" id="iidd-pool-arg">${_buildIddPoolHtml(_idd.argPool)}</div>
+        </div>
+        <div class="iidd-pool-sec iidd-pool-adj">
+          <div class="iidd-pool-hdr"><span class="iidd-pool-icon">🌿</span>
+            <div><div class="iidd-pool-title">Adjuntos</div>
+              <div class="iidd-pool-sub">Prescindibles, circunstanciales</div></div></div>
+          <div class="iidd-tags-wrap" id="iidd-pool-adj">${_buildIddPoolHtml(_idd.adjPool)}</div>
+        </div>
+        <div class="iidd-pool-sec iidd-pool-mar">
+          <div class="iidd-pool-hdr"><span class="iidd-pool-icon">🔖</span>
+            <div><div class="iidd-pool-title">Marcas y periféricos</div>
+              <div class="iidd-pool-sub">Operan sobre la oración</div></div></div>
+          <div class="iidd-tags-wrap" id="iidd-pool-mar">${_buildIddPoolHtml(_idd.marPool)}</div>
         </div>
       </div>`;
 
@@ -3364,6 +3427,14 @@
     iiddLeave(slotId);
     if(_iddDrag.id){ _iiddPlace(_iddDrag.id, slotId); _iddDrag = {}; }
   }
+  // Helper: todas las etiquetas del pool (5 secciones)
+  function _allIddTags(){
+    return [
+      ...(_idd.predPool||[]), ...(_idd.sujPool||[]),
+      ...(_idd.argPool||[]),  ...(_idd.adjPool||[]),
+      ...(_idd.marPool||[])
+    ];
+  }
   function iiddTagClick(e, id){
     e.stopPropagation();
     if(_idd.confirmed) return;
@@ -3371,8 +3442,7 @@
       if(_iddSel.box?.id===id){ _iddSel={box:null,el:null}; return; } }
     const el = document.getElementById('iidd-tg-'+id);
     if(el) el.classList.add('iidd-tag-sel');
-    const allTags = [...(_idd.predPool||[]),...(_idd.sujPool||[]),...(_idd.compPool||[])];
-    _iddSel = {box: allTags.find(b=>b.id===id)||null, el};
+    _iddSel = {box: _allIddTags().find(b=>b.id===id)||null, el};
   }
   function iiddTagClickSlot(slotId){
     if(_idd.confirmed) return;
@@ -3392,8 +3462,7 @@
   }
   function _iiddPlace(tagId, slotId){
     if(_idd.confirmed) return;
-    const allTags = [...(_idd.predPool||[]),...(_idd.sujPool||[]),...(_idd.compPool||[])];
-    const tag = allTags.find(b=>b.id===tagId);
+    const tag = _allIddTags().find(b=>b.id===tagId);
     if(!tag) return;
     // Si el tag estaba en otro slot, limpiarlo
     Object.keys(_idd.slots).forEach(sid=>{ if(_idd.slots[sid]?.id===tagId) _idd.slots[sid]=null; });
@@ -3413,12 +3482,17 @@
     }
   }
   function _rebuildIddPool(){
-    const pw = document.getElementById('iidd-pool-pred');
-    const sw = document.getElementById('iidd-pool-suj');
-    const cw = document.getElementById('iidd-pool-comp');
-    if(pw) pw.innerHTML = _buildIddPoolHtml(_idd.predPool);
-    if(sw) sw.innerHTML = _buildIddPoolHtml(_idd.sujPool);
-    if(cw) cw.innerHTML = _buildIddPoolHtml(_idd.compPool);
+    const wraps = [
+      ['iidd-pool-pred', _idd.predPool],
+      ['iidd-pool-suj',  _idd.sujPool],
+      ['iidd-pool-arg',  _idd.argPool],
+      ['iidd-pool-adj',  _idd.adjPool],
+      ['iidd-pool-mar',  _idd.marPool]
+    ];
+    wraps.forEach(([id, pool])=>{
+      const el = document.getElementById(id);
+      if(el) el.innerHTML = _buildIddPoolHtml(pool);
+    });
   }
 
   // ── Confirmar y avanzar ────────────────────────────────────────────
@@ -5012,7 +5086,8 @@
       'marca_pas_ref':'Marca Pas. Refleja', 'mod_oracional':'Mod. Oracional',
       'vocativo':'Vocativo', 'cc':'CC',
       'cc_temporal':'CC Temporal', 'cc_locativo':'CC Locativo',
-      'cc_modal':'CC Modal', 'cc_comparativo':'CC Comparativo',
+      'cc_modal':'CC Modal', 'cc_causal':'CC Causal', 'cc_final':'CC Final',
+      'cc_comparativo':'CC Comparativo',
       'termino_preposicion':'Término de prep.',
       'aposicion':'Aposición', 'cn':'CN', 'c_adj':'C. Adjetivo', 'c_adv':'C. Adverbio',
       'incidental':'Incidental',
