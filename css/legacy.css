@@ -34,6 +34,11 @@ input{font-family:inherit;outline:none}
 .pf-toggle-attention.pf-opened{animation:none}
 @keyframes correctPop{0%{transform:scale(1);background:var(--bg-tag-ok,#DCFCE7)}40%{transform:scale(1.06);background:#86EFAC}100%{transform:scale(1);background:var(--bg-tag-ok,#DCFCE7)}}
 .correct-pop{animation:correctPop .42s cubic-bezier(.34,1.56,.64,1)}
+/* Snap diferenciado para funciones de mayor peso pedagógico (FUNC_WEIGHT > 1.2):
+   Sujeto, CD, CI, Atr., CPvo, C.Rég., C.Ag. El refuerzo visual es proporcional
+   a la dificultad — sin sonido ni texto extra, solo la física del rebote. */
+@keyframes correctPopHard{0%{transform:scale(1);background:var(--bg-tag-ok,#DCFCE7);box-shadow:none}45%{transform:scale(1.14);background:#4ADE80;box-shadow:0 0 0 5px rgba(74,222,128,.28)}100%{transform:scale(1);background:var(--bg-tag-ok,#DCFCE7);box-shadow:none}}
+.correct-pop-hard{animation:correctPopHard .54s cubic-bezier(.34,1.56,.64,1)}
 @keyframes correctToastIn{0%{opacity:0;transform:translate(-50%,8px) scale(.85)}55%{opacity:1;transform:translate(-50%,-3px) scale(1.04)}100%{opacity:1;transform:translate(-50%,0) scale(1)}}
 @keyframes correctToastOut{0%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-12px)}}
 @keyframes comboIn{0%{transform:translate(-50%,20px) scale(.7);opacity:0}60%{transform:translate(-50%,-4px) scale(1.08);opacity:1}100%{transform:translate(-50%,0) scale(1);opacity:1}}

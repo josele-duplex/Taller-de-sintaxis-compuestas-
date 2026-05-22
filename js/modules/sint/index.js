@@ -1763,13 +1763,13 @@ function _p3PlaceCorrect(box, slotId, o, partial=false){
     .every(b=>p3.slotOk[b.id]===true||p3.slotOk[b.id]==='partial');
   if(allDone){
     // Last function: silent feedback (let showSuccessScreen play its own sound)
-    popElement('ds'+slotId);
+    popSlotByWeight(slotId);
     setTimeout(()=>{showSuccessScreen(o);},500);
   }
   else{
     playClick();playSuccess();
     // Visual feedback: pop the slot + toast
-    popElement('ds'+slotId);
+    popSlotByWeight(slotId);
     const correctFunc = (p3.slots[slotId]?.label||'').split(' | ')[1] || '';
     showCorrectFlash(correctFunc ? '¡' + correctFunc + ' correcto!' : '¡Correcto!');
   }
@@ -1807,12 +1807,12 @@ function p3Place(boxId,slotId,clientX,clientY){
     const allDone=o.fase3.bloques.filter(b=>!isPreResolved(b.solucion)).every(b=>p3.slotOk[b.id]===true);
     if(allDone){
       // Last function: silent feedback (let showSuccessScreen play its own sound)
-      popElement('ds'+slotId);
+      popSlotByWeight(slotId);
       setTimeout(()=>{showSuccessScreen(o);},500);
     } else {
       // Mid-sentence: visual + audio feedback
       playClick();playSuccess();
-      popElement('ds'+slotId);
+      popSlotByWeight(slotId);
       const placedFunc = (box.label||'').split(' | ')[1] || '';
       showCorrectFlash(placedFunc ? '¡' + placedFunc + ' correcto!' : '¡Correcto!');
     }
@@ -2699,14 +2699,25 @@ function showCorrectFlash(label){
   }, 700);
 }
 
-// Add a brief pop animation to the slot/element that was correctly filled
-function popElement(elementId){
+// Add a brief pop animation to the slot/element that was correctly filled.
+// opts.hard = true para usar `.correct-pop-hard` (refuerzo más pronunciado en
+// funciones de mayor peso pedagógico, ver FUNC_WEIGHT).
+function popElement(elementId, opts){
   const el = document.getElementById(elementId);
   if(!el) return;
-  el.classList.remove('correct-pop');
+  const hard = !!(opts && opts.hard);
+  const cls = hard ? 'correct-pop-hard' : 'correct-pop';
+  el.classList.remove('correct-pop', 'correct-pop-hard');
   void el.offsetWidth;
-  el.classList.add('correct-pop');
-  setTimeout(()=>{ if(el) el.classList.remove('correct-pop'); }, 500);
+  el.classList.add(cls);
+  setTimeout(()=>{ if(el) el.classList.remove(cls); }, hard ? 560 : 500);
+}
+
+// Helper: pop con detección automática de "hard" según el peso de la función
+// colocada en el slot.
+function popSlotByWeight(slotId){
+  const func = (p3.slots[slotId]?.label||'').split(' | ')[1] || '';
+  popElement('ds'+slotId, { hard: getFuncWeight(func) > 1.2 });
 }
 
 function goPrevSentenceFromGame(){
