@@ -2145,6 +2145,69 @@ function calcDetailedScore(){
 // ════════════════════════════════════════════════════════
 // RESULTS
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// Sprint 1 · Curva de sesión visible
+// Compara la 1.ª mitad y la 2.ª mitad de las oraciones completadas en
+// porcentaje de aciertos a la primera. Se muestra solo en práctica con
+// ≥5 oraciones completadas. Sin libs externas.
+// ════════════════════════════════════════════════════════
+function _buildSessionCurveHtml(){
+  if(!G || !G.sentenceErrors || !G.sentenceCompleted) return '';
+  const oracs = G.oraciones || [];
+  // Índices de oraciones completadas, manteniendo orden temporal.
+  const completedIdxs = G.sentenceCompleted
+    .map((done, i) => done ? i : -1)
+    .filter(i => i >= 0);
+  if(completedIdxs.length < 5) return '';
+  // Para cada oración completada, % de bloques interactivos resueltos sin error
+  // (a la 1.ª, no parciales). Es el indicador más cercano a "rendimiento" sin
+  // depender de los pesos del ScoringEngine.
+  const pctPerSent = completedIdxs.map(i => {
+    const o = oracs[i];
+    const se = G.sentenceErrors[i] || {};
+    const bloques = (o && o.fase3 && Array.isArray(o.fase3.bloques)) ? o.fase3.bloques : [];
+    const interactivos = bloques.filter(b => !isPreResolved(b.solucion));
+    const totalSlots = interactivos.length + 2; // +NP +Sujeto
+    if(totalSlots === 0) return null;
+    const blockErrKeys = Object.keys(se.blockErrors || {}).filter(k => (se.blockErrors[k]||0) > 0);
+    const firstTryBlocks = Math.max(0, interactivos.length - blockErrKeys.length)
+                         + ((se.npErrors||0) === 0 ? 1 : 0)
+                         + ((se.sujetoErrors||0) === 0 ? 1 : 0);
+    return Math.round((firstTryBlocks / totalSlots) * 100);
+  }).filter(v => v !== null);
+  if(pctPerSent.length < 5) return '';
+  const mid = Math.floor(pctPerSent.length / 2);
+  const first = pctPerSent.slice(0, mid);
+  const last  = pctPerSent.slice(pctPerSent.length - mid);
+  const avg = arr => Math.round(arr.reduce((a,b)=>a+b, 0) / arr.length);
+  const pctInicio = avg(first);
+  const pctFinal  = avg(last);
+  const delta = pctFinal - pctInicio;
+  let titulo, color;
+  if(delta >= 10)      { titulo = 'Has mejorado durante la sesión'; color = '#059669'; }
+  else if(delta >= 0)  { titulo = 'Te has mantenido estable';        color = '#2563EB'; }
+  else if(delta >= -10){ titulo = 'Bajón ligero al final';            color = '#D97706'; }
+  else                 { titulo = 'Has rendido peor al final — ¿cansancio?'; color = '#DC2626'; }
+  const bar = (pct) => '<div style="background:linear-gradient(180deg,'+color+' 0%,'+color+'cc 100%);width:42px;height:'+Math.max(8, Math.round(pct*1.6))+'px;border-radius:8px 8px 0 0;transition:height .5s ease-out"></div>';
+  return ''
+    + '<div style="margin:18px 0 6px;padding:18px 20px;background:linear-gradient(135deg,#F8FAFC 0%,#F1F5F9 100%);border:1.5px solid #CBD5E1;border-radius:14px">'
+    + '<div style="font-size:.72rem;font-weight:800;color:#1E293B;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;text-align:center">📈 Curva de la sesión · ' + completedIdxs.length + ' oraciones</div>'
+    + '<div style="display:flex;align-items:flex-end;justify-content:center;gap:48px;height:180px;padding:0 8px">'
+    +   '<div style="display:flex;flex-direction:column;align-items:center;gap:6px">'
+    +     bar(pctInicio)
+    +     '<div style="font-size:1.05rem;font-weight:900;color:'+color+';font-family:\'Fraunces\',serif">'+pctInicio+'%</div>'
+    +     '<div style="font-size:.7rem;color:#64748B;text-transform:uppercase;letter-spacing:.05em;font-weight:700">1.ª mitad</div>'
+    +   '</div>'
+    +   '<div style="display:flex;flex-direction:column;align-items:center;gap:6px">'
+    +     bar(pctFinal)
+    +     '<div style="font-size:1.05rem;font-weight:900;color:'+color+';font-family:\'Fraunces\',serif">'+pctFinal+'%</div>'
+    +     '<div style="font-size:.7rem;color:#64748B;text-transform:uppercase;letter-spacing:.05em;font-weight:700">2.ª mitad</div>'
+    +   '</div>'
+    + '</div>'
+    + '<div style="text-align:center;font-size:.88rem;font-weight:700;color:'+color+';margin-top:14px">'+titulo+(delta!==0?' ('+(delta>0?'+':'')+delta+' pts)':'')+'</div>'
+    + '</div>';
+}
+
 async function goResults(){
   cleanAllTimers();
   const detail = calcDetailedScore();
@@ -2324,8 +2387,10 @@ async function goResults(){
     // The breakdown bar table is heavy and not pedagogically useful for
     // students. We keep it ONLY for exam mode. Practice/missions show only
     // the advice and trend blocks (the user-facing pedagogical content).
+    // Sprint 1: en práctica añadimos la curva de sesión (≥5 oraciones).
+    const curveHtml = isStudentFriendly ? _buildSessionCurveHtml() : '';
     if(isStudentFriendly){
-      container.innerHTML = adviceHtml + trendHtml;
+      container.innerHTML = curveHtml + adviceHtml + trendHtml;
     } else {
       container.innerHTML=`
         <div style="margin:16px 0;padding:16px 18px;background:var(--paper);border:1.5px solid var(--border);border-radius:12px">
@@ -2333,7 +2398,10 @@ async function goResults(){
         </div>`;
     }
   } else {
-    document.getElementById('res-func-breakdown').innerHTML='';
+    // Aunque no haya breakdown, en práctica con ≥5 oraciones la curva
+    // de sesión vale por sí sola.
+    const fallbackCurve = isStudentFriendly ? _buildSessionCurveHtml() : '';
+    document.getElementById('res-func-breakdown').innerHTML = fallbackCurve;
   }
 
   if(G.mode==='exam'){
