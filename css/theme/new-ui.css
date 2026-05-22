@@ -2677,7 +2677,7 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 .cp-prop.coordinada .cp-prop-id{background:#0F766E;color:#fff}
 
 .cp-prop-text{
-  font-family:'Fraunces',serif;font-size:1.05rem;line-height:1.45;
+  font-family:'DM Sans','Nunito',sans-serif;font-size:1.05rem;line-height:1.45;
   color:var(--ink);
 }
 .cp-prop-details{
