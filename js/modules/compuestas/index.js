@@ -3474,7 +3474,7 @@
     const slotCls = 'iidd-slot' + (ok===true?' iidd-slot-ok':ok===false?' iidd-slot-err':'');
     const dragAttr = _idd.confirmed ? '' : `draggable="true" ondragstart="CP.iiddDragStart(event,'${slot?.id}')"`;
     const slotContent = slot
-      ? `<span class="iidd-tag iidd-tag-placed${ok===false?' iidd-tag-wrong':''}"
+      ? `<span class="iidd-tag${ok===false?'':' '+_iiddTipoCss(slot.tipo)} iidd-tag-placed${ok===false?' iidd-tag-wrong':''}"
            id="iidd-tg-${slot.id}" data-id="${slot.id}"
            ${dragAttr}
            onclick="CP.iiddTagClickSlot('${b.id}')">
@@ -3496,6 +3496,18 @@
       </div>`;
   }
 
+  // Maps CP tipo → clase CSS de función (misma paleta que Sint funcTagCss)
+  function _iiddTipoCss(tipo){
+    if(tipo?.startsWith('cc')) return 'tag-f-cc';
+    return {
+      pv:'tag-f-pv', pn:'tag-f-pn',
+      suj_lexico:'tag-sn', suj_tacito:'tag-sn', suj_imp:'tag-sn', sujeto:'tag-sn',
+      cd:'tag-f-cd', ci:'tag-f-ci', atributo:'tag-f-atr', cpvo:'tag-f-cpvo',
+      c_regimen:'tag-f-creg', c_agente:'tag-f-cag',
+      marca_pas_ref:'tag-f-pasref', mod_oracional:'tag-f-modor2', vocativo:'tag-f-voc2'
+    }[tipo] || 'tag-func-lbl';
+  }
+
   // Render de una sección del pool (filtra las ya colocadas)
   function _buildIddPoolHtml(poolArr){
     const placed = new Set(
@@ -3505,7 +3517,7 @@
     if(!visible.length)
       return '<span class="iidd-pool-empty">Todas colocadas.</span>';
     return visible.map(b=>`
-      <span class="iidd-tag" id="iidd-tg-${b.id}" data-id="${b.id}"
+      <span class="iidd-tag ${_iiddTipoCss(b.tipo)}" id="iidd-tg-${b.id}" data-id="${b.id}"
         draggable="true"
         ondragstart="CP.iiddDragStart(event,'${b.id}')"
         onclick="CP.iiddTagClick(event,'${b.id}')">
