@@ -2709,6 +2709,71 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 .cp-list-item b{color:var(--ink);font-weight:700}
 .cp-list-item .cp-rel-arrow{color:#7C3AED;font-weight:800;margin:0 4px}
 
+/* ─── Modelo PAU (Ver análisis completo) ─────────────────────────── */
+.cp-pau{
+  background:var(--paper);
+  border:1.5px solid var(--parch-border);
+  border-radius:14px;
+  padding:18px 22px;
+  margin-bottom:14px;
+  box-shadow:0 2px 10px rgba(59,42,26,.05);
+  font-family:'DM Sans','Nunito',sans-serif;
+  color:var(--ink);
+  line-height:1.55;
+}
+.cp-pau-titulo{
+  text-align:center;
+  font-weight:800;
+  font-size:.92rem;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--ink2);
+  padding-bottom:12px;
+  margin-bottom:14px;
+  border-bottom:1.5px solid var(--border);
+}
+.cp-pau-prop,
+.cp-pau-nexo{
+  margin-bottom:14px;
+}
+.cp-pau-prop:last-child,
+.cp-pau-nexo:last-child{ margin-bottom:0 }
+.cp-pau-prop-label{
+  font-size:.95rem;
+  color:var(--ink);
+  margin-bottom:2px;
+}
+.cp-pau-prefix{
+  display:inline-block;
+  min-width:14px;
+  color:#7C3AED;
+  font-weight:800;
+  margin-right:2px;
+}
+.cp-pau-prop-text{
+  font-size:1.02rem;
+  margin:2px 0 2px 18px;
+  color:var(--ink);
+}
+.cp-pau-prop-verbo{
+  font-size:.86rem;
+  color:var(--muted);
+  margin-left:18px;
+}
+.cp-pau-prop-verbo i{ color:var(--ink2);font-style:italic;font-weight:500 }
+.cp-pau-nexo-body{
+  font-size:.94rem;
+  margin-left:18px;
+  color:var(--ink2);
+}
+.cp-pau-nexo-body i{ color:var(--ink2);font-style:italic;font-weight:500 }
+.cp-pau-nexo-body b{ color:var(--ink);font-weight:700 }
+@media(max-width:520px){
+  .cp-pau{ padding:14px 16px }
+  .cp-pau-titulo{ font-size:.82rem;letter-spacing:.04em }
+  .cp-pau-prop-text{ font-size:.96rem }
+}
+
 /* Botones de navegación entre ejercicios */
 .cp-navbar{
   display:flex;align-items:center;gap:10px;

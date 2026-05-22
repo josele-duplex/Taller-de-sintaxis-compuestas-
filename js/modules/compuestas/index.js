@@ -4284,9 +4284,7 @@
       </div>
 
       <div class="cp-solucion-content" style="display:${state.solucionVisible?'block':'none'}">
-        ${renderProposiciones(ej)}
-        ${renderNexos(ej)}
-        ${renderRelaciones(ej)}
+        ${renderModeloPAU(ej)}
       </div>
 
       <div class="cp-navbar">
@@ -4324,6 +4322,302 @@
       }
     }
     return html.trimEnd();
+  }
+
+  // ═════════════════════════════════════════════════════════════════════
+  // MODELO DEFINITIVO PAU
+  // Render descriptivo del análisis de la oración compuesta para "Ver
+  // análisis completo". Estilo PAU/EBAU Murcia: títulos en mayúsculas,
+  // proposiciones marcadas con • o ↳, nexo y función al final.
+  // ═════════════════════════════════════════════════════════════════════
+
+  // Devuelve la familia pedagógica de un subtipo de subordinada (NGLE):
+  // 'sustantiva' | 'relativa' | 'adverbial' | 'construccion' | null
+  function familiaPAU(subtipo){
+    if(!subtipo) return null;
+    if(subtipo.startsWith('sustantiva')) return 'sustantiva';
+    if(subtipo.startsWith('relativa'))   return 'relativa';
+    if(['temporal','locativa','modal','comparativa'].includes(subtipo)) return 'adverbial';
+    if(['causal','final','condicional','concesiva','ilativa_constr'].includes(subtipo)) return 'construccion';
+    return null;
+  }
+
+  // Etiqueta humana de la subordinada en el modelo PAU.
+  function etiquetaSubordinadaPAU(subtipo){
+    const fam = familiaPAU(subtipo);
+    if(fam === 'sustantiva') return 'sustantiva';
+    if(fam === 'relativa'){
+      return ({
+        relativa_especificativa: 'de relativo especificativa',
+        relativa_explicativa:    'de relativo explicativa',
+        relativa_libre:          'de relativo libre',
+        relativa_semilibre:      'de relativo semilibre'
+      })[subtipo] || 'de relativo';
+    }
+    if(fam === 'adverbial'){
+      return ({
+        temporal:    'adverbial temporal',
+        locativa:    'adverbial de lugar',
+        modal:       'adverbial de modo',
+        comparativa: 'adverbial comparativa'
+      })[subtipo] || 'adverbial';
+    }
+    if(fam === 'construccion'){
+      return ({
+        causal:         'causal',
+        final:          'final',
+        condicional:    'condicional',
+        concesiva:      'concesiva',
+        ilativa_constr: 'consecutiva'
+      })[subtipo] || '';
+    }
+    return '';
+  }
+
+  // Etiqueta de la categoría del nexo, con artículo (para "introducida por …").
+  function nombreCategoriaNexoPAU(cat){
+    return ({
+      conjuncion:          'la conjunción',
+      locucion_conjuntiva: 'la locución conjuntiva',
+      pronombre_relativo:  'el pronombre relativo',
+      adverbio_relativo:   'el adverbio relativo',
+      puntuacion:          'el signo de puntuación'
+    })[cat] || 'el nexo';
+  }
+
+  // Etiqueta humana extendida de una función (la usada en el dictado PAU).
+  function etiquetaFuncionPAU(f){
+    return ({
+      sujeto:              'Sujeto',
+      cd:                  'Complemento Directo',
+      ci:                  'Complemento Indirecto',
+      atributo:            'Atributo',
+      cpvo:                'Complemento Predicativo',
+      c_regimen:           'Complemento de Régimen',
+      termino_preposicion: 'Término de preposición',
+      aposicion:           'Aposición',
+      cn:                  'Complemento del Nombre',
+      cc_temporal:         'Complemento Circunstancial de Tiempo',
+      cc_locativo:         'Complemento Circunstancial de Lugar',
+      cc_modal:            'Complemento Circunstancial de Modo',
+      cc_causal:           'Complemento Circunstancial de Causa',
+      cc_finalidad:        'Complemento Circunstancial de Finalidad',
+      cc_instrumental:     'Complemento Circunstancial de Instrumento',
+      cc_compania:         'Complemento Circunstancial de Compañía',
+      cc_cantidad:         'Complemento Circunstancial de Cantidad',
+      cc_comparativo:      'Complemento Circunstancial de Comparación'
+    })[f] || f;
+  }
+
+  // Subtipo de coordinación en mayúsculas para el título.
+  function tituloSubtipoCoord(s){
+    return ({
+      copulativa:  'COPULATIVA',
+      adversativa: 'ADVERSATIVA',
+      disyuntiva:  'DISYUNTIVA'
+    })[s] || (s||'').toUpperCase();
+  }
+
+  // Ordena un array de proposiciones por su primera aparición textual.
+  function ordenarPropsPorTextoPAU(props){
+    return [...props].sort((a,b) => {
+      const ia = (a.indices && a.indices.length) ? Math.min(...a.indices) : 9999;
+      const ib = (b.indices && b.indices.length) ? Math.min(...b.indices) : 9999;
+      return ia - ib;
+    });
+  }
+
+  // Forma del verbo a mostrar: perífrasis completa si tiene >1 token, si no la forma.
+  function formaVerboPAU(prop, ej){
+    const indicesPer = (prop.verbo && Array.isArray(prop.verbo.indices_perifrasis))
+      ? prop.verbo.indices_perifrasis : [];
+    if(indicesPer.length > 1){
+      const partes = indicesPer
+        .map(i => (ej.tokens||[]).find(t => t.i === i)?.texto || '')
+        .filter(Boolean);
+      if(partes.length) return partes.join(' ');
+    }
+    return prop.verbo?.forma || '?';
+  }
+
+  // Bloque "• Label: «texto» (Verbo: forma)" o "↳ Label: ..."
+  function bloquePropPAU(prefijo, label, prop, ej){
+    return `
+      <div class="cp-pau-prop">
+        <div class="cp-pau-prop-label"><span class="cp-pau-prefix">${prefijo}</span> <b>${escHtml(label)}:</b></div>
+        <div class="cp-pau-prop-text">«${escHtml(prop.texto || '')}»</div>
+        <div class="cp-pau-prop-verbo">(Verbo: <i>${escHtml(formaVerboPAU(prop, ej))}</i>)</div>
+      </div>`;
+  }
+
+  // Bloque "• Nexo:" o "• Nexo y función:" según corresponda.
+  function bloqueNexoPAU(titulo, cuerpoHtml){
+    return `
+      <div class="cp-pau-nexo">
+        <div class="cp-pau-prop-label"><span class="cp-pau-prefix">•</span> <b>${escHtml(titulo)}:</b></div>
+        <div class="cp-pau-nexo-body">${cuerpoHtml}</div>
+      </div>`;
+  }
+
+  function tituloPAU(texto){
+    return `<div class="cp-pau-titulo">ORACIÓN COMPUESTA${texto ? ' POR ' + texto : ''}</div>`;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // CASO COORDINADA
+  // ─────────────────────────────────────────────────────────────────────
+  function construirPAUCoord(ej, props){
+    const relCoord = (ej.relaciones||[]).find(r => r.tipo === 'coordinacion');
+    const subtipo = relCoord?.subtipo || '';
+    const titulo = `COORDINACIÓN${subtipo ? ' ' + tituloSubtipoCoord(subtipo) : ''}`;
+    const nexo = (ej.nexos||[])[0];
+    const nexoTxt = nexo
+      ? `${nombreCategoriaNexoPAU(nexo.categoria||'conjuncion')}${subtipo ? ' ' + (etiquetaSubtipoCoordPAU(subtipo)) : ''} <i>«${escHtml(nexo.forma||'')}»</i>.`
+      : '<i>(sin nexo registrado)</i>';
+    let cuerpo = '';
+    props.forEach((p, i) => {
+      cuerpo += bloquePropPAU('•', `Oración ${i+1}`, p, ej);
+    });
+    cuerpo += bloqueNexoPAU('Nexo', nexoTxt);
+    return tituloPAU(titulo) + cuerpo;
+  }
+
+  // Subtipo coord en minúsculas para la prosa del nexo ("conjunción copulativa «y»").
+  function etiquetaSubtipoCoordPAU(s){
+    return ({
+      copulativa: 'copulativa',
+      adversativa: 'adversativa',
+      disyuntiva: 'disyuntiva'
+    })[s] || '';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // CASO YUXTAPUESTA
+  // ─────────────────────────────────────────────────────────────────────
+  function construirPAUYuxt(ej, props){
+    const nexo = (ej.nexos||[])[0];
+    const nexoTxt = nexo
+      ? `signo de puntuación (<i>«${escHtml(nexo.forma||'')}»</i>).`
+      : '<i>signo de puntuación.</i>';
+    let cuerpo = '';
+    props.forEach((p, i) => {
+      cuerpo += bloquePropPAU('•', `Oración ${i+1}`, p, ej);
+    });
+    cuerpo += bloqueNexoPAU('Nexo', nexoTxt);
+    return tituloPAU('YUXTAPOSICIÓN') + cuerpo;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // CASO SUBORDINADA (binaria principal + subordinada)
+  // ─────────────────────────────────────────────────────────────────────
+  function construirPAUSub(ej, props){
+    const principal = props.find(p => p.tipo === 'principal');
+    const subordinada = props.find(p => p.tipo === 'subordinada');
+    if(!principal || !subordinada){
+      // Estructura no esperada — fallback genérico.
+      return construirPAUMixta(ej, props);
+    }
+    const fam = familiaPAU(subordinada.subtipo);
+    const esConstruccion = fam === 'construccion';
+    const titulo = esConstruccion ? '' : 'SUBORDINACIÓN';
+
+    const etiquetaSub = etiquetaSubordinadaPAU(subordinada.subtipo);
+    const labelSub = esConstruccion
+      ? `Construcción ${etiquetaSub}`
+      : `Oración subordinada ${etiquetaSub}`;
+
+    // Orden textual: ¿quién aparece antes?
+    let cuerpo = '';
+    for(const p of props){
+      if(p === principal)        cuerpo += bloquePropPAU('•', 'Oración principal', principal, ej);
+      else if(p === subordinada) cuerpo += bloquePropPAU('↳', labelSub, subordinada, ej);
+    }
+
+    // Bloque nexo y función
+    const nexo = (ej.nexos||[]).find(n => n.categoria !== 'puntuacion') || (ej.nexos||[])[0];
+    const rel = (ej.relaciones||[]).find(r => r.tipo === 'subordinacion') || {};
+    cuerpo += construirBloqueNexoYFuncionPAU(nexo, rel, subordinada, esConstruccion);
+
+    return tituloPAU(titulo) + cuerpo;
+  }
+
+  function construirBloqueNexoYFuncionPAU(nexo, rel, subordinada, esConstruccion){
+    // Construcciones: solo nexo, sin función.
+    if(esConstruccion){
+      if(!nexo) return bloqueNexoPAU('Nexo', '<i>(sin nexo registrado)</i>');
+      const catLabel = nombreCategoriaNexoPAU(nexo.categoria||'conjuncion').replace(/^(la|el) /, '');
+      return bloqueNexoPAU('Nexo',
+        `${catLabel} <i>«${escHtml(nexo.forma||'')}»</i>.`);
+    }
+    // Sustantivas / relativas / adverbiales: nexo + función.
+    if(!nexo){
+      return bloqueNexoPAU('Nexo y función', '<i>(sin nexo registrado)</i>');
+    }
+    const intro = `introducida por ${nombreCategoriaNexoPAU(nexo.categoria||'conjuncion')} <i>«${escHtml(nexo.forma||'')}»</i>.`;
+    let funcionTxt = '';
+    const funcion = rel.funcion || subordinada.funcion;
+    if(funcion === 'termino_preposicion'){
+      const spFunc = rel.funcion_sp || '';
+      const spLbl  = spFunc ? etiquetaFuncionPAU(spFunc) : '';
+      funcionTxt = `La subordinada funciona como <b>Término de preposición</b>.`;
+      if(spLbl){
+        funcionTxt += `<br>El sintagma preposicional completo funciona como <b>${escHtml(spLbl)}</b>.`;
+      }
+    } else if(funcion){
+      const lbl = etiquetaFuncionPAU(funcion);
+      // Para relativas con antecedente expreso, la función es CN del antecedente.
+      // Para relativas libres / semilibres, la función la hace la subordinada entera.
+      funcionTxt = `La subordinada funciona como <b>${escHtml(lbl)}</b> de la oración principal.`;
+      if(familiaPAU(subordinada.subtipo) === 'relativa'){
+        if(subordinada.subtipo === 'relativa_especificativa' || subordinada.subtipo === 'relativa_explicativa'){
+          funcionTxt = `La subordinada funciona como <b>${escHtml(lbl)}</b> de su antecedente.`;
+        }
+      }
+    } else {
+      funcionTxt = '<i>(función no registrada)</i>';
+    }
+    return bloqueNexoPAU('Nexo y función', `${intro}<br>${funcionTxt}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // CASO MIXTA o fallback
+  // ─────────────────────────────────────────────────────────────────────
+  function construirPAUMixta(ej, props){
+    let cuerpo = '';
+    props.forEach((p, i) => {
+      let label;
+      if(p.tipo === 'principal') label = 'Oración principal';
+      else if(p.tipo === 'subordinada'){
+        const fam = familiaPAU(p.subtipo);
+        const sub = etiquetaSubordinadaPAU(p.subtipo);
+        label = (fam === 'construccion') ? `Construcción ${sub}` : `Oración subordinada ${sub}`;
+      } else if(p.tipo === 'coordinada') label = `Oración coordinada ${i+1}`;
+      else label = `Oración ${i+1}`;
+      const prefijo = (p.tipo === 'subordinada') ? '↳' : '•';
+      cuerpo += bloquePropPAU(prefijo, label, p, ej);
+    });
+    // Listar nexos
+    (ej.nexos||[]).forEach((n, i) => {
+      const titNexo = (ej.nexos||[]).length > 1 ? `Nexo ${i+1}` : 'Nexo';
+      const catLbl = nombreCategoriaNexoPAU(n.categoria||'conjuncion').replace(/^(la|el) /, '');
+      cuerpo += bloqueNexoPAU(titNexo, `${catLbl} <i>«${escHtml(n.forma||'')}»</i>.`);
+    });
+    return tituloPAU('') + cuerpo;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // ENTRADA: el render principal que se llama desde "Ver análisis completo"
+  // ─────────────────────────────────────────────────────────────────────
+  function renderModeloPAU(ej){
+    if(!ej || !Array.isArray(ej.proposiciones) || ej.proposiciones.length === 0) return '';
+    const props = ordenarPropsPorTextoPAU(ej.proposiciones);
+    const tipoOr = ej.tipo_oracion;
+    let cuerpo;
+    if(tipoOr === 'coordinada')       cuerpo = construirPAUCoord(ej, props);
+    else if(tipoOr === 'yuxtapuesta') cuerpo = construirPAUYuxt(ej, props);
+    else if(tipoOr === 'subordinada') cuerpo = construirPAUSub(ej, props);
+    else                              cuerpo = construirPAUMixta(ej, props);
+    return `<div class="cp-pau">${cuerpo}</div>`;
   }
 
   function renderProposiciones(ej){
