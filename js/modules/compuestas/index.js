@@ -1237,10 +1237,18 @@
     const propNum = propIdx + 1;
     const pCls = 'p' + Math.min(propNum, 4);
 
+    // Etiqueta macro del predicado: V/N se decide por el predicado completo
+    // (verbo + funciones), no por el verbo aislado. Es PN si así lo dice el
+    // banco o si hay un Atributo entre las funciones.
+    const aiHere = prop.analisis_interno || {};
+    const tieneAtributo = (aiHere.funciones||[]).some(f => f && f.tipo === 'atributo');
+    const esNominal = tieneAtributo || _normPredTipo((aiHere.predicado||{}).tipo||'') === 'nominal';
+    const macroPredLbl = esNominal ? 'Predicado nominal' : 'Predicado verbal';
+
     // Agrupa bloques consecutivos por macro-categoría (Sujeto / Predicado)
     const blocks = _idd.blocks.map(b=>({
       ...b,
-      macro: b.id === 'suj' ? 'Sujeto' : 'Predicado',
+      macro: b.id === 'suj' ? 'Sujeto' : macroPredLbl,
       placed: _idd.slots[b.id] || null
     }));
     const groups = [];
@@ -2760,7 +2768,7 @@
   // Devuelve la etiqueta legible para los tipos internos del D&D.
   function _iddLabel(tipo){
     const m = {
-      'pv':'PV · Predicado Verbal', 'pn':'PN · Predicado Nominal',
+      'np':'NP · Núcleo del predicado',
       'suj_lexico':'Sujeto léxico', 'suj_tacito':'Sujeto tácito (Ø)', 'suj_imp':'Impersonal'
     };
     return m[tipo] || etiquetaFuncion(tipo);
@@ -2784,9 +2792,10 @@
     // Predicado
     const predIndices = (ai.predicado||{}).indices || [];
     const predWords = getWords(predIndices) || prop.verbo?.forma || '?';
-    const predCorr = _normPredTipo((ai.predicado||{}).tipo||'') === 'verbal' ? 'pv' : 'pn';
+    // El verbo es siempre Núcleo del Predicado. La distinción PV/PN
+    // aplica al predicado completo (macro), no al verbo aislado.
     blocks.push({
-      id:'pred', words:predWords, correctTipo:predCorr,
+      id:'pred', words:predWords, correctTipo:'np',
       section:'pred', sortIdx: minIdx(predIndices)
     });
 
@@ -2823,9 +2832,12 @@
 
     // ── A.3: pool con 5 secciones (Predicado, Sujeto, Argumentos,
     //         Adjuntos, Marcas y periféricos) con distractores ─────
+    // Una sola etiqueta: el verbo es siempre Núcleo del Predicado.
+    // PV / PN clasifica al predicado completo, no al verbo solo: se
+    // muestra como label dinámico en la fila macro del sticky, no
+    // como tag drag&drop.
     const predPool = [
-      {id:'pd_pv', label:'PV · Predicado Verbal', tipo:'pv'},
-      {id:'pd_pn', label:'PN · Predicado Nominal', tipo:'pn'}
+      {id:'pd_np', label:'NP · Núcleo del predicado', tipo:'np'}
     ];
     const sujPool = [
       {id:'sd_lex', label:'Sujeto léxico',     tipo:'suj_lexico'},
@@ -2908,8 +2920,8 @@
       <div class="iidd-pool" id="iidd-pool">
         <div class="iidd-pool-sec iidd-pool-pred">
           <div class="iidd-pool-hdr"><span class="iidd-pool-icon">🔧</span>
-            <div><div class="iidd-pool-title">Predicado</div>
-              <div class="iidd-pool-sub">¿Verbal o Nominal?</div></div></div>
+            <div><div class="iidd-pool-title">Núcleo del predicado</div>
+              <div class="iidd-pool-sub">El verbo es NP. PV/PN lo decide el predicado entero.</div></div></div>
           <div class="iidd-tags-wrap" id="iidd-pool-pred">${_buildIddPoolHtml(_idd.predPool)}</div>
         </div>
         <div class="iidd-pool-sec iidd-pool-suj">
@@ -3005,7 +3017,7 @@
   function _iiddTipoCss(tipo){
     if(tipo?.startsWith('cc')) return 'tag-f-cc';
     return {
-      pv:'tag-f-pv', pn:'tag-f-pn',
+      np:'tag-f-pv',
       suj_lexico:'tag-sn', suj_tacito:'tag-sn', suj_imp:'tag-sn', sujeto:'tag-sn',
       cd:'tag-f-cd', ci:'tag-f-ci', atributo:'tag-f-atr', cpvo:'tag-f-cpvo',
       c_regimen:'tag-f-creg', c_agente:'tag-f-cag',
@@ -3975,9 +3987,11 @@
       // Predicado
       let predFila = '';
       const predTipoCorr = _normPredTipo((ai.predicado || {}).tipo || '');
-      if(predTipoCorr && resp.predicadoOk !== null && resp.predicadoOk !== undefined){
-        const lbl = predTipoCorr === 'verbal' ? 'PV' : predTipoCorr === 'nominal' ? 'PN' : predTipoCorr;
-        predFila = `<div style="font-size:.8rem">${resp.predicadoOk ? '✅' : '❌'} Predicado: <b>${lbl}</b></div>`;
+      const tieneAtributoSum = (ai.funciones||[]).some(f => f && f.tipo === 'atributo');
+      const esNomSum = tieneAtributoSum || predTipoCorr === 'nominal';
+      if(resp.predicadoOk !== null && resp.predicadoOk !== undefined){
+        const ctx = esNomSum ? ' (predicado nominal)' : ' (predicado verbal)';
+        predFila = `<div style="font-size:.8rem">${resp.predicadoOk ? '✅' : '❌'} <b>NP</b> · Núcleo del predicado${ctx}</div>`;
       }
 
       // Sujeto
