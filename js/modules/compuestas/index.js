@@ -683,10 +683,10 @@
   }
 
   // ═════════════════════════════════════════════════════════════════════
-  // MOTOR PEDAGÓGICO INTERACTIVO (E3.1 — fases 0, 1, 2)
+  // MOTOR PEDAGÓGICO INTERACTIVO
   //
   // Estado del motor (vive dentro de state.engine):
-  //   fase: 0 | 1 | 2 | 'resumen'
+  //   fase: 1 | 2 | 3 | 5 | 'interna_choice' | 'interna' | 'resumen'
   //   verbosCorrectos: Set<int>  — índices que el alumno DEBE seleccionar
   //   verbosSeleccionados: Set<int>
   //   verbosConfirmados: Set<int> — los que ya validamos (correctos)
@@ -952,28 +952,6 @@
     const tieneRelaciones = (ej.relaciones||[]).length > 0;
     const unaSolaProp = (ej.proposiciones||[]).length === 1;
 
-    // Fase 4 tiene una UI distinta (no oración con tokens, sino una "tarjeta-pregunta")
-    if(eng.fase === 4){
-      wrap.innerHTML = `
-        ${renderProgressBar(eng.fase, tieneNexos, tieneRelaciones)}
-        <div class="cp-oracion-recordatorio">${escHtml(ej.texto || '')}</div>
-        ${renderInstruccion(eng.fase, ej)}
-        ${renderClasificacion(ej)}
-        ${eng.mensajeFeedback ? renderFeedback(eng.mensajeFeedback) : ''}
-        ${renderActions(eng.fase, ej, tieneNexos)}
-        <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
-          <button type="button" class="cp-btn-secondary" onclick="CP.abandonar()">← Volver a filtros</button>
-        </div>
-      `;
-      // Listeners de las opciones
-      wrap.querySelectorAll('.cp-clasif-opt[data-q]').forEach(el=>{
-        el.addEventListener('click', ()=>{
-          onClasifClick(el.dataset.q, el.dataset.v);
-        });
-      });
-      return;
-    }
-
     // Fase 5: relaciones entre proposiciones. UI también especial.
     if(eng.fase === 5){
       wrap.innerHTML = `
@@ -997,7 +975,7 @@
       return;
     }
 
-    // Fases 0, 1, 2, 3 — la oración interactiva
+    // Fases 1, 2, 3 — la oración interactiva
     wrap.innerHTML = `
       ${renderProgressBar(eng.fase, tieneNexos, tieneRelaciones)}
       ${(eng.fase === 3) ? `<div class="cp-oracion-recordatorio">${escHtml(ej.texto || '')}</div>` : ''}
@@ -1044,16 +1022,6 @@
   function renderInstruccion(fase, ej){
     const nProps = (ej.proposiciones||[]).length;
     const nNexos = (ej.nexos||[]).length;
-    if(fase === 0){
-      return `
-        <div class="cp-instr cp-instr-grande">
-          <span class="cp-instr-emoji">📖</span>
-          <div class="cp-instr-body">
-            <h3 class="cp-instr-titulo">Lee la oración con atención</h3>
-            <p class="cp-instr-desc">Cuando estés preparado, pulsa <b>Empezar</b> para analizarla paso a paso.</p>
-          </div>
-        </div>`;
-    }
     if(fase === 1){
       return `
         <div class="cp-instr cp-instr-grande">
@@ -1085,46 +1053,6 @@
           <div class="cp-instr-body">
             <h3 class="cp-instr-titulo">Paso 3 · Delimita las oraciones</h3>
             <p class="cp-instr-desc">Ahora vas a decir qué palabras forman cada oración. <b>Empieza por <span style="color:var(--cp-p${Math.min(propActiva,4)});font-weight:800">${lblPropAct}</span></b>: toca todas las palabras que pertenecen a esa oración. Cuando termines con ella, te llevaremos a la siguiente.</p>
-          </div>
-        </div>`;
-    }
-    if(fase === 4){
-      const eng = state.engine;
-      const propIdx = eng.f4IdxActual;
-      const p = (ej.proposiciones||[])[propIdx];
-      const resp = eng.f4Respuestas[propIdx] || {};
-      // Calcular el sub-paso aquí (no depender de eng.f4SubPaso que puede no estar todavía)
-      let subPaso = 'tipo';
-      if(resp.tipoOk === true){
-        if(p && p.tipo === 'subordinada'){
-          subPaso = (resp.familiaOk === true) ? 'subtipo' : 'familia';
-        } else if(p && p.tipo === 'coordinada'){
-          subPaso = 'subtipo';
-        } else {
-          subPaso = 'final';
-        }
-      }
-      const propNum = propIdx + 1;
-      const colorP = `var(--cp-p${Math.min(propNum,4)})`;
-      const titulos = {
-        'tipo': `¿Qué tipo de oración es <span style="color:${colorP};font-weight:800">O${propNum}</span>?`,
-        'familia': `Has dicho que <span style="color:${colorP};font-weight:800">O${propNum}</span> es subordinada. ¿Qué clase de subordinada?`,
-        'subtipo': `Última pregunta sobre <span style="color:${colorP};font-weight:800">O${propNum}</span>. ¿Qué subtipo concreto?`,
-        'final': `<span style="color:${colorP};font-weight:800">O${propNum}</span> está clasificada. Continúa con la siguiente.`
-      };
-      const descs = {
-        'tipo': 'Elige una de las cuatro opciones de abajo.',
-        'familia': 'Las subordinadas se agrupan en tres grandes familias: sustantivas (hacen función de SN), de relativo (adjetivas: complementan a un sustantivo) y construcciones (antes llamadas adverbiales).',
-        'subtipo': 'Esta es la clasificación más específica. Si dudas, lee bien la proposición de nuevo.',
-        'final': ''
-      };
-      return `
-        <div class="cp-instr cp-instr-grande">
-          <span class="cp-instr-emoji">🏷️</span>
-          <div class="cp-instr-body">
-            <h3 class="cp-instr-titulo">Paso 4 · Clasifica cada oración</h3>
-            <p class="cp-instr-desc">${titulos[subPaso]||''} ${descs[subPaso]||''}</p>
-            <p style="font-size:.74rem;color:var(--muted);margin:4px 0 0">Oración ${propIdx+1} de ${(ej.proposiciones||[]).length}</p>
           </div>
         </div>`;
     }
@@ -1246,10 +1174,7 @@
     if(!eng) return '';
     const tokens = ej.tokens || [];
     let label = '', content = '';
-    if(eng.fase === 0){
-      label = 'Lee la oración';
-      content = `<div class="cp-ctx-words">${renderCpStickyToks(tokens, eng, 0)}</div>`;
-    } else if(eng.fase === 1){
+    if(eng.fase === 1){
       label = 'Paso 1 · Verbos';
       content = `<div class="cp-ctx-words">${renderCpStickyToks(tokens, eng, 1)}</div>`;
     } else if(eng.fase === 2){
@@ -1438,12 +1363,9 @@
       const t = tokens[idx];
       const cat = t.categoria || 'otro';
       const i = t.i;
-      // En fase 0 los tokens NO son clicables, solo lectura
       let cls = 'cp-tok';
       let clickable = (cat !== 'puntuacion');
-      if(eng.fase === 0){
-        clickable = false;
-      } else if(eng.fase === 1){
+      if(eng.fase === 1){
         if(eng.verbosConfirmados.has(i)) cls += ' correcto locked';
         else if(eng.verbosErrados.has(i)) cls += ' error locked';
         else if(eng.verbosSeleccionados.has(i)) cls += ' selected';
@@ -1488,12 +1410,10 @@
 
   function renderTally(){
     const eng = state.engine;
-    if(eng.fase === 0) return '';
     let ok, er;
     if(eng.fase === 1){ ok = eng.verbosAciertos; er = eng.verbosErrores; }
     else if(eng.fase === 2){ ok = eng.nexosAciertos; er = eng.nexosErrores; }
     else if(eng.fase === 3){ ok = eng.f3Aciertos; er = eng.f3Errores; }
-    else if(eng.fase === 4){ ok = eng.f4Aciertos; er = eng.f4Errores; }
     else if(eng.fase === 5){ ok = eng.f5Aciertos; er = eng.f5Errores; }
     else return '';
     return `
@@ -1508,13 +1428,6 @@
   }
 
   function renderActions(fase, ej, tieneNexos){
-    if(fase === 0){
-      return `
-        <div class="cp-actions">
-          <div class="cp-spacer"></div>
-          <button type="button" class="cp-btn-primary" onclick="CP.avanzarFase()">Empezar →</button>
-        </div>`;
-    }
     const eng = state.engine;
 
     if(fase === 1 || fase === 2){
@@ -1564,37 +1477,6 @@
           ${completos
             ? `<button type="button" class="cp-btn-primary" onclick="CP.avanzarFase()">Siguiente fase →</button>`
             : `<span style="color:var(--muted);font-size:.82rem;font-style:italic">Tokens por asignar correctamente: ${total - eng.f3Confirmados.size}</span>`
-          }
-        </div>`;
-    }
-
-    if(fase === 4){
-      const propIdx = eng.f4IdxActual;
-      const resp = eng.f4Respuestas[propIdx] || {};
-      // Comprobar si esta proposición ya está respondida según su tipo:
-      const p = (ej.proposiciones||[])[propIdx];
-      const tipoOk = resp.tipoOk === true;
-      const requiereFamilia = p && p.tipo === 'subordinada';
-      const familiaOk = !requiereFamilia || (resp.familiaOk === true);
-      const requiereSubtipo = p && (p.tipo === 'subordinada' || p.tipo === 'coordinada');
-      const subtipoOk = !requiereSubtipo || (resp.subtipoOk === true);
-      const completo = tipoOk && familiaOk && subtipoOk;
-
-      const ultimaProp = propIdx >= (ej.proposiciones||[]).length - 1;
-      const tieneRelaciones = (ej.relaciones||[]).length > 0;
-      let pendienteMsg = 'Elige el tipo';
-      if(tipoOk && !familiaOk) pendienteMsg = 'Elige la familia';
-      else if(tipoOk && familiaOk && !subtipoOk) pendienteMsg = 'Elige el subtipo';
-      let textoBoton;
-      if(!ultimaProp) textoBoton = 'Siguiente proposición →';
-      else textoBoton = tieneRelaciones ? 'Pasar a relaciones →' : 'Ver resumen →';
-      return `
-        <div class="cp-actions">
-          <button type="button" class="cp-btn-secondary cp-btn-skip" onclick="CP.saltarFase()" title="Avanzar sin completar esta proposición">Saltar proposición →</button>
-          <div class="cp-spacer"></div>
-          ${completo
-            ? `<button type="button" class="cp-btn-primary" onclick="CP.avanzarPropF4()">${textoBoton}</button>`
-            : `<span style="color:var(--muted);font-size:.82rem;font-style:italic">${pendienteMsg}</span>`
           }
         </div>`;
     }
@@ -1963,12 +1845,6 @@
     const tieneNexos = (ej.proposiciones||[]).length > 1 && (ej.nexos||[]).length > 0;
     const unaSolaProp = (ej.proposiciones||[]).length === 1;
 
-    if(eng.fase === 0){
-      eng.fase = 1;
-      eng.mensajeFeedback = null;
-      renderFase();
-      return;
-    }
     if(eng.fase === 1){
       // Tras fase 1: ir a fase 2 si hay nexos, si no a fase 3 (delimitar)
       mostrarToast({
@@ -2004,7 +1880,7 @@
       return;
     }
     if(eng.fase === 3){
-      // Tras fase 3: saltar la fase 4 antigua e ir directamente a la fusionada.
+      // Tras fase 3: ir a la fase de clasificar y relacionar.
       mostrarToast({
         titulo:'¡Proposiciones delimitadas!',
         subtitulo:'Ahora clasifica el tipo de oración y las relaciones',
@@ -2015,16 +1891,9 @@
       renderFase();
       return;
     }
-    if(eng.fase === 4){
-      // Caso legacy: la fase 4 antigua ya no se usa. Si por algún motivo se llega aquí,
-      // pasamos directamente a la nueva fase 5 (clasificar y relacionar).
-      irFaseClasificarYRelacionar(ej);
-      renderFase();
-      return;
-    }
   }
 
-  // Helper: ir a la fase de "clasificar y relacionar" (la antigua fase 5).
+  // Helper: ir a la fase de "clasificar y relacionar".
   // Si la oración solo tiene 1 proposición, no hay relaciones → resumen directo.
   function irFaseClasificarYRelacionar(ej){
     const eng = state.engine;
@@ -2060,13 +1929,6 @@
         });
       }
       avanzarFase();
-      return;
-    }
-    if(eng.fase === 4){
-      // Saltar la proposición actual y pasar a la siguiente o al final de fase 4
-      eng.skippedFases.add('4_' + eng.f4IdxActual);
-      eng.mensajeFeedback = null;
-      avanzarPropF4();
       return;
     }
     if(eng.fase === 5){
