@@ -842,11 +842,6 @@
       f3Aciertos: 0,
       f3Errores: 0,
       pistaUsadaF3: false,
-      // ── Fase 4: clasificar proposiciones ────────────────────────────
-      f4IdxActual: 0,                      // qué proposición se está clasificando (0..N-1)
-      f4Respuestas: [],                    // [{tipo, subtipo, tipoOk, subtipoOk}]
-      f4Aciertos: 0,
-      f4Errores: 0,
       // ── Fase 5: relaciones entre proposiciones ──────────────────────
       f5IdxActual: 0,                      // qué relación se está respondiendo (0..N-1)
       f5Respuestas: [],                    // [{tipo, tipoOk, origen, direccionOk, funcion, funcionOk, funcionSp, funcionSpOk}]
@@ -930,9 +925,9 @@
         if(typeof playComplete === 'function') playComplete();
         // Calcular XP según porcentaje de aciertos
         const totalAciertos = (eng.verbosAciertos||0) + (eng.nexosAciertos||0) +
-                              (eng.f3Aciertos||0) + (eng.f4Aciertos||0) + (eng.f5Aciertos||0);
+                              (eng.f3Aciertos||0) + (eng.f5Aciertos||0);
         const totalErrores  = (eng.verbosErrores||0) + (eng.nexosErrores||0) +
-                              (eng.f3Errores||0) + (eng.f4Errores||0) + (eng.f5Errores||0);
+                              (eng.f3Errores||0) + (eng.f5Errores||0);
         const total = totalAciertos + totalErrores;
         const pct = total > 0 ? Math.round((totalAciertos/total)*100) : 0;
         let xp = 10;                              // XP base por completar
@@ -1319,16 +1314,9 @@
         .map(t => t.texto)
         .join(' ');
       const needsDots = (prop.indices || []).length > 8;
-      let clasifBadge = '';
-      const f4r = eng.f4Respuestas && eng.f4Respuestas[idx];
-      if(f4r && f4r.tipoOk){
-        const tipos = {principal:'Principal', subordinada:'Sub.', coordinada:'Coord.', yuxtapuesta:'Yux.'};
-        clasifBadge = `<span class="cp-ctx-clasif-badge ${pCls}">${tipos[prop.tipo]||prop.tipo}</span>`;
-      }
       html += `<div class="cp-ctx-prop-chip ${pCls}${isActiva?' cp-ctx-prop-activa':''}">
         <span class="cp-ctx-prop-num">O${pNum}</span>
         <span class="cp-ctx-prop-text">${escHtml(shortText)}${needsDots?'…':''}</span>
-        ${clasifBadge}
       </div>`;
 
       // ── Flecha de relación entre chips consecutivos ─────────────
@@ -2009,200 +1997,12 @@
     renderFase();
   }
 
-  // ═════════════════════════════════════════════════════════════════════
-  // FASE 4 — Clasificar cada proposición
-  // ═════════════════════════════════════════════════════════════════════
-
-  function renderClasificacion(ej){
-    const eng = state.engine;
-    const propIdx = eng.f4IdxActual;
-    const p = (ej.proposiciones||[])[propIdx];
-    if(!p) return '';
-    const propNum = propIdx + 1;
-    const colorCls = 'p' + Math.min(propNum, 4);
-    // Asegurar que existe respuesta para este índice
-    if(!eng.f4Respuestas[propIdx]) eng.f4Respuestas[propIdx] = {};
-    const resp = eng.f4Respuestas[propIdx];
-
-    // Determinar el sub-paso actual
-    // 'tipo' → pregunta tipo. Si correcto y es subordinada → 'familia'. Si es coord → 'subtipo'.
-    // 'familia' → pregunta familia (sustantiva/relativa/construccion). Si correcto → 'subtipo'.
-    // 'subtipo' → pregunta subtipo concreto dentro de la familia.
-    let subPaso = 'tipo';
-    if(resp.tipoOk === true){
-      if(p.tipo === 'subordinada'){
-        if(resp.familiaOk === true) subPaso = 'subtipo';
-        else subPaso = 'familia';
-      } else if(p.tipo === 'coordinada'){
-        subPaso = 'subtipo';
-      } else {
-        // Principal o yuxtapuesta: ya terminamos esta proposición
-        subPaso = 'final';
-      }
-    }
-    eng.f4SubPaso = subPaso;
-
-    // Opciones de tipo (3 reales para EBAU Murcia: principal, subordinada, coordinada — yuxtapuesta aparece solo si la oración lo es)
-    const opcionesTipo = [
-      ['principal','Principal'],
-      ['subordinada','Subordinada'],
-      ['coordinada','Coordinada'],
-      ['yuxtapuesta','Yuxtapuesta']
-    ];
-
-    let html = `
-      <div class="cp-clasif-prop-card ${colorCls}">
-        <div class="cp-clasif-prop-header">
-          <span class="cp-clasif-prop-id ${colorCls}">P${propNum}</span>
-          <span style="font-size:.78rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">${propIdx+1} de ${ej.proposiciones.length}</span>
-        </div>
-        <div class="cp-clasif-prop-text">«${escHtml(p.texto||'')}»</div>
-    `;
-
-    // ─── SUB-PASO 1: TIPO ──────────────────────────────────────────────
-    html += `
-      <div class="cp-clasif-q">
-        <span class="cp-clasif-q-label">1. Tipo de proposición</span>
-        <div class="cp-clasif-opts">
-          ${opcionesTipo.map(([v,lbl])=>{
-            let cls = 'cp-clasif-opt';
-            if(resp.tipo === v){
-              if(resp.tipoOk === true) cls += ' correcto locked';
-              else if(resp.tipoOk === false) cls += ' error';
-              else cls += ' selected';
-            }
-            if(resp.tipoOk === true && resp.tipo !== v) cls += ' locked';
-            return `<button type="button" class="${cls}" data-q="tipo" data-v="${v}">${escHtml(lbl)}</button>`;
-          }).join('')}
-        </div>
-      </div>
-    `;
-
-    // ─── SUB-PASO 2: FAMILIA (solo para subordinadas) ──────────────────
-    if(resp.tipoOk === true && p.tipo === 'subordinada'){
-      const opcionesFamilia = [
-        ['sustantiva','Sustantiva',`Hace una función propia de un sintagma nominal (sujeto, CD, atributo…).`],
-        ['relativa','De relativo (adjetiva)',`Complementa a un sustantivo, como un adjetivo.`],
-        ['construccion','Construcción',`Antes llamadas adverbiales: temporales, causales, finales, condicionales, concesivas, ilativas.`]
-      ];
-      html += `
-        <div class="cp-clasif-q">
-          <span class="cp-clasif-q-label">2. ¿Qué familia de subordinada?</span>
-          <div class="cp-clasif-opts cp-clasif-opts-vertical">
-            ${opcionesFamilia.map(([v,lbl,desc])=>{
-              let cls = 'cp-clasif-opt cp-clasif-opt-familia';
-              if(resp.familia === v){
-                if(resp.familiaOk === true) cls += ' correcto locked';
-                else if(resp.familiaOk === false) cls += ' error';
-                else cls += ' selected';
-              }
-              if(resp.familiaOk === true && resp.familia !== v) cls += ' locked';
-              return `<button type="button" class="${cls}" data-q="familia" data-v="${v}">
-                <span style="font-weight:800;display:block;margin-bottom:2px">${escHtml(lbl)}</span>
-                <span style="font-size:.78rem;font-weight:500;opacity:.85">${escHtml(desc)}</span>
-              </button>`;
-            }).join('')}
-          </div>
-        </div>`;
-    }
-
-    // ─── SUB-PASO 3: SUBTIPO CONCRETO ──────────────────────────────────
-    const mostrarSubtipo = (resp.tipoOk === true && p.tipo === 'coordinada') ||
-                          (resp.tipoOk === true && resp.familiaOk === true);
-    if(mostrarSubtipo){
-      const opcionesSubtipo = obtenerOpcionesSubtipo(p.tipo, p.subtipo, resp.familia);
-      const ordinal = (p.tipo === 'coordinada') ? '2' : '3';
-      html += `
-        <div class="cp-clasif-q">
-          <span class="cp-clasif-q-label">${ordinal}. Subtipo concreto</span>
-          <div class="cp-clasif-opts">
-            ${opcionesSubtipo.map(([v,lbl])=>{
-              let cls = 'cp-clasif-opt';
-              if(resp.subtipo === v){
-                if(resp.subtipoOk === true) cls += ' correcto locked';
-                else if(resp.subtipoOk === false) cls += ' error';
-                else cls += ' selected';
-              }
-              if(resp.subtipoOk === true && resp.subtipo !== v) cls += ' locked';
-              return `<button type="button" class="${cls}" data-q="subtipo" data-v="${v}">${escHtml(lbl)}</button>`;
-            }).join('')}
-          </div>
-        </div>`;
-    }
-
-    html += `</div>`;
-    return html;
-  }
-
   // Familia inferida del subtipo correcto (para validar el sub-paso "familia")
   function familiaDelSubtipo(subtipo){
     if(!subtipo) return null;
     if(subtipo.startsWith('sustantiva')) return 'sustantiva';
     if(subtipo.startsWith('relativa')) return 'relativa';
     if(['temporal','locativa','modal','comparativa','condicional','final','causal','concesiva','ilativa_constr'].includes(subtipo)) return 'construccion';
-    return null;
-  }
-
-  // Devuelve la lista de subtipos a mostrar al alumno, filtrada por familia (si aplica)
-  function obtenerOpcionesSubtipo(tipo, subtipoCorrecto, familiaElegida){
-    if(tipo === 'coordinada'){
-      // EBAU Murcia: solo 3 coordinadas
-      return [
-        ['copulativa','Copulativa'],
-        ['adversativa','Adversativa'],
-        ['disyuntiva','Disyuntiva']
-      ];
-    }
-    if(tipo === 'subordinada'){
-      // Filtramos según la familia que ELIGIÓ el alumno (que ya validamos correcta)
-      if(familiaElegida === 'sustantiva'){
-        return [
-          ['sustantiva_sujeto','Sujeto'],
-          ['sustantiva_cd','Complemento directo (CD)'],
-          ['sustantiva_atributo','Atributo'],
-          ['sustantiva_termino_preposicion','Término de preposición'],
-          ['sustantiva_aposicion','Aposición']
-        ];
-      }
-      if(familiaElegida === 'relativa'){
-        return [
-          ['relativa_especificativa','Especificativa (con antecedente)'],
-          ['relativa_explicativa','Explicativa (con antecedente)'],
-          ['relativa_libre','Libre (sin antecedente)'],
-          ['relativa_semilibre','Semilibre (artículo + que)']
-        ];
-      }
-      if(familiaElegida === 'construccion'){
-        return [
-          ['temporal','Temporal'],
-          ['causal','Causal'],
-          ['final','Final'],
-          ['ilativa_constr','Ilativa'],
-          ['condicional','Condicional'],
-          ['concesiva','Concesiva']
-        ];
-      }
-    }
-    return [];
-  }
-
-  // ─────────────────────────────────────────────────────────────────────
-  // Resolver el subtipo correcto de una proposición.
-  // En coordinadas, la propiedad "copulativa/adversativa/disyuntiva" pertenece
-  // a la RELACIÓN de coordinación, no a cada proposición. Buscamos en relaciones.
-  // En subordinadas, el subtipo sí está en la propia proposición.
-  // ─────────────────────────────────────────────────────────────────────
-  function subtipoCorrectoDePropos(p, ej){
-    if(!p) return null;
-    if(p.subtipo) return p.subtipo;  // disponible en la propia propos (subordinadas)
-    // Coordinadas: buscar la relación de coordinación que incluye esta proposición
-    if(p.tipo === 'coordinada'){
-      for(const r of (ej?.relaciones || [])){
-        if(r.tipo !== 'coordinacion') continue;
-        const propIds = Array.isArray(r.proposiciones) ? r.proposiciones : [];
-        if(propIds.includes(p.id) && r.subtipo) return r.subtipo;
-      }
-    }
     return null;
   }
 
@@ -2274,163 +2074,6 @@
       leccionId: showLec ? '__pending__' : '',
       tipo: 'compuesta'
     });
-  }
-
-  function onClasifClick(q, v){
-    const eng = state.engine;
-    const ej = state.filtered[state.idx];
-    const propIdx = eng.f4IdxActual;
-    const p = (ej.proposiciones||[])[propIdx];
-    if(!p) return;
-    if(!eng.f4Respuestas[propIdx]) eng.f4Respuestas[propIdx] = {};
-    const resp = eng.f4Respuestas[propIdx];
-
-    if(q === 'tipo'){
-      if(resp.tipoOk === true) return;  // ya está bloqueado
-      resp.tipo = v;
-      if(v === p.tipo){
-        resp.tipoOk = true;
-        eng.f4Aciertos += 1;
-        eng.mensajeFeedback = {
-          tipo:'ok',
-          html: `✓ Correcto. P${propIdx+1} es una proposición ${escHtml(etiquetaTipoProp(v).toLowerCase())}.`
-        };
-      } else {
-        resp.tipoOk = false;
-        eng.f4Errores += 1;
-        eng.mensajeFeedback = {
-          tipo:'err',
-          html: buildScaffoldFeedbackCP({
-            titulo: `P${propIdx+1} no es ${escHtml(etiquetaTipoProp(v).toLowerCase())}`,
-            realId: p.tipo,
-            marcadaId: v,
-            razon: razonTipoIncorrecto(v, p)
-          })
-        };
-        // Permitir que vuelva a intentar (timeout extendido a 4500ms para
-        // dar tiempo a leer la pista contextualizada y el botón de lección)
-        setTimeout(()=>{
-          if(eng.f4IdxActual === propIdx){
-            resp.tipoOk = null;
-            renderFase();
-          }
-        }, 4500);
-      }
-      renderFase();
-      return;
-    }
-
-    if(q === 'familia'){
-      if(resp.familiaOk === true) return;
-      resp.familia = v;
-      const familiaCorrecta = familiaDelSubtipo(p.subtipo);
-      if(v === familiaCorrecta){
-        resp.familiaOk = true;
-        eng.f4Aciertos += 1;
-        const nombres = {'sustantiva':'sustantiva','relativa':'de relativo (adjetiva)','construccion':'construcción'};
-        eng.mensajeFeedback = {
-          tipo:'ok',
-          html: `✓ Correcto. Es una subordinada <b>${escHtml(nombres[v]||v)}</b>.`
-        };
-      } else {
-        resp.familiaOk = false;
-        eng.f4Errores += 1;
-        eng.mensajeFeedback = {
-          tipo:'err',
-          html: buildScaffoldFeedbackCP({
-            titulo: `No es de la familia ${escHtml(v)}`,
-            realId: familiaCorrecta,
-            marcadaId: v,
-            razon: ''
-          })
-        };
-        setTimeout(()=>{
-          if(eng.f4IdxActual === propIdx){
-            resp.familiaOk = null;
-            renderFase();
-          }
-        }, 4500);
-      }
-      renderFase();
-      return;
-    }
-
-    if(q === 'subtipo'){
-      if(resp.subtipoOk === true) return;
-      resp.subtipo = v;
-      // El subtipo correcto puede estar en la propia proposición (subordinadas)
-      // o en la relación de coordinación (coordinadas).
-      const subtipoOk = subtipoCorrectoDePropos(p, ej);
-      if(v === subtipoOk){
-        resp.subtipoOk = true;
-        eng.f4Aciertos += 1;
-        eng.mensajeFeedback = {
-          tipo:'ok',
-          html: `✓ Correcto. Es <b>${escHtml(etiquetaSubtipoExtendida(v).toLowerCase())}</b>.`
-        };
-      } else {
-        resp.subtipoOk = false;
-        eng.f4Errores += 1;
-        eng.mensajeFeedback = {
-          tipo:'err',
-          html: buildScaffoldFeedbackCP({
-            titulo: `No es ${escHtml(etiquetaSubtipoExtendida(v).toLowerCase())}`,
-            realId: subtipoOk,  // ojo: aquí subtipoOk es el ID del subtipo correcto
-            marcadaId: v,
-            razon: ''
-          })
-        };
-        setTimeout(()=>{
-          // Solo desbloqueamos si el alumno sigue en la misma proposición
-          if(eng.f4IdxActual === propIdx){
-            resp.subtipoOk = null;
-            renderFase();
-          }
-        }, 4500);
-      }
-      renderFase();
-      return;
-    }
-  }
-
-  function razonTipoIncorrecto(elegido, p){
-    // Sugerencia pedagógica suave
-    const correcto = p.tipo;
-    if(elegido === 'principal' && correcto !== 'principal'){
-      return 'La proposición principal es la que «manda», la que no depende de ninguna otra.';
-    }
-    if(elegido === 'subordinada' && correcto !== 'subordinada'){
-      return 'Una subordinada depende de otra proposición y desempeña una función (CD, CI, sujeto, etc.).';
-    }
-    if(elegido === 'coordinada' && correcto !== 'coordinada'){
-      return 'Las coordinadas están al mismo nivel, unidas por un nexo coordinante («y», «pero», «o»).';
-    }
-    if(elegido === 'yuxtapuesta' && correcto !== 'yuxtapuesta'){
-      return 'La yuxtaposición se da SIN nexo, solo con signos de puntuación.';
-    }
-    return '';
-  }
-
-  function avanzarPropF4(){
-    const eng = state.engine;
-    const ej = state.filtered[state.idx];
-    if(eng.f4IdxActual < (ej.proposiciones||[]).length - 1){
-      eng.f4IdxActual += 1;
-      eng.mensajeFeedback = null;
-      renderFase();
-    } else {
-      // Última proposición clasificada: ¿hay relaciones?
-      const tieneRelaciones = (ej.relaciones||[]).length > 0;
-      if(tieneRelaciones){
-        eng.fase = 5;
-        eng.f5IdxActual = 0;
-        eng.mensajeFeedback = null;
-      } else {
-        eng.fase = 'resumen';
-        eng.mensajeFeedback = null;
-      }
-      renderFase();
-    }
   }
 
   // ═════════════════════════════════════════════════════════════════════
@@ -3899,8 +3542,8 @@
       errores_nexos:        eng.nexosErrores || 0,
       aciertos_delimitar:   eng.f3Aciertos || 0,
       errores_delimitar:    eng.f3Errores || 0,
-      aciertos_clasificar:  (eng.f4Aciertos || 0) + (eng.f5Aciertos || 0),
-      errores_clasificar:   (eng.f4Errores || 0) + (eng.f5Errores || 0),
+      aciertos_clasificar:  (eng.f5Aciertos || 0),
+      errores_clasificar:   (eng.f5Errores || 0),
       // Fase 1.4: contadores del análisis interno (si el alumno lo hizo)
       aciertos_interna:     (eng.interna && eng.interna.activo) ? eng.interna.aciertos : 0,
       errores_interna:      (eng.interna && eng.interna.activo) ? eng.interna.errores : 0,
@@ -4144,8 +3787,8 @@
 
   function renderResumenHtml(ej){
     const eng = state.engine;
-    const totalAciertos = eng.verbosAciertos + eng.nexosAciertos + eng.f3Aciertos + eng.f4Aciertos + (eng.f5Aciertos||0);
-    const totalErrores = eng.verbosErrores + eng.nexosErrores + eng.f3Errores + eng.f4Errores + (eng.f5Errores||0);
+    const totalAciertos = eng.verbosAciertos + eng.nexosAciertos + eng.f3Aciertos + (eng.f5Aciertos||0);
+    const totalErrores = eng.verbosErrores + eng.nexosErrores + eng.f3Errores + (eng.f5Errores||0);
     const total = totalAciertos + totalErrores;
     const porcentaje = total > 0 ? Math.round((totalAciertos / total) * 100) : 0;
     let icono = '🎯', titulo = 'Buen trabajo';
@@ -4161,8 +3804,7 @@
       ['Verbos', eng.verbosAciertos, eng.verbosErrores],
       ['Nexos', eng.nexosAciertos, eng.nexosErrores],
       ['Delimitar', eng.f3Aciertos, eng.f3Errores],
-      ['Clasificar', eng.f4Aciertos, eng.f4Errores],
-      ['Relaciones', (eng.f5Aciertos||0), (eng.f5Errores||0)],
+      ['Clasificar y relacionar', (eng.f5Aciertos||0), (eng.f5Errores||0)],
       // Fase 1.4: análisis interno (solo si el alumno lo realizó)
       ...(eng.interna.activo ? [['Análisis interno', eng.interna.aciertos, eng.interna.errores]] : [])
     ].filter(([_, ok, er])=>(ok+er) > 0);
@@ -4485,43 +4127,6 @@
           titulo:'Te confundiste varias veces delimitando proposiciones',
           mensaje:'Pista: empieza por el verbo de cada proposición y ve añadiendo las palabras que dependen de él (su sujeto, sus complementos). El nexo casi nunca pertenece a ninguna proposición.'
         });
-      }
-    }
-
-    // ── FASE 4 — CLASIFICAR ────────────────────────────────────────────
-    if(eng.f4Respuestas.length > 0){
-      const erroresTipo = eng.f4Respuestas.filter(r=>r && r.tipoOk === false).length;
-      const erroresFamilia = eng.f4Respuestas.filter(r=>r && r.familiaOk === false).length;
-      const erroresSubtipo = eng.f4Respuestas.filter(r=>r && r.subtipoOk === false).length;
-
-      if(erroresTipo === 0 && erroresFamilia === 0 && erroresSubtipo === 0 && eng.f4Respuestas.some(r=>r && r.tipoOk === true)){
-        diags.push({
-          tipo:'ok', emoji:'✅',
-          titulo:'Clasificaste cada proposición correctamente',
-          mensaje:'Tipo, familia y subtipo: todo bien a la primera. Dominas la taxonomía.'
-        });
-      } else {
-        if(erroresTipo >= 1){
-          diags.push({
-            tipo:'aviso', emoji:'🏷️',
-            titulo:'Confundiste el tipo de alguna proposición',
-            mensaje:'Recuerda: <b>principal</b> es la que «manda» y no depende de nadie. <b>Subordinada</b> hace una función dentro de otra (CD, CI, sujeto, complemento del nombre…). <b>Coordinada</b> está al mismo nivel que otra, unida por «y», «pero», «o». <b>Yuxtapuesta</b> también está al mismo nivel pero sin nexo, solo con coma o punto y coma.'
-          });
-        }
-        if(erroresFamilia >= 1){
-          diags.push({
-            tipo:'aviso', emoji:'🌳',
-            titulo:'Te confundiste con la familia de subordinada',
-            mensaje:'Las <b>sustantivas</b> hacen función de SN (puedes sustituirlas por «esto», «eso»). Las <b>de relativo</b> complementan a un sustantivo, como un adjetivo. Las <b>construcciones</b> (antes adverbiales) expresan tiempo, causa, finalidad, condición, concesión, ilación.'
-          });
-        }
-        if(erroresSubtipo >= 1){
-          diags.push({
-            tipo:'aviso', emoji:'🔖',
-            titulo:'Algún subtipo no era el que pensabas',
-            mensaje:'No te preocupes: distinguir subtipos exige práctica. Vuelve a las definiciones cuando puedas y prueba con otra oración similar.'
-          });
-        }
       }
     }
 
@@ -5127,7 +4732,7 @@ export const CP = {
     iniciarPractica, iniciarLectura,
     limpiarFiltros,
     siguiente, anterior, volverFiltros, toggleSolucion,
-    avanzarFase, avanzarPropF4, avanzarRelacionF5, pedirPista, saltarFase,
+    avanzarFase, avanzarRelacionF5, pedirPista, saltarFase,
     abrirPistaFlotante,
     iniciarAnalisisInterno, irAResumen,
     iiddDragStart, iiddOver, iiddLeave, iiddDrop,
