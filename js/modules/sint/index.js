@@ -632,10 +632,11 @@ window.addEventListener('beforeunload', function(){
 
 var G={}; // var (no let) para que se exponga como window.G y los modulos ES (tracking.js) puedan leerlo
 function initState(opts){
-  // Reset contador de errores de la sesión (vive en tracking.js como
-  // _sessionFuncErrors privado; tras la migración hay que llamar a la
-  // función exportada en vez de reasignar la variable directamente).
+  // Reset contadores de sesión (errores y aciertos por función). Ambos viven
+  // en tracking.js como variables privadas — tras la migración hay que llamar
+  // a las funciones exportadas en vez de reasignarlas directamente.
   if(typeof clearSessionFuncErrors === 'function') clearSessionFuncErrors();
+  if(typeof clearSessionFuncSuccess === 'function') clearSessionFuncSuccess();
   _examSent = false; // reset per session
   G={
     name:opts.name, email:opts.email,
@@ -1758,6 +1759,11 @@ function _p3PlaceCorrect(box, slotId, o, partial=false){
   p3.slots[slotId]=box;
   p3.slotOk[slotId]=partial?'partial':true;
   G.phase3Results[slotId]=box;
+  // Tracking de aciertos para los chips de micro-progreso (solo aciertos plenos)
+  if(!partial && typeof trackSuccess === 'function'){
+    const placedFn = (box.label||'').split(' | ')[1] || '';
+    if(placedFn) trackSuccess('sint', placedFn);
+  }
   buildP3Blocks(o);buildP3Pool();
   const allDone=o.fase3.bloques.filter(b=>!isPreResolved(b.solucion))
     .every(b=>p3.slotOk[b.id]===true||p3.slotOk[b.id]==='partial');
@@ -1803,6 +1809,11 @@ function p3Place(boxId,slotId,clientX,clientY){
     for(const k of Object.keys(p3.slots)){if(p3.slots[k]?.id===boxId){p3.slots[k]=null;p3.slotOk[k]=null;}}
     p3.slots[slotId]=box;p3.slotOk[slotId]=true;
     G.phase3Results[slotId]=box;
+    // Tracking de aciertos para los chips de micro-progreso
+    if(typeof trackSuccess === 'function'){
+      const placedFn = (box.label||'').split(' | ')[1] || '';
+      if(placedFn) trackSuccess('sint', placedFn);
+    }
     buildP3Blocks(o);buildP3Pool();
     const allDone=o.fase3.bloques.filter(b=>!isPreResolved(b.solucion)).every(b=>p3.slotOk[b.id]===true);
     if(allDone){
@@ -1874,6 +1885,30 @@ function showSuccessScreen(o){
     } else {
       funcsBox.style.display = 'none';
     }
+  }
+
+  // Sprint 1: inventario acumulado de aciertos en la sesión. Solo en práctica
+  // (en examen no queremos distraer con métricas durante la prueba).
+  const sessBox = document.getElementById('succ-session-progress');
+  const sessList = document.getElementById('succ-session-progress-list');
+  if(sessBox && sessList && G.mode === 'practice'){
+    const counts = (typeof getSessionFuncSuccess === 'function')
+      ? getSessionFuncSuccess() : {};
+    const entries = Object.entries(counts).filter(([_, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1]);
+    if(entries.length > 0){
+      // Las claves de _sessionFuncSuccess son IDs internos seguros
+      // (FUNC_WEIGHT: 'CD', 'CI', 'Atr.', 'CC Tiempo'…) sin HTML, no
+      // requieren escape.
+      sessList.innerHTML = entries.map(([f, n]) =>
+        '<span class="succ-func-chip succ-func-chip-count"><b>'+f+'</b> × '+n+'</span>'
+      ).join('');
+      sessBox.style.display = 'block';
+    } else {
+      sessBox.style.display = 'none';
+    }
+  } else if(sessBox){
+    sessBox.style.display = 'none';
   }
 
   // A) Metacognitive summary — only in exam mode, and only between sentences (not final)

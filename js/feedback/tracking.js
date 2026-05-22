@@ -10,6 +10,11 @@ import { MICRO_LECCIONES_CP, ERROR_TO_LECCION_CP } from './micro-lecciones-cp.js
 
 // Estado privado del módulo (reset por sesión = recarga de página)
 let _sessionFuncErrors = {};
+// Aciertos por función dentro de la sesión actual. Base del "micro-progreso
+// por función" (Sprint 1): chips visibles al alumno con el inventario de
+// lo practicado en esta sesión. No se persiste: la idea es reflejar el
+// trabajo activo, no acumular para siempre.
+let _sessionFuncSuccess = {};
 
 // Track errors by function for adaptive missions
 export function trackError(modo, funcion) {
@@ -20,6 +25,13 @@ export function trackError(modo, funcion) {
   // Session counter for micro-lessons
   if (!_sessionFuncErrors[funcion]) _sessionFuncErrors[funcion] = 0;
   _sessionFuncErrors[funcion]++;
+}
+
+// Track successes by function (solo en sesión, no se persiste).
+export function trackSuccess(modo, funcion) {
+  if (!funcion) return;
+  if (!_sessionFuncSuccess[funcion]) _sessionFuncSuccess[funcion] = 0;
+  _sessionFuncSuccess[funcion]++;
 }
 
 /**
@@ -52,6 +64,10 @@ export function shouldSuggestMicroLeccion(funcion, tipo) {
 // Accesor para que pista-ui.js consulte el contador de sesión sin manipularlo
 export function getSessionFuncErrors() { return _sessionFuncErrors; }
 
+// Accesor para los aciertos de la sesión (consumido por el render de chips
+// de micro-progreso en sint).
+export function getSessionFuncSuccess() { return _sessionFuncSuccess; }
+
 /**
  * Reinicia el contador de errores de la sesión actual.
  * Debe llamarse al inicio de cada práctica/examen (desde initState
@@ -62,4 +78,9 @@ export function getSessionFuncErrors() { return _sessionFuncErrors; }
  */
 export function clearSessionFuncErrors() {
   _sessionFuncErrors = {};
+}
+
+// Equivalente para los aciertos (también al arrancar sesión).
+export function clearSessionFuncSuccess() {
+  _sessionFuncSuccess = {};
 }

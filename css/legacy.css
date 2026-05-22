@@ -325,6 +325,12 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 .succ-funcs-label{font-size:.7rem;font-weight:800;color:#1E3A8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px}
 .succ-funcs-list{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .succ-func-chip{font-size:.82rem;font-weight:700;color:#1E3A8A;background:#fff;border:1.5px solid #2563EB;border-radius:20px;padding:4px 12px;white-space:nowrap}
+/* Sprint 1 · Micro-progreso por función: inventario acumulado de sesión.
+   Paleta verde para distinguirlo del azul "esta oración". */
+.succ-session-progress{background:linear-gradient(135deg,#F0FDF4 0%,#DCFCE7 100%);border-color:#059669}
+.succ-session-progress .succ-funcs-label{color:#065F46}
+.succ-func-chip-count{color:#065F46;border-color:#059669}
+.succ-func-chip-count b{color:#047857;font-weight:800}
 @keyframes checkPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
 
 /* ── Results ── */
