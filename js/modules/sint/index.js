@@ -121,6 +121,7 @@ const ScoringEngine = {
 /** Clears ALL active timers across every module — call on ANY navigation */
 function cleanAllTimers(){
   if(typeof G==='object'&&G.timerInterval){clearInterval(G.timerInterval);G.timerInterval=null;}
+  if(typeof G==='object'&&G.p3HesitationTimer){clearInterval(G.p3HesitationTimer);G.p3HesitationTimer=null;}
   if(typeof ARC==='object'){
     if(ARC.timerInterval){clearInterval(ARC.timerInterval);ARC.timerInterval=null;}
   }
@@ -138,6 +139,53 @@ function resetSentenceState(){
   p3={slots:{},slotOk:{},argPool:[],adjPool:[],marPool:[],pvpnDone:false};
   // A) Metacognitive tracking: timestamp start of this sentence
   G.sentenceStartTime = Date.now();
+  // Sprint 1: reset del indicador de duda al pasar a otra oración
+  if(G.p3HesitationTimer){clearInterval(G.p3HesitationTimer);G.p3HesitationTimer=null;}
+  G.p3IdleSince = 0;
+}
+
+// ════════════════════════════════════════════════════════
+// Sprint 1 · Indicador de duda en fase 3
+// Si el alumno está más de 8 s sin colocar una etiqueta en la fase 3,
+// aparece una micro-pista contextual SUTIL (no consume el contador de
+// pistas explícitas). Cualquier interacción con la fase la resetea.
+// ════════════════════════════════════════════════════════
+function _resetP3Idle(){ if(G) G.p3IdleSince = Date.now(); }
+function _startP3HesitationWatcher(){
+  if(!G) return;
+  if(G.p3HesitationTimer){ clearInterval(G.p3HesitationTimer); }
+  if(G.mode !== 'practice') return;  // solo en práctica: en examen no distraemos
+  G.p3IdleSince = Date.now();
+  G.p3HesitationTimer = setInterval(()=>{
+    try{
+      if(!G || G.phase !== 3) { clearInterval(G && G.p3HesitationTimer); if(G) G.p3HesitationTimer=null; return; }
+      if(Date.now() - (G.p3IdleSince||Date.now()) < 8000) return;
+      const o = G.oraciones[G.idx];
+      if(!o || !o.fase3) return;
+      const emptySlots = (o.fase3.bloques||[]).filter(b => !isPreResolved(b.solucion) && p3.slotOk[b.id] !== true && p3.slotOk[b.id] !== 'partial');
+      if(emptySlots.length === 0) { _resetP3Idle(); return; }
+      const target = emptySlots[0];
+      const txt = (target.indices||[]).map(i=>o.palabras[i]||'').join(' ').trim();
+      const msg = txt
+        ? '💡 ¿Te ayudo? Piensa qué hace «' + txt + '» en la oración: ¿completa al verbo o añade circunstancia?'
+        : '💡 ¿Necesitas un empujón? Arrastra una etiqueta al primer bloque vacío.';
+      showHesitationHint(msg);
+      _resetP3Idle();  // que no machaque mientras lee la pista
+    }catch(e){ /* silencioso: este watcher no debe romper la sesión */ }
+  }, 1500);
+}
+function showHesitationHint(text){
+  let el = document.getElementById('hesit-hint');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'hesit-hint';
+    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);max-width:560px;padding:11px 18px;background:linear-gradient(135deg,#FFFBEB 0%,#FEF3C7 100%);border:1.5px solid #F59E0B;border-radius:14px;color:#92400E;font-weight:600;font-size:.86rem;line-height:1.45;z-index:120;box-shadow:0 6px 18px rgba(245,158,11,.25);pointer-events:none;text-align:center';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.style.opacity = '1';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(()=>{ el.style.transition='opacity .5s'; el.style.opacity='0'; }, 4500);
 }
 
 /** Renders a visible error card when a render function throws */
@@ -1480,6 +1528,9 @@ function renderPhase3(el,o){
   };
   p3sel={box:null,el:null};
 
+  // Sprint 1: arrancar el watcher de indicador de duda para esta oración
+  _startP3HesitationWatcher();
+
   const tipoPred=o.fase3.tipo_predicado||'PV';
   const locked=`opacity:${p3.pvpnDone?1:.35};pointer-events:${p3.pvpnDone?'all':'none'};transition:opacity .3s`;
 
@@ -1628,12 +1679,13 @@ function buildPoolSection(pool){
   }).join('');
 }
 
-function tagDragStart(e,id){dragSt={id};e.dataTransfer.effectAllowed='move';}
+function tagDragStart(e,id){dragSt={id};e.dataTransfer.effectAllowed='move';_resetP3Idle();}
 function p3Over(e,sid){e.preventDefault();document.getElementById('ds'+sid)?.classList.add('ds-over');}
 function p3Leave(sid){document.getElementById('ds'+sid)?.classList.remove('ds-over');}
 function p3Drop(e,sid){e.preventDefault();p3Leave(sid);if(dragSt.id){p3Place(dragSt.id,sid,e.clientX,e.clientY);dragSt={};}}
 function tagClick3(e,id){
   e.stopPropagation();
+  _resetP3Idle();
   if(p3sel.el){p3sel.el.classList.remove('tag-sel');if(p3sel.box?.id===id){p3sel={box:null,el:null};return;}}
   const el=document.getElementById('tg'+id);if(el)el.classList.add('tag-sel');
   const allPool=[...p3.argPool,...p3.adjPool,...p3.marPool];
@@ -1641,6 +1693,7 @@ function tagClick3(e,id){
   p3sel={box:box||null,el};
 }
 function p3SlotClick(sid){
+  _resetP3Idle();
   if(p3.slotOk[sid]||!p3sel.box)return;
   if(p3sel.el)p3sel.el.classList.remove('tag-sel');
   const slot=document.getElementById('ds'+sid);
@@ -1782,6 +1835,7 @@ function _p3PlaceCorrect(box, slotId, o, partial=false){
 }
 
 function p3Place(boxId,slotId,clientX,clientY){
+  _resetP3Idle();
   if(!p3.pvpnDone)return;
   const o=G.oraciones[G.idx];
   const bloque=o.fase3.bloques.find(b=>b.id===slotId);
