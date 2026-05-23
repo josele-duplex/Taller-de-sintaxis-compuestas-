@@ -1965,6 +1965,16 @@ function showSuccessScreen(o){
     sessBox.style.display = 'none';
   }
 
+  // Sprint 1: sugerencia de Zona de Desarrollo Próximo. Solo en práctica
+  // y a partir de la 5.ª oración completada.
+  const zdpBox = document.getElementById('succ-zdp');
+  if(zdpBox && G.mode === 'practice'){
+    zdpBox.innerHTML = _buildZdpSuggestionHtml();
+    zdpBox.style.display = zdpBox.innerHTML ? 'block' : 'none';
+  } else if(zdpBox){
+    zdpBox.style.display = 'none';
+  }
+
   // A) Metacognitive summary — only in exam mode, and only between sentences (not final)
   const metaBox = document.getElementById('succ-meta');
   if(metaBox){
@@ -2145,6 +2155,64 @@ function calcDetailedScore(){
 // ════════════════════════════════════════════════════════
 // RESULTS
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// Sprint 1 · Indicador de Zona de Desarrollo Próximo
+// Tras 5+ oraciones en la sesión actual, si una función acumula ≥3 errores
+// con ≤5 aciertos, se sugiere practicarla específicamente con un botón
+// que activa el filtro de práctica.
+// ════════════════════════════════════════════════════════
+function _buildZdpSuggestionHtml(){
+  if(!G || G.mode !== 'practice') return '';
+  const completedCount = (G.sentenceCompleted||[]).filter(Boolean).length;
+  if(completedCount < 5) return '';
+  const errs = (typeof getSessionFuncErrors === 'function') ? getSessionFuncErrors() : {};
+  const succ = (typeof getSessionFuncSuccess === 'function') ? getSessionFuncSuccess() : {};
+  // Candidato: ≥3 errores en sesión y ≤5 aciertos en esa misma función
+  const candidatos = Object.entries(errs)
+    .filter(([f, n]) => n >= 3 && (succ[f]||0) <= 5)
+    .sort((a, b) => b[1] - a[1]);
+  if(candidatos.length === 0) return '';
+  const [func, nErr] = candidatos[0];
+  const safeFunc = String(func).replace(/'/g,'\\\'');
+  return ''
+    + '<div style="margin:14px 0 4px;padding:14px 16px;background:linear-gradient(135deg,#FFF7ED 0%,#FED7AA 100%);border:1.5px solid #F59E0B;border-radius:12px;text-align:left">'
+    +   '<div style="font-size:.72rem;font-weight:800;color:#9A3412;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">🎯 Sugerencia adaptativa</div>'
+    +   '<div style="font-size:.88rem;color:#7C2D12;margin-bottom:10px;line-height:1.5">Parece que <b>'+func+'</b> te está costando ('+nErr+' errores en esta sesión). ¿Quieres practicar oraciones con esa función?</div>'
+    +   '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'
+    +     '<button type="button" onclick="document.getElementById(\'succ-zdp\').style.display=\'none\'" style="background:transparent;color:#9A3412;border:1.5px solid #C2410C;border-radius:10px;padding:6px 14px;font-weight:700;font-size:.82rem;cursor:pointer">Ahora no</button>'
+    +     '<button type="button" onclick="practiceFocusOn(\''+safeFunc+'\')" style="background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:10px;padding:6px 14px;font-weight:800;font-size:.82rem;cursor:pointer;box-shadow:0 2px 6px rgba(217,119,6,.3)">Sí, filtrar por '+func+' →</button>'
+    +   '</div>'
+    + '</div>';
+}
+
+// Activa el filtro de práctica para una función concreta y cierra el
+// overlay de éxito. Invocada por el botón de la sugerencia ZDP.
+function practiceFocusOn(funcion){
+  try{
+    // Marcar la checkbox de la función en el practice-filters-bar
+    const checkboxes = document.querySelectorAll('#pf-checkboxes input[type="checkbox"]');
+    let found = false;
+    checkboxes.forEach(cb => {
+      if(cb.value === funcion){ cb.checked = true; found = true; }
+    });
+    if(!found){
+      flashPracticeMsg('⚠ No hay filtro disponible para '+funcion, 'var(--amber)');
+      return;
+    }
+    if(typeof applyPracticeFilters === 'function') applyPracticeFilters();
+    // Cerrar overlay y seguir con la siguiente oración filtrada
+    document.getElementById('succ-zdp').style.display = 'none';
+    document.getElementById('succ-overlay').classList.remove('open');
+    G.idx++;
+    if(G.idx >= G.oraciones.length){ goResults(); return; }
+    resetSentenceState();
+    renderGame();
+    flashPracticeMsg('🎯 Filtrando por '+funcion, 'var(--blue)');
+  }catch(e){
+    console.warn('[practiceFocusOn]', e);
+  }
+}
+
 // ════════════════════════════════════════════════════════
 // Sprint 1 · Curva de sesión visible
 // Compara la 1.ª mitad y la 2.ª mitad de las oraciones completadas en
