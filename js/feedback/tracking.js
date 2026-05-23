@@ -25,6 +25,8 @@ export function trackError(modo, funcion) {
   // Session counter for micro-lessons
   if (!_sessionFuncErrors[funcion]) _sessionFuncErrors[funcion] = 0;
   _sessionFuncErrors[funcion]++;
+  // Sprint 1: si la función estaba en racha hacia el sello, se rompe.
+  _recordMasteryError(modo, funcion);
 }
 
 // Track successes by function (solo en sesión, no se persiste).
@@ -32,7 +34,59 @@ export function trackSuccess(modo, funcion) {
   if (!funcion) return;
   if (!_sessionFuncSuccess[funcion]) _sessionFuncSuccess[funcion] = 0;
   _sessionFuncSuccess[funcion]++;
+  // Sprint 1: sellos de dominio. Trackea racha de aciertos consecutivos
+  // por función a través de sesiones. Llega a MASTERY_THRESHOLD → sello.
+  _recordMasterySuccess(modo, funcion);
 }
+
+// ── SELLOS DE DOMINIO POR FUNCIÓN (Sprint 1) ────────────────────────
+// Persistencia en localStorage.taller_mastery con estructura:
+//   { 'sint': { 'CD': { streak: 7, mastered: false },
+//               'CPvo': { streak: 10, mastered: true, masteredAt: '2026-05-22' } },
+//     'compuestas': { ... } }
+// Racha consecutiva a través de sesiones, se rompe al fallar la función.
+// Al alcanzar MASTERY_THRESHOLD aciertos seguidos sin error, se marca como
+// mastered (una sola vez) y se dispara un evento visual.
+export const MASTERY_THRESHOLD = 10;
+
+function _loadMastery() {
+  try { return JSON.parse(localStorage.getItem('taller_mastery') || '{}'); }
+  catch { return {}; }
+}
+function _saveMastery(m) {
+  try { localStorage.setItem('taller_mastery', JSON.stringify(m)); } catch {}
+}
+
+function _recordMasterySuccess(modo, funcion) {
+  const m = _loadMastery();
+  if (!m[modo]) m[modo] = {};
+  if (!m[modo][funcion]) m[modo][funcion] = { streak: 0, mastered: false };
+  const f = m[modo][funcion];
+  if (f.mastered) { _saveMastery(m); return; }  // ya dominada, no doblar evento
+  f.streak = (f.streak || 0) + 1;
+  if (f.streak >= MASTERY_THRESHOLD) {
+    f.mastered = true;
+    f.masteredAt = (new Date()).toISOString().slice(0,10);
+    // Evento visual único (showCombo está en gamification/xp.js, expuesto
+    // en window vía app.js).
+    if (typeof window !== 'undefined' && typeof window.showCombo === 'function') {
+      setTimeout(()=>{ try{ window.showCombo('🏆 Dominas la función: ' + funcion, 25); }catch{} }, 300);
+    }
+  }
+  _saveMastery(m);
+}
+
+function _recordMasteryError(modo, funcion) {
+  const m = _loadMastery();
+  if (!m[modo] || !m[modo][funcion]) return;
+  // Una vez dominada, los errores ya no rompen el sello (es un logro).
+  if (m[modo][funcion].mastered) { return; }
+  m[modo][funcion].streak = 0;
+  _saveMastery(m);
+}
+
+// Accesor público (para el dashboard del alumno y el panel del profesor).
+export function getMastery() { return _loadMastery(); }
 
 /**
  * Decide si proponer una micro-lección al alumno tras un error.

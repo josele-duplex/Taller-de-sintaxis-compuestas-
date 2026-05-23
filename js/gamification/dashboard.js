@@ -4,6 +4,7 @@
 
 import { loadProgress } from '../core/storage.js';
 import { levelFromXP } from './levels.js';
+import { getMastery, MASTERY_THRESHOLD } from '../feedback/tracking.js';
 
 // ═══ DASHBOARD PANEL FOR STUDENT (opens from portada corner) ═══
 export function showStudentDashboard() {
@@ -75,6 +76,38 @@ export function showStudentDashboard() {
         <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${m.progress}/${m.target}</div>
       </div>
       ` : ''}
+      ${(() => {
+        const mast = getMastery();
+        const sint = mast['sint'] || {};
+        const dominadas = Object.entries(sint).filter(([_, v]) => v && v.mastered);
+        const enRacha = Object.entries(sint)
+          .filter(([_, v]) => v && !v.mastered && (v.streak||0) >= 3)
+          .sort((a,b) => (b[1].streak||0) - (a[1].streak||0))
+          .slice(0, 3);
+        if (dominadas.length === 0 && enRacha.length === 0) return '';
+        const dominadasHtml = dominadas.map(([f, v]) =>
+          '<span style="display:inline-block;padding:5px 12px;border-radius:99px;background:linear-gradient(135deg,#FCD34D,#F59E0B);color:#78350F;font-weight:800;font-size:.78rem;margin:3px">🏆 ' + f + '</span>'
+        ).join('');
+        const enRachaHtml = enRacha.map(([f, v]) =>
+          '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.78rem">'
+          +   '<span style="font-weight:700;color:var(--ink);min-width:70px">' + f + '</span>'
+          +   '<div style="flex:1;height:6px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden">'
+          +     '<div style="height:100%;width:' + Math.round((v.streak/MASTERY_THRESHOLD)*100) + '%;background:linear-gradient(90deg,#86EFAC,#16A34A);border-radius:3px"></div>'
+          +   '</div>'
+          +   '<span style="color:var(--muted);min-width:38px;text-align:right">' + (v.streak||0) + '/' + MASTERY_THRESHOLD + '</span>'
+          + '</div>'
+        ).join('');
+        return ''
+          + '<div style="background:var(--paper2);border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px">'
+          +   '<div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Sellos de dominio</div>'
+          +   (dominadas.length > 0
+              ? '<div style="text-align:center;margin-bottom:' + (enRacha.length > 0 ? '12' : '0') + 'px">' + dominadasHtml + '</div>'
+              : '')
+          +   (enRacha.length > 0
+              ? '<div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;font-weight:700">En camino</div>' + enRachaHtml
+              : '')
+          + '</div>';
+      })()}
       <div style="margin-bottom:8px">
         <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Tu semana</div>
         <div style="display:flex;align-items:flex-end;gap:6px;height:70px;padding:0 4px">
