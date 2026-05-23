@@ -58,7 +58,11 @@ async function startArcade({name,email,nickname,grupo,arcadeMode}){
     score:0,streak:0,highStreak:0,
     // Survival mechanics: 3 hearts + scaffolding hint
     lives: 3, maxLives: 3, livesGained: 0, livesLost: 0,
+    // Sprint 2: escudos temporales (absorben un error grave)
+    shields: 0, maxShields: 2, shieldsGained: 0, shieldsConsumed: 0,
     pendingHint: null, // queued micro-hint to show before next sentence
+    // Sprint 2: medallas requieren contar aciertos y errores totales
+    correctAnswers: 0, wrongAnswers: 0,
     // Timer mode: elastic time + frenesí
     timerMax:60,timerLeft:60,timerInterval:null,
     lastAnswerAt: 0, // ms timestamp of question shown
@@ -230,10 +234,19 @@ function arcadeAnswer(chosen,correct,consejo){
   const now = Date.now();
   const responseTime = ARC.questionShownAt > 0 ? (now - ARC.questionShownAt)/1000 : 99;
 
+  // Sprint 2: gravedad del error según el peso pedagógico de la función.
+  // Funciones argumentales (CD/CI/Atr./CPvo/C.Rég./C.Ag./Sujeto) son graves;
+  // CCs y marcas son leves. Si getFuncWeight no está expuesto (sint aún sin
+  // cargar), se asume grave para no perder el efecto disuasorio.
+  const fw = (typeof window!=='undefined' && typeof window.getFuncWeight==='function')
+    ? window.getFuncWeight(correct) : 1.5;
+  const errorGrave = fw >= 1.5;
+
   if(chosen===correct){
     // ── CORRECT ─────────────────────────────────────────
     playSuccess();
     ARC.streak++;
+    ARC.correctAnswers++;
     if(ARC.streak>ARC.highStreak)ARC.highStreak=ARC.streak;
     const mult = arcComboMultiplier();
 
@@ -252,17 +265,28 @@ function arcadeAnswer(chosen,correct,consejo){
       else if(mult > 1 && ARC.streak === 3) showComboBurst(mult, 'COMBO');
       else if(mult > 1 && (ARC.streak === 5 || ARC.streak === 10)) showComboBurst(mult, 'COMBO');
     } else {
-      // Survival: combo points, life recovery every 5 streak
+      // Survival: combo points, escudos + vida bonus
       const pts = 10 * mult;
       ARC.score += pts;
       showScoreFloat('+' + pts + (mult>1?' ×'+mult:''), true);
       if(mult > 1 && (ARC.streak === 3 || ARC.streak === 5 || ARC.streak === 10))
         showComboBurst(mult, 'COMBO');
-      // Life recovery on streak of 5 (and again at 10, 15…)
-      if(ARC.streak > 0 && ARC.streak % 5 === 0 && ARC.lives < ARC.maxLives){
+      // Sprint 2: cada 5 streak → +1 escudo (si hay sitio) o +1 vida.
+      // Cada 10 streak → +1 vida adicional (bonus precisión).
+      if(ARC.streak > 0 && ARC.streak % 5 === 0){
+        if(ARC.shields < ARC.maxShields){
+          ARC.shields++; ARC.shieldsGained++;
+          showComboBurst(1, '🛡 +1 ESCUDO');
+        } else if(ARC.lives < ARC.maxLives){
+          ARC.lives++; ARC.livesGained++;
+          animateHeartGain();
+          showComboBurst(1, '+1 VIDA');
+        }
+      }
+      if(ARC.streak > 0 && ARC.streak % 10 === 0 && ARC.lives < ARC.maxLives){
         ARC.lives++; ARC.livesGained++;
         animateHeartGain();
-        showComboBurst(1, '+1 VIDA');
+        showComboBurst(1, '⭐ PRECISIÓN +1 VIDA');
       }
     }
     arcadeNext();
@@ -272,8 +296,25 @@ function arcadeAnswer(chosen,correct,consejo){
     playError();
     ARC.streak = 0;
     ARC.frenzy = false;
+    ARC.wrongAnswers++;
 
     if(ARC.arcadeMode==='survival'){
+      if(!errorGrave){
+        // Sprint 2: error leve (CC, marcas…). No quita vida ni escudo.
+        // Combo ya está roto. Solo aviso visual + micro-pista breve.
+        showScoreFloat('— sin daño', false);
+        showArcadeHint(consejo, correct);
+        setTimeout(()=>{ if(ARC.alive) arcadeNext(); }, 2200);
+        return;
+      }
+      // Error grave: si hay escudo, lo consume. Si no, pierde vida.
+      if(ARC.shields > 0){
+        ARC.shields--; ARC.shieldsConsumed++;
+        showComboBurst(1, '🛡 ESCUDO ABSORBE');
+        showArcadeHint(consejo, correct);
+        setTimeout(()=>{ if(ARC.alive) arcadeNext(); }, 2700);
+        return;
+      }
       ARC.lives--; ARC.livesLost++;
       animateHeartLoss();
       if(ARC.lives <= 0){
@@ -287,9 +328,10 @@ function arcadeAnswer(chosen,correct,consejo){
         return;
       }
     } else {
-      // Timer mode: -3s and continue
-      ARC.timerLeft = Math.max(0, ARC.timerLeft - 3);
-      showScoreFloat('-3s', false);
+      // Timer mode: penalización escalada por gravedad.
+      const penalty = errorGrave ? 3 : 1;
+      ARC.timerLeft = Math.max(0, ARC.timerLeft - penalty);
+      showScoreFloat('-' + penalty + 's', false);
       arcadeNext();
     }
   }
@@ -391,6 +433,25 @@ function updateArcadeTopbar(){
     }
   }
 
+  // Sprint 2: escudos (solo Supervivencia). Inyecta el contenedor si no existe.
+  let shieldsCont = document.getElementById('arc-shields');
+  if(!isTimer){
+    if(!shieldsCont && hearts && hearts.parentElement){
+      shieldsCont = document.createElement('div');
+      shieldsCont.id = 'arc-shields';
+      shieldsCont.style.cssText = 'display:flex;align-items:center;gap:3px;margin-left:8px;font-size:1.1rem';
+      hearts.parentElement.insertBefore(shieldsCont, hearts.nextSibling);
+    }
+    if(shieldsCont){
+      shieldsCont.style.display = ARC.shields > 0 ? 'flex' : 'none';
+      shieldsCont.innerHTML = ARC.shields > 0
+        ? Array.from({length: ARC.shields}).map(()=>'<span title="Escudo: absorbe un error grave">🛡</span>').join('')
+        : '';
+    }
+  } else if(shieldsCont){
+    shieldsCont.style.display = 'none';
+  }
+
   // Streak badge: shown only in survival (in timer mode the frenzy state takes over)
   const sb=document.getElementById('arc-streak-badge');
   if(!isTimer){sb.style.display='flex';document.getElementById('arc-streak-num').textContent=ARC.streak;}
@@ -454,12 +515,50 @@ async function endArcade(){
   if(ARC.arcadeMode==='survival'){
     sub = `Racha máxima: ${ARC.highStreak} aciertos`;
     if(ARC.livesGained > 0) sub += ` · +${ARC.livesGained} vida${ARC.livesGained>1?'s':''} recuperada${ARC.livesGained>1?'s':''}`;
+    if(ARC.shieldsGained > 0) sub += ` · ${ARC.shieldsGained}🛡 ganado${ARC.shieldsGained>1?'s':''}`;
+    if(ARC.shieldsConsumed > 0) sub += ` · ${ARC.shieldsConsumed}🛡 absorbió${ARC.shieldsConsumed>1?'eron':''}`;
   } else {
     sub = `Racha máxima: ${ARC.highStreak} · Posición #${myRank}`;
   }
   document.getElementById('go-sub').textContent = sub;
   document.getElementById('go-score').textContent=ARC.score;
   document.getElementById('go-score-lbl').textContent='PUNTUACIÓN TOTAL';
+
+  // Sprint 2: medalla por precisión. Solo si el alumno respondió ≥10 veces
+  // (para evitar medallas falsas en partidas muy cortas).
+  const total = ARC.correctAnswers + ARC.wrongAnswers;
+  let medalEl = document.getElementById('go-medal');
+  if(!medalEl){
+    medalEl = document.createElement('div');
+    medalEl.id = 'go-medal';
+    medalEl.style.cssText = 'margin:14px auto 4px;text-align:center';
+    const scoreEl = document.getElementById('go-score');
+    if(scoreEl && scoreEl.parentElement) scoreEl.parentElement.appendChild(medalEl);
+  }
+  if(total >= 10){
+    const pct = ARC.correctAnswers / total;
+    let medalla = null;
+    if(pct >= 0.95)      medalla = { emoji:'🥇', label:'Oro',    color:'#D97706', bg:'linear-gradient(135deg,#FCD34D,#F59E0B)' };
+    else if(pct >= 0.85) medalla = { emoji:'🥈', label:'Plata',  color:'#475569', bg:'linear-gradient(135deg,#E2E8F0,#94A3B8)' };
+    else if(pct >= 0.70) medalla = { emoji:'🥉', label:'Bronce', color:'#92400E', bg:'linear-gradient(135deg,#FED7AA,#F59E0B)' };
+    if(medalla){
+      const pctStr = Math.round(pct*100) + '%';
+      medalEl.innerHTML = '<div style="display:inline-flex;align-items:center;gap:12px;padding:10px 18px;background:'+medalla.bg+';border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.15)">'
+        + '<span style="font-size:2rem">'+medalla.emoji+'</span>'
+        + '<div style="text-align:left">'
+        +   '<div style="font-size:.65rem;font-weight:800;color:'+medalla.color+';text-transform:uppercase;letter-spacing:.1em">Medalla</div>'
+        +   '<div style="font-size:1.05rem;font-weight:900;color:'+medalla.color+'">'+medalla.label+'</div>'
+        + '</div>'
+        + '<div style="font-size:.78rem;font-weight:700;color:'+medalla.color+';padding-left:10px;border-left:1.5px solid '+medalla.color+'">'+ARC.correctAnswers+'/'+total+' · '+pctStr+'</div>'
+        + '</div>';
+      medalEl.style.display = 'block';
+    } else {
+      medalEl.style.display = 'none';
+    }
+  } else {
+    medalEl.style.display = 'none';
+  }
+
   showScreen('gameover');
 
   // Send score to GAS + load class/global rankings
