@@ -344,10 +344,13 @@
   from{ transform: translateY(-10px) scale(.94); opacity: 0; }
   to  { transform: none; opacity: 1; }
 }
-/* Feedback modal neobrut override */
+/* Feedback modal — estética premium tintada navy, sin neobrut
+   (paso 2.2a, mayo 2026). Antes: borde negro 2.5px + sombra plana dura. */
 .theme-new-ui .modal{
-  border:2.5px solid #0F0F0F;
-  box-shadow:6px 6px 0 #0F0F0F,0 16px 40px rgba(0,0,0,.2);
+  border:1px solid var(--ui-border);
+  box-shadow:
+    0 2px 8px rgba(15,35,66,.06),
+    0 18px 48px rgba(15,35,66,.22);
   border-radius:18px;
 }
 .theme-new-ui .fb-inner{padding:28px 26px;}
@@ -356,7 +359,8 @@
   color:#991B1B;text-shadow:1px 1px 0 rgba(153,27,27,.2);
 }
 .theme-new-ui .fb-consejo{
-  border:2px solid #0F0F0F;box-shadow:2px 2px 0 #0F0F0F;
+  border:1.5px solid #BAE6FD;
+  box-shadow:0 2px 8px rgba(8,145,178,.10);
   border-radius:11px;font-weight:500;
 }
 /* Teacher panel hint section */
@@ -365,8 +369,8 @@
   background:var(--paper);font-family:'Nunito',sans-serif;font-weight:700;
   font-size:.82rem;cursor:pointer;transition:all .15s;
 }
-.tp-hint-btn.active{background:#0F0F0F;color:#fff;border-color:#0F0F0F;
-  box-shadow:2px 2px 0 #555;}
+.tp-hint-btn.active{background:var(--ui-navy);color:#fff;border-color:var(--ui-navy);
+  box-shadow:0 2px 8px rgba(15,35,66,.20);}
 .tp-hint-btn:not(.active):hover{border-color:#999;transform:translateY(-1px);}
 
 /* ════════════════════════════════════════════════════════════════════════
