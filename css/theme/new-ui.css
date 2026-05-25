@@ -628,24 +628,40 @@ body.theme-new-ui #screen-game .inst-tip{
      plain text without the emoji. */
 }
 
-/* ── Sentence card — clean, no notebook lines, focus on words ── */
+/* ── Sentence card — calcada de .cp-interact-card de compuestas
+   (paso 2.5, mayo 2026): fondo blanco, tipografía DM Sans sans-serif,
+   sin líneas de cuaderno (folio-sheet anulado más abajo). ── */
 body.theme-new-ui #screen-game .sent-card{
   background: var(--ui-surface);
   background-image: none;
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-r-lg);
   box-shadow: var(--ui-sh-2);
-  padding: 36px 32px;
-  margin-bottom: 22px;
-  min-height: 120px;
+  padding: 24px 22px;
+  margin-bottom: 18px;
+  min-height: 110px;
   position: relative;
 }
+/* Anular completamente el aspecto cuaderno escolar (folio-sheet) */
+body.theme-new-ui #screen-game .sent-card.folio-sheet{
+  background: var(--ui-surface);
+  border-radius: var(--ui-r-lg);
+  box-shadow: var(--ui-sh-2);
+  padding: 24px 22px;
+  overflow: visible;
+}
+body.theme-new-ui #screen-game .sent-card.folio-sheet::before,
+body.theme-new-ui #screen-game .sent-card.folio-sheet::after{
+  content: none;
+  display: none;
+}
 
-/* Words: clearly clickable, with subtle hover lift */
+/* Words: tipografía DM Sans idéntica a .cp-interact-text */
 body.theme-new-ui #screen-game .wu-text{
-  font-family: var(--ui-font-body);
+  font-family: 'DM Sans','Nunito',sans-serif;
   font-size: 1.35rem;
   font-weight: 500;
+  line-height: 1.9;
   color: var(--ui-ink);
   padding: 4px 10px;
   border-radius: var(--ui-r-sm);
@@ -657,7 +673,6 @@ body.theme-new-ui #screen-game .wu-text{
 }
 body.theme-new-ui #screen-game .wu:not(.wu-verb):not(.wu-subj):not(.wu-picked):not(.wu-wrong) .wu-text{
   cursor: pointer;
-  border-bottom-color: rgba(15,35,66,.12);
 }
 body.theme-new-ui #screen-game .wu:not(.wu-verb):not(.wu-subj):not(.wu-picked):not(.wu-wrong) .wu-text:hover{
   background: var(--ui-cyan-tint);
