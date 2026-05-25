@@ -263,28 +263,40 @@
 /* ══ SISTEMA DE PISTAS — C6 ══════════════════════════════════
    Estética neobrutalista lúdica con animaciones
    ═════════════════════════════════════════════════════════════ */
+/* .btn-pista — estética alineada con las cards de instrucción de CP
+   (.cp-instr-grande): gradiente navy-blanco, borde azul claro,
+   borde izquierdo grueso navy (la firma visual), tipografía Fraunces.
+   Paso 2.1, mayo 2026. Antes: neobrut amarillo/borde negro grueso. */
 .btn-pista{
-  width:100%;padding:11px 16px;border-radius:12px;font-weight:800;
-  border:2.5px solid #0F0F0F;background:#FEF9C3;color:#78350F;
-  box-shadow:3px 3px 0 #0F0F0F;cursor:pointer;font-size:.88rem;
-  font-family:'Nunito',sans-serif;
+  width:100%;padding:13px 18px;border-radius:12px;font-weight:700;
+  background:linear-gradient(135deg, #EFF4FB 0%, #FAFAFA 100%);
+  border:1.5px solid #93C5FD;
+  border-left:5px solid #0F2342;
+  color:#0F2342;
+  box-shadow:0 4px 14px rgba(15,35,66,.10);
+  cursor:pointer;font-size:.94rem;
+  font-family:'Fraunces','Lora','DM Sans',serif;
+  letter-spacing:-.01em;
   transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s,background .15s;
-  display:flex;align-items:center;justify-content:center;gap:7px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
 }
 .btn-pista:not(:disabled):hover{
-  transform:translateY(-2px);box-shadow:5px 5px 0 #0F0F0F;background:#FEF08A;
+  transform:translateY(-2px);
+  box-shadow:0 8px 22px rgba(15,35,66,.16);
+  background:linear-gradient(135deg, #DBEAFE 0%, #EFF4FB 100%);
 }
 .btn-pista:not(:disabled):active{
-  transform:translateY(1px);box-shadow:2px 2px 0 #0F0F0F;
+  transform:translateY(1px);box-shadow:0 2px 8px rgba(15,35,66,.10);
 }
 .btn-pista:disabled{
-  opacity:.55;cursor:not-allowed;box-shadow:2px 2px 0 #6B7280;
-  border-color:#6B7280;background:#F3F4F6;color:#6B7280;
+  opacity:.55;cursor:not-allowed;box-shadow:none;
+  border-color:#E2DFD5;border-left-color:#94A3B8;
+  background:#FAFAFC;color:#94A3B8;
 }
 .btn-pista-timer{
-  font-size:.72rem;font-weight:700;
-  background:#0F0F0F;color:#FEF9C3;padding:1px 7px;border-radius:6px;
-  font-family:monospace;letter-spacing:.04em;
+  font-size:.74rem;font-weight:700;
+  background:#0F2342;color:#DBEAFE;padding:2px 8px;border-radius:6px;
+  font-family:'JetBrains Mono',monospace;letter-spacing:.04em;
 }
 /* ── Pista de Sint (C.1, mayo 2026) ───────────────────────────────────
    Rediseño coherente con la pista flotante de CP (.pf-card):
