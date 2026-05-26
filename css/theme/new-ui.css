@@ -739,10 +739,10 @@ body.theme-new-ui .glos-fab:hover{
   box-shadow: var(--ui-sh-3);
 }
 
-/* ── Skip button — subtle ── */
+/* ── Skip button — subtle, navy/cyan en lugar del amarillo cuaderno legacy ── */
 body.theme-new-ui #screen-game #game-skip-wrap .btn{
   background: transparent;
-  border: 1px dashed var(--ui-border-strong);
+  border: 1px solid rgba(15,35,66,.18);
   color: var(--ui-muted);
   font-family: var(--ui-font-ui);
   font-weight: 500;
@@ -753,10 +753,9 @@ body.theme-new-ui #screen-game #game-skip-wrap .btn{
   transition: all var(--ui-dur) var(--ui-ease);
 }
 body.theme-new-ui #screen-game #game-skip-wrap .btn:hover{
-  border-style: solid;
-  border-color: var(--ui-warn);
-  color: var(--ui-warn);
-  background: var(--ui-warn-tint);
+  border-color: var(--ui-cyan);
+  color: var(--ui-cyan);
+  background: var(--ui-cyan-tint);
   transform: none;
 }
 
