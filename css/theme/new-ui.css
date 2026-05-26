@@ -3519,8 +3519,9 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 
 /* Fila 2: las palabras */
 .cp-stk-words{
-  font-family: 'Fraunces', serif;
+  font-family: 'DM Sans','Nunito',sans-serif;
   font-size: 1.02rem;
+  font-weight: 600;
   line-height: 1.25;
   color: var(--ink);
   text-align: center;
@@ -3736,7 +3737,7 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
    Sistema arrastrar-y-soltar al estilo del módulo de Simples.
    Clases con prefijo iidd- para no colisionar con Sint. */
 .iidd-wrap{
-  max-width: 700px;
+  max-width: 880px;
   margin: 0 auto;
   padding-bottom: 20px;
 }
@@ -3758,14 +3759,13 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 .iidd-prop-of{ color: var(--muted); font-size: .82rem; }
 .iidd-prop-text{
   width: 100%;
-  font-family: 'Fraunces',serif;
-  font-size: .97rem;
-  font-style: italic;
+  font-family: 'DM Sans','Nunito',sans-serif;
+  font-size: 1.05rem;
   color: var(--ink);
   padding: 8px 12px;
   background: var(--surface2);
   border-radius: 8px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 .iidd-instr{
   font-size: .82rem;
@@ -3788,13 +3788,14 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   background: var(--surface2);
   border: 1.5px solid var(--ui-border);
   border-radius: 10px;
-  padding: 8px 10px 6px;
-  min-width: 80px;
-  max-width: 220px;
+  padding: 8px 14px 6px;
+  min-width: 90px;
+  max-width: 280px;
+  flex: 1 1 auto;
 }
 .iidd-blk-words{
-  font-family: 'Fraunces',serif;
-  font-size: .92rem;
+  font-family: 'DM Sans','Nunito',sans-serif;
+  font-size: .98rem;
   font-weight: 600;
   color: var(--ink);
   text-align: center;
