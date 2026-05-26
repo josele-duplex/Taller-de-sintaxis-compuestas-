@@ -3903,7 +3903,7 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   border-radius: 8px;
 }
 .iidd-res-ok{ background:var(--ui-ok-tint); color:var(--ui-ok); border:1.5px solid var(--ui-ok); }
-.iidd-res-partial{ background:#FEF3C7; color:#92400E; border:1.5px solid #FCD34D; }
+.iidd-res-partial{ background:var(--ui-warn-tint); color:var(--ui-warn); border:1.5px solid var(--ui-warn); }
 @media(max-width:600px){
   .iidd-pool{
     grid-template-columns: 1fr;
