@@ -714,6 +714,7 @@ body.theme-new-ui #screen-game .pf-toggle-attention:hover{
   background: var(--ui-surface) !important;
   border-color: var(--ui-teal) !important;
   color: var(--ui-teal-dk) !important;
+  box-shadow: none !important;
   transform: none;
 }
 
