@@ -2142,34 +2142,26 @@ function calcDetailedScore(){
     if(completed){
       // Calculate earned points — ONLY if sentence was completed
       completadas++;
-      // Exam mode: IF-AT classic scoring (Slepkov & Godfrey 2019).
-      //   0 errors = 100% credit
-      //   1 error  = 50% credit
-      //   2+ errors = 0% credit
-      // Calibrated to bring digital scores closer to paper-exam parity while
-      // preserving the pedagogical value of immediate feedback.
-      // Practice mode: linear penalty preserved (IF-AT formative use).
-      // References: Slepkov & Godfrey 2019, Schneid et al. 2025, Pennebaker et al. 2013.
-      const isExam = (G.mode === 'exam');
-      const ifatPenalty = (weight, errors) => {
+      // IF-AT atenuada: 0 err→100%, 1→50%, 2→25%, 3+→0%. Aplica a práctica y examen.
+      const atenPenalty = (weight, errors) => {
         if (errors <= 0) return weight;
         if (errors === 1) return weight * 0.5;
+        if (errors === 2) return weight * 0.25;
         return 0;
       };
-      const linPenalty = (weight, errors) => Math.max(0, weight - errors);
 
       const npErrors = se.npErrors || 0;
       const sujErrors = se.sujetoErrors || 0;
       const pvpnErrors = se.pvpnErrors || 0;
-      const npEarned   = isExam ? ifatPenalty(W.NP,     npErrors)   : linPenalty(W.NP,     npErrors);
-      const sujEarned  = isExam ? ifatPenalty(W.SUJETO, sujErrors)  : linPenalty(W.SUJETO, sujErrors);
-      const pvpnEarned = isExam ? ifatPenalty(W.FUNCION, pvpnErrors): linPenalty(W.FUNCION, pvpnErrors);
+      const npEarned   = atenPenalty(W.NP,     npErrors);
+      const sujEarned  = atenPenalty(W.SUJETO, sujErrors);
+      const pvpnEarned = atenPenalty(W.FUNCION, pvpnErrors);
       let fnEarned=0;
       interBlocks.forEach(b=>{
         const func=(b.solucion||'').split(' | ')[1]||'';
         const w=W.FUNCION * getFuncWeight(func);
         const errs=(se.blockErrors||{})[b.id]||0;
-        fnEarned += isExam ? ifatPenalty(w, errs) : Math.max(0, w - errs*getFuncWeight(func));
+        fnEarned += atenPenalty(w, errs);
       });
       totals.np.earned+=npEarned;
       totals.sujeto.earned+=sujEarned;
