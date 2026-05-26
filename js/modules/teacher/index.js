@@ -702,11 +702,13 @@ function _infStatus(msg, color){
 
 function _loadSheetJS(){
   if (typeof XLSX !== 'undefined') return Promise.resolve();
+  // xlsx-js-style: fork open-source de SheetJS con soporte de colores y estilos.
+  // 100% compatible con la API de XLSX. Imprescindible para el factor WOW del informe.
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
     s.onload = () => resolve();
-    s.onerror = () => reject(new Error('No se pudo cargar SheetJS desde el CDN.'));
+    s.onerror = () => reject(new Error('No se pudo cargar la librería de Excel desde el CDN.'));
     document.head.appendChild(s);
   });
 }
