@@ -22,6 +22,8 @@
    trackError, showCombo, showLevelUp. escHtml/escAttr se definen
    internamente al final del modulo. */
 
+  let _examTimerInterval = null;
+
   const state = {
     ejercicios: [],         // banco completo (49+ ejercicios)
     filtered: [],           // banco tras aplicar filtros
@@ -47,7 +49,11 @@
     examGrupo: '',          // grupo del examen (devuelto por GAS)
     examEval: '',           // evaluación del examen
     examName: '',           // nombre legible del examen
-    examTimerMin: 0,        // duración (reservado para futuro timer)
+    examTimerMin: 0,        // duración del examen en minutos (0 = sin límite)
+    examEmail: '',          // correo del alumno (recogido en formulario PIN)
+    examAlumno: '',         // nombre del alumno
+    examTiempoRestanteS: 0, // segundos restantes del countdown
+    examTimerRunning: false, // true mientras el countdown está activo
     pinInputView: false,    // estamos mostrando el formulario de PIN
     pinError: '',           // último mensaje de error del PIN
     pinLoading: false,      // hay una petición de carga en curso
@@ -459,17 +465,31 @@
     const loading = state.pinLoading;
     const error = state.pinError;
 
+    const fieldStyle = 'width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-size:1rem;font-family:inherit;box-sizing:border-box';
     wrap.innerHTML = `
       <div class="cp-card" style="max-width:480px;margin:0 auto">
         <h2 style="display:flex;align-items:center;gap:10px"><span>🎓</span> Modo examen</h2>
-        <p class="cp-sub">Introduce el PIN que te ha dado tu profesor para cargar el examen.</p>
+        <p class="cp-sub">Introduce el PIN y tus datos. Tu profesor verá el resultado con tu nombre.</p>
 
-        <div style="margin:20px 0">
-          <label for="cp-pin-input" style="display:block;font-weight:700;margin-bottom:6px;font-size:.88rem;color:var(--ink2)">PIN del examen</label>
-          <input type="text" id="cp-pin-input" inputmode="numeric" pattern="\\d{4,6}" maxlength="6"
-            placeholder="4-6 dígitos"
-            ${loading ? 'disabled' : ''}
-            style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-size:1.2rem;letter-spacing:.3em;text-align:center;font-weight:700;font-family:inherit">
+        <div style="display:flex;flex-direction:column;gap:14px;margin:18px 0">
+          <div>
+            <label for="cp-alumno-input" style="display:block;font-weight:700;margin-bottom:5px;font-size:.85rem;color:var(--ink2)">Nombre completo <span style="color:#DC2626">*</span></label>
+            <input type="text" id="cp-alumno-input" placeholder="Tu nombre y apellidos"
+              value="${escAttr(state.examAlumno)}" ${loading?'disabled':''}
+              style="${fieldStyle}">
+          </div>
+          <div>
+            <label for="cp-email-input" style="display:block;font-weight:700;margin-bottom:5px;font-size:.85rem;color:var(--ink2)">Correo electrónico <span style="color:#DC2626">*</span></label>
+            <input type="email" id="cp-email-input" placeholder="tu@correo.es"
+              value="${escAttr(state.examEmail)}" ${loading?'disabled':''}
+              style="${fieldStyle}">
+          </div>
+          <div>
+            <label for="cp-pin-input" style="display:block;font-weight:700;margin-bottom:5px;font-size:.85rem;color:var(--ink2)">PIN del examen <span style="color:#DC2626">*</span></label>
+            <input type="text" id="cp-pin-input" inputmode="numeric" pattern="\\d{4,6}" maxlength="6"
+              placeholder="4-6 dígitos" ${loading?'disabled':''}
+              style="${fieldStyle};letter-spacing:.3em;text-align:center;font-size:1.2rem;font-weight:700">
+          </div>
         </div>
 
         ${error ? `<div style="color:#991B1B;background:#FEF2F2;padding:10px 14px;border-radius:8px;font-size:.85rem;margin-bottom:14px;border-left:3px solid #DC2626">⚠ ${escHtml(error)}</div>` : ''}
@@ -477,7 +497,7 @@
         ${loading
           ? `<div style="text-align:center;padding:20px;color:var(--muted)"><div class="spinner"></div><div style="margin-top:8px">Cargando examen…</div></div>`
           : `<div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button type="button" class="cp-btn-primary" onclick="CP.validarPIN()">✓ Validar PIN</button>
+              <button type="button" class="cp-btn-primary" onclick="CP.validarPIN()">✓ Iniciar examen</button>
               <button type="button" class="cp-btn-secondary" onclick="CP.cancelarPIN()">← Cancelar</button>
             </div>`
         }
@@ -522,15 +542,28 @@
   // llama al backend y, si todo va bien, sustituye el banco por los
   // ejercicios del examen y arranca iniciarPractica().
   async function validarPIN(){
-    const inp = document.getElementById('cp-pin-input');
+    const inpAlumno = document.getElementById('cp-alumno-input');
+    const inpEmail  = document.getElementById('cp-email-input');
+    const inp       = document.getElementById('cp-pin-input');
     if(!inp) return;
-    const pin = String(inp.value || '').trim();
+    const alumno = String((inpAlumno && inpAlumno.value) || '').trim();
+    const email  = String((inpEmail  && inpEmail.value)  || '').trim().toLowerCase();
+    const pin    = String(inp.value || '').trim();
+    if(!alumno){
+      state.pinError = 'Introduce tu nombre completo.';
+      renderFiltros(); return;
+    }
+    if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      state.pinError = 'Introduce un correo electrónico válido.';
+      renderFiltros(); return;
+    }
     if(!pin || !/^\d{4,6}$/.test(pin)){
       state.pinError = 'El PIN debe tener entre 4 y 6 dígitos numéricos.';
-      renderFiltros();
-      return;
+      renderFiltros(); return;
     }
-    state.pinError = '';
+    state.examAlumno = alumno;
+    state.examEmail  = email;
+    state.pinError   = '';
     state.pinLoading = true;
     renderFiltros();
 
@@ -579,12 +612,16 @@
   // Llamado desde abandonar/volverFiltros cuando state.modoExamen es true.
   function salirModoExamen(){
     if(!state.modoExamen) return;
+    stopExamTimer();
     state.modoExamen   = false;
     state.examPin      = '';
     state.examGrupo    = '';
     state.examEval     = '';
     state.examName     = '';
     state.examTimerMin = 0;
+    state.examEmail    = '';
+    state.examAlumno   = '';
+    state.examTiempoRestanteS = 0;
     // Reset del estado de envío (los datos se mantienen en localStorage hasta confirmar)
     state.examResultados   = [];
     state.examEnviado      = false;
@@ -624,10 +661,14 @@
     }
     const sepHtml = '<span style="opacity:.55">·</span>';
     const parts = ['<span>🎓 EXAMEN</span>'];
-    if(state.examName)  parts.push('<span>' + escHtml(state.examName) + '</span>');
-    if(state.examGrupo) parts.push('<span>Grupo ' + escHtml(state.examGrupo) + '</span>');
-    if(state.examEval)  parts.push('<span>Eval. ' + escHtml(state.examEval) + '</span>');
+    if(state.examName)   parts.push('<span>' + escHtml(state.examName) + '</span>');
+    if(state.examAlumno) parts.push('<span>' + escHtml(state.examAlumno) + '</span>');
+    if(state.examGrupo)  parts.push('<span>Grupo ' + escHtml(state.examGrupo) + '</span>');
+    if(state.examEval)   parts.push('<span>Eval. ' + escHtml(state.examEval) + '</span>');
     parts.push('<span>PIN ' + escHtml(state.examPin) + '</span>');
+    if(state.examTimerMin > 0){
+      parts.push('<span id="cp-exam-timer" style="font-family:monospace;font-weight:900;letter-spacing:.05em">⏱ --:--</span>');
+    }
     banner.innerHTML = parts.join(sepHtml);
     banner.style.display = '';
   }
@@ -635,6 +676,44 @@
   function hideExamenBanner(){
     const banner = document.getElementById('cp-examen-banner');
     if(banner) banner.remove();
+  }
+
+  function startExamTimer(){
+    if(!state.modoExamen || !state.examTimerMin) return;
+    stopExamTimer();
+    state.examTiempoRestanteS = state.examTimerMin * 60;
+    state.examTimerRunning = true;
+    _examTimerInterval = setInterval(()=>{
+      if(!state.examTimerRunning){ stopExamTimer(); return; }
+      if(state.examTiempoRestanteS <= 0){
+        stopExamTimer();
+        onTimerExpired();
+        return;
+      }
+      state.examTiempoRestanteS--;
+      _updateTimerDisplay();
+    }, 1000);
+    _updateTimerDisplay();
+  }
+
+  function stopExamTimer(){
+    if(_examTimerInterval){ clearInterval(_examTimerInterval); _examTimerInterval = null; }
+    state.examTimerRunning = false;
+  }
+
+  function _updateTimerDisplay(){
+    const el = document.getElementById('cp-exam-timer');
+    if(!el) return;
+    const s = state.examTiempoRestanteS || 0;
+    const mm = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = String(s % 60).padStart(2, '0');
+    el.textContent = `⏱ ${mm}:${ss}`;
+    el.style.color = s <= 60 ? '#FCA5A5' : (s <= 300 ? '#FDE68A' : '');
+  }
+
+  function onTimerExpired(){
+    mostrarToast({ titulo: '⏱ Tiempo agotado', subtitulo: 'Enviando tu examen…', colorIdx: 1 });
+    enviarResultadoExamen();
   }
 
   // Helper que pide confirmación al alumno antes de salir del examen.
@@ -678,6 +757,7 @@
     }
     state.idx = 0;
     state.modoLectura = false;
+    if(state.modoExamen) startExamTimer();
     iniciarFase0();
   }
 
@@ -956,9 +1036,7 @@
         ${renderRelaciones5(ej)}
         ${eng.mensajeFeedback ? renderFeedback(eng.mensajeFeedback) : ''}
         ${renderActions(eng.fase, ej, tieneNexos)}
-        <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
-          <button type="button" class="cp-btn-secondary" onclick="CP.abandonar()">← Volver a filtros</button>
-        </div>
+        ${!state.modoExamen ? `<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap"><button type="button" class="cp-btn-secondary" onclick="CP.abandonar()">← Volver a filtros</button></div>` : ''}
       `;
       // Listeners de las opciones de relación
       wrap.querySelectorAll('.cp-clasif-opt[data-q-rel]').forEach(el=>{
@@ -980,9 +1058,7 @@
         ${eng.mensajeFeedback ? renderFeedback(eng.mensajeFeedback) : ''}
         ${renderActions(eng.fase, ej, tieneNexos)}
       </div>
-      <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
-        <button type="button" class="cp-btn-secondary" onclick="CP.abandonar()">← Volver a filtros</button>
-      </div>
+      ${!state.modoExamen ? `<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap"><button type="button" class="cp-btn-secondary" onclick="CP.abandonar()">← Volver a filtros</button></div>` : ''}
     `;
     // Listeners en los tokens
     wrap.querySelectorAll('.cp-tok[data-i]').forEach(el=>{
@@ -3009,9 +3085,7 @@
         ${blocksHtml}
         ${poolHtml}
         ${actionHtml}
-        <div style="margin-top:12px">
-          <button type="button" class="cp-btn-secondary" onclick="CP.abandonar()">← Volver a filtros</button>
-        </div>
+        ${!state.modoExamen ? `<div style="margin-top:12px"><button type="button" class="cp-btn-secondary" onclick="CP.abandonar()">← Volver a filtros</button></div>` : ''}
       </div>`;
   }
 
@@ -3747,16 +3821,11 @@
     const totalEjercicios = state.filtered.length;
     const completados = ress.length;
 
-    // Aciertos/errores totales (todas las fases sumadas)
-    let acTotal = 0, erTotal = 0;
-    ress.forEach(r => {
-      acTotal += (r.aciertos_verbos||0) + (r.aciertos_nexos||0) + (r.aciertos_delimitar||0) + (r.aciertos_clasificar||0);
-      erTotal += (r.errores_verbos||0)  + (r.errores_nexos||0)  + (r.errores_delimitar||0)  + (r.errores_clasificar||0);
-    });
-    const total = acTotal + erTotal;
-    const pct   = total > 0 ? acTotal / total : 0;
-    // Nota sobre 10 con 2 decimales
-    const nota  = Math.round(pct * 10 * 100) / 100;
+    // Nota global: media de las notas IF-AT por ejercicio (computeCompScore)
+    const notasEj = ress.map(r => r.nota).filter(n => n !== null && n !== undefined);
+    const nota = notasEj.length > 0
+      ? Math.round((notasEj.reduce((a, b) => a + b, 0) / notasEj.length) * 10) / 10
+      : 0;
 
     // Puntuación media por fase (% sobre 1, o null si la fase no se hizo en ningún ejercicio).
     // El backend acepta null y lo guarda como celda vacía.
@@ -3796,11 +3865,9 @@
     }));
 
     return {
-      // CP no tiene pantalla de login todavía (item 4.2 del roadmap).
-      // El backend acepta email/name vacíos (sin dedup en ese caso).
-      email:           '',
-      name:            '',
-      grupo:           state.examGrupo || '',
+      email:           state.examEmail  || '',
+      name:            state.examAlumno || '',
+      grupo:           state.examGrupo  || '',
       evaluacion:      state.examEval  || '',
       pin:             state.examPin   || '',
       modo:            'examen',
@@ -4044,7 +4111,81 @@
   // sin el confirm() habitual (porque el examen ya está enviado y no
   // hay nada que perder).
   function salirTrasEnvio(){
-    if(state.modoExamen) salirModoExamen();
+    if(state.modoExamen){
+      renderPantallaFinalExamen();
+      return;
+    }
+    state.engine = null;
+    state.modoLectura = false;
+    renderFiltros();
+  }
+
+  function renderPantallaFinalExamen(){
+    stopExamTimer();
+    const ress = state.examResultados || [];
+    const notasEj = ress.map(r => r.nota).filter(n => n !== null && n !== undefined);
+    const notaGlobal = notasEj.length > 0
+      ? Math.round(notasEj.reduce((a, b) => a + b, 0) / notasEj.length * 10) / 10
+      : null;
+    const notaColor = notaGlobal !== null ? (notaGlobal >= 5 ? '#15803D' : '#B91C1C') : 'var(--muted)';
+
+    const desglosRows = ress.map((r, i) => {
+      const n = (r.nota !== null && r.nota !== undefined) ? r.nota.toFixed(1) : '—';
+      const c = (r.nota !== null && r.nota !== undefined) ? (r.nota >= 5 ? '#15803D' : '#B91C1C') : 'var(--muted)';
+      const txt = (r.texto || '').slice(0, 60) + ((r.texto || '').length > 60 ? '…' : '');
+      return `<div style="display:flex;align-items:center;gap:10px;padding:6px 12px;background:var(--paper2);border-radius:8px;font-size:.82rem">
+        <span style="color:var(--muted);min-width:24px">E${i + 1}</span>
+        <span style="flex:1;color:var(--ink2)">${escHtml(txt)}</span>
+        <span style="font-weight:700;color:${c}">${n}</span>
+      </div>`;
+    }).join('');
+
+    const wrap = document.getElementById('cp-wrap');
+    if(!wrap) return;
+    document.getElementById('cp-counter').textContent = '🎓 Resultado del examen';
+
+    wrap.innerHTML = `
+      <div class="cp-summary" style="text-align:center">
+        <div class="cp-summary-icon">🎓</div>
+        <h2 class="cp-summary-title">Examen completado</h2>
+        ${notaGlobal !== null ? `
+          <div style="margin:10px 0 4px;font-size:3rem;font-weight:900;font-family:'Fraunces',serif;color:${notaColor};line-height:1">
+            ${notaGlobal.toFixed(1)}<span style="font-size:1.1rem;font-weight:500;color:var(--muted)">&thinsp;/ 10</span>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">Nota global del examen (IF-AT)</div>
+        ` : ''}
+        <div class="cp-summary-stats">
+          <div class="cp-summary-stat">
+            <div class="cp-summary-stat-num">${ress.length}</div>
+            <div class="cp-summary-stat-lbl">Completados</div>
+          </div>
+          <div class="cp-summary-stat">
+            <div class="cp-summary-stat-num">${state.filtered.length}</div>
+            <div class="cp-summary-stat-lbl">Total</div>
+          </div>
+        </div>
+      </div>
+
+      ${ress.length > 1 ? `
+        <details style="margin-bottom:14px">
+          <summary style="cursor:pointer;font-weight:700;color:var(--ink2);font-size:.88rem;padding:10px 14px;background:var(--paper2);border-radius:10px">Ver nota por ejercicio</summary>
+          <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">${desglosRows}</div>
+        </details>
+      ` : ''}
+
+      <div style="background:#F0FDF4;border-left:4px solid #059669;border-radius:8px;padding:12px 16px;color:#166534;font-size:.88rem;margin-bottom:16px">
+        <div style="font-weight:700">✅ Resultado enviado al profesor</div>
+        <div style="margin-top:3px;color:#15803D">Tu nota quedará registrada. Puedes cerrar esta página.</div>
+      </div>
+
+      <div style="text-align:center">
+        <button type="button" class="cp-btn-secondary" onclick="CP.cerrarExamenFinal()">Cerrar y volver a la práctica</button>
+      </div>
+    `;
+  }
+
+  function cerrarExamenFinal(){
+    salirModoExamen();
     state.engine = null;
     state.modoLectura = false;
     renderFiltros();
@@ -4916,7 +5057,7 @@ export const CP = {
     iiddConfirm, iiddAvanzar,
     onInternaPredBtn, onInternaSujBtn, onInternaFuncBtn, avanzarInternaSubPaso,
     entrarModoExamen, cancelarPIN, validarPIN,
-    enviarResultadoExamen, salirTrasEnvio,
+    enviarResultadoExamen, salirTrasEnvio, cerrarExamenFinal,
     verAnalisis, siguientePractica, abandonar,
     guardarManual,
     reintentar,
