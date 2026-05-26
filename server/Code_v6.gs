@@ -1660,7 +1660,9 @@ function onOpen() {
   mantenimiento.addItem('✏️ Reparar oraciones automáticamente',   'menuRepararOracionesBanco');
   mantenimiento.addItem('🧹 Limpiar colores de auditoría',        'menuLimpiarColoresAuditoria');
   mantenimiento.addSeparator();
+  mantenimiento.addItem('✅ Validar coherencia del banco',         'menuValidarCoherencia');
   mantenimiento.addItem('🗑️ Limpiar hojas no utilizadas',          'menuLimpiarHojasObsoletas');
+  mantenimiento.addItem('🗑️ Limpiar backups antiguos (>30 días)',  'menuLimpiarBackupsAntiguos');
   menu.addSubMenu(mantenimiento);
 
   // BLOQUE 3 — HERRAMIENTAS (solo si es necesario)
@@ -2713,3 +2715,178 @@ function menuLimpiarHojasObsoletas() {
     ui.ButtonSet.OK);
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  menuLimpiarBackupsAntiguos — borra hojas *_Backup_* con > 30 días
+//
+//  Las funciones de reparación crean backups automáticamente
+//  ('Oraciones_Banco_Backup_yyyyMMdd_HHmm'). Esto evita acumular 100+
+//  copias antiguas en el spreadsheet.
+//
+//  Detecta hojas cuyo nombre contiene "Backup" y extrae la fecha en
+//  formato yyyyMMdd. Las sin fecha detectable se listan pero NO se
+//  borran automáticamente.
+// ════════════════════════════════════════════════════════════════════════
+function menuLimpiarBackupsAntiguos() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const DIAS_LIMITE = 30;
+
+  const ahora = new Date();
+  const limite = new Date(ahora.getTime() - DIAS_LIMITE * 24 * 60 * 60 * 1000);
+
+  const antiguos = [];
+  const sinFecha = [];
+  ss.getSheets().forEach(s => {
+    const name = s.getName();
+    if (!/[Bb]ackup/.test(name)) return;
+    const m = name.match(/(\d{8})/);
+    if (!m) { sinFecha.push({ name, sheet: s }); return; }
+    const y = parseInt(m[1].slice(0, 4));
+    const mo = parseInt(m[1].slice(4, 6)) - 1;
+    const d = parseInt(m[1].slice(6, 8));
+    const fecha = new Date(y, mo, d);
+    if (isNaN(fecha.getTime())) { sinFecha.push({ name, sheet: s }); return; }
+    const dias = Math.floor((ahora - fecha) / (24 * 60 * 60 * 1000));
+    if (fecha < limite) antiguos.push({ name, sheet: s, dias });
+  });
+
+  if (antiguos.length === 0 && sinFecha.length === 0) {
+    ui.alert('Limpieza de backups',
+      'No se han encontrado hojas de backup con más de ' + DIAS_LIMITE + ' días.',
+      ui.ButtonSet.OK);
+    return;
+  }
+
+  let msg = '';
+  if (antiguos.length > 0) {
+    msg += '🗓 Backups antiguos (más de ' + DIAS_LIMITE + ' días):\n\n';
+    msg += antiguos.map(b => '  • ' + b.name + ' (' + b.dias + ' días)').join('\n');
+    msg += '\n\n';
+  }
+  if (sinFecha.length > 0) {
+    msg += '❓ Backups sin fecha detectable (no se borran automáticamente):\n\n';
+    msg += sinFecha.map(b => '  • ' + b.name).join('\n');
+    msg += '\n\n';
+  }
+
+  if (antiguos.length === 0) {
+    ui.alert('Backups detectados',
+      msg + 'Revísalos manualmente si quieres eliminarlos.',
+      ui.ButtonSet.OK);
+    return;
+  }
+
+  msg += '¿Quieres eliminar los ' + antiguos.length + ' backups antiguos?';
+  const r = ui.alert('🗑 Limpiar backups antiguos', msg, ui.ButtonSet.OK_CANCEL);
+  if (r !== ui.Button.OK) return;
+
+  let eliminados = 0;
+  antiguos.forEach(b => {
+    try { ss.deleteSheet(b.sheet); eliminados++; }
+    catch(e) { console.error('No se pudo eliminar ' + b.name + ': ' + e.message); }
+  });
+
+  ui.alert('✓ Limpieza completada',
+    'Backups eliminados: ' + eliminados + ' de ' + antiguos.length,
+    ui.ButtonSet.OK);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  menuValidarCoherencia — chequeo rápido pre-clase del estado del banco
+//
+//  Detecta:
+//    1. Oraciones activas (Activo=Sí) con JSON no parseable
+//    2. Exámenes con Estado=Activo y Oraciones_JSON vacío/roto
+//    3. Resultados de alumnos sin Grupo asignado
+//
+//  No corrige nada: solo informa para que el profesor pueda actuar
+//  manualmente antes de empezar la clase.
+// ════════════════════════════════════════════════════════════════════════
+function menuValidarCoherencia() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  const problemas = { jsonRotos: [], examenesVacios: [], alumnosSinGrupo: [] };
+
+  // 1. Oraciones activas con JSON roto
+  const bSheet = ss.getSheetByName(SHEET_BANCO);
+  if (bSheet) {
+    const data = bSheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      const activo = String(data[i][COL_ACTIVO - 1] || '').trim().toLowerCase();
+      if (activo !== 'sí' && activo !== 'si' && activo !== 'true') continue;
+      const parsed = safeParseJSON(data[i][COL_JSON - 1]);
+      if (!parsed) {
+        const txt = String(data[i][COL_TEXTO - 1] || '').slice(0, 50);
+        problemas.jsonRotos.push('Fila ' + (i + 1) + ': "' + txt + '…"');
+      }
+    }
+  }
+
+  // 2. Exámenes activos sin oraciones
+  const eSheet = ss.getSheetByName(SHEET_EXAMS);
+  if (eSheet && eSheet.getLastRow() > 1) {
+    const data = eSheet.getDataRange().getValues();
+    const headers = data[0];
+    const colEstado  = headers.indexOf('Estado');
+    const colPin     = headers.indexOf('PIN');
+    const colOraJson = headers.indexOf('Oraciones_JSON');
+    if (colEstado >= 0 && colOraJson >= 0) {
+      for (let i = 1; i < data.length; i++) {
+        const estado = String(data[i][colEstado] || '').trim().toLowerCase();
+        if (estado !== 'activo') continue;
+        let oraciones = null;
+        try { oraciones = JSON.parse(data[i][colOraJson]); } catch(e) {}
+        if (!Array.isArray(oraciones) || oraciones.length === 0) {
+          problemas.examenesVacios.push('PIN ' + (data[i][colPin] || '?') + ' (fila ' + (i + 1) + ')');
+        }
+      }
+    }
+  }
+
+  // 3. Resultados de alumnos sin Grupo
+  const rSheet = ss.getSheetByName(SHEET_RESULTS);
+  if (rSheet && rSheet.getLastRow() > 1) {
+    const data = rSheet.getDataRange().getValues();
+    const headers = data[0];
+    const colGrupo  = headers.indexOf('Grupo');
+    const colNombre = headers.indexOf('Nombre');
+    const colFecha  = headers.indexOf('Fecha');
+    if (colGrupo >= 0) {
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][colGrupo] || '').trim()) continue;
+        const nombre = data[i][colNombre] || '?';
+        const fecha  = data[i][colFecha]  || 'sin fecha';
+        problemas.alumnosSinGrupo.push(nombre + ' (' + fecha + ')');
+      }
+    }
+  }
+
+  const total = problemas.jsonRotos.length + problemas.examenesVacios.length + problemas.alumnosSinGrupo.length;
+  if (total === 0) {
+    ui.alert('✓ Coherencia validada',
+      'Banco, exámenes y resultados están coherentes. Todo listo para clase.',
+      ui.ButtonSet.OK);
+    return;
+  }
+
+  let msg = '⚠ Se han detectado ' + total + ' incidencias:\n\n';
+  if (problemas.jsonRotos.length > 0) {
+    msg += '📛 Oraciones activas con JSON roto (' + problemas.jsonRotos.length + '):\n';
+    msg += problemas.jsonRotos.slice(0, 10).map(s => '  • ' + s).join('\n');
+    if (problemas.jsonRotos.length > 10) msg += '\n  … y ' + (problemas.jsonRotos.length - 10) + ' más';
+    msg += '\n\n';
+  }
+  if (problemas.examenesVacios.length > 0) {
+    msg += '📛 Exámenes activos sin oraciones (' + problemas.examenesVacios.length + '):\n';
+    msg += problemas.examenesVacios.map(s => '  • ' + s).join('\n');
+    msg += '\n\n';
+  }
+  if (problemas.alumnosSinGrupo.length > 0) {
+    msg += '📛 Resultados de alumnos sin grupo (' + problemas.alumnosSinGrupo.length + '):\n';
+    msg += problemas.alumnosSinGrupo.slice(0, 5).map(s => '  • ' + s).join('\n');
+    if (problemas.alumnosSinGrupo.length > 5) msg += '\n  … y ' + (problemas.alumnosSinGrupo.length - 5) + ' más';
+  }
+
+  ui.alert('⚠ Coherencia: problemas detectados', msg, ui.ButtonSet.OK);
+}
