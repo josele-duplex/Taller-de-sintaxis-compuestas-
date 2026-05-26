@@ -3553,8 +3553,8 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   border-top: 2px dashed rgba(15, 35, 66, .25);
 }
 .cp-stk-fnc-placed{ color: #64748B; }
-.cp-stk-fnc-ok{ color: #16A34A; }
-.cp-stk-fnc-err{ color: #DC2626; }
+.cp-stk-fnc-ok{ color: var(--ui-ok); }
+.cp-stk-fnc-err{ color: var(--ui-err); }
 
 /* Marcador de oración (O1, O2…) al final */
 .cp-stk-o-marker{
@@ -3815,11 +3815,11 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 }
 .iidd-slot-hint{ font-size:.72rem; color:var(--muted); pointer-events:none; }
 .iidd-slot.iidd-ds-over{ border-color: var(--cp-marca); background: #EEF2FF; }
-.iidd-slot.iidd-slot-ok{ border-style:solid; border-color:#16A34A; background:#F0FDF4; }
-.iidd-slot.iidd-slot-err{ border-style:solid; border-color:#DC2626; background:#FEF2F2; }
+.iidd-slot.iidd-slot-ok{ border-style:solid; border-color:var(--ui-ok); background:var(--ui-ok-tint); }
+.iidd-slot.iidd-slot-err{ border-style:solid; border-color:var(--ui-err); background:var(--ui-err-tint); }
 /* Texto con respuesta correcta tras error */
 .iidd-slot-correct{
-  font-size: .68rem; color: #16A34A; font-weight: 700; margin-top: 2px; text-align:center;
+  font-size: .68rem; color: var(--ui-ok); font-weight: 700; margin-top: 2px; text-align:center;
 }
 /* Etiquetas (pool y colocadas) */
 .iidd-tag{
@@ -3845,7 +3845,7 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   box-shadow: 0 4px 12px rgba(15,35,66,.2);
 }
 .iidd-tag.iidd-tag-placed{ cursor:pointer; }
-.iidd-tag.iidd-tag-wrong{ background:#FEF2F2; border-color:#DC2626; color:#DC2626; }
+.iidd-tag.iidd-tag-wrong{ background:var(--ui-err-tint); border-color:var(--ui-err); color:var(--ui-err); }
 /* Pool con 5 secciones: 2+3 (A.3, mayo 2026) */
 .iidd-pool{
   display: grid;
@@ -3867,11 +3867,14 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   border-radius: 10px;
   padding: 10px 10px 8px;
 }
-/* Colores de borde-superior por categoría — guía visual */
-.iidd-pool-pred{ border-top: 3px solid #0F2342; }
-.iidd-pool-suj { border-top: 3px solid #DC2626; }
-.iidd-pool-arg { border-top: 3px solid #06B6D4; }
-.iidd-pool-adj { border-top: 3px solid #0D9488; }
+/* Colores de borde-superior por categoría — guía visual.
+   3.2b (mayo 2026): Sujeto pasa de rojo crudo #DC2626 (que se confundía
+   con el rojo semántico de error) a var(--ui-magenta) para coincidir
+   con el pill del sticky y separar «categoría» de «error». */
+.iidd-pool-pred{ border-top: 3px solid var(--ui-navy); }
+.iidd-pool-suj { border-top: 3px solid var(--ui-magenta); }
+.iidd-pool-arg { border-top: 3px solid var(--ui-cyan); }
+.iidd-pool-adj { border-top: 3px solid var(--ui-teal); }
 .iidd-pool-mar { border-top: 3px solid #7C3AED; }
 .iidd-pool-hdr{
   display: flex;
@@ -3899,7 +3902,7 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   padding: 6px 14px;
   border-radius: 8px;
 }
-.iidd-res-ok{ background:#F0FDF4; color:#16A34A; border:1.5px solid #86EFAC; }
+.iidd-res-ok{ background:var(--ui-ok-tint); color:var(--ui-ok); border:1.5px solid var(--ui-ok); }
 .iidd-res-partial{ background:#FEF3C7; color:#92400E; border:1.5px solid #FCD34D; }
 @media(max-width:600px){
   .iidd-pool{
