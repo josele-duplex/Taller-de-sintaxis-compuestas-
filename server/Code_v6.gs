@@ -1,16 +1,17 @@
 // ════════════════════════════════════════════════════════════════════════
-//  TALLER DE SINTAXIS — Google Apps Script  v6.2
-//  Cambios v5.0:
-//    • FIX CRÍTICO: eliminado .replace('CC ','CC') que destruía los subtipos CC
-//    • normalizeFuncSint: 'N (de la prep.)' → 'N (enlace)' para coincidir con frontend
-//    • generarConsejoSint: clave actualizada a 'N (enlace)'
-//  Cambios v3.3:
-//    • safeParseJSON(): limpia JSONs con llaves/corchetes extra al final
-//    • doGet: retorna TODAS las oraciones con JSON parseable para 'practice'
-//              y solo Activo='Sí' para 'exam' — mismo comportamiento que antes
-//              pero ahora recupera los JSONs con un carácter extra (los 7 rotos)
-//    • Nuevo endpoint action=getStats para resumen estadístico
-//    • Nuevo menú: Activar/Desactivar TODAS, Reparar JSONs
+//  TALLER DE SINTAXIS — Google Apps Script  v6.3  (2026-05-26)
+//
+//  Backend de la webapp. Sirve oraciones (practice/exam), guarda resultados
+//  de alumnos, gestiona morfología/arcade/misiones y ofrece menús de
+//  mantenimiento dentro de la hoja. El módulo de oración compuesta está
+//  en un archivo aparte: Compuestas.gs (mismo proyecto, scope global).
+//
+//  Cambios v6.3 (mayo 2026):
+//    • A2a: limpieza de 562 líneas obsoletas (one-shots ya ejecutados)
+//    • A2b: menuValidarCoherencia + menuLimpiarBackupsAntiguos
+//    • Header reorganizada y changelog antiguo archivado en commits
+//
+//  Cambios anteriores: ver historial git (commits previos a 2026-05-26)
 // ════════════════════════════════════════════════════════════════════════
 
 // ── Nombres de hojas ──────────────────────────────────────────────────
