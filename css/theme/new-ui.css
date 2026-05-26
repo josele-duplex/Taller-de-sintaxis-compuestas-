@@ -1744,7 +1744,7 @@ body.theme-new-ui #screen-morph .morph-topbar > button:hover{
 
 /* Sentence wrap surface */
 body.theme-new-ui #screen-morph .morph-wrap{
-  max-width: 720px;
+  max-width: 880px;
   padding: 28px 22px 80px;
 }
 
@@ -1766,8 +1766,8 @@ body.theme-new-ui #screen-morph .morph-hint-lbl{
   margin-bottom: 8px;
 }
 body.theme-new-ui #screen-morph .morph-hint-text{
-  font-family: var(--ui-font-body);
-  font-size: 1rem;
+  font-family: 'DM Sans','Nunito',sans-serif;
+  font-size: 1.05rem;
   line-height: 1.6;
   color: var(--ui-ink-2);
   background: var(--ui-bg);
