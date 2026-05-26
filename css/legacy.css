@@ -124,6 +124,11 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 .sent-wrap{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:flex-end;min-width:100%;padding:4px 2px 2px}
 .wu{display:inline-flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:transform .1s}
 .wu.is-punct{cursor:default}
+/* Agrupa cada signo de puntuación con su palabra adyacente para que NUNCA se
+   separen en líneas distintas tras el flex-wrap del .sent-wrap. Equivalente al
+   Word Joiner que usa el módulo de compuestas. El gap horizontal interno se
+   reduce a 1px para que la puntuación quede visualmente pegada a su palabra. */
+.wu-group{display:inline-flex;flex-wrap:nowrap;align-items:flex-end;gap:6px 1px}
 .wu-text{font-family:'Lora',serif;font-size:1.3rem;padding:3px 8px;border-radius:7px;transition:background .12s;user-select:none;white-space:nowrap}
 .wu-badge{font-size:.6rem;font-weight:800;padding:2px 6px;border-radius:5px;opacity:0;transition:opacity .2s;white-space:nowrap}
 .wu.wu-verb .wu-text{background:var(--green-lt);color:#166534;font-weight:700}

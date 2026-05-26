@@ -490,6 +490,43 @@ function seededShuffle(arr, seed) {
 }
 function isPunct(w){return/^[.,;:!?¡¿\-—…]$/.test(w);}
 
+// Pega cada signo de puntuación a su palabra adyacente para evitar que un
+// signo quede colgado en una línea distinta tras el flex-wrap del .sent-wrap.
+// Aperturas (¿ ¡) se agrupan con la palabra SIGUIENTE; cierres (. , ; : ? !)
+// con la palabra ANTERIOR. Replica el efecto del Word Joiner que usa el módulo
+// de compuestas con su layout inline. Llamar tras pintar las .wu del container.
+function gluePunctToNeighbors(container){
+  if(!container) return;
+  const wus = Array.from(container.children).filter(c=>c.classList && c.classList.contains('wu'));
+  for(let i=0; i<wus.length; i++){
+    const wu = wus[i];
+    if(!wu.classList.contains('is-punct')) continue;
+    const txt = (wu.querySelector('.wu-text')?.textContent || '').trim();
+    const esApertura = /^[¿¡]$/.test(txt);
+    if(esApertura){
+      const next = wus[i+1];
+      if(next && !next.classList.contains('is-punct')){
+        const group = document.createElement('span');
+        group.className = 'wu-group';
+        wu.parentNode.insertBefore(group, wu);
+        group.appendChild(wu);
+        group.appendChild(next);
+      }
+    } else {
+      const prev = wu.previousElementSibling;
+      if(prev && prev.classList && prev.classList.contains('wu-group')){
+        prev.appendChild(wu);
+      } else if(prev && prev.classList && prev.classList.contains('wu')){
+        const group = document.createElement('span');
+        group.className = 'wu-group';
+        prev.parentNode.insertBefore(group, prev);
+        group.appendChild(prev);
+        group.appendChild(wu);
+      }
+    }
+  }
+}
+
 // FIX: función para clasificar secuencia verbal (según informe técnico adjunto)
 function clasificarVerbo(tokens, indices) {
   if (indices.length < 2) return 'SIMPLE';
@@ -1236,6 +1273,7 @@ function renderPhase1(el,o){
     }
     sent.appendChild(div);
   });
+  gluePunctToNeighbors(sent);
 }
 
 function clickVerb(idx,o){
@@ -1332,6 +1370,7 @@ function renderPhase2(el,o){
     }
     sent.appendChild(div);
   });
+  gluePunctToNeighbors(sent);
 }
 
 function p2ChooseTacito(){
