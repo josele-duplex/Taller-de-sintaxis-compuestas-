@@ -55,9 +55,13 @@
 //        auditarOracionesBanco_ · repararOracionesBanco_ ·
 //        menuLimpiarColoresAuditoria
 //
-//   §10 LIMPIEZA Y COHERENCIA                                 2714–final
+//   §10 LIMPIEZA Y COHERENCIA                                 2714–2945
 //        menuLimpiarHojasObsoletas · menuLimpiarBackupsAntiguos ·
 //        menuValidarCoherencia
+//
+//   §11 INFORME DEL PROFESOR (Excel multi-hoja)               2945–final
+//        getInformeProfesor_ · agregadores por alumno/grupo ·
+//        diagnóstico pedagógico (errores típicos)
 //
 //  Módulo de oración compuesta: en archivo aparte (Compuestas.gs).
 // ════════════════════════════════════════════════════════════════════════
@@ -635,6 +639,7 @@ function doGet(e) {
     else if (action === 'getRankingArcade')        result = getRankingArcade_(params);
     else if (action === 'regenerarMorfologia')     result = regenerarMorfologia_();
     else if (action === 'saveArcadeScore')         result = saveArcadeScore_(params);
+    else if (action === 'getInformeProfesor')      result = getInformeProfesor_(params);
     else {
       // v6.3 — Delegación al módulo de oración compuesta (Compuestas.gs).
       // Si la action no la reconoce el dispatcher, devuelve null y caemos al error original.
@@ -2943,3 +2948,488 @@ function menuValidarCoherencia() {
 
   ui.alert('⚠ Coherencia: problemas detectados', msg, ui.ButtonSet.OK);
 }
+
+// ════════════════════════════════════════════════════════════════════════
+//  §11 — INFORME DEL PROFESOR (datos para Excel multi-hoja)
+// ════════════════════════════════════════════════════════════════════════
+//  Endpoint: doGet?action=getInformeProfesor
+//  Params (todos opcionales):
+//    • from   — YYYY-MM-DD (default = hoy − 7 días)
+//    • to     — YYYY-MM-DD (default = hoy, incluido hasta 23:59:59)
+//    • grupo  — string (default = todos)
+//    • tipo   — 'todo' | 'simples' | 'compuestas' | 'examen' (default 'todo')
+//
+//  Devuelve un JSON enriquecido que el cliente convierte a Excel con
+//  SheetJS. NO genera el Excel aquí: Apps Script tarda mucho con XLSX
+//  via Drive API y se rompen los formatos.
+//
+//  Hojas leídas:
+//    • Alumnos_Resultados      (sintaxis simple — modo examen)
+//    • Sesiones_Practica       (sintaxis simple — práctica libre)
+//    • Compuestas_Resultados   (oración compuesta — examen y práctica)
+//    • Examenes_Config         (metadatos de exámenes con PIN)
+// ════════════════════════════════════════════════════════════════════════
+
+function getInformeProfesor_(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // ── 1. Parsear y normalizar parámetros ──────────────────────────────
+    const hoy = new Date();
+    const haceSieteDias = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const from = parseFechaParam_(params.from, haceSieteDias, false);
+    const to   = parseFechaParam_(params.to,   hoy,            true);
+    const grupoFilter = String(params.grupo || '').trim();
+    const tipoFilter  = String(params.tipo  || 'todo').trim().toLowerCase();
+
+    // ── 2. Cargar datos brutos por hoja ─────────────────────────────────
+    const filasSimplesEx = leerSimplesExamen_(ss,  from, to, grupoFilter);
+    const filasSimplesPr = leerSimplesPractica_(ss, from, to, grupoFilter);
+    const filasComp      = leerCompuestasRes_(ss,  from, to, grupoFilter);
+    const examenesCfg    = leerExamenesConfig_(ss);
+
+    // ── 3. Aplicar filtro de tipo ───────────────────────────────────────
+    const usarSimplesEx = (tipoFilter === 'todo' || tipoFilter === 'simples' || tipoFilter === 'examen');
+    const usarSimplesPr = (tipoFilter === 'todo' || tipoFilter === 'simples');
+    const usarCompEx    = (tipoFilter === 'todo' || tipoFilter === 'compuestas' || tipoFilter === 'examen');
+    const usarCompPr    = (tipoFilter === 'todo' || tipoFilter === 'compuestas');
+    const simplesEx = usarSimplesEx ? filasSimplesEx : [];
+    const simplesPr = usarSimplesPr ? filasSimplesPr : [];
+    const comp = filasComp.filter(r => {
+      const modo = String(r.modo || '').toLowerCase();
+      return (modo === 'examen' && usarCompEx) || (modo !== 'examen' && usarCompPr);
+    });
+
+    // ── 4. Agregar por alumno (clave: correo en minúsculas) ─────────────
+    const alumnosMap = {};
+    function ensureAlumno_(correo, nombre, grupo) {
+      const key = String(correo || '').trim().toLowerCase();
+      if (!alumnosMap[key]) {
+        alumnosMap[key] = {
+          correo: key,
+          nombre: String(nombre || '').trim(),
+          grupo:  String(grupo || '').trim(),
+          n_actividades: 0,
+          notas: [],
+          tiempo_min_total: 0,
+          ultima_actividad: null,
+          simples_practica: { sesiones: 0, ejercicios: 0, notas: [] },
+          simples_examen:   { intentos: 0, notas: [] },
+          compuestas:       { intentos: 0, notas: [] },
+          errores: {}   // funcion → count
+        };
+      } else {
+        // Actualizar nombre/grupo si llegan vacíos antes y completos ahora
+        if (!alumnosMap[key].nombre && nombre) alumnosMap[key].nombre = String(nombre).trim();
+        if (!alumnosMap[key].grupo  && grupo)  alumnosMap[key].grupo  = String(grupo).trim();
+      }
+      return alumnosMap[key];
+    }
+    function pushUltima_(al, fecha) {
+      if (!fecha) return;
+      if (!al.ultima_actividad || fecha > al.ultima_actividad) al.ultima_actividad = fecha;
+    }
+    function sumErr_(al, funcion, n) {
+      if (!funcion || !n) return;
+      al.errores[funcion] = (al.errores[funcion] || 0) + n;
+    }
+
+    // Simples examen
+    simplesEx.forEach(r => {
+      if (!r.correo) return;
+      const a = ensureAlumno_(r.correo, r.nombre, r.grupo);
+      a.n_actividades++;
+      a.notas.push(r.nota);
+      a.simples_examen.intentos++;
+      a.simples_examen.notas.push(r.nota);
+      pushUltima_(a, r.fecha);
+    });
+
+    // Simples práctica (con desglose de errores por función)
+    simplesPr.forEach(r => {
+      if (!r.correo) return;
+      const a = ensureAlumno_(r.correo, r.nombre, r.grupo);
+      a.n_actividades++;
+      a.notas.push(r.nota);
+      a.tiempo_min_total += (r.tiempoMin || 0);
+      a.simples_practica.sesiones++;
+      a.simples_practica.ejercicios += (r.oracionesHechas || 0);
+      a.simples_practica.notas.push(r.nota);
+      pushUltima_(a, r.fecha);
+      sumErr_(a, 'CD',     r.errCD);
+      sumErr_(a, 'CI',     r.errCI);
+      sumErr_(a, 'Atr.',   r.errAtr);
+      sumErr_(a, 'CPvo',   r.errCPvo);
+      sumErr_(a, 'C.Rég.', r.errCReg);
+      sumErr_(a, 'CC',     r.errCC);
+    });
+
+    // Compuestas (examen + práctica)
+    comp.forEach(r => {
+      if (!r.correo) return;
+      const a = ensureAlumno_(r.correo, r.nombre, r.grupo);
+      a.n_actividades++;
+      a.notas.push(r.nota);
+      a.compuestas.intentos++;
+      a.compuestas.notas.push(r.nota);
+      pushUltima_(a, r.fecha);
+    });
+
+    // ── 5. Construir array final de alumnos con stats ───────────────────
+    const alumnos = Object.keys(alumnosMap).map(k => {
+      const a = alumnosMap[k];
+      const erroresTop = Object.keys(a.errores)
+        .map(f => ({ funcion: f, count: a.errores[f] }))
+        .sort((x, y) => y.count - x.count)
+        .slice(0, 5);
+      return {
+        correo: a.correo,
+        nombre: a.nombre,
+        grupo:  a.grupo,
+        n_actividades:    a.n_actividades,
+        nota_media:       media_(a.notas),
+        tiempo_min_total: a.tiempo_min_total,
+        ultima_actividad: a.ultima_actividad ? a.ultima_actividad.toISOString() : null,
+        simples_practica: {
+          sesiones:   a.simples_practica.sesiones,
+          ejercicios: a.simples_practica.ejercicios,
+          nota_media: media_(a.simples_practica.notas)
+        },
+        simples_examen: {
+          intentos:   a.simples_examen.intentos,
+          nota_media: media_(a.simples_examen.notas),
+          mejor_nota: a.simples_examen.notas.length ? Math.max.apply(null, a.simples_examen.notas) : null
+        },
+        compuestas: {
+          intentos:   a.compuestas.intentos,
+          nota_media: media_(a.compuestas.notas)
+        },
+        errores_top: erroresTop
+      };
+    });
+
+    // Ordenar alumnos por nombre dentro de grupo
+    alumnos.sort((a, b) => {
+      const g = (a.grupo || 'zzz').localeCompare(b.grupo || 'zzz', 'es');
+      if (g !== 0) return g;
+      return (a.nombre || '').localeCompare(b.nombre || '', 'es');
+    });
+
+    // ── 6. Agrupar por "Grupo" ──────────────────────────────────────────
+    const grupos = {};
+    alumnos.forEach(al => {
+      const g = al.grupo || '(sin grupo)';
+      if (!grupos[g]) grupos[g] = { nombre: g, correos: [], notas: [], actividades: 0, errores: {} };
+      grupos[g].correos.push(al.correo);
+      if (al.nota_media !== null) grupos[g].notas.push(al.nota_media);
+      grupos[g].actividades += al.n_actividades;
+      al.errores_top.forEach(e => {
+        grupos[g].errores[e.funcion] = (grupos[g].errores[e.funcion] || 0) + e.count;
+      });
+    });
+
+    const gruposArr = Object.keys(grupos).map(k => {
+      const g = grupos[k];
+      const aprob = g.notas.filter(n => n >= 5).length;
+      return {
+        nombre: g.nombre,
+        alumnos: g.correos.length,
+        actividades: g.actividades,
+        nota_media: media_(g.notas),
+        pct_aprobados: g.notas.length ? Math.round((aprob / g.notas.length) * 100) : 0,
+        diagnostico: Object.keys(g.errores)
+          .map(f => ({ funcion: f, count: g.errores[f] }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10)
+      };
+    }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+    // ── 7. Resumen global ──────────────────────────────────────────────
+    const todasLasNotas = alumnos.map(a => a.nota_media).filter(n => n !== null);
+    const aprobadosGlobal = todasLasNotas.filter(n => n >= 5).length;
+    const totalActividades = alumnos.reduce((s, a) => s + a.n_actividades, 0);
+
+    // Diagnóstico global: suma de errores de todos los grupos
+    const erroresGlobal = {};
+    Object.keys(grupos).forEach(g => {
+      Object.keys(grupos[g].errores).forEach(f => {
+        erroresGlobal[f] = (erroresGlobal[f] || 0) + grupos[g].errores[f];
+      });
+    });
+    const totalErrores = Object.values(erroresGlobal).reduce((s, n) => s + n, 0);
+    const diagnosticoGlobal = Object.keys(erroresGlobal)
+      .map(f => ({
+        funcion: f,
+        count: erroresGlobal[f],
+        pct: totalErrores ? Math.round((erroresGlobal[f] / totalErrores) * 1000) / 10 : 0
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // ── 8. Detalle (una fila por actividad) ─────────────────────────────
+    const detalle = [];
+    simplesEx.forEach(r => detalle.push({
+      fecha: r.fecha ? r.fecha.toISOString() : null,
+      correo: r.correo, nombre: r.nombre, grupo: r.grupo,
+      tipo: 'Sintaxis · examen',
+      nota: r.nota, tiempo_min: null,
+      info: (r.examen || '') + (r.pin ? ' [PIN ' + r.pin + ']' : '')
+    }));
+    simplesPr.forEach(r => detalle.push({
+      fecha: r.fecha ? r.fecha.toISOString() : null,
+      correo: r.correo, nombre: r.nombre, grupo: r.grupo,
+      tipo: 'Sintaxis · práctica',
+      nota: r.nota, tiempo_min: r.tiempoMin,
+      info: (r.modulo || 'sintaxis') + ' · ' + (r.oracionesHechas || 0) + ' oraciones'
+    }));
+    comp.forEach(r => detalle.push({
+      fecha: r.fecha ? r.fecha.toISOString() : null,
+      correo: r.correo, nombre: r.nombre, grupo: r.grupo,
+      tipo: 'Compuestas · ' + (String(r.modo).toLowerCase() === 'examen' ? 'examen' : 'práctica'),
+      nota: r.nota, tiempo_min: null,
+      info: (r.completados || 0) + '/' + (r.totalEjercicios || 0) + ' ejercicios'
+              + (r.pin && String(r.modo).toLowerCase() === 'examen' ? ' [PIN ' + r.pin + ']' : '')
+    }));
+    detalle.sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+
+    // ── 9. Exámenes (agrupar por PIN) ───────────────────────────────────
+    const examenesMap = {};
+    function pushExamen_(r, modulo) {
+      const pin = String(r.pin || '').trim();
+      if (!pin) return;
+      if (!examenesMap[pin]) {
+        const cfg = examenesCfg[pin] || {};
+        examenesMap[pin] = {
+          pin: pin,
+          nombre: cfg.nombre || '(examen sin nombre)',
+          modulo: modulo,
+          grupo: cfg.grupo || r.grupo || '',
+          evaluacion: cfg.evaluacion || r.evaluacion || '',
+          fecha_creacion: cfg.fecha || null,
+          intentos: []
+        };
+      }
+      examenesMap[pin].intentos.push({
+        fecha: r.fecha ? r.fecha.toISOString() : null,
+        correo: r.correo, nombre: r.nombre, grupo: r.grupo,
+        nota: r.nota
+      });
+    }
+    simplesEx.forEach(r => pushExamen_(r, 'Sintaxis simple'));
+    comp.forEach(r => { if (String(r.modo).toLowerCase() === 'examen') pushExamen_(r, 'Oración compuesta'); });
+
+    const examenes = Object.keys(examenesMap).map(pin => {
+      const ex = examenesMap[pin];
+      const notas = ex.intentos.map(i => i.nota).filter(n => !isNaN(n));
+      const aprob = notas.filter(n => n >= 5).length;
+      return {
+        pin: ex.pin, nombre: ex.nombre, modulo: ex.modulo,
+        grupo: ex.grupo, evaluacion: ex.evaluacion,
+        fecha_creacion: ex.fecha_creacion,
+        intentos: ex.intentos.length,
+        media: media_(notas),
+        aprobados: aprob,
+        pct_aprobados: notas.length ? Math.round((aprob / notas.length) * 100) : 0,
+        alumnos: ex.intentos.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es'))
+      };
+    }).sort((a, b) => (a.fecha_creacion || '').toString().localeCompare((b.fecha_creacion || '').toString()));
+
+    // ── 10. Respuesta final ─────────────────────────────────────────────
+    return {
+      ok: true,
+      fecha_generacion: new Date().toISOString(),
+      rango: {
+        desde: from.toISOString().slice(0, 10),
+        hasta: to.toISOString().slice(0, 10)
+      },
+      filtros_aplicados: { grupo: grupoFilter, tipo: tipoFilter },
+      resumen: {
+        total_alumnos: alumnos.length,
+        total_actividades: totalActividades,
+        nota_media: media_(todasLasNotas),
+        aprobados: aprobadosGlobal,
+        pct_aprobados: todasLasNotas.length ? Math.round((aprobadosGlobal / todasLasNotas.length) * 100) : 0,
+        grupos: gruposArr.map(g => ({
+          nombre: g.nombre,
+          alumnos: g.alumnos,
+          actividades: g.actividades,
+          nota_media: g.nota_media,
+          pct_aprobados: g.pct_aprobados
+        }))
+      },
+      alumnos: alumnos,
+      por_grupo: gruposArr,
+      diagnostico_global: {
+        errores_top: diagnosticoGlobal,
+        recomendacion: construirRecomendacion_(diagnosticoGlobal)
+      },
+      detalle: detalle,
+      examenes: examenes
+    };
+  } catch (err) {
+    return { ok: false, error: err.message, stack: err.stack };
+  }
+}
+
+// ── Helpers de §11 ─────────────────────────────────────────────────────
+
+// Parsea YYYY-MM-DD a Date. Si endOfDay=true, fija 23:59:59.
+function parseFechaParam_(str, fallback, endOfDay) {
+  if (!str) {
+    const f = new Date(fallback.getTime());
+    if (endOfDay) { f.setHours(23, 59, 59, 999); } else { f.setHours(0, 0, 0, 0); }
+    return f;
+  }
+  const m = String(str).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) {
+    const f = new Date(fallback.getTime());
+    if (endOfDay) { f.setHours(23, 59, 59, 999); } else { f.setHours(0, 0, 0, 0); }
+    return f;
+  }
+  const d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+  if (endOfDay) d.setHours(23, 59, 59, 999); else d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Media aritmética con 1 decimal. Devuelve null si array vacío.
+function media_(arr) {
+  if (!arr || !arr.length) return null;
+  const validos = arr.filter(n => n !== null && n !== undefined && !isNaN(n));
+  if (!validos.length) return null;
+  const sum = validos.reduce((s, n) => s + n, 0);
+  return Math.round((sum / validos.length) * 10) / 10;
+}
+
+// Convierte una celda "Fecha" de Sheets (Date o string ISO) a Date.
+function _fechaCelda(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function _enRango(fecha, from, to) {
+  if (!fecha) return false;
+  return fecha >= from && fecha <= to;
+}
+
+function leerSimplesExamen_(ss, from, to, grupoFilter) {
+  const sheet = ss.getSheetByName(SHEET_RESULTS);
+  if (!sheet) return [];
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  const out = [];
+  data.forEach(row => {
+    const fecha = _fechaCelda(row[col['Fecha']]);
+    if (!_enRango(fecha, from, to)) return;
+    const grupo = String(row[col['Grupo']] || '').trim();
+    if (grupoFilter && grupo !== grupoFilter) return;
+    out.push({
+      fecha:      fecha,
+      correo:     String(row[col['Correo']] || '').trim().toLowerCase(),
+      nombre:     String(row[col['Nombre']] || '').trim(),
+      grupo:      grupo,
+      evaluacion: String(row[col['Evaluacion']] || '').trim(),
+      examen:     String(row[col['Examen']] || '').trim(),
+      pin:        String(row[col['PIN']] || '').trim(),
+      nota:       parseFloat(row[col['Nota']]) || 0
+    });
+  });
+  return out;
+}
+
+function leerSimplesPractica_(ss, from, to, grupoFilter) {
+  const sheet = ss.getSheetByName(SHEET_SESIONES);
+  if (!sheet) return [];
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  const out = [];
+  data.forEach(row => {
+    const fecha = _fechaCelda(row[col['Fecha']]);
+    if (!_enRango(fecha, from, to)) return;
+    const grupo = String(row[col['Grupo']] || '').trim();
+    if (grupoFilter && grupo !== grupoFilter) return;
+    out.push({
+      fecha:           fecha,
+      correo:          String(row[col['Correo']] || '').trim().toLowerCase(),
+      nombre:          String(row[col['Nombre']] || '').trim(),
+      grupo:           grupo,
+      modulo:          String(row[col['Modulo']] || '').trim(),
+      subfase:         String(row[col['Subfase']] || '').trim(),
+      oracionesHechas: parseInt(row[col['Oraciones_Hechas']]) || 0,
+      nota:            parseFloat(row[col['Nota_Estimada']]) || 0,
+      tiempoMin:       parseInt(row[col['Tiempo_Min']]) || 0,
+      errCD:           parseInt(row[col['Err_CD']])   || 0,
+      errCI:           parseInt(row[col['Err_CI']])   || 0,
+      errAtr:          parseInt(row[col['Err_Atr']])  || 0,
+      errCPvo:         parseInt(row[col['Err_CPvo']]) || 0,
+      errCReg:         parseInt(row[col['Err_CReg']]) || 0,
+      errCC:           parseInt(row[col['Err_CC']])   || 0
+    });
+  });
+  return out;
+}
+
+function leerCompuestasRes_(ss, from, to, grupoFilter) {
+  const sheet = ss.getSheetByName('Compuestas_Resultados');
+  if (!sheet) return [];
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  const out = [];
+  data.forEach(row => {
+    const fecha = _fechaCelda(row[col['Fecha']]);
+    if (!_enRango(fecha, from, to)) return;
+    const grupo = String(row[col['Grupo']] || '').trim();
+    if (grupoFilter && grupo !== grupoFilter) return;
+    out.push({
+      fecha:           fecha,
+      correo:          String(row[col['Correo']] || '').trim().toLowerCase(),
+      nombre:          String(row[col['Nombre']] || '').trim(),
+      grupo:           grupo,
+      evaluacion:      String(row[col['Evaluacion']] || '').trim(),
+      pin:             String(row[col['PIN']] || '').trim(),
+      modo:            String(row[col['Modo']] || '').trim(),
+      totalEjercicios: parseInt(row[col['Total_Ejercicios']]) || 0,
+      completados:     parseInt(row[col['Completados']])      || 0,
+      nota:            parseFloat(row[col['Nota']]) || 0
+    });
+  });
+  return out;
+}
+
+function leerExamenesConfig_(ss) {
+  const sheet = ss.getSheetByName(SHEET_EXAMS);
+  if (!sheet) return {};
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return {};
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  const map = {};
+  data.forEach(row => {
+    const pin = String(row[col['PIN']] || '').trim();
+    if (!pin) return;
+    map[pin] = {
+      nombre:     col['Nombre_Examen'] !== undefined ? String(row[col['Nombre_Examen']] || '').trim() : '',
+      grupo:      col['Grupo']         !== undefined ? String(row[col['Grupo']] || '').trim() : '',
+      evaluacion: col['Evaluacion']    !== undefined ? String(row[col['Evaluacion']] || '').trim() : '',
+      fecha:      col['Fecha']         !== undefined ? _fechaCelda(row[col['Fecha']]) : null
+    };
+  });
+  return map;
+}
+
+function construirRecomendacion_(diagnostico) {
+  if (!diagnostico || !diagnostico.length) return 'Sin datos suficientes para una recomendación pedagógica.';
+  const top3 = diagnostico.slice(0, 3).map(d => d.funcion);
+  if (top3.length === 1) {
+    return 'El error más frecuente del grupo es en «' + top3[0] + '». Conviene reforzarlo antes de avanzar.';
+  }
+  return 'Los errores más frecuentes son en «' + top3.slice(0, -1).join('», «') + '» y «' + top3[top3.length - 1] + '». '
+       + 'Conviene dedicar una sesión específica a estas funciones antes de avanzar al siguiente tema.';
+}
+
