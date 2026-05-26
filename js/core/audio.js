@@ -67,6 +67,9 @@ export function initSoundBtn() {
   if (btn) { btn.textContent = _soundOn ? '🔊' : '🔇'; btn.classList.toggle('muted', !_soundOn); }
 }
 
+// Wrapper público de _tone para módulos que no tienen acceso al estado privado.
+export function playTone(freq, dur, type = 'sine', vol = 0.13) { _tone(freq, dur, type, vol); }
+
 // Accessor para módulos externos (p.ej. arcade) que necesitan saber si el sonido está activo.
 // Cuando se modularicen todos los módulos, sustituirán las referencias a _soundOn por isSoundOn().
 export function isSoundOn() { return _soundOn; }

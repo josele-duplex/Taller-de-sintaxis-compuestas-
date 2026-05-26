@@ -20,6 +20,8 @@
 // ════════════════════════════════════════════════════════
 const LS_LB_SRV='taller_lb_survival';
 const LS_LB_TMR='taller_lb_timer';
+const LS_GHOST_SRV='taller_ghost_survival';
+const LS_GHOST_TMR='taller_ghost_timer';
 
 function getLB(key){try{return JSON.parse(localStorage.getItem(key)||'[]');}catch{return [];}}
 function saveLB(key,entry){
@@ -28,6 +30,45 @@ function saveLB(key,entry){
   lb.sort((a,b)=>b.score-a.score);
   localStorage.setItem(key,JSON.stringify(lb.slice(0,10)));
   return lb.slice(0,10);
+}
+
+// ════════════════════════════════════════════════════════
+// GHOST MODE — récord propio (localStorage, sin backend)
+// ════════════════════════════════════════════════════════
+function getGhost(mode){
+  try{return JSON.parse(localStorage.getItem(mode==='survival'?LS_GHOST_SRV:LS_GHOST_TMR)||'null');}
+  catch{return null;}
+}
+function saveGhost(mode,data){
+  localStorage.setItem(mode==='survival'?LS_GHOST_SRV:LS_GHOST_TMR,JSON.stringify(data));
+}
+
+function updateGhostBar(){
+  const el=document.getElementById('arc-ghost-bar');
+  if(!el||!ARC.ghost) return;
+  // Número de preguntas respondidas (idx ya fue incrementado por arcadeNext)
+  const q=Math.min(ARC.questionsAnswered, ARC.ghost.totalQuestions);
+  const expected=Math.round(ARC.ghost.avgScorePerQ * q);
+  const delta=ARC.score - expected;
+  const wasAhead=ARC.ghostAhead||false;
+  const nowAhead=delta>=0;
+  const their=document.getElementById('arc-ghost-their');
+  const mine=document.getElementById('arc-ghost-mine');
+  const dEl=document.getElementById('arc-ghost-delta');
+  if(their) their.textContent=expected+' pts';
+  if(mine) mine.textContent=ARC.score+' pts';
+  if(dEl){
+    dEl.textContent=(delta>0?'+':'')+delta;
+    if(nowAhead){
+      dEl.style.background='rgba(34,197,94,.25)';dEl.style.color='#86EFAC';
+    } else if(delta<0){
+      dEl.style.background='rgba(239,68,68,.25)';dEl.style.color='#FCA5A5';
+    } else {
+      dEl.style.background='rgba(255,255,255,.1)';dEl.style.color='rgba(255,255,255,.7)';
+    }
+  }
+  if(!wasAhead&&nowAhead&&ARC.questionsAnswered>3) showComboBurst(1,'👻 ¡FANTASMA SUPERADO!');
+  ARC.ghostAhead=nowAhead;
 }
 
 // ════════════════════════════════════════════════════════
@@ -52,6 +93,7 @@ async function startArcade({name,email,nickname,grupo,arcadeMode}){
   }
   oraciones=shuffle(oraciones);
 
+  const _ghost=getGhost(arcadeMode);
   ARC={
     name,email,nickname,grupo:grupo||'',arcadeMode,
     oraciones,idx:0,
@@ -69,11 +111,33 @@ async function startArcade({name,email,nickname,grupo,arcadeMode}){
     questionShownAt: 0,
     frenzy: false,
     alive:true,done:false,
+    // Ghost mode: récord propio
+    ghost: _ghost||null, ghostAhead: false, questionsAnswered: 0,
     startOpts:{name,email,nickname,grupo,arcadeMode}
   };
 
   // Show countdown BEFORE game starts
   showScreen('arcade');
+
+  // Ghost bar: crear o reutilizar, mostrar solo si hay récord previo
+  {
+    let gb=document.getElementById('arc-ghost-bar');
+    if(!gb){
+      gb=document.createElement('div');
+      gb.id='arc-ghost-bar';
+      gb.style.cssText='display:none;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.35);border-bottom:1px solid rgba(255,255,255,.08);padding:5px 16px;font-size:.78rem;color:rgba(255,255,255,.85);font-weight:700;font-family:\'DM Sans\',sans-serif;letter-spacing:.02em';
+      gb.innerHTML='<span style="color:rgba(255,255,255,.5)">👻 Tu récord</span>'
+        +'<span id="arc-ghost-their" style="color:#C4B5FD;font-family:monospace">— pts</span>'
+        +'<span style="color:rgba(255,255,255,.3)">·</span>'
+        +'<span style="color:rgba(255,255,255,.5)">tú</span>'
+        +'<span id="arc-ghost-mine" style="color:#FCD34D;font-family:monospace">0 pts</span>'
+        +'<span id="arc-ghost-delta" style="min-width:44px;text-align:center;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)">±0</span>';
+      const aw=document.getElementById('arc-wrap');
+      if(aw) aw.parentElement.insertBefore(gb,aw);
+    }
+    gb.style.display=ARC.ghost?'flex':'none';
+  }
+
   renderArcade();
   await showArcadeCountdown();
 
@@ -109,7 +173,7 @@ async function showArcadeCountdown(){
     num.style.animation = 'none';
     void num.offsetWidth;
     num.style.animation = 'arcCdPulse .8s ease-out';
-    _tone(n==='¡YA!'?880:440+(3-parseInt(n)||0)*100, .15, 'sine', .2);
+    if(typeof playTone==='function') playTone(n==='¡YA!'?880:440+(3-parseInt(n)||0)*100, .15, 'sine', .2);
     await delay(n==='¡YA!'?600:800);
   }
   overlay.style.display = 'none';
@@ -118,9 +182,9 @@ async function showArcadeCountdown(){
 // ═══ ARCADE MUSIC (synthwave loop using Web Audio API, no files) ═══
 let _arcMusicNodes = null;
 function startArcadeMusic(){
-  if(!_soundOn || _arcMusicNodes) return;
+  if(!isSoundOn() || _arcMusicNodes) return;
   try{
-    const ctx = _audioCtx || (window.AudioContext ? new AudioContext() : null);
+    const ctx = window.AudioContext ? new AudioContext() : null;
     if(!ctx) return;
     // Bass pattern (repeating arpeggio)
     const bassNotes = [110, 110, 82.4, 98, 110, 110, 146.8, 123.5]; // A2 A2 E2 G2 A2 A2 D3 B2
@@ -231,6 +295,7 @@ function arcComboMultiplier(){
 
 function arcadeAnswer(chosen,correct,consejo){
   if(!ARC.alive)return;
+  ARC.questionsAnswered++;
   const now = Date.now();
   const responseTime = ARC.questionShownAt > 0 ? (now - ARC.questionShownAt)/1000 : 99;
 
@@ -404,6 +469,7 @@ function showArcadeHint(consejo, correctFunc){
 function arcadeNext(){
   ARC.idx++;
   if(ARC.idx>=ARC.oraciones.length){ARC.oraciones=shuffle([...ARC.oraciones]);ARC.idx=0;}
+  updateGhostBar();
   setTimeout(renderArcade,400);
 }
 
@@ -520,13 +586,28 @@ async function endArcade(){
   } else {
     sub = `Racha máxima: ${ARC.highStreak} · Posición #${myRank}`;
   }
+  if(_isNewRecord) sub += ' · 👻 ¡Nuevo récord personal!';
   document.getElementById('go-sub').textContent = sub;
   document.getElementById('go-score').textContent=ARC.score;
   document.getElementById('go-score-lbl').textContent='PUNTUACIÓN TOTAL';
 
+  // Ghost mode: guardar récord si es mejor (o si no había ninguno)
+  const total = ARC.correctAnswers + ARC.wrongAnswers;
+  const _prevGhost = getGhost(ARC.arcadeMode);
+  const _isNewRecord = total > 0 && (!_prevGhost || ARC.score > _prevGhost.score);
+  if(_isNewRecord){
+    saveGhost(ARC.arcadeMode,{
+      nickname: ARC.nickname||'Tú',
+      score: ARC.score,
+      totalQuestions: total,
+      precision: ARC.correctAnswers/total,
+      avgScorePerQ: ARC.score/total,
+      date: new Date().toLocaleDateString('es-ES')
+    });
+  }
+
   // Sprint 2: medalla por precisión. Solo si el alumno respondió ≥10 veces
   // (para evitar medallas falsas en partidas muy cortas).
-  const total = ARC.correctAnswers + ARC.wrongAnswers;
   let medalEl = document.getElementById('go-medal');
   if(!medalEl){
     medalEl = document.createElement('div');
@@ -679,6 +760,7 @@ function renderArcadeRanking(data, entry){
 // Public API exports + window bindings para inline onclick
 export {
   getLB, saveLB,
+  getGhost, saveGhost, updateGhostBar,
   startArcade, restartArcade, showArcadeCountdown,
   startArcadeMusic, stopArcadeMusic,
   renderArcade, arcComboMultiplier,
@@ -691,6 +773,7 @@ export {
 if (typeof window !== 'undefined') {
   Object.assign(window, {
     getLB, saveLB,
+    getGhost, saveGhost, updateGhostBar,
     startArcade, restartArcade, showArcadeCountdown,
     startArcadeMusic, stopArcadeMusic,
     renderArcade, arcComboMultiplier,
