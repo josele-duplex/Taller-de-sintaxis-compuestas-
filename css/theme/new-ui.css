@@ -4028,6 +4028,8 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 /* Chips de filtro activos */
 .cp-chip:hover{border-color:var(--cp-marca);background:var(--cp-marca-bg)}
 .cp-chip.active{background:var(--cp-marca);color:#fff;border-color:#0A1A33;box-shadow:0 2px 4px rgba(15,35,66,.18)}
+.cp-chip.excl{background:#FEE2E2;color:#991B1B;border-color:#FECACA;}
+.cp-chip.excl:hover{background:#FECACA;border-color:#DC2626}
 
 /* Botones primarios */
 .cp-btn-primary{

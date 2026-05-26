@@ -26,11 +26,17 @@
     ejercicios: [],         // banco completo (49+ ejercicios)
     filtered: [],           // banco tras aplicar filtros
     idx: 0,                 // índice actual dentro de filtered
-    filtros: {              // filtros activos (sets de strings)
+    filtros: {              // filtros activos — inclusión (sets de strings)
       tipo:     new Set(),
       subtipo:  new Set(),
       nivel:    new Set(),
       n_props:  new Set()   // valores numéricos como strings ('2', '3', '4')
+    },
+    filtrosExcl: {          // filtros activos — exclusión dura
+      tipo:     new Set(),
+      subtipo:  new Set(),
+      nivel:    new Set(),
+      n_props:  new Set()
     },
     solucionVisible: false, // toggle de la caja de soluciones
     loaded: false,
@@ -231,17 +237,27 @@
   // Filtrado
   // ─────────────────────────────────────────────────────────────────────
   function aplicarFiltros(){
-    state.filtered = state.ejercicios.filter(ej=>{
-      if(state.filtros.tipo.size > 0 && !state.filtros.tipo.has(ej.tipo_oracion||'')) return false;
-      // subtipo: usa el subtipo de la primera relación de subordinación o coordinación, o el del primer prop
-      const subtipoEj = obtenerSubtipoPrincipal(ej);
-      if(state.filtros.subtipo.size > 0 && !state.filtros.subtipo.has(subtipoEj||'')) return false;
-      const nivel = (ej.metadatos && ej.metadatos.nivel) || '';
-      if(state.filtros.nivel.size > 0 && !state.filtros.nivel.has(nivel)) return false;
-      const np = String(ej.proposiciones?.length || 0);
-      if(state.filtros.n_props.size > 0 && !state.filtros.n_props.has(np)) return false;
-      return true;
+    const cats = ['tipo', 'subtipo', 'nivel', 'n_props'];
+
+    // Capa 1: exclusión dura (ejercicios con propiedades prohibidas → fuera)
+    let filtered = state.ejercicios;
+    cats.forEach(cat=>{
+      if(state.filtrosExcl[cat].size > 0){
+        filtered = filtered.filter(ej=>!state.filtrosExcl[cat].has(getEjVal(ej, cat)));
+      }
     });
+
+    // Capa 2: inclusión flexible (solo los que tienen al menos una propiedad deseada)
+    const hayInclusiones = cats.some(cat=>state.filtros[cat].size > 0);
+    if(hayInclusiones){
+      const conDeseados = filtered.filter(ej=>
+        cats.some(cat=>state.filtros[cat].size > 0 && state.filtros[cat].has(getEjVal(ej, cat)))
+      );
+      // Capa 3: fallback — si inclusión+exclusión vacía, quedarse con solo exclusión
+      if(conDeseados.length > 0) filtered = conDeseados;
+    }
+
+    state.filtered = filtered;
     state.idx = 0;
   }
 
@@ -254,6 +270,14 @@
     for(const p of (ej.proposiciones||[])){
       if(p.subtipo) return p.subtipo;
     }
+    return '';
+  }
+
+  function getEjVal(ej, cat){
+    if(cat === 'tipo')    return ej.tipo_oracion || '';
+    if(cat === 'subtipo') return obtenerSubtipoPrincipal(ej);
+    if(cat === 'nivel')   return (ej.metadatos && ej.metadatos.nivel) || '';
+    if(cat === 'n_props') return String(ej.proposiciones?.length || 0);
     return '';
   }
 
@@ -385,13 +409,19 @@
       </div>
     `;
 
-    // Activar listeners de chips
+    // Ciclo tri-estado: neutro → incluir (verde) → excluir (rojo) → neutro
     document.querySelectorAll('#cp-wrap .cp-chip').forEach(ch=>{
       ch.addEventListener('click', ()=>{
         const cat = ch.dataset.cat;
         const val = ch.dataset.val;
-        if(state.filtros[cat].has(val)) state.filtros[cat].delete(val);
-        else state.filtros[cat].add(val);
+        if(state.filtros[cat].has(val)){
+          state.filtros[cat].delete(val);
+          state.filtrosExcl[cat].add(val);    // incluir → excluir
+        } else if(state.filtrosExcl[cat].has(val)){
+          state.filtrosExcl[cat].delete(val); // excluir → neutro
+        } else {
+          state.filtros[cat].add(val);         // neutro → incluir
+        }
         renderFiltros();
       });
     });
@@ -616,15 +646,18 @@
   window.CP_renderFiltros = renderFiltros;
 
   function chipHtml(categoria, valor, etiqueta){
-    const activo = state.filtros[categoria].has(valor);
-    return `<span class="cp-chip ${activo?'active':''}" data-cat="${categoria}" data-val="${escAttr(valor)}">${escHtml(etiqueta)}</span>`;
+    const incl = state.filtros[categoria].has(valor);
+    const excl = state.filtrosExcl[categoria].has(valor);
+    const cls  = excl ? 'excl' : (incl ? 'active' : '');
+    const prefix = excl ? '✕ ' : (incl ? '✓ ' : '');
+    return `<span class="cp-chip ${cls}" data-cat="${categoria}" data-val="${escAttr(valor)}">${prefix}${escHtml(etiqueta)}</span>`;
   }
 
   function limpiarFiltros(){
-    state.filtros.tipo.clear();
-    state.filtros.subtipo.clear();
-    state.filtros.nivel.clear();
-    state.filtros.n_props.clear();
+    ['tipo','subtipo','nivel','n_props'].forEach(k=>{
+      state.filtros[k].clear();
+      state.filtrosExcl[k].clear();
+    });
     renderFiltros();
   }
 
@@ -3524,6 +3557,43 @@
   //   4. Mostrar estado en la UI: enviando / guardado / error.
   // ═════════════════════════════════════════════════════════════════════
 
+  // IF-AT atenuada por fase: 0 err→100%, 1→50%, 2→25%, 3+→0%
+  // Cada fase tiene un peso fijo; solo se puntúa si el alumno interactuó con ella.
+  function computeCompScore(eng, ej){
+    const fasesActivas = (ej.metadatos && Array.isArray(ej.metadatos.fases_activas))
+      ? ej.metadatos.fases_activas : [1, 2, 3, 4, 5, 6];
+
+    const tieneNexos = (ej.nexos||[]).length > 0 && (ej.proposiciones||[]).length > 1;
+    const tieneRelaciones = (ej.relaciones||[]).length > 0;
+
+    const atenPenalty = (w, e) => {
+      if (e <= 0) return w;
+      if (e === 1) return w * 0.5;
+      if (e === 2) return w * 0.25;
+      return 0;
+    };
+
+    let avail = 0, earned = 0;
+    function addFase(w, ok, er){
+      if ((ok + er) === 0) return;
+      avail += w;
+      earned += atenPenalty(w, er);
+    }
+
+    if (fasesActivas.includes(1))
+      addFase(2, eng.verbosAciertos||0, eng.verbosErrores||0);
+    if (fasesActivas.includes(2) && tieneNexos)
+      addFase(2, eng.nexosAciertos||0, eng.nexosErrores||0);
+    if (fasesActivas.includes(3))
+      addFase(3, eng.f3Aciertos||0, eng.f3Errores||0);
+    if ((fasesActivas.includes(4) || fasesActivas.includes(5)) && tieneRelaciones)
+      addFase(4, eng.f5Aciertos||0, eng.f5Errores||0);
+    if (fasesActivas.includes(6) && eng.interna && eng.interna.activo)
+      addFase(3, eng.interna.aciertos||0, eng.interna.errores||0);
+
+    return avail > 0 ? Math.round((earned / avail) * 100) / 10 : null;
+  }
+
   function construirPayloadResultado(ej){
     const eng = state.engine;
     if(!eng || !ej) return null;
@@ -3561,6 +3631,7 @@
       pistas_usadas:        pistas.join(','),
       duracion_segundos:    duracion,
       user_agent:           navigator.userAgent || '',
+      nota:                 computeCompScore(eng, ej),
       // Fase 1.5: metadata del examen (vacíos en práctica)
       pin:                  state.modoExamen ? state.examPin : '',
       modo:                 state.modoExamen ? 'examen' : 'practica',
@@ -3831,10 +3902,19 @@
         </div>`;
     }).join('');
 
+    const nota = computeCompScore(eng, ej);
+    const notaColor = nota === null ? 'var(--muted)' : nota >= 5 ? '#15803D' : '#B91C1C';
+
     return `
       <div class="cp-summary">
         <div class="cp-summary-icon">${icono}</div>
         <h2 class="cp-summary-title">${titulo}</h2>
+        ${nota !== null ? `
+          <div style="margin:10px 0 4px;font-size:2.4rem;font-weight:900;font-family:'Fraunces',serif;color:${notaColor};line-height:1">
+            ${nota.toFixed(1)}<span style="font-size:1rem;font-weight:500;color:var(--muted)">&thinsp;/ 10</span>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Nota IF-AT</div>
+        ` : ''}
         <div class="cp-summary-stats">
           <div class="cp-summary-stat">
             <div class="cp-summary-stat-num">${totalAciertos}</div>
