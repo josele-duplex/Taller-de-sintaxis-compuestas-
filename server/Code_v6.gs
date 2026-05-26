@@ -13,6 +13,58 @@
 //
 //  Cambios anteriores: ver historial git (commits previos a 2026-05-26)
 // ════════════════════════════════════════════════════════════════════════
+//
+// ════════════════════════════════════════════════════════════════════════
+//  ÍNDICE  (líneas aproximadas — usa Ctrl+F para saltar a la sección)
+// ════════════════════════════════════════════════════════════════════════
+//
+//   §1  CONSTANTES Y HELPERS BÁSICOS                            65–608
+//        • Nombres de hojas y columnas de Oraciones_Banco         69–90
+//        • safeParseJSON — tolera JSONs corruptos                 97–128
+//        • buildOracionObject — fila Sheets → objeto frontend    135–352
+//        • Helpers de sintagma, verbos, funciones, normalización 353–608
+//
+//   §2  ENDPOINTS GET  (doGet?action=...)                      608–822
+//        doGet · getOraciones_ · getOracionesFiltradas_ ·
+//        validatePin_ · getResults_
+//
+//   §3  MORFOLOGÍA · MISIONES · STATS                          822–1110
+//        precomputeMorfologia_ · regenerarMorfologia_ ·
+//        getTextosMorfologia_ · getMisiones_ · createMision_ ·
+//        saveMisionResult_ · getStats_ · getResultsByGroup_
+//
+//   §4  SISTEMA DE EXÁMENES (PIN)                             1110–1450
+//        Utilidades de columnas (getColMap_, appendRowSafe_, …) ·
+//        ensureExamSheet_ · createExam_ · getExamConfig_
+//
+//   §5  ENDPOINTS POST  (doPost?action=...)                   1450–1691
+//        doPost · saveResult_ · saveSesionPractica_ ·
+//        saveArcadeScore_ · getRankingArcade_ · saveMorphResult_
+//
+//   §6  MENÚ DEL PROFESOR                                     1691–2012
+//        onOpen + operaciones de aula: crear examen, activar/desactivar
+//        oraciones, configurar validaciones, generar PIN, etc.
+//
+//   §7  ETIQUETADO AUTOMÁTICO (IA)                            2012–2125
+//        generarEtiquetas · menuRegenerarMorfologia · resumenEtiquetas
+//
+//   §8  DASHBOARD Y UI DE HOJAS                               2125–2365
+//        setupSheetUI_ · crearDashboard_ · menuDashboard · métricas
+//
+//   §9  AUDITORÍA Y REPARACIÓN DEL BANCO                      2365–2714
+//        auditarOracionesBanco_ · repararOracionesBanco_ ·
+//        menuLimpiarColoresAuditoria
+//
+//   §10 LIMPIEZA Y COHERENCIA                                 2714–final
+//        menuLimpiarHojasObsoletas · menuLimpiarBackupsAntiguos ·
+//        menuValidarCoherencia
+//
+//  Módulo de oración compuesta: en archivo aparte (Compuestas.gs).
+// ════════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════════
+//  §1 — CONSTANTES Y HELPERS BÁSICOS
+// ════════════════════════════════════════════════════════════════════════
 
 // ── Nombres de hojas ──────────────────────────────────────────────────
 const SHEET_BANCO    = 'Oraciones_Banco';
@@ -553,7 +605,7 @@ function generarConsejoSint(func) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  doGet — Endpoint principal
+//  §2 — ENDPOINTS GET  (doGet — Endpoint principal)
 // ════════════════════════════════════════════════════════════════════════
 function doGet(e) {
   const params  = e.parameter || {};
@@ -767,7 +819,7 @@ function getResults_() {
 // Tokens_JSON tiene el mismo formato que MAESTRO_TEXT1/TEXT2:
 // [{"id":"t1","texto":"El","cat":"Artículo","atrs":{"tipo":"determinado",...}}, ...]
 // ════════════════════════════════════════════════════════════════════════
-//  MORPHOLOGY SYSTEM v6.2 — Precomputation + Cache (parallel to exam system)
+//  §3 — MORFOLOGÍA · MISIONES · STATS  (Precomputation + Cache)
 // ════════════════════════════════════════════════════════════════════════
 //  Architecture: Precompute → Store (PropertiesService) → Cache → Read
 //  Same pattern as createExam_ / getExamConfig_
@@ -1055,7 +1107,7 @@ function getResultsByGroup_(params) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  EXAM SYSTEM v6.2 — Pre-computed oraciones + dynamic column lookup
+//  §4 — SISTEMA DE EXÁMENES (PIN) — Pre-computed oraciones + dynamic column lookup
 //  Changes:
 //    • createExam_ pre-computes oraciones → Oraciones_JSON column
 //    • getExamConfig_ reads pre-computed JSON (< 1 second)
@@ -1395,7 +1447,7 @@ function getExamConfig_(params) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  doPost — Guardar resultados
+//  §5 — ENDPOINTS POST  (doPost — Guardar resultados)
 // ════════════════════════════════════════════════════════════════════════
 function doPost(e) {
   const out = ContentService.createTextOutput();
@@ -1636,7 +1688,7 @@ function saveMorphResult_(p) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  MENÚ DEL PROFESOR
+//  §6 — MENÚ DEL PROFESOR
 // ════════════════════════════════════════════════════════════════════════
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
@@ -1957,7 +2009,7 @@ function limpiarResultados() {
 }
 
 // ════════════════════════════════════════════════════════════════════
-// v4.7 — ETIQUETADO AUTOMÁTICO (columna G)
+//  §7 — ETIQUETADO AUTOMÁTICO (IA, columna G — añadido en v4.7)
 // Genera el JSON de metadatos para cada oración
 // ════════════════════════════════════════════════════════════════════
 
@@ -2070,7 +2122,7 @@ function resumenEtiquetas() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  DASHBOARD & SHEET UI SETUP (Fase 2 y 3)
+//  §8 — DASHBOARD Y UI DE HOJAS
 // ════════════════════════════════════════════════════════════════════════
 
 // Apply a consistent visual style to a sheet (one-time setup, NOT on edit)
@@ -2310,7 +2362,7 @@ function menuDashboard() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  AUDITORÍA Y REPARACIÓN AUTOMÁTICA (Oraciones_Banco cols E, G, H)
+//  §9 — AUDITORÍA Y REPARACIÓN DEL BANCO (Oraciones_Banco cols E, G, H)
 // ════════════════════════════════════════════════════════════════════════
 //  Fase 1: auditoría en modo lectura (no modifica nada, muestra informe)
 //  Fase 2: reparación automática de lo seguro, marca lo dudoso para revisión manual
@@ -2659,7 +2711,7 @@ function menuLimpiarColoresAuditoria() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  LIMPIAR HOJAS NO UTILIZADAS
+//  §10 — LIMPIEZA Y COHERENCIA  (hojas obsoletas · backups · validación)
 // ════════════════════════════════════════════════════════════════════════
 //  Identifica hojas que NO forman parte del esquema activo y permite
 //  eliminarlas tras confirmación. Hojas activas: las definidas en SHEET_*
