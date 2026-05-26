@@ -3766,6 +3766,17 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   border-radius: 8px;
   line-height: 1.6;
 }
+/* Oración completa siempre visible en el análisis interno. Los tokens de la
+   proposición que se está analizando se destacan; el resto se atenúa para
+   dar contexto sin distraer. */
+.iidd-prop-tok{ color: var(--ui-muted-2, #94A3B8); transition: color .15s; }
+.iidd-prop-tok-on{
+  color: var(--ui-ink, #0F2342);
+  font-weight: 600;
+  background: rgba(15,35,66,.07);
+  padding: 1px 3px;
+  border-radius: 4px;
+}
 .iidd-instr{
   font-size: .82rem;
   color: var(--muted);

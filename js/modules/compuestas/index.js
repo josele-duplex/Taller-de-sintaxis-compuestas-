@@ -2830,7 +2830,15 @@
       }));
     };
     const argDis = buildDistractors(_ARGUMENTO_TIPOS, 'ad', 2);
-    const adjDis = buildDistractors(_ADJUNTO_TIPOS,   'dd', 2);
+    // Si entre los correctos hay un CC genérico (tipo `cc` sin subtipo), los
+    // distractores Adjuntos NO deben usar subtipos `cc_temporal/cc_locativo/…`
+    // porque entonces el correcto se delata visualmente por ser el único
+    // etiquetado como "CC" pelado. Generamos distractores también como "CC"
+    // genéricos: mismos label y tipo. Cualquier tag CC valida en el slot CC;
+    // los sobrantes simplemente quedan en el pool como distracción visual.
+    const adjDis = usados.has('cc')
+      ? Array.from({length:2}, (_,i) => ({ id:`dd_d${i}`, label:'CC', tipo:'cc' }))
+      : buildDistractors(_ADJUNTO_TIPOS, 'dd', 2);
     const marDis = buildDistractors(_MARCA_TIPOS,     'md', 1);
 
     const shuffle = arr => arr.sort(()=>Math.random()-.5);
@@ -2847,6 +2855,30 @@
              confirmed:false};
     _iddDrag = {};
     _iddSel  = {box:null, el:null};
+  }
+
+  // Renderiza la oración compuesta COMPLETA (todos los tokens, incluidos
+  // nexos y signos de puntuación, en orden natural) y resalta los tokens
+  // pertenecientes a la proposición que se está analizando. Mantiene la
+  // técnica del Word Joiner para que la puntuación no salte de línea.
+  function _renderOracionConPropDestacada(ej, prop){
+    if(!Array.isArray(ej.tokens)) return escHtml(prop?.texto || ej?.texto || '');
+    const propIdxs = new Set(prop?.indices || []);
+    const tokens = ej.tokens;
+    let html = '';
+    for(let idx=0; idx<tokens.length; idx++){
+      const t = tokens[idx];
+      const cat = t.categoria || 'otro';
+      const enProp = propIdxs.has(t.i);
+      const cls = enProp ? 'iidd-prop-tok iidd-prop-tok-on' : 'iidd-prop-tok';
+      const tokHtml = `<span class="${cls}">${escHtml(t.texto||'')}</span>`;
+      const next = tokens[idx+1];
+      const esApertura = (cat === 'puntuacion' && /^[¿¡]$/.test(t.texto||''));
+      if(esApertura)                           html += tokHtml + '⁠';
+      else if(next && next.categoria === 'puntuacion') html += tokHtml + '⁠';
+      else                                     html += tokHtml + ' ';
+    }
+    return html.trimEnd();
   }
 
   function renderInternaHtml(ej){
@@ -2868,7 +2900,7 @@
       <div class="iidd-header">
         <span class="iidd-prop-badge" style="background:${colorVar}">O${propNum}</span>
         <span class="iidd-prop-of">· ${totalProps} oracion${totalProps>1?'es':''}</span>
-        <div class="iidd-prop-text">«${escHtml(prop.texto||'')}»</div>
+        <div class="iidd-prop-text">«${_renderOracionConPropDestacada(ej, prop)}»</div>
       </div>`;
 
     const instrHtml = `
