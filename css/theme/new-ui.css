@@ -3464,38 +3464,57 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 
 .cp-stk-grid{
   display: grid;
-  row-gap: 4px;
+  row-gap: 8px;
   column-gap: 14px;
   align-items: end;
   justify-items: center;
   padding: 0 4px;
 }
 
-/* Fila 1: Sujeto / Predicado (macro) */
+/* Fila 1: Sujeto / Predicado (macro)
+   3.2a (mayo 2026): rediseño «pill + corchete fino». Antes era texto
+   coloreado con subrayado pastel — efecto cuaderno escolar. Ahora son
+   pills tipo etiqueta (DM Sans, fondo tint del sistema) con un
+   corchete fino debajo que conecta visualmente al grupo de palabras. */
 .cp-stk-macro{
-  font-size: .72rem;
-  font-weight: 800;
-  letter-spacing: .04em;
+  font-family: var(--ui-font-ui);
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .05em;
   text-align: center;
-  padding: 2px 8px 1px;
+  padding: 2px 10px;
   position: relative;
   white-space: nowrap;
+  border-radius: 999px;
+  justify-self: center;
+  width: fit-content;
+  margin-bottom: 5px;
 }
-.cp-stk-macro-suj{ color: #DC2626; }
+.cp-stk-macro-suj{
+  color: var(--ui-magenta);
+  background: var(--ui-magenta-tint);
+}
 .cp-stk-macro-suj::after{
   content: '';
   position: absolute;
-  left: 6px; right: 6px; bottom: -2px;
-  border-bottom: 2px solid #FCA5A5;
-  border-radius: 4px;
+  left: 4px; right: 4px; bottom: -6px;
+  height: 5px;
+  border: 1.5px solid rgba(190, 24, 93, .45);
+  border-top: none;
+  border-radius: 0 0 5px 5px;
 }
-.cp-stk-macro-pred{ color: #1E3A8A; }
+.cp-stk-macro-pred{
+  color: var(--ui-navy);
+  background: var(--ui-navy-tint);
+}
 .cp-stk-macro-pred::after{
   content: '';
   position: absolute;
-  left: 6px; right: 6px; bottom: -2px;
-  border-bottom: 2px solid #93C5FD;
-  border-radius: 4px;
+  left: 4px; right: 4px; bottom: -6px;
+  height: 5px;
+  border: 1.5px solid rgba(15, 35, 66, .35);
+  border-top: none;
+  border-radius: 0 0 5px 5px;
 }
 
 /* Fila 2: las palabras */
