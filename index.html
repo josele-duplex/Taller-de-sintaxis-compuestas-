@@ -319,6 +319,44 @@ if(window.location.protocol === 'file:') {
 <div id="screen-teacher" class="screen" style="flex-direction:column">
   <div class="tp-hdr"><div class="tp-hdr-in"><div><h1>Panel del Profesor</h1><p>Taller de Sintaxis v6.2</p></div><button type="button" class="btn btn-ghost btn-sm" onclick="goLogin()">← Volver</button></div></div>
   <div class="tp-content">
+    <!-- ── INFORME DE LA CLASE (Excel multi-hoja) ──────────────────── -->
+    <div class="s-box" style="border:2px solid #6366F1;background:linear-gradient(135deg,#EEF2FF 0%,#F5F3FF 100%)">
+      <div class="s-title" style="color:#4338CA;font-size:1.05rem">📊 Informe de la clase</div>
+      <div class="s-desc">Descarga un <strong>Excel completo</strong> con notas por alumno, ranking, errores típicos y recomendaciones pedagógicas. Sin configurar nada.</div>
+      <button type="button" id="tp-inf-btn" onclick="generarInformeProfesor()"
+              style="display:block;width:100%;padding:14px 16px;margin:14px 0 6px;border:none;border-radius:12px;background:#4F46E5;color:#fff;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 4px 14px rgba(79,70,229,0.35);transition:transform .08s">
+        ↓ Descargar informe (Excel)
+      </button>
+      <details style="margin-top:8px">
+        <summary style="cursor:pointer;font-size:.82rem;color:var(--muted);font-weight:600;padding:4px 0">▸ Ajustar periodo o grupo (opcional)</summary>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;padding:10px;background:#fff;border-radius:8px;border:1px solid #C7D2FE">
+          <div>
+            <label style="font-size:.74rem;font-weight:700;color:var(--muted)">📅 Desde</label>
+            <input id="tp-inf-from" class="input" type="date" style="font-size:.85rem;padding:5px 8px;width:100%">
+          </div>
+          <div>
+            <label style="font-size:.74rem;font-weight:700;color:var(--muted)">📅 Hasta</label>
+            <input id="tp-inf-to" class="input" type="date" style="font-size:.85rem;padding:5px 8px;width:100%">
+          </div>
+          <div>
+            <label style="font-size:.74rem;font-weight:700;color:var(--muted)">🎓 Grupo</label>
+            <input id="tp-inf-grupo" class="input" type="text" placeholder="(todos)" style="font-size:.85rem;padding:5px 8px;width:100%">
+          </div>
+          <div>
+            <label style="font-size:.74rem;font-weight:700;color:var(--muted)">🎯 Tipo</label>
+            <select id="tp-inf-tipo" class="input" style="font-size:.85rem;padding:5px 8px;width:100%">
+              <option value="todo">Todo</option>
+              <option value="simples">Sintaxis simple</option>
+              <option value="compuestas">Oración compuesta</option>
+              <option value="examen">Solo exámenes</option>
+            </select>
+          </div>
+        </div>
+        <p style="font-size:.74rem;color:var(--muted);margin-top:6px;padding:0 4px">Por defecto: últimos 7 días, todos los grupos, todo tipo.</p>
+      </details>
+      <p id="tp-inf-status" role="status" aria-live="polite" style="font-size:.85rem;font-weight:700;margin-top:10px;display:none"></p>
+    </div>
+
     <div class="s-box" style="border-left:4px solid var(--blue)">
       <div class="s-title">🎓 Subfase del Examen</div>
       <div class="s-desc">Hasta dónde analiza el alumno en modo examen.</div>

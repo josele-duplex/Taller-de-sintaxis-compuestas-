@@ -686,6 +686,92 @@ export {
   genCpExamPin, createExamenCompuestaUI, testCpExamPin
 };
 
+// ════════════════════════════════════════════════════════
+// INFORME DEL PROFESOR (Excel multi-hoja)
+// ════════════════════════════════════════════════════════
+// Pide los datos al endpoint getInformeProfesor del GAS y delega
+// la generación del .xlsx al generador (cargado bajo demanda).
+
+function _infStatus(msg, color){
+  const el = document.getElementById('tp-inf-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = color || 'var(--blue)';
+  el.style.display = 'block';
+}
+
+function _loadSheetJS(){
+  if (typeof XLSX !== 'undefined') return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('No se pudo cargar SheetJS desde el CDN.'));
+    document.head.appendChild(s);
+  });
+}
+
+async function generarInformeProfesor(){
+  const btn = document.getElementById('tp-inf-btn');
+  const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
+  if (!apiUrl){
+    _infStatus('⚠ Configura primero la URL del Apps Script (sección "API URL" más abajo).', 'var(--red)');
+    return;
+  }
+  if (btn) btn.disabled = true;
+
+  // 1. Recoger filtros opcionales
+  const params = new URLSearchParams({ action: 'getInformeProfesor' });
+  const from  = document.getElementById('tp-inf-from')?.value;
+  const to    = document.getElementById('tp-inf-to')?.value;
+  const grupo = document.getElementById('tp-inf-grupo')?.value.trim();
+  const tipo  = document.getElementById('tp-inf-tipo')?.value;
+  if (from)  params.append('from', from);
+  if (to)    params.append('to', to);
+  if (grupo) params.append('grupo', grupo);
+  if (tipo && tipo !== 'todo') params.append('tipo', tipo);
+
+  try {
+    // 2. Cargar SheetJS (lazy, solo la primera vez)
+    if (typeof XLSX === 'undefined'){
+      _infStatus('⏳ Cargando librería de Excel (1ª vez, ~280 KB)…', 'var(--blue)');
+      await _loadSheetJS();
+    }
+
+    // 3. Llamar al endpoint del GAS
+    _infStatus('⏳ Pidiendo datos al servidor…', 'var(--blue)');
+    const url = apiUrl + (apiUrl.includes('?') ? '&' : '?') + params.toString();
+    const r = (typeof fetchWithRetry === 'function')
+                ? await fetchWithRetry(url, {}, 3, 30000)
+                : await fetch(url);
+    const data = await r.json();
+
+    if (!data || data.ok === false){
+      _infStatus('✕ Error: ' + (data?.error || 'respuesta inválida'), 'var(--red)');
+      return;
+    }
+    if (!data.alumnos || data.alumnos.length === 0){
+      _infStatus('⚠ No hay datos en el rango seleccionado. Prueba ampliando las fechas.', 'var(--amber)');
+      return;
+    }
+
+    // 4. Generar Excel (función definida en D3 — generador independiente)
+    _infStatus('⏳ Generando Excel…', 'var(--blue)');
+    if (typeof window.generarExcelInforme === 'function'){
+      window.generarExcelInforme(data);
+      _infStatus(`✓ Informe descargado: ${data.alumnos.length} alumnos · ${data.resumen.total_actividades} actividades.`, 'var(--green)');
+    } else {
+      _infStatus('⚠ Generador de Excel aún no cargado (pendiente de D3). Datos recibidos correctamente.', 'var(--amber)');
+      console.log('[Informe] Datos recibidos:', data);
+    }
+  } catch (e){
+    _infStatus('✕ ' + (e.message || 'Error inesperado'), 'var(--red)');
+    console.error('[generarInformeProfesor]', e);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 if (typeof window !== 'undefined') {
   Object.assign(window, {
     loadTeacherPanel, setExamSubfase, saveExamFilters, saveApiUrl, savePin,
@@ -697,6 +783,8 @@ if (typeof window !== 'undefined') {
     // Fase 1.6 — dashboard de Compuestas
     loadCpDashboard, exportCpCSV,
     // Fase 1.6.B — creación de exámenes de Compuestas
-    genCpExamPin, createExamenCompuestaUI, testCpExamPin
+    genCpExamPin, createExamenCompuestaUI, testCpExamPin,
+    // Informe del profesor (Excel)
+    generarInformeProfesor
   });
 }
