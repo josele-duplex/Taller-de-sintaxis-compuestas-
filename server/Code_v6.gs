@@ -131,6 +131,23 @@ function gasError_(msg, code) {
   return { ok: false, error: msg, code: code };
 }
 
+// ── B3: Valida que el payload contenga los campos requeridos ──────────
+// Uso: const err = requireParams_(payload, ['nick','score']); if (err) return err;
+// Ignora campos que vienen como 0 (número válido) pero rechaza null/undefined/''.
+function requireParams_(payload, required) {
+  if (!payload || typeof payload !== 'object') {
+    return gasError_('Payload vacío o inválido.', ERR.BAD_PARAM);
+  }
+  const missing = required.filter(k => {
+    const v = payload[k];
+    return v === undefined || v === null || v === '';
+  });
+  if (missing.length > 0) {
+    return gasError_('Faltan parámetros: ' + missing.join(', '), ERR.BAD_PARAM);
+  }
+  return null; // todo bien
+}
+
 // ── Columnas de Oraciones_Banco (1-indexed) ───────────────────────────
 // A=1 Oracion_Texto | B=2 Sujeto | C=3 Verbo | D=4 Tipo_Sujeto
 // E=5 Estructura_JSON | F=6 Activo
@@ -1339,12 +1356,12 @@ function createExam_(params) {
     console.error('[createExam] Error reading oraciones:', e);
     // Mark this row as cerrado so we don't leave a half-built exam
     sheet.getRange(newRowIdx, estCol).setValue('cerrado');
-    return { ok: false, error: 'Error al leer las oraciones del banco: ' + e.message };
+    return gasError_('Error al leer las oraciones del banco: ' + e.message, ERR.EXCEPTION);
   }
 
   if (!oraciones || oraciones.length === 0) {
     sheet.getRange(newRowIdx, estCol).setValue('cerrado');
-    return { ok: false, error: 'No hay oraciones que cumplan los filtros seleccionados. Revisa los filtros y vuelve a crear el examen.' };
+    return gasError_('No hay oraciones que cumplan los filtros seleccionados. Revisa los filtros y vuelve a crear el examen.', ERR.BAD_PARAM);
   }
 
   // Shuffle
@@ -1365,7 +1382,7 @@ function createExam_(params) {
     sheet.getRange(newRowIdx, estCol).setValue('activo');
   } catch(e) {
     console.error('[createExam] Error writing exam row:', e);
-    return { ok: false, error: 'Error al guardar el examen: ' + e.message };
+    return gasError_('Error al guardar el examen: ' + e.message, ERR.EXCEPTION);
   }
 
   // Clear any cached version for this PIN
@@ -1624,23 +1641,24 @@ function saveSesionPractica_(p) {
     });
     return { ok: true };
   } catch(e) {
-    return { ok: false, error: e.message };
+    return gasError_(e.message, ERR.EXCEPTION);
   }
 }
 
 function saveArcadeScore_(p) {
+  const paramErr = requireParams_(p, ['nickname', 'arcadeMode']);
+  if (paramErr) return paramErr;
   const ARCADE_HEADER = ['Fecha','Apodo','Grupo','Nombre','Correo','Modo','Puntuacion','Racha_Max'];
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   let sheet   = ss.getSheetByName(SHEET_ARCADE);
   if (!sheet) sheet = ss.insertSheet(SHEET_ARCADE);
   ensureSheetHeaders_(sheet, ARCADE_HEADER);
   const col = getColMap_(sheet);
-  const nick = String(p.nickname||'').trim();
+  const nick = String(p.nickname).trim();
   const grupo = String(p.grupo||'').trim();
-  const mode = String(p.arcadeMode||'').trim();
+  const mode = String(p.arcadeMode).trim();
   const score = parseInt(p.score)||0;
   const streak = parseInt(p.streak)||0;
-  if (!nick) return { ok: false, error: 'Nick vacío' };
   // Keep only best score per (nick + mode) using colMap
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
@@ -1718,6 +1736,8 @@ function getRankingArcade_(params) {
 }
 
 function saveMorphResult_(p) {
+  const paramErr = requireParams_(p, ['total', 'correct']);
+  if (paramErr) return paramErr;
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   let sheet   = ss.getSheetByName(SHEET_MORPH);
   const MORPH_HEADER = ['Fecha','Correo','Nombre','Nivel','Modalidad',
@@ -3344,7 +3364,7 @@ function getInformeProfesor_(params) {
       examenes: examenes
     };
   } catch (err) {
-    return { ok: false, error: err.message, stack: err.stack };
+    return gasError_(err.message, ERR.EXCEPTION);
   }
 }
 
