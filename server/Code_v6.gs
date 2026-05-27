@@ -82,6 +82,26 @@ const SHEET_MISIONES = 'Misiones';
 const SHEET_MIS_RES  = 'Misiones_Resultados';
 const SHEET_EXAMS    = 'Examenes_Config';
 
+// ── Códigos de error (campo `code` en respuestas {error:...}) ─────────
+const ERR = {
+  NO_SHEET:        'NO_SHEET',
+  BAD_PIN:         'BAD_PIN',
+  PIN_NOT_FOUND:   'PIN_NOT_FOUND',
+  EXAM_CLOSED:     'EXAM_CLOSED',
+  EXAM_EMPTY:      'EXAM_EMPTY',
+  EXAM_PREPARING:  'EXAM_PREPARING',
+  EXAM_INACTIVE:   'EXAM_INACTIVE',
+  UNKNOWN_ACTION:  'UNKNOWN_ACTION',
+  LOCK_TIMEOUT:    'LOCK_TIMEOUT',
+  EXCEPTION:       'EXCEPTION',
+};
+
+// Construye {ok:false, error:msg, code:code} y lo registra en Stackdriver.
+function gasError_(msg, code) {
+  Logger.log('[GAS ERROR] code=%s msg=%s', code, msg);
+  return { ok: false, error: msg, code: code };
+}
+
 // ── Columnas de Oraciones_Banco (1-indexed) ───────────────────────────
 // A=1 Oracion_Texto | B=2 Sujeto | C=3 Verbo | D=4 Tipo_Sujeto
 // E=5 Estructura_JSON | F=6 Activo
@@ -646,11 +666,11 @@ function doGet(e) {
       const compResult = (typeof dispatchCompuestasGet_ === 'function')
                            ? dispatchCompuestasGet_(action, params) : null;
       result = (compResult !== null) ? compResult
-                                     : { error: 'Acción desconocida: ' + action };
+                                     : gasError_('Acción desconocida: ' + action, ERR.UNKNOWN_ACTION);
     }
     out.setContent(JSON.stringify(result));
   } catch (err) {
-    out.setContent(JSON.stringify({ error: err.message, stack: err.stack }));
+    out.setContent(JSON.stringify(gasError_(err.message, ERR.EXCEPTION)));
   }
   return out;
 }
@@ -659,7 +679,7 @@ function doGet(e) {
 function getOraciones_(mode) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_BANCO);
-  if (!sheet) return { error: 'Hoja "' + SHEET_BANCO + '" no encontrada.' };
+  if (!sheet) return gasError_('Hoja "' + SHEET_BANCO + '" no encontrada.', ERR.NO_SHEET);
 
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return { oraciones: [] };
@@ -691,7 +711,7 @@ function getOraciones_(mode) {
 function getOracionesFiltradas_(params) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_BANCO);
-  if (!sheet) return { error: 'Hoja no encontrada.' };
+  if (!sheet) return gasError_('Hoja no encontrada.', ERR.NO_SHEET);
 
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return { oraciones: [] };
@@ -1220,7 +1240,7 @@ function createExam_(params) {
   const sheet = ensureExamSheet_();
   const col = getColMap_(sheet);
   const pin = String(params.pin || '').trim();
-  if (!pin || pin.length < 4) return { error: 'PIN inválido (mínimo 4 dígitos)' };
+  if (!pin || pin.length < 4) return gasError_('PIN inválido (mínimo 4 dígitos)', ERR.BAD_PIN);
 
   // Deactivate previous exams with same PIN
   const data = sheet.getDataRange().getValues();
@@ -1327,7 +1347,7 @@ function createExam_(params) {
 // ── getExamConfig_: Student enters PIN → reads PRE-COMPUTED JSON (< 1s) ──
 function getExamConfig_(params) {
   const pin = String(params.pin || '').trim();
-  if (!pin || pin.length < 4) return { error: 'PIN inválido' };
+  if (!pin || pin.length < 4) return gasError_('PIN inválido', ERR.BAD_PIN);
 
   // Check cache first (serves repeated reads instantly)
   const cache = CacheService.getScriptCache();
@@ -1340,7 +1360,7 @@ function getExamConfig_(params) {
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_EXAMS);
-  if (!sheet) return { error: 'Aún no se ha creado ningún examen en este sistema. Pídele al profesor que cree uno desde el panel.' };
+  if (!sheet) return gasError_('Aún no se ha creado ningún examen en este sistema. Pídele al profesor que cree uno desde el panel.', ERR.NO_SHEET);
   const col = getColMap_(sheet);
   const data = sheet.getDataRange().getValues();
 
@@ -1437,18 +1457,18 @@ function getExamConfig_(params) {
   }
   // No active exam matched. Give the student a useful hint about what's wrong.
   if (foundActiveButEmpty) {
-    return { error: 'El examen existe pero no tiene oraciones cargadas. Avisa al profesor para que lo regenere desde el panel.' };
+    return gasError_('El examen existe pero no tiene oraciones cargadas. Avisa al profesor para que lo regenere desde el panel.', ERR.EXAM_EMPTY);
   }
   if (foundButCreating) {
-    return { error: 'Examen en preparación. Espera 5-10 segundos e inténtalo otra vez.' };
+    return gasError_('Examen en preparación. Espera 5-10 segundos e inténtalo otra vez.', ERR.EXAM_PREPARING);
   }
   if (foundButClosed && !pinExists) {
-    return { error: 'Este examen ha sido cerrado por el profesor.' };
+    return gasError_('Este examen ha sido cerrado por el profesor.', ERR.EXAM_CLOSED);
   }
   if (pinExists) {
-    return { error: 'Este PIN existe pero el examen no está activo. Pídele al profesor que lo cree de nuevo.' };
+    return gasError_('Este PIN existe pero el examen no está activo. Pídele al profesor que lo cree de nuevo.', ERR.EXAM_INACTIVE);
   }
-  return { error: 'PIN no encontrado. Comprueba que has escrito los 4 dígitos correctos.' };
+  return gasError_('PIN no encontrado. Comprueba que has escrito los 4 dígitos correctos.', ERR.PIN_NOT_FOUND);
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -1469,11 +1489,11 @@ function doPost(e) {
       const compResult = (typeof dispatchCompuestasPost_ === 'function')
                            ? dispatchCompuestasPost_(action, payload) : null;
       result = (compResult !== null) ? compResult
-                                     : { ok: false, error: 'Acción desconocida: ' + action };
+                                     : gasError_('Acción desconocida: ' + action, ERR.UNKNOWN_ACTION);
     }
     out.setContent(JSON.stringify(result));
   } catch(err) {
-    out.setContent(JSON.stringify({ ok: false, error: err.message }));
+    out.setContent(JSON.stringify(gasError_(err.message, ERR.EXCEPTION)));
   }
   return out;
 }
@@ -1481,7 +1501,7 @@ function doPost(e) {
 function saveResult_(p) {
   const lock = LockService.getScriptLock();
   try { lock.waitLock(10000); } catch(e) {
-    return { ok: false, error: 'Servidor ocupado, inténtalo de nuevo.' };
+    return gasError_('Servidor ocupado, inténtalo de nuevo.', ERR.LOCK_TIMEOUT);
   }
   try {
     const ss    = SpreadsheetApp.getActiveSpreadsheet();
