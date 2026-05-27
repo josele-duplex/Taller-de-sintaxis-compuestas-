@@ -4064,7 +4064,7 @@
       <div class="cp-analisis-discursivo">
         <h3 class="cp-analisis-titulo">📝 Análisis sintáctico</h3>
         <p class="cp-analisis-oracion">«${escHtml(ej.texto||'')}»</p>
-        <div class="cp-analisis-cuerpo">${redactarAnalisis(ej)}</div>
+        ${renderModeloPAU(ej)}
       </div>
 
       ${diagnosticos.length > 0 ? `
