@@ -57,7 +57,7 @@
 //
 //   §10 LIMPIEZA Y COHERENCIA                                 2714–2945
 //        menuLimpiarHojasObsoletas · menuLimpiarBackupsAntiguos ·
-//        menuValidarCoherencia
+//        menuValidarCoherencia · menuPurgarLogsGAS
 //
 //   §11 INFORME DEL PROFESOR (Excel multi-hoja)               2945–final
 //        getInformeProfesor_ · agregadores por alumno/grupo ·
@@ -86,6 +86,7 @@ const SHEET_EXAMS    = 'Examenes_Config';
 const ERR = {
   NO_SHEET:        'NO_SHEET',
   BAD_PIN:         'BAD_PIN',
+  BAD_PARAM:       'BAD_PARAM',
   PIN_NOT_FOUND:   'PIN_NOT_FOUND',
   EXAM_CLOSED:     'EXAM_CLOSED',
   EXAM_EMPTY:      'EXAM_EMPTY',
@@ -96,7 +97,35 @@ const ERR = {
   EXCEPTION:       'EXCEPTION',
 };
 
+const SHEET_LOGS = 'Logs_GAS';
+const LOGS_HEADER = ['Fecha','Nivel','Endpoint','Mensaje','Code','Stack'];
+const LOGS_MAX_ROWS = 500; // purga automática al superar este límite
+
+// ── B2: Registro en hoja Logs_GAS (solo para errores inesperados) ─────
+// Nunca lanza excepción para no ocultar el error original.
+function logToSheet_(level, endpoint, msg, code, stack) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(SHEET_LOGS);
+    if (!sheet) {
+      sheet = ss.insertSheet(SHEET_LOGS);
+      sheet.appendRow(LOGS_HEADER);
+      sheet.getRange(1, 1, 1, LOGS_HEADER.length).setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+    sheet.appendRow([new Date(), level, endpoint || '', msg || '', code || '', (stack || '').slice(0, 500)]);
+    // Purga automática: si hay más de LOGS_MAX_ROWS filas de datos, borra las más antiguas
+    const nData = sheet.getLastRow() - 1; // excluir cabecera
+    if (nData > LOGS_MAX_ROWS) {
+      sheet.deleteRows(2, nData - LOGS_MAX_ROWS);
+    }
+  } catch(e) {
+    Logger.log('[logToSheet_ failed] %s', e.message);
+  }
+}
+
 // Construye {ok:false, error:msg, code:code} y lo registra en Stackdriver.
+// Para excepciones inesperadas usa logToSheet_ directamente en los catch de doGet/doPost.
 function gasError_(msg, code) {
   Logger.log('[GAS ERROR] code=%s msg=%s', code, msg);
   return { ok: false, error: msg, code: code };
@@ -670,6 +699,7 @@ function doGet(e) {
     }
     out.setContent(JSON.stringify(result));
   } catch (err) {
+    logToSheet_('ERROR', action, err.message, ERR.EXCEPTION, err.stack);
     out.setContent(JSON.stringify(gasError_(err.message, ERR.EXCEPTION)));
   }
   return out;
@@ -1477,9 +1507,10 @@ function getExamConfig_(params) {
 function doPost(e) {
   const out = ContentService.createTextOutput();
   out.setMimeType(ContentService.MimeType.JSON);
+  let action = 'unknown'; // visible en el catch si JSON.parse falla
   try {
     const payload = JSON.parse(e.postData.contents);
-    const action  = payload.action || 'saveResult';
+    action  = payload.action || 'saveResult';
     let result;
     if      (action === 'saveResult')     result = saveResult_(payload);
     else if (action === 'saveArcadeScore')result = saveArcadeScore_(payload);
@@ -1493,6 +1524,7 @@ function doPost(e) {
     }
     out.setContent(JSON.stringify(result));
   } catch(err) {
+    logToSheet_('ERROR', action, err.message, ERR.EXCEPTION, err.stack);
     out.setContent(JSON.stringify(gasError_(err.message, ERR.EXCEPTION)));
   }
   return out;
@@ -1741,6 +1773,7 @@ function onOpen() {
   mantenimiento.addItem('✅ Validar coherencia del banco',         'menuValidarCoherencia');
   mantenimiento.addItem('🗑️ Limpiar hojas no utilizadas',          'menuLimpiarHojasObsoletas');
   mantenimiento.addItem('🗑️ Limpiar backups antiguos (>30 días)',  'menuLimpiarBackupsAntiguos');
+  mantenimiento.addItem('🪵 Purgar Logs_GAS (>30 días)',           'menuPurgarLogsGAS');
   menu.addSubMenu(mantenimiento);
 
   // BLOQUE 3 — HERRAMIENTAS (solo si es necesario)
@@ -2967,6 +3000,31 @@ function menuValidarCoherencia() {
   }
 
   ui.alert('⚠ Coherencia: problemas detectados', msg, ui.ButtonSet.OK);
+}
+
+// ── menuPurgarLogsGAS — borra entradas de Logs_GAS con más de 30 días ──
+function menuPurgarLogsGAS() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_LOGS);
+  if (!sheet) {
+    ui.alert('No existe todavía la hoja Logs_GAS. Se crea automáticamente cuando ocurre el primer error inesperado.', '', ui.ButtonSet.OK);
+    return;
+  }
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) { ui.alert('Logs_GAS está vacía.', '', ui.ButtonSet.OK); return; }
+  const limite = new Date();
+  limite.setDate(limite.getDate() - 30);
+  // Recorrer de abajo a arriba para borrar sin desplazar índices
+  let borradas = 0;
+  for (let i = data.length - 1; i >= 1; i--) {
+    const fecha = data[i][0];
+    if (fecha instanceof Date && fecha < limite) {
+      sheet.deleteRow(i + 1);
+      borradas++;
+    }
+  }
+  ui.alert('🗑 Logs_GAS: ' + borradas + ' entradas antiguas (>30 días) borradas.', '', ui.ButtonSet.OK);
 }
 
 // ════════════════════════════════════════════════════════════════════════
