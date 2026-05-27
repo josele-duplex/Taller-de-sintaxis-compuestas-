@@ -50,6 +50,7 @@
     examEval: '',           // evaluación del examen
     examName: '',           // nombre legible del examen
     examTimerMin: 0,        // duración del examen en minutos (0 = sin límite)
+    examFasesActivas: null, // array de fases activas del examen ([0..5] = sin F6, [0..6] = con F6). null = práctica libre.
     examEmail: '',          // correo del alumno (recogido en formulario PIN)
     examAlumno: '',         // nombre del alumno
     examTiempoRestanteS: 0, // segundos restantes del countdown
@@ -575,11 +576,23 @@
 
     try {
       const data = await fetchExamenCompuesta(pin);
+      // A3+A4: fases activas del examen — si no llegan o no son array, fallback a todas (legacy).
+      const fasesExam = Array.isArray(data.fasesActivas) && data.fasesActivas.length > 0
+        ? data.fasesActivas.map(n => parseInt(n)).filter(n => !isNaN(n))
+        : [0,1,2,3,4,5,6];
       // Validar mínimamente los ejercicios (mismo filtro que el banco normal)
       const validos = data.ejercicios.filter(isValidEjercicio);
       if(validos.length === 0){
         throw new Error('El examen tiene ejercicios pero ninguno pasa la validación mínima.');
       }
+      // A4: inyectar las fases del examen en metadatos de cada ejercicio para
+      // que computeCompScore las respete por ejercicio. NO machacar las del
+      // banco si el examen viene con [0,1,2,3,4,5,6] (legacy) y el ejercicio
+      // ya define las suyas — el examen prima cuando viene con menos fases.
+      validos.forEach(ej => {
+        if(!ej.metadatos) ej.metadatos = {};
+        ej.metadatos.fases_activas = fasesExam.slice();
+      });
       // Guardar el banco original para poder volver
       if(state.ejerciciosBanco === null){
         state.ejerciciosBanco = state.ejercicios;
@@ -595,6 +608,7 @@
       state.examEval    = data.evaluacion   || '';
       state.examName    = data.nombreExamen || '';
       state.examTimerMin= parseInt(data.timer) || 0;
+      state.examFasesActivas = fasesExam;
       state.pinInputView= false;
       state.pinLoading  = false;
       state.pinError    = '';
@@ -628,6 +642,7 @@
     state.examEmail    = '';
     state.examAlumno   = '';
     state.examTiempoRestanteS = 0;
+    state.examFasesActivas = null;
     // Reset del estado de envío (los datos se mantienen en localStorage hasta confirmar)
     state.examResultados   = [];
     state.examEnviado      = false;
