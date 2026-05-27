@@ -940,6 +940,7 @@
       // ── Fase 6: análisis interno de oraciones (Entrega 4 / Fase 1.4) ─
       interna: {
         activo:     false,           // se activa cuando el alumno elige "Analizar por dentro"
+        saltado:    false,           // el alumno ha decidido saltar el análisis interno
         propIdx:    0,               // qué oración se está analizando (0..N-1)
         subPaso:    'predicado',     // 'predicado' | 'sujeto' | 'funciones'
         funcionIdx: 0,               // qué función dentro de la oración se está analizando
@@ -972,29 +973,14 @@
     const wrap = document.getElementById('cp-wrap');
     if(!wrap) return;
 
-    // ── Fase 1.4 (mayo 2026): pantalla de elección post-clasificación ──
+    // [LEGACY] La fase 'interna_choice' quedó del flujo de mayo 2026
+    // (pantalla intermedia tras paso 4). Desde la refactorización de
+    // 2026-05-27 el flujo va directamente a fase='resumen', que decide
+    // internamente si mostrar el pre-resumen (con el botón "Analizar por
+    // dentro") o el resumen completo. Si por algún motivo cae un estado
+    // antiguo en interna_choice, lo redirigimos al resumen.
     if(eng.fase === 'interna_choice'){
-      const totalProps = (ej.proposiciones || []).length;
-      const tieneInterno = (ej.proposiciones || []).every(p => p && p.analisis_interno);
-      wrap.innerHTML = `
-        <div class="cp-summary" style="text-align:center">
-          <div class="cp-summary-icon">🎯</div>
-          <h2 class="cp-summary-title">Has clasificado las oraciones</h2>
-          <p style="color:var(--muted);font-size:.95rem;max-width:480px;margin:8px auto 22px;line-height:1.55">
-            ¿Quieres ver el <b>resumen del análisis</b> ya, o prefieres <b>profundizar</b> analizando cada
-            oración por dentro (sujeto, predicado y funciones)?
-          </p>
-          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px">
-            <button type="button" class="cp-btn-secondary" onclick="CP.irAResumen()">📋 Ver resumen</button>
-            ${tieneInterno ? `<button type="button" class="cp-btn-primary" onclick="CP.iniciarAnalisisInterno()">🔬 Analizar por dentro</button>` : ''}
-          </div>
-          ${!tieneInterno ? `
-            <p style="color:var(--muted);font-size:.78rem;margin-top:14px;font-style:italic">
-              Este ejercicio no incluye análisis interno de las ${totalProps} oraciones.
-            </p>` : ''}
-        </div>
-      `;
-      return;
+      eng.fase = 'resumen';
     }
 
     // ── Fase 1.4: análisis interno de oraciones ──────────────────────
@@ -2792,17 +2778,16 @@
       eng.mensajeFeedback = null;
       renderFase();
     } else {
-      // Última relación → pantalla de elección (Fase 1.4 mayo 2026):
-      // antes de ir al resumen ofrecer al alumno la opción de analizar
-      // las oraciones por dentro (sujeto, predicado, funciones).
-      // Si elige "Ver resumen" se va directo; si elige "Analizar por dentro"
-      // se entra al mini-motor de análisis interno (eng.fase = 'interna').
+      // Última relación → resumen.
+      // renderResumenHtml decide internamente si mostrar el "pre-resumen"
+      // (solo análisis PAU + decisión de analizar por dentro) o el resumen
+      // completo con puntuación, errores y diagnósticos.
       mostrarToast({
         titulo: '¡Clasificación completada!',
-        subtitulo: '¿Quieres profundizar en cada oración?',
+        subtitulo: 'Revisa el análisis y, si quieres, profundiza por dentro',
         colorIdx: 1
       });
-      eng.fase = 'interna_choice';
+      eng.fase = 'resumen';
       eng.mensajeFeedback = null;
       renderFase();
     }
@@ -2844,10 +2829,22 @@
 
   // Atajo desde la pantalla de elección: ir directamente al resumen,
   // sin pasar por el análisis interno.
+  // [LEGACY] Quedó del flujo viejo (interna_choice). Hoy ya no hay botón
+  // que la invoque, pero la mantenemos por si algún estado antiguo cae aquí.
   function irAResumen(){
     const eng = state.engine;
     if(!eng) return;
     eng.fase = 'resumen';
+    eng.mensajeFeedback = null;
+    renderFase();
+  }
+
+  // Desde el pre-resumen: el alumno renuncia al análisis interno y pasa
+  // al resumen completo con su puntuación.
+  function saltarAnalisisInterno(){
+    const eng = state.engine;
+    if(!eng) return;
+    eng.interna.saltado = true;
     eng.mensajeFeedback = null;
     renderFase();
   }
@@ -3487,7 +3484,17 @@
     renderFase();
   }
 
-  // ─────────────────────────────────────────────────────────────────────
+  // ═════════════════════════════════════════════════════════════════════
+  // [INACTIVO desde 2026-05-27]
+  // redactarAnalisis() y redactarRelacionUnica() NO se están utilizando.
+  // Eran la redacción discursiva en prosa que aparecía al finalizar el
+  // análisis externo (paso 4). Desde 2026-05-27 ese hueco lo ocupa
+  // renderModeloPAU() (vista dividida por O1/O2, estilo PAU), que es
+  // pedagógicamente más clara.
+  // Se conservan aquí por si en el futuro queremos reactivar la prosa
+  // (por ejemplo, como vista alternativa o para imprimir).
+  // No hay ningún `call site` activo en el módulo.
+  // ═════════════════════════════════════════════════════════════════════
   // REDACCIÓN DEL ANÁLISIS SINTÁCTICO DISCURSIVO
   // Genera un párrafo explicativo del análisis al estilo profesor, basado en
   // el JSON del ejercicio. No depende de las respuestas del alumno: es lo que
@@ -3998,6 +4005,18 @@
 
   function renderResumenHtml(ej){
     const eng = state.engine;
+
+    // ── Decidir si mostrar el "pre-resumen" o el resumen completo ─────
+    // Pre-resumen: solo se ofrece cuando el ejercicio tiene análisis
+    // interno disponible, el alumno aún no lo ha hecho ni lo ha saltado,
+    // y NO estamos en modo examen (en examen el alumno decide directamente).
+    const tieneInterno = (ej.proposiciones || []).every(p => p && p.analisis_interno);
+    const preResumen = tieneInterno && !eng.interna.activo && !eng.interna.saltado && !state.modoExamen;
+
+    if(preResumen){
+      return renderPreResumenHtml(ej);
+    }
+
     const totalAciertos = eng.verbosAciertos + eng.nexosAciertos + eng.f3Aciertos + (eng.f5Aciertos||0);
     const totalErrores = eng.verbosErrores + eng.nexosErrores + eng.f3Errores + (eng.f5Errores||0);
     const total = totalAciertos + totalErrores;
@@ -4035,6 +4054,9 @@
     const nota = computeCompScore(eng, ej);
     const notaColor = nota === null ? 'var(--muted)' : nota >= 5 ? '#15803D' : '#B91C1C';
 
+    // Orden pedagógico (mayo 2026): puntuación → errores → diagnósticos →
+    // análisis completo de nuevo. El análisis PAU cierra el resumen como
+    // recordatorio final de la estructura correcta.
     return `
       <div class="cp-summary">
         <div class="cp-summary-icon">${icono}</div>
@@ -4061,11 +4083,15 @@
         </div>
       </div>
 
-      <div class="cp-analisis-discursivo">
-        <h3 class="cp-analisis-titulo">📝 Análisis sintáctico</h3>
-        <p class="cp-analisis-oracion">«${escHtml(ej.texto||'')}»</p>
-        ${renderModeloPAU(ej)}
-      </div>
+      ${eng.interna.activo ? renderResumenInternaHtml(ej, eng.interna) : ''}
+
+      ${desglose.length > 1 ? `
+        <details style="margin-bottom:14px">
+          <summary style="cursor:pointer;font-weight:700;color:var(--ink2);font-size:.88rem;padding:10px 14px;background:var(--paper2);border-radius:10px">Ver desglose por paso</summary>
+          <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">
+            ${desgloseHtml}
+          </div>
+        </details>` : ''}
 
       ${diagnosticos.length > 0 ? `
         <div class="cp-diag">
@@ -4081,15 +4107,11 @@
           `).join('')}
         </div>` : ''}
 
-      ${desglose.length > 1 ? `
-        <details style="margin-bottom:14px">
-          <summary style="cursor:pointer;font-weight:700;color:var(--ink2);font-size:.88rem;padding:10px 14px;background:var(--paper2);border-radius:10px">Ver desglose por paso</summary>
-          <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">
-            ${desgloseHtml}
-          </div>
-        </details>` : ''}
-
-      ${eng.interna.activo ? renderResumenInternaHtml(ej, eng.interna) : ''}
+      <div class="cp-analisis-discursivo">
+        <h3 class="cp-analisis-titulo">📝 Análisis completo de la oración</h3>
+        <p class="cp-analisis-oracion">«${escHtml(ej.texto||'')}»</p>
+        ${renderModeloPAU(ej)}
+      </div>
 
       ${state.modoExamen ? renderEstadoExamenHtml() : ''}
 
@@ -4099,6 +4121,41 @@
         ${(state.idx > 0 && !state.modoExamen) ? `<button type="button" class="cp-btn-secondary" onclick="CP.anterior()">← Anterior</button>` : ''}
         ${renderBotonFinalResumen()}
       </div>
+    `;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Pre-resumen (mayo 2026): pantalla tras el paso 4 cuando hay análisis
+  // interno disponible. Muestra el análisis PAU y propone profundizar
+  // (Analizar por dentro) o ver la nota ya (Saltar y ver mi nota).
+  // No incluye puntuación ni diagnósticos: aparecerán en el resumen completo.
+  // ─────────────────────────────────────────────────────────────────────
+  function renderPreResumenHtml(ej){
+    return `
+      <div class="cp-summary" style="text-align:center">
+        <div class="cp-summary-icon">🎯</div>
+        <h2 class="cp-summary-title">Has clasificado las oraciones</h2>
+        <p style="color:var(--muted);font-size:.95rem;max-width:520px;margin:8px auto 18px;line-height:1.55">
+          Este es el análisis completo de la oración. Si quieres, ahora puedes <b>profundizar</b> y analizar
+          cada oración por dentro (sujeto, predicado y funciones). Después verás tu puntuación.
+        </p>
+      </div>
+
+      <div class="cp-analisis-discursivo">
+        <h3 class="cp-analisis-titulo">📝 Análisis completo de la oración</h3>
+        <p class="cp-analisis-oracion">«${escHtml(ej.texto||'')}»</p>
+        ${renderModeloPAU(ej)}
+      </div>
+
+      <div class="cp-actions" style="border-top:none;padding-top:0;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:8px 0 12px">
+        <button type="button" class="cp-btn-primary" onclick="CP.iniciarAnalisisInterno()">🔬 Analizar por dentro</button>
+        <button type="button" class="cp-btn-secondary" onclick="CP.saltarAnalisisInterno()">Saltar y ver mi nota</button>
+      </div>
+
+      ${(state.idx > 0 && !state.modoExamen) ? `
+        <div class="cp-actions" style="border-top:none;padding-top:0;justify-content:flex-start">
+          <button type="button" class="cp-btn-secondary" onclick="CP.anterior()">← Anterior</button>
+        </div>` : ''}
     `;
   }
 
@@ -5112,7 +5169,7 @@ export const CP = {
     siguiente, anterior, volverFiltros, toggleSolucion,
     avanzarFase, avanzarRelacionF5, pedirPista, saltarFase,
     abrirPistaFlotante,
-    iniciarAnalisisInterno, irAResumen,
+    iniciarAnalisisInterno, irAResumen, saltarAnalisisInterno,
     iiddDragStart, iiddOver, iiddLeave, iiddDrop,
     iiddTagClick, iiddTagClickSlot, iiddSlotClick,
     iiddConfirm, iiddAvanzar,
