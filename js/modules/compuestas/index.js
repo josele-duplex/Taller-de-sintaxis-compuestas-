@@ -93,6 +93,15 @@
     return 'CP-' + ts + '-' + rnd;
   }
 
+  // A5: ¿Está la fase 6 (análisis interno) habilitada para la sesión actual?
+  // - Práctica libre: siempre sí (el alumno decide en el pre-resumen).
+  // - Examen: solo si state.examFasesActivas incluye el 6 (el profesor
+  //   marcó "Pedir análisis interno" al crear el examen).
+  function f6Habilitada(){
+    if(!state.modoExamen) return true;
+    return Array.isArray(state.examFasesActivas) && state.examFasesActivas.includes(6);
+  }
+
   // ─────────────────────────────────────────────────────────────────────
   // Entrada al módulo
   //
@@ -1072,7 +1081,7 @@
       // el resumen COMPLETO (no el pre-resumen). El pre-resumen aparece si
       // el ejercicio tiene análisis interno y el alumno aún no ha decidido.
       const tieneInternoSesion = (ej.proposiciones || []).every(p => p && p.analisis_interno);
-      const enPreResumen = tieneInternoSesion && !eng.interna.activo && !eng.interna.saltado && !state.modoExamen;
+      const enPreResumen = tieneInternoSesion && !eng.interna.activo && !eng.interna.saltado && f6Habilitada();
       if(!enPreResumen){
         registrarResultadoSesion(ej);
       }
@@ -4068,11 +4077,12 @@
     const eng = state.engine;
 
     // ── Decidir si mostrar el "pre-resumen" o el resumen completo ─────
-    // Pre-resumen: solo se ofrece cuando el ejercicio tiene análisis
-    // interno disponible, el alumno aún no lo ha hecho ni lo ha saltado,
-    // y NO estamos en modo examen (en examen el alumno decide directamente).
+    // Pre-resumen: se ofrece cuando el ejercicio tiene análisis interno
+    // disponible, el alumno aún no lo ha hecho ni lo ha saltado, y la
+    // fase 6 está habilitada (siempre en práctica; en examen, solo si
+    // el profesor marcó "Pedir análisis interno").
     const tieneInterno = (ej.proposiciones || []).every(p => p && p.analisis_interno);
-    const preResumen = tieneInterno && !eng.interna.activo && !eng.interna.saltado && !state.modoExamen;
+    const preResumen = tieneInterno && !eng.interna.activo && !eng.interna.saltado && f6Habilitada();
 
     if(preResumen){
       return renderPreResumenHtml(ej);
@@ -4403,7 +4413,7 @@
     const ej = state.filtered[state.idx];
     if(ej && state.engine && state.engine.fase === 'resumen'){
       const tieneInterno = (ej.proposiciones || []).every(p => p && p.analisis_interno);
-      const enPreResumen = tieneInterno && !state.engine.interna.activo && !state.engine.interna.saltado;
+      const enPreResumen = tieneInterno && !state.engine.interna.activo && !state.engine.interna.saltado && f6Habilitada();
       if(!enPreResumen){
         registrarResultadoSesion(ej);
       }
