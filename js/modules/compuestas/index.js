@@ -68,7 +68,13 @@
     examErrorEnvio: '',     // último error del envío agregado
     // ── Persistencia ────────────────────────────────────────────────
     sessionId: generarSessionId(),   // ID anónimo de esta carga de página
-    enviosPendientes: new Map()      // Map<ejercicioId, payload> para reintentos
+    enviosPendientes: new Map(),     // Map<ejercicioId, payload> para reintentos
+    // ── Resumen de sesión de práctica (mayo 2026) ───────────────────
+    // Lista de ejercicios terminados en la sesión actual de práctica.
+    // Se reinicia cada vez que se entra a iniciarPractica().
+    // Solo se registra el PRIMER paso por el resumen de cada ejercicio;
+    // si el alumno revisita un ejercicio anterior no se duplica.
+    sessionResults: []               // [{id, texto, nota, aciertos, errores, internaHecha, tsISO}]
   };
   window.__CP_STATE__ = state; // depuración
 
@@ -757,8 +763,40 @@
     }
     state.idx = 0;
     state.modoLectura = false;
+    // Reset del resumen de sesión: solo lo usamos en práctica (en examen
+    // ya hay un resumen agregado propio).
+    if(!state.modoExamen){
+      state.sessionResults = [];
+    }
     if(state.modoExamen) startExamTimer();
     iniciarFase0();
+  }
+
+  // Registra el resultado del ejercicio actual en el resumen de sesión
+  // (solo práctica). Idempotente: si el alumno revisita el resumen del
+  // mismo ejercicio no se vuelve a anotar.
+  function registrarResultadoSesion(ej){
+    if(state.modoExamen || !ej) return;
+    if(state.sessionResults.some(r => r.id === ej.id)) return;
+    const eng = state.engine;
+    if(!eng) return;
+    const totalAciertos = eng.verbosAciertos + eng.nexosAciertos + eng.f3Aciertos + (eng.f5Aciertos||0)
+                          + (eng.interna.activo ? eng.interna.aciertos : 0);
+    const totalErrores  = eng.verbosErrores + eng.nexosErrores + eng.f3Errores + (eng.f5Errores||0)
+                          + (eng.interna.activo ? eng.interna.errores : 0);
+    const nota = computeCompScore(eng, ej);
+    state.sessionResults.push({
+      id:           ej.id || '—',
+      texto:        ej.texto || '',
+      tipo:         ej.tipo_oracion || '',
+      subtipo:      obtenerSubtipoPrincipal(ej) || '',
+      nivel:        (ej.metadatos && ej.metadatos.nivel) || 'medio',
+      nota:         nota,
+      aciertos:     totalAciertos,
+      errores:      totalErrores,
+      internaHecha: !!(eng.interna && eng.interna.activo),
+      tsISO:        new Date().toISOString()
+    });
   }
 
   // ═════════════════════════════════════════════════════════════════════
@@ -1014,6 +1052,14 @@
             showCombo('¡Perfecto!', 5);
           }
         }
+      }
+      // Registro en el resumen de sesión: solo cuando el alumno está viendo
+      // el resumen COMPLETO (no el pre-resumen). El pre-resumen aparece si
+      // el ejercicio tiene análisis interno y el alumno aún no ha decidido.
+      const tieneInternoSesion = (ej.proposiciones || []).every(p => p && p.analisis_interno);
+      const enPreResumen = tieneInternoSesion && !eng.interna.activo && !eng.interna.saltado && !state.modoExamen;
+      if(!enPreResumen){
+        registrarResultadoSesion(ej);
       }
       return;
     }
@@ -4119,9 +4165,22 @@
         <div class="cp-spacer"></div>
         ${state.modoExamen ? '' : renderEstadoGuardado()}
         ${(state.idx > 0 && !state.modoExamen) ? `<button type="button" class="cp-btn-secondary" onclick="CP.anterior()">← Anterior</button>` : ''}
+        ${renderBotonFinalizarSesion()}
         ${renderBotonFinalResumen()}
       </div>
     `;
+  }
+
+  // Botón secundario «🏁 Finalizar sesión». Solo en práctica y solo si
+  // hay al menos un ejercicio terminado en la sesión actual. Cuando estás
+  // en el último ejercicio el botón principal ya es «Ver resumen de sesión»,
+  // por lo que aquí ocultamos el secundario para no duplicar.
+  function renderBotonFinalizarSesion(){
+    if(state.modoExamen) return '';
+    const esUltimo = state.idx >= state.filtered.length - 1;
+    if(esUltimo) return '';
+    if((state.sessionResults || []).length === 0) return '';
+    return `<button type="button" class="cp-btn-secondary" onclick="CP.finalizarSesion()" title="Termina aquí y mira el resumen de los ejercicios que has hecho">🏁 Finalizar sesión</button>`;
   }
 
   // ─────────────────────────────────────────────────────────────────────
@@ -4164,10 +4223,14 @@
   function renderBotonFinalResumen(){
     const esUltimo = state.idx >= state.filtered.length - 1;
     if(!state.modoExamen){
-      // Práctica: comportamiento original
-      return esUltimo
-        ? `<button type="button" class="cp-btn-primary" onclick="CP.volverFiltros()">Volver a filtros</button>`
-        : `<button type="button" class="cp-btn-primary" onclick="CP.siguientePractica()">Siguiente ejercicio →</button>`;
+      // Práctica: si hay resultados acumulados, el último ejercicio cierra
+      // mostrando el resumen de sesión. Si no, se mantiene el atajo a filtros.
+      if(esUltimo){
+        return (state.sessionResults || []).length > 0
+          ? `<button type="button" class="cp-btn-primary" onclick="CP.finalizarSesion()">🏁 Ver resumen de sesión</button>`
+          : `<button type="button" class="cp-btn-primary" onclick="CP.volverFiltros()">Volver a filtros</button>`;
+      }
+      return `<button type="button" class="cp-btn-primary" onclick="CP.siguientePractica()">Siguiente ejercicio →</button>`;
     }
     // Modo examen
     if(!esUltimo){
@@ -4308,6 +4371,121 @@
     state.engine = null;
     state.modoLectura = false;
     renderFiltros();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Resumen de sesión de práctica (mayo 2026)
+  // Se activa al pulsar «🏁 Finalizar sesión» o «🏁 Ver resumen de sesión».
+  // Muestra la lista de ejercicios terminados con su nota y un agregado
+  // (nota media, aciertos/errores totales).
+  // NO se enmarca como examen: solo es información de lo que el alumno
+  // ha hecho en la práctica.
+  // ─────────────────────────────────────────────────────────────────────
+  function finalizarSesion(){
+    if(state.modoExamen) return;
+    // Registramos el ejercicio actual si aún no estaba en la lista
+    // (por ejemplo si el alumno pulsa Finalizar desde el resumen).
+    const ej = state.filtered[state.idx];
+    if(ej && state.engine && state.engine.fase === 'resumen'){
+      const tieneInterno = (ej.proposiciones || []).every(p => p && p.analisis_interno);
+      const enPreResumen = tieneInterno && !state.engine.interna.activo && !state.engine.interna.saltado;
+      if(!enPreResumen){
+        registrarResultadoSesion(ej);
+      }
+    }
+    renderPantallaFinalSesion();
+  }
+
+  function renderPantallaFinalSesion(){
+    const ress = state.sessionResults || [];
+    const n = ress.length;
+    const notas = ress.map(r => r.nota).filter(x => x !== null && x !== undefined);
+    const notaMedia = notas.length > 0
+      ? Math.round(notas.reduce((a,b)=>a+b, 0) / notas.length * 10) / 10
+      : null;
+    const notaColor = notaMedia === null ? 'var(--muted)' : (notaMedia >= 5 ? '#15803D' : '#B91C1C');
+    const aciertosTotal = ress.reduce((s,r)=>s + (r.aciertos||0), 0);
+    const erroresTotal  = ress.reduce((s,r)=>s + (r.errores ||0), 0);
+    const denominador   = aciertosTotal + erroresTotal;
+    const pctGlobal     = denominador > 0 ? Math.round(aciertosTotal/denominador*100) : 0;
+
+    // Mensaje según media
+    let icono = '🎯', titulo = 'Sesión completada';
+    if(notaMedia !== null){
+      if(notaMedia >= 9)      { icono = '🏆'; titulo = 'Sesión excelente'; }
+      else if(notaMedia >= 7) { icono = '⭐'; titulo = 'Buena sesión'; }
+      else if(notaMedia >= 5) { icono = '👍'; titulo = 'Sesión aprobada'; }
+      else                    { icono = '📚'; titulo = 'Toca repasar'; }
+    }
+
+    const filas = ress.map((r, i) => {
+      const notaTxt = (r.nota !== null && r.nota !== undefined) ? r.nota.toFixed(1) : '—';
+      const c = (r.nota !== null && r.nota !== undefined) ? (r.nota >= 5 ? '#15803D' : '#B91C1C') : 'var(--muted)';
+      const txt = (r.texto || '').slice(0, 70) + ((r.texto || '').length > 70 ? '…' : '');
+      const internaBadge = r.internaHecha
+        ? `<span style="font-size:.68rem;background:#EFF6FF;color:#1E40AF;border-radius:99px;padding:1px 7px;margin-left:4px;font-weight:700">🔬 interno</span>`
+        : '';
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--paper2);border-radius:8px;font-size:.84rem">
+          <span style="color:var(--muted);min-width:28px;font-weight:700">#${i + 1}</span>
+          <div style="flex:1;color:var(--ink2);line-height:1.35">
+            <div>${escHtml(txt)}${internaBadge}</div>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:1px">${escHtml(r.id||'')} · ${r.aciertos} ac. · ${r.errores} err.</div>
+          </div>
+          <span style="font-weight:800;color:${c};min-width:36px;text-align:right">${notaTxt}</span>
+        </div>`;
+    }).join('');
+
+    const wrap = document.getElementById('cp-wrap');
+    if(!wrap) return;
+    const cnt = document.getElementById('cp-counter');
+    if(cnt) cnt.textContent = '🏁 Resumen de sesión';
+
+    wrap.innerHTML = `
+      <div class="cp-summary" style="text-align:center">
+        <div class="cp-summary-icon">${icono}</div>
+        <h2 class="cp-summary-title">${titulo}</h2>
+        ${notaMedia !== null ? `
+          <div style="margin:10px 0 4px;font-size:3rem;font-weight:900;font-family:'Fraunces',serif;color:${notaColor};line-height:1">
+            ${notaMedia.toFixed(1)}<span style="font-size:1.1rem;font-weight:500;color:var(--muted)">&thinsp;/ 10</span>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">Nota media · ${n} ${n===1?'oración':'oraciones'}</div>
+        ` : ''}
+        <div class="cp-summary-stats">
+          <div class="cp-summary-stat">
+            <div class="cp-summary-stat-num">${n}</div>
+            <div class="cp-summary-stat-lbl">${n===1?'Oración':'Oraciones'}</div>
+          </div>
+          <div class="cp-summary-stat">
+            <div class="cp-summary-stat-num">${aciertosTotal}</div>
+            <div class="cp-summary-stat-lbl">Aciertos</div>
+          </div>
+          <div class="cp-summary-stat">
+            <div class="cp-summary-stat-num">${erroresTotal}</div>
+            <div class="cp-summary-stat-lbl">Errores</div>
+          </div>
+          <div class="cp-summary-stat">
+            <div class="cp-summary-stat-num">${pctGlobal}<span style="font-size:1rem">%</span></div>
+            <div class="cp-summary-stat-lbl">Acierto</div>
+          </div>
+        </div>
+      </div>
+
+      ${n > 0 ? `
+        <div style="margin-bottom:16px">
+          <h3 style="font-family:'Fraunces',serif;font-size:1.05rem;color:var(--ink);margin:0 0 10px 4px">Detalle por oración</h3>
+          <div style="display:flex;flex-direction:column;gap:6px">${filas}</div>
+        </div>
+      ` : `
+        <div style="margin:12px 0;padding:14px 16px;background:var(--paper2);border-radius:10px;color:var(--muted);text-align:center;font-size:.88rem">
+          No has terminado ninguna oración en esta sesión.
+        </div>
+      `}
+
+      <div class="cp-actions" style="border-top:none;padding-top:0;justify-content:center;display:flex;gap:10px;flex-wrap:wrap">
+        <button type="button" class="cp-btn-secondary" onclick="CP.volverFiltros()">← Volver a filtros</button>
+      </div>
+    `;
   }
 
   // Sección plegable del resumen que muestra los resultados del análisis
@@ -4546,10 +4724,25 @@
   }
 
 
-  // Abandonar el ejercicio actual y volver a filtros (sin perder estado del banco)
+  // Abandonar el ejercicio actual.
+  // - En examen: pide confirmación y vuelve a filtros.
+  // - En práctica con resultados acumulados: muestra el resumen de sesión
+  //   en lugar de volver directamente a filtros (el alumno verá su trabajo
+  //   antes de salir).
+  // - En práctica sin resultados: vuelve a filtros directamente.
   function abandonar(){
     if(!confirmarSalidaExamen()) return;
-    if(state.modoExamen) salirModoExamen();
+    if(state.modoExamen){
+      salirModoExamen();
+      state.engine = null;
+      state.modoLectura = false;
+      renderFiltros();
+      return;
+    }
+    if((state.sessionResults || []).length > 0){
+      renderPantallaFinalSesion();
+      return;
+    }
     state.engine = null;
     state.modoLectura = false;
     renderFiltros();
@@ -5176,7 +5369,7 @@ export const CP = {
     onInternaPredBtn, onInternaSujBtn, onInternaFuncBtn, avanzarInternaSubPaso,
     entrarModoExamen, cancelarPIN, validarPIN,
     enviarResultadoExamen, salirTrasEnvio, cerrarExamenFinal,
-    siguientePractica, abandonar,
+    siguientePractica, abandonar, finalizarSesion,
     guardarManual,
     reintentar,
     _state: state
