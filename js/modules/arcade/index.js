@@ -275,7 +275,7 @@ function renderArcade(){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:500px;margin:0 auto">
       ${options.map(f=>`
-        <button type="button" class="pvpn-card" onclick="arcadeAnswer('${f}','${correctFunc_final}','${(bloque.consejo||'Analiza la función sintáctica de este bloque.').replace(/'/g,"\\&#39;")}')" style="padding:16px 12px">
+        <button type="button" class="pvpn-card" onclick="arcadeAnswer('${f}','${correctFunc_final}','${(bloque.consejo||'Analiza la función sintáctica de este bloque.').replace(/'/g,"\\&#39;").replace(/"/g,'&quot;')}')" style="padding:16px 12px">
           <div class="pvpn-title">${f}</div>
         </button>`).join('')}
     </div>`;
