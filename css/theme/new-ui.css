@@ -3428,6 +3428,23 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 .cp-ctx-rel-sub  { color: #1E3A8A; }  /* subordinación: azul oscuro */
 .cp-ctx-rel-coord{ color: #0D9488; }  /* coordinación: teal */
 .cp-ctx-rel-yux  { color: #6B7280; }  /* yuxtaposición: gris */
+/* Texto del nexo (que, porque, y, ...) al lado del símbolo de relación.
+   Aparece SIEMPRE para que el alumno tenga la oración compuesta completa a
+   la vista, también cuando el nexo no está dentro de los indices de la O
+   subordinada (mayo 2026). */
+.cp-ctx-nexus-text{
+  display: inline-block;
+  margin-left: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #FEF3C7;
+  color: #78350F;
+  font-size: .78rem;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: .01em;
+  vertical-align: middle;
+}
 @media(max-width:540px){
   #screen-compuestas #cp-ctx-strip{ padding:8px 12px 10px; }
 }
@@ -3514,6 +3531,15 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   border: 1.5px solid rgba(15, 35, 66, .35);
   border-top: none;
   border-radius: 0 0 5px 5px;
+}
+/* Estado oculto: mientras el alumno no haya confirmado el análisis, la etiqueta
+   macro (Sujeto/Predicado) aparece como un '?' neutro para no dar la solución. */
+.cp-stk-macro-oculto{
+  color: rgba(15, 35, 66, .45) !important;
+  background: rgba(15, 35, 66, .04) !important;
+}
+.cp-stk-macro-oculto::after{
+  border-color: rgba(15, 35, 66, .18) !important;
 }
 
 /* Fila 2: las palabras */

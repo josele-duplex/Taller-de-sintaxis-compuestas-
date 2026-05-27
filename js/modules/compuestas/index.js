@@ -880,10 +880,21 @@
     // Para fase 3: índice del token → id de proposición en el JSON ('pp', 'ps', 'p1'...)
     // Solo tokens que están en alguna `proposicion.indices`. Los nexos como `que`
     // completivo NO están en indices y por tanto NO se piden al alumno.
+    //
+    // FILTRO IMPORTANTE: excluir tokens de PUNTUACIÓN aunque estén en prop.indices.
+    // La puntuación NO es clickable (clickable=false en renderInteractTokens) y por
+    // tanto el alumno nunca podría confirmarla. Sin este filtro, las oraciones con
+    // aposición ("Tu objetivo, ganar el partido, está claro") se quedaban bloqueadas
+    // en P1 porque las comas estaban en P1.indices pero no se podían marcar (bug
+    // reportado mayo 2026).
     const tokenAProp = new Map();
+    const _tokenById = new Map();
+    (ej.tokens || []).forEach(t => _tokenById.set(t.i, t));
     (ej.proposiciones||[]).forEach((p, propIdx)=>{
       const propNum = propIdx + 1;  // P1, P2, P3...
       (p.indices||[]).forEach(i=>{
+        const tok = _tokenById.get(i);
+        if(tok && tok.categoria === 'puntuacion') return;  // saltar puntuación
         tokenAProp.set(i, propNum);
       });
     });
@@ -1337,10 +1348,17 @@
     groups.forEach(g=>{ g.startCol = c; c += g.cols; });
     const totalCols = blocks.length;
 
-    // Fila 1 (macro): Sujeto / Predicado abarcando varias columnas
+    // Fila 1 (macro): Sujeto / Predicado abarcando varias columnas.
+    // OCULTAR las etiquetas macro ('Sujeto' / 'Predicado verbal/nominal') hasta
+    // que el alumno haya confirmado el análisis. Mostrarlas desde el inicio
+    // estaba dando la solución gratis (bug reportado mayo 2026).
+    // Antes de confirmar: mostramos solo separadores neutros ('?').
+    // Tras confirmar: revelamos la etiqueta correcta.
     const macroHtml = groups.map(g=>{
       const cls = g.macro === 'Sujeto' ? 'cp-stk-macro-suj' : 'cp-stk-macro-pred';
-      return `<div class="cp-stk-macro ${cls}" style="grid-column:${g.startCol}/${g.startCol+g.cols}">${g.macro}</div>`;
+      const label = _idd.confirmed ? g.macro : '?';
+      const extraCls = _idd.confirmed ? '' : ' cp-stk-macro-oculto';
+      return `<div class="cp-stk-macro ${cls}${extraCls}" style="grid-column:${g.startCol}/${g.startCol+g.cols}">${label}</div>`;
     }).join('');
 
     // Fila 2 (palabras): cada bloque ocupa una columna
@@ -1385,6 +1403,41 @@
     const props = ej.proposiciones || [];
     const tokens = ej.tokens || [];
     const relaciones = ej.relaciones || [];
+    const nexos = ej.nexos || [];
+
+    // Helper: texto del nexo que conecta dos oraciones (propA y propB)
+    // Prioridad: rel.nexo_ref → primer nexo cuyos índices caen entre las dos. Si
+    // no encuentra ninguno, devuelve ''. Excluye nexos que ya están dentro de los
+    // indices de propB (típicamente pronombres relativos), porque esos ya
+    // aparecen en el texto del chip de propB y no hace falta duplicarlos.
+    const nexusTextBetween = (propA, propB, rel)=>{
+      let candidato = null;
+      if(rel && rel.nexo_ref){
+        candidato = nexos.find(n => n.id === rel.nexo_ref);
+      }
+      if(!candidato){
+        const idxsA = (propA.indices || []);
+        const idxsB = (propB.indices || []);
+        if(idxsA.length === 0 || idxsB.length === 0) return '';
+        const lastA = Math.max(...idxsA);
+        const firstB = Math.min(...idxsB);
+        candidato = nexos.find(n => {
+          if(!Array.isArray(n.indices) || n.indices.length === 0) return false;
+          const nmin = Math.min(...n.indices);
+          const nmax = Math.max(...n.indices);
+          return nmin > lastA && nmax < firstB;
+        });
+      }
+      if(!candidato) return '';
+      // Si todos los índices del nexo ya están dentro de propB (relativo), no duplicar
+      const idxsBSet = new Set(propB.indices || []);
+      const todosEnB = (candidato.indices || []).every(i => idxsBSet.has(i));
+      if(todosEnB) return '';
+      return candidato.forma || (Array.isArray(candidato.indices)
+        ? candidato.indices.map(i => tokens.find(t => t.i === i)?.texto || '').join(' ')
+        : '');
+    };
+
     let html = '<div class="cp-ctx-props">';
     props.forEach((prop, idx)=>{
       const pNum = idx + 1;
@@ -1402,8 +1455,10 @@
         <span class="cp-ctx-prop-text">${escHtml(shortText)}${needsDots?'…':''}</span>
       </div>`;
 
-      // ── Flecha de relación entre chips consecutivos ─────────────
-      // Solo si el alumno ya respondió correctamente el TIPO de relación.
+      // ── Flecha de relación + NEXO entre chips consecutivos ─────────────
+      // El símbolo (→ ↔ ∥) aparece cuando el alumno ya respondió el TIPO; el
+      // texto del nexo (que, porque, y, ...) aparece SIEMPRE para que el alumno
+      // tenga la oración completa a la vista (bug reportado mayo 2026).
       if(idx < props.length - 1){
         const rel = relaciones.find(r =>
           (r.de === prop.id && r.a === props[idx+1].id) ||
@@ -1418,7 +1473,11 @@
           else if(rel.tipo === 'coordinacion'){ sym = '↔'; cls = 'cp-ctx-rel-coord'; titulo = 'Coordinación';   }
           else { sym = '∥'; cls = 'cp-ctx-rel-yux'; titulo = 'Yuxtaposición'; }
         }
-        html += `<span class="cp-ctx-rel ${cls}" title="${titulo}">${sym}</span>`;
+        const nexusTxt = nexusTextBetween(prop, props[idx+1], rel);
+        const nexusHtml = nexusTxt
+          ? `<span class="cp-ctx-nexus-text" title="Nexo">${escHtml(nexusTxt)}</span>`
+          : '';
+        html += `<span class="cp-ctx-rel ${cls}" title="${titulo}">${sym}${nexusHtml}</span>`;
       }
     });
     html += '</div>';
@@ -2384,7 +2443,8 @@
   //   pero como en el banco eso entra como termino_preposicion, no aplica aquí).
   // - sustantiva_atributo → función=atributo. Redundante.
   // - sustantiva_aposicion → función=aposicion. Redundante.
-  // - sustantiva_termino_preposicion → función=termino_preposicion + sub-paso función SP. NO redundante (hay info nueva).
+  // - sustantiva_termino_preposicion → función=termino_preposicion. Redundante
+  //   en sí misma, pero el sub-paso 6 (función del SP) SÍ se pregunta porque aporta info nueva.
   // - relativa_especificativa/explicativa → función=cn. Redundante.
   // - relativa_libre/semilibre → función puede ser cualquiera. NO redundante.
   // - Construcciones (causal/final/...) → función predecible. Redundante.
@@ -2400,9 +2460,9 @@
   //   sustantiva_cd                  → función = cd           (redundante)
   //   sustantiva_atributo            → función = atributo     (redundante)
   //   sustantiva_aposicion           → función = aposición    (redundante)
-  //   sustantiva_termino_preposicion → función = término + funcion_sp
-  //                                                            (NO redundante,
-  //                                                             se pregunta SP)
+  //   sustantiva_termino_preposicion → función = término       (redundante)
+  //                                    PERO el sub-paso 6 (funcion_sp) sí se
+  //                                    pregunta — aporta info nueva.
   //   relativa_especificativa        → función = CN           (redundante)
   //   relativa_explicativa           → función = CN           (redundante)
   //   relativa_libre / _semilibre    → función variable        (NO redundante)
@@ -2419,8 +2479,11 @@
   function funcionEsRedundante(rel){
     if(!rel || rel.tipo !== 'subordinacion') return false;
     const sub = rel.subtipo || '';
-    // Sustantivas con función obvia (excepto término de preposición)
-    if(['sustantiva_sujeto','sustantiva_cd','sustantiva_atributo','sustantiva_aposicion'].includes(sub)) return true;
+    // Sustantivas: el subtipo YA contiene la función. Para término de preposición
+    // saltamos el sub-paso 5 (función = término de preposición es obvio), pero
+    // mantenemos el sub-paso 6 (función del SP) porque sí aporta info nueva.
+    if(['sustantiva_sujeto','sustantiva_cd','sustantiva_atributo',
+        'sustantiva_aposicion','sustantiva_termino_preposicion'].includes(sub)) return true;
     // Relativas con antecedente expreso → siempre CN
     if(sub === 'relativa_especificativa' || sub === 'relativa_explicativa') return true;
     // Construcciones: la función es CC con valor del subtipo (causal, final…)
