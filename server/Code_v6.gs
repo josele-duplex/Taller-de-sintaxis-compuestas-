@@ -56,7 +56,7 @@
 //        menuLimpiarColoresAuditoria
 //
 //   §10 LIMPIEZA Y COHERENCIA                                 2714–2945
-//        menuLimpiarHojasObsoletas · menuLimpiarBackupsAntiguos ·
+//        menuAutotest · menuLimpiarHojasObsoletas · menuLimpiarBackupsAntiguos ·
 //        menuValidarCoherencia · menuPurgarLogsGAS
 //
 //   §11 INFORME DEL PROFESOR (Excel multi-hoja)               2945–final
@@ -1786,6 +1786,8 @@ function onOpen() {
   mantenimiento.addItem('🎨 Configurar desplegables (Activo/Nivel)','menuConfigurarValidaciones');
   mantenimiento.addItem('✨ Aplicar estilos visuales a las hojas', 'menuConfigurarTodosLosEstilos');
   mantenimiento.addSeparator();
+  mantenimiento.addItem('🧪 Autotest del backend',                'menuAutotest');
+  mantenimiento.addSeparator();
   mantenimiento.addItem('🔍 Auditar oraciones (solo lectura)',    'menuAuditarOracionesBanco');
   mantenimiento.addItem('✏️ Reparar oraciones automáticamente',   'menuRepararOracionesBanco');
   mantenimiento.addItem('🧹 Limpiar colores de auditoría',        'menuLimpiarColoresAuditoria');
@@ -3020,6 +3022,111 @@ function menuValidarCoherencia() {
   }
 
   ui.alert('⚠ Coherencia: problemas detectados', msg, ui.ButtonSet.OK);
+}
+
+// ── menuAutotest — comprueba el estado del backend sin modificar datos ──
+// Llama a las funciones internas directamente (sin HTTP).
+// Cada check: función anónima que devuelve string con info o lanza Error.
+function menuAutotest() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const resultados = [];
+
+  function check(nombre, fn) {
+    try {
+      const info = fn();
+      resultados.push('✓ ' + nombre + (info ? ': ' + info : ''));
+    } catch(e) {
+      resultados.push('✗ ' + nombre + ': ' + e.message);
+    }
+  }
+
+  // 1. Hojas esenciales del módulo simple
+  check('Hojas esenciales', function() {
+    const requeridas = [SHEET_BANCO, SHEET_RESULTS, SHEET_EXAMS];
+    const faltantes = requeridas.filter(function(h){ return !ss.getSheetByName(h); });
+    if (faltantes.length > 0) throw new Error('Faltan: ' + faltantes.join(', '));
+    return 'presentes (' + requeridas.length + ')';
+  });
+
+  // 2. Banco simple: contar activas y verificar que al menos una tiene JSON válido
+  check('Oraciones_Banco', function() {
+    const sheet = ss.getSheetByName(SHEET_BANCO);
+    if (!sheet) throw new Error('no existe');
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) throw new Error('vacío');
+    const activas = data.slice(1).filter(function(r){
+      return String(r[COL_ACTIVO - 1]).trim() === 'Sí';
+    });
+    if (activas.length === 0) throw new Error('ninguna oración activa');
+    // Verificar JSON de las primeras 10 activas
+    let conJson = 0;
+    for (let i = 0; i < Math.min(activas.length, 10); i++) {
+      if (safeParseJSON(String(activas[i][COL_JSON - 1]))) conJson++;
+    }
+    if (conJson === 0) throw new Error('todas con JSON roto (muestra de 10)');
+    return activas.length + ' activas, JSON OK en muestra';
+  });
+
+  // 3. Banco compuestas (solo si el módulo está cargado)
+  check('Compuestas_Banco', function() {
+    if (typeof SHEET_COMPUESTAS_BANCO === 'undefined') return 'módulo Compuestas.gs no cargado';
+    const sheet = ss.getSheetByName(SHEET_COMPUESTAS_BANCO);
+    if (!sheet) return 'hoja no creada aún (usa Menú → Oración Compuesta → Crear hojas)';
+    const col = getColMap_(sheet);
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return '0 ejercicios';
+    const activoIdx = col['Activo'];
+    if (activoIdx === undefined) throw new Error('cabecera "Activo" no encontrada');
+    const activas = data.slice(1).filter(function(r){
+      return String(r[activoIdx]).trim() === 'Sí';
+    });
+    return activas.length + ' ejercicios activos';
+  });
+
+  // 4. Exámenes simples configurados
+  check('Examenes_Config', function() {
+    const sheet = ss.getSheetByName(SHEET_EXAMS);
+    if (!sheet) return 'aún sin exámenes (se crea al crear el primero)';
+    const n = Math.max(0, sheet.getLastRow() - 1);
+    const activos = sheet.getDataRange().getValues().slice(1).filter(function(r){
+      const col = getColMap_(sheet);
+      return col['Estado'] !== undefined && String(r[col['Estado']]).trim() === 'activo';
+    }).length;
+    return n + ' examen(es) total, ' + activos + ' activo(s)';
+  });
+
+  // 5. getStats_ no lanza excepción
+  check('getStats_()', function() {
+    const r = getStats_();
+    if (r && r.error) throw new Error(r.error);
+    return 'ok';
+  });
+
+  // 6. getStatsCompuestas_ (si está disponible)
+  check('getStatsCompuestas_()', function() {
+    if (typeof getStatsCompuestas_ !== 'function') return 'no disponible';
+    const r = getStatsCompuestas_();
+    if (r && r.error) throw new Error(r.error);
+    return 'ok';
+  });
+
+  // 7. Hoja Logs_GAS (informativa, no falla si no existe)
+  check('Logs_GAS', function() {
+    const sheet = ss.getSheetByName(SHEET_LOGS);
+    if (!sheet) return 'sin errores registrados aún (buena señal 👍)';
+    const n = Math.max(0, sheet.getLastRow() - 1);
+    return n + ' entradas de log';
+  });
+
+  const ok   = resultados.filter(function(r){ return r.startsWith('✓'); }).length;
+  const fail = resultados.filter(function(r){ return r.startsWith('✗'); }).length;
+  const icon = fail === 0 ? '✅' : '⚠️';
+  ui.alert(
+    icon + ' Autotest — ' + ok + ' OK · ' + fail + ' fallo(s)',
+    resultados.join('\n'),
+    ui.ButtonSet.OK
+  );
 }
 
 // ── menuPurgarLogsGAS — borra entradas de Logs_GAS con más de 30 días ──
