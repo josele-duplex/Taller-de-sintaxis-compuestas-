@@ -209,8 +209,8 @@
           if(!sample.texto) reasons.push('falta texto');
           if(!Array.isArray(sample.tokens)) reasons.push('tokens no es array');
           else if(sample.tokens.length===0) reasons.push('tokens vacío');
-          if(!Array.isArray(sample.proposiciones)) reasons.push('proposiciones no es array');
-          else if(sample.proposiciones.length===0) reasons.push('proposiciones vacío');
+          if(!Array.isArray(sample.proposiciones)) reasons.push('oraciones no es array');
+          else if(sample.proposiciones.length===0) reasons.push('oraciones vacío');
           if(!Array.isArray(sample.relaciones)) reasons.push('relaciones no es array');
         }
         throw new Error('Los ejercicios llegan, pero ninguno pasa la validación mínima. Primer ejercicio falla por: ' + (reasons.join(', ')||'razón desconocida') + '. Muestra: ' + JSON.stringify(sample).slice(0,200));
@@ -229,7 +229,7 @@
     }
   }
 
-  // Validador mínimo: cada ejercicio debe tener id, texto, tokens, proposiciones, relaciones
+  // Validador mínimo: cada ejercicio debe tener id, texto, tokens, oraciones, relaciones
   function isValidEjercicio(ej){
     if(!ej || typeof ej !== 'object') return false;
     if(!ej.id || !ej.texto) return false;
@@ -272,7 +272,7 @@
     for(const r of (ej.relaciones||[])){
       if(r.subtipo) return r.subtipo;
     }
-    // 2) Si no, buscar subtipo en una proposición subordinada
+    // 2) Si no, buscar subtipo en una oración subordinada
     for(const p of (ej.proposiciones||[])){
       if(p.subtipo) return p.subtipo;
     }
@@ -845,7 +845,7 @@
     //   - verbo.indice (el léxico)
     //   - verbo.indices_perifrasis (todos los tokens de la perífrasis)
     // Permite clicar cualquier verbo de una perífrasis o de una forma compuesta.
-    // verboPropByIdx: mapa índice → id de proposición (para saber qué perífrasis se confirma de un solo clic)
+    // verboPropByIdx: mapa índice → id de oración (para saber qué perífrasis se confirma de un solo clic)
     const verbosCorrectos = new Set();
     const verboPropByIdx = new Map();   // index → id de propos
     const perifByProp = new Map();      // id de propos → Set de índices de la perífrasis
@@ -877,21 +877,21 @@
         nexoByIdx.set(i, set);
       });
     });
-    // Para fase 3: índice del token → id de proposición en el JSON ('pp', 'ps', 'p1'...)
-    // Solo tokens que están en alguna `proposicion.indices`. Los nexos como `que`
+    // Para fase 3: índice del token → id de oración en el JSON ('pp', 'ps', 'p1'...)
+    // Solo tokens que están en alguna `oracion.indices`. Los nexos como `que`
     // completivo NO están en indices y por tanto NO se piden al alumno.
     //
     // FILTRO IMPORTANTE: excluir tokens de PUNTUACIÓN aunque estén en prop.indices.
     // La puntuación NO es clickable (clickable=false en renderInteractTokens) y por
     // tanto el alumno nunca podría confirmarla. Sin este filtro, las oraciones con
     // aposición ("Tu objetivo, ganar el partido, está claro") se quedaban bloqueadas
-    // en P1 porque las comas estaban en P1.indices pero no se podían marcar (bug
+    // en O1 porque las comas estaban en O1.indices pero no se podían marcar (bug
     // reportado mayo 2026).
     const tokenAProp = new Map();
     const _tokenById = new Map();
     (ej.tokens || []).forEach(t => _tokenById.set(t.i, t));
     (ej.proposiciones||[]).forEach((p, propIdx)=>{
-      const propNum = propIdx + 1;  // P1, P2, P3...
+      const propNum = propIdx + 1;  // O1, O2, O3...
       (p.indices||[]).forEach(i=>{
         const tok = _tokenById.get(i);
         if(tok && tok.categoria === 'puntuacion') return;  // saltar puntuación
@@ -923,7 +923,7 @@
       nexosClickedOnce: new Set(),
       pistaUsadaF1: false,
       pistaUsadaF2: false,
-      // ── Fase 3: delimitar proposiciones ─────────────────────────────
+      // ── Fase 3: delimitar oraciones ─────────────────────────────
       tokenAProp,                          // mapa correcto (índice → numProp)
       f3PropActiva: 1,                     // qué P_n está seleccionada como activa
       f3Asignaciones: new Map(),           // mapa actual del alumno: indice → numProp
@@ -932,17 +932,17 @@
       f3Aciertos: 0,
       f3Errores: 0,
       pistaUsadaF3: false,
-      // ── Fase 5: relaciones entre proposiciones ──────────────────────
+      // ── Fase 5: relaciones entre oraciones ──────────────────────
       f5IdxActual: 0,                      // qué relación se está respondiendo (0..N-1)
       f5Respuestas: [],                    // [{tipo, tipoOk, origen, direccionOk, funcion, funcionOk, funcionSp, funcionSpOk}]
       f5Aciertos: 0,
       f5Errores: 0,
-      // ── Fase 6: análisis interno de proposiciones (Entrega 4 / Fase 1.4) ─
+      // ── Fase 6: análisis interno de oraciones (Entrega 4 / Fase 1.4) ─
       interna: {
         activo:     false,           // se activa cuando el alumno elige "Analizar por dentro"
-        propIdx:    0,               // qué proposición se está analizando (0..N-1)
+        propIdx:    0,               // qué oración se está analizando (0..N-1)
         subPaso:    'predicado',     // 'predicado' | 'sujeto' | 'funciones'
-        funcionIdx: 0,               // qué función dentro de la proposición se está analizando
+        funcionIdx: 0,               // qué función dentro de la oración se está analizando
         respuestas: [],              // [{predicadoIndices, predicadoOk, sujetoIndices, sujetoTipo, sujetoOk, funcionesUsuario, funcionesOk}]
         aciertos:   0,
         errores:    0
@@ -950,7 +950,7 @@
       // ── General ──────────────────────────────────────────────────────
       mensajeFeedback: null
     };
-    // Pre-asignar los VERBOS confirmados de fase 1 a su proposición correcta en fase 3
+    // Pre-asignar los VERBOS confirmados de fase 1 a su oración correcta en fase 3
     // (los confirma fase 1, no debería el alumno reasignarlos en fase 3)
     // No los pre-asignamos al inicio, solo al entrar a fase 3 (porque fase 1 puede no haberse hecho aún).
     renderFase();
@@ -997,7 +997,7 @@
       return;
     }
 
-    // ── Fase 1.4: análisis interno de proposiciones ──────────────────────
+    // ── Fase 1.4: análisis interno de oraciones ──────────────────────
     if(eng.fase === 'interna'){
       wrap.innerHTML = renderInternaHtml(ej);
       return;
@@ -1032,12 +1032,12 @@
       return;
     }
 
-    // Determinar qué fases mostrar (skipear fase 2 si solo hay 1 proposición)
+    // Determinar qué fases mostrar (skipear fase 2 si solo hay 1 oración)
     const tieneNexos = (ej.proposiciones||[]).length > 1 && (ej.nexos||[]).length > 0;
     const tieneRelaciones = (ej.relaciones||[]).length > 0;
     const unaSolaProp = (ej.proposiciones||[]).length === 1;
 
-    // Fase 5: relaciones entre proposiciones. UI también especial.
+    // Fase 5: relaciones entre oraciones. UI también especial.
     if(eng.fase === 5){
       wrap.innerHTML = `
         ${renderProgressBar(eng.fase, tieneNexos, tieneRelaciones)}
@@ -1127,7 +1127,7 @@
       const eng = state.engine;
       const propActiva = eng.f3PropActiva;
       // Texto descriptivo de la P_n activa
-      const lblPropAct = `P${propActiva}`;
+      const lblPropAct = `O${propActiva}`;
       return `
         <div class="cp-instr cp-instr-grande cp-instr-fase3">
           <span class="cp-instr-emoji">📐</span>
@@ -1189,7 +1189,7 @@
         'subtipo':    'Esta es la clasificación más específica.',
         'direccion':  'En una subordinación, una es la principal (manda) y otra la subordinada (depende). Elige la flecha que mejor lo represente.',
         'funcion':    'La subordinada hace una función dentro de la principal: sujeto, complemento directo, complemento indirecto, atributo, etc.',
-        'funcion_sp': 'Cuando una proposición subordinada va dentro de un sintagma preposicional («de que…», «en que…», «para que…»), no es ella misma quien hace de complemento de régimen, CI, etc., sino el SP completo.',
+        'funcion_sp': 'Cuando una oración subordinada va dentro de un sintagma preposicional («de que…», «en que…», «para que…»), no es ella misma quien hace de complemento de régimen, CI, etc., sino el SP completo.',
         'final':      ''
       };
       // El alumno ve este como "Paso 4" (la antigua fase 4 ya no existe).
@@ -1208,7 +1208,7 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // FASE 3: selector de proposición activa (encima de la oración)
+  // FASE 3: selector de oración activa (encima de la oración)
   // ─────────────────────────────────────────────────────────────────────
   function renderPropSelector(){
     const eng = state.engine;
@@ -1228,7 +1228,7 @@
 
   // ── CP STICKY ─────────────────────────────────────────────────────────
   // Ventana fija bajo la topbar que muestra el progreso del alumno:
-  // fases 0-3 → tokens coloreados por rol; fases 4+ → chips de proposición.
+  // fases 0-3 → tokens coloreados por rol; fases 4+ → chips de oración.
 
   function updateCpStickyTop(){
     try{
@@ -1312,7 +1312,7 @@
   // cada bloque. Al pie, marca de la oración (O1, O2...).
   function renderCpStickyInterna(ej, eng){
     const propIdx = eng.interna.propIdx;
-    // Si _idd aún no está inicializado para esta proposición, lo iniciamos
+    // Si _idd aún no está inicializado para esta oración, lo iniciamos
     // (la sticky se renderiza antes que el body D&D).
     if(!_idd || !_idd.blocks || _idd._propIdx !== propIdx){
       _initIDD(ej, propIdx);
@@ -1505,8 +1505,8 @@
         else if(eng.nexosErrados.has(i)) cls += ' error locked';
         else if(eng.nexosSeleccionados.has(i)) cls += ' selected';
       } else if(eng.fase === 3){
-        // En fase 3: cada token asignado a una proposición se colorea
-        // Los verbos confirmados quedan auto-asignados a su proposición
+        // En fase 3: cada token asignado a una oración se colorea
+        // Los verbos confirmados quedan auto-asignados a su oración
         const propAsignada = eng.f3Asignaciones.get(i);
         if(propAsignada){
           cls += ' p' + Math.min(propAsignada, 4);
@@ -1563,7 +1563,7 @@
     if(fase === 1 || fase === 2){
       const errCount = fase === 1 ? eng.verbosErrores : eng.nexosErrores;
       const pistaUsada = fase === 1 ? eng.pistaUsadaF1 : eng.pistaUsadaF2;
-      // Para fase 1, una proposición se considera "completa" si al menos UNO de los tokens
+      // Para fase 1, una oración se considera "completa" si al menos UNO de los tokens
       // de su perífrasis está confirmado. Esto cuenta correctamente cuando hay formas compuestas.
       let propsCubiertas = 0;
       let propsTotales = (ej.proposiciones||[]).length;
@@ -1696,7 +1696,7 @@
           const perifText = Array.from(perif).sort((a,b)=>a-b).map(idx=>ej.tokens[idx]?.texto||'').join(' ');
           eng.mensajeFeedback = {
             tipo:'ok',
-            html: `✓ Correcto. «<b>${escHtml(perifText)}</b>» es el núcleo verbal de una proposición (forma verbal compuesta o perífrasis).`
+            html: `✓ Correcto. «<b>${escHtml(perifText)}</b>» es el núcleo verbal de una oración (forma verbal compuesta o perífrasis).`
           };
           if(typeof playSuccess === 'function') playSuccess();
         } else {
@@ -1713,7 +1713,7 @@
         eng.verbosErrores += 1;
         eng.mensajeFeedback = {
           tipo:'err',
-          html: '✗ Ese no es el núcleo de una proposición. ' + razonVerboIncorrecto(i, ej)
+          html: '✗ Ese no es el núcleo de una oración. ' + razonVerboIncorrecto(i, ej)
         };
         if(typeof playError === 'function') playError();
         if(typeof trackError === 'function') trackError('compuestas', 'verbo_NP');
@@ -1762,7 +1762,7 @@
         eng.nexosErrores += 1;
         eng.mensajeFeedback = {
           tipo:'err',
-          html: '✗ Ese no funciona como nexo entre proposiciones. ' + razonNexoIncorrecto(i, ej)
+          html: '✗ Ese no funciona como nexo entre oraciones. ' + razonNexoIncorrecto(i, ej)
         };
         if(typeof playError === 'function') playError();
         if(typeof trackError === 'function') trackError('compuestas', 'nexo');
@@ -1773,7 +1773,7 @@
 
     if(eng.fase === 3){
       const propActiva = eng.f3PropActiva;
-      const propCorrecta = eng.tokenAProp.get(i);  // puede ser undefined (token sin proposición)
+      const propCorrecta = eng.tokenAProp.get(i);  // puede ser undefined (token sin oración)
       const yaAsignado = eng.f3Asignaciones.get(i);
       const tok = ej.tokens[i];
 
@@ -1781,7 +1781,7 @@
       if(eng.verbosConfirmados.has(i) && yaAsignado){
         eng.mensajeFeedback = {
           tipo:'info',
-          html: `Este verbo ya quedó asignado a P${yaAsignado} desde el paso anterior.`
+          html: `Este verbo ya quedó asignado a O${yaAsignado} desde el paso anterior.`
         };
         renderFase();
         return;
@@ -1799,7 +1799,7 @@
         return;
       }
 
-      // Token SIN proposición asignable (típicamente un nexo)
+      // Token SIN oración asignable (típicamente un nexo)
       // No cuenta como error: damos feedback PEDAGÓGICO claro y aclaratorio.
       if(propCorrecta === undefined){
         // ¿Es un nexo? ¿De qué tipo?
@@ -1809,29 +1809,29 @@
           if(cat === 'pronombre_relativo'){
             eng.mensajeFeedback = {
               tipo:'info',
-              html: `<b>«${escHtml(tok?.texto||'')}»</b> es un pronombre relativo. Funciona como nexo aquí, pero además tiene su propia función sintáctica dentro de la proposición a la que pertenece (eso lo veremos más adelante). Por ahora puedes dejarlo sin asignar a ninguna proposición.`
+              html: `<b>«${escHtml(tok?.texto||'')}»</b> es un pronombre relativo. Funciona como nexo aquí, pero además tiene su propia función sintáctica dentro de la oración a la que pertenece (eso lo veremos más adelante). Por ahora puedes dejarlo sin asignar a ninguna oración.`
             };
           } else if(cat === 'conjuncion'){
             eng.mensajeFeedback = {
               tipo:'info',
-              html: `<b>«${escHtml(tok?.texto||'')}»</b> es una conjunción. Solo enlaza las proposiciones; no forma parte de ninguna de ellas. Déjala sin asignar.`
+              html: `<b>«${escHtml(tok?.texto||'')}»</b> es una conjunción. Solo enlaza las oraciones; no forma parte de ninguna de ellas. Déjala sin asignar.`
             };
           } else if(cat === 'locucion_conjuntiva'){
             eng.mensajeFeedback = {
               tipo:'info',
-              html: `<b>«${escHtml(tok?.texto||'')}»</b> forma parte de una locución conjuntiva (nexo de varias palabras). No se asigna a ninguna proposición.`
+              html: `<b>«${escHtml(tok?.texto||'')}»</b> forma parte de una locución conjuntiva (nexo de varias palabras). No se asigna a ninguna oración.`
             };
           } else {
             eng.mensajeFeedback = {
               tipo:'info',
-              html: `<b>«${escHtml(tok?.texto||'')}»</b> es un nexo entre proposiciones. No pertenece a ninguna de ellas.`
+              html: `<b>«${escHtml(tok?.texto||'')}»</b> es un nexo entre oraciones. No pertenece a ninguna de ellas.`
             };
           }
         } else {
           // Caso muy raro: algún token sin propietario y sin estar en nexos. Probablemente puntuación.
           eng.mensajeFeedback = {
             tipo:'info',
-            html: `<b>«${escHtml(tok?.texto||'')}»</b> no se asigna a ninguna proposición.`
+            html: `<b>«${escHtml(tok?.texto||'')}»</b> no se asigna a ninguna oración.`
           };
         }
         renderFase();
@@ -1863,14 +1863,14 @@
             if(eng.f3PropActiva <= totalProps){
               // Toast flotante animado en vez de mensaje en línea (más visible)
               mostrarToast({
-                titulo: `¡P${propActiva} terminada!`,
-                subtitulo: `Ahora identifica las palabras de P${eng.f3PropActiva}`,
+                titulo: `¡O${propActiva} terminada!`,
+                subtitulo: `Ahora identifica las palabras de O${eng.f3PropActiva}`,
                 colorIdx: Math.min(eng.f3PropActiva, 4)
               });
             } else {
               // Saltamos todas las restantes (todas eran solo verbo)
               mostrarToast({
-                titulo: `¡Has delimitado todas las proposiciones!`,
+                titulo: `¡Has delimitado todas las oraciones!`,
                 subtitulo: `Pulsa «Siguiente fase» para clasificarlas`,
                 colorIdx: 0
               });
@@ -1878,7 +1878,7 @@
             eng.mensajeFeedback = null;
           } else {
             mostrarToast({
-              titulo: `¡Has delimitado todas las proposiciones!`,
+              titulo: `¡Has delimitado todas las oraciones!`,
               subtitulo: `Pulsa «Siguiente fase» para clasificarlas`,
               colorIdx: 0
             });
@@ -1889,7 +1889,7 @@
         return;
       }
 
-      // Token que pertenece a OTRA proposición (no la activa).
+      // Token que pertenece a OTRA oración (no la activa).
       // Esto NO se asigna y NO cuenta como error grave: es solo desorientación.
       // Damos feedback claro sobre dónde estamos y qué es ese token.
       eng.f3Errores += 1;  // sí lo contamos, pero solo para estadística (no penaliza el avance)
@@ -1897,7 +1897,7 @@
       if(typeof trackError === 'function') trackError('compuestas', 'delimitar');
       eng.mensajeFeedback = {
         tipo:'warn',
-        html: `<b>«${escHtml(tok?.texto||'')}»</b> pertenece a <b style="color:var(--cp-p${Math.min(propCorrecta,4)})">P${propCorrecta}</b>, no a <b style="color:var(--cp-p${Math.min(propActiva,4)})">P${propActiva}</b>. Ahora estamos identificando solo las palabras de <b style="color:var(--cp-p${Math.min(propActiva,4)})">P${propActiva}</b>.`
+        html: `<b>«${escHtml(tok?.texto||'')}»</b> pertenece a <b style="color:var(--cp-p${Math.min(propCorrecta,4)})">O${propCorrecta}</b>, no a <b style="color:var(--cp-p${Math.min(propActiva,4)})">O${propActiva}</b>. Ahora estamos identificando solo las palabras de <b style="color:var(--cp-p${Math.min(propActiva,4)})">O${propActiva}</b>.`
       };
       renderFase();
       return;
@@ -1913,7 +1913,7 @@
       const perif = prop.verbo.indices_perifrasis.map(idx=>ej.tokens[idx]?.texto||'').join(' ');
       return `«${escHtml(tok?.texto||'')}» es el núcleo léxico de la perífrasis «${escHtml(perif)}».`;
     }
-    return `«${escHtml(tok?.texto||'')}» es el verbo de una proposición.`;
+    return `«${escHtml(tok?.texto||'')}» es el verbo de una oración.`;
   }
 
   function razonVerboIncorrecto(i, ej){
@@ -1928,7 +1928,7 @@
       }
     }
     if(cat === 'verbo'){
-      return `«${escHtml(tok.texto)}» es una forma verbal, pero aquí no actúa como núcleo de una proposición.`;
+      return `«${escHtml(tok.texto)}» es una forma verbal, pero aquí no actúa como núcleo de una oración.`;
     }
     if(cat === 'sustantivo') return `«${escHtml(tok.texto)}» es un sustantivo.`;
     if(cat === 'adjetivo') return `«${escHtml(tok.texto)}» es un adjetivo.`;
@@ -1942,7 +1942,7 @@
   function descripcionNexoCorrecto(i, ej){
     const tok = ej.tokens[i];
     const n = (ej.nexos||[]).find(nx=>Array.isArray(nx.indices) && nx.indices.includes(i));
-    if(!n) return `«${escHtml(tok?.texto||'')}» une dos proposiciones.`;
+    if(!n) return `«${escHtml(tok?.texto||'')}» une dos oraciones.`;
     const cat = n.categoria || 'conjuncion';
     const lblCat = {
       'conjuncion':'conjunción',
@@ -1950,19 +1950,19 @@
       'locucion_conjuntiva':'locución conjuntiva',
       'puntuacion':'signo de puntuación con valor de nexo'
     }[cat] || cat;
-    return `«${escHtml(n.forma||tok?.texto||'')}» es una ${escHtml(lblCat)} que une las proposiciones.`;
+    return `«${escHtml(n.forma||tok?.texto||'')}» es una ${escHtml(lblCat)} que une las oraciones.`;
   }
 
   function razonNexoIncorrecto(i, ej){
     const tok = ej.tokens[i];
     if(!tok) return '';
     const cat = tok.categoria;
-    if(cat === 'verbo') return `«${escHtml(tok.texto)}» es un verbo (núcleo de proposición), no un nexo entre ellas.`;
+    if(cat === 'verbo') return `«${escHtml(tok.texto)}» es un verbo (núcleo de oración), no un nexo entre ellas.`;
     if(cat === 'sustantivo') return `«${escHtml(tok.texto)}» es un sustantivo.`;
     if(cat === 'adjetivo') return `«${escHtml(tok.texto)}» es un adjetivo.`;
-    if(cat === 'adverbio') return `«${escHtml(tok.texto)}» es un adverbio. Los adverbios no suelen funcionar como nexos entre proposiciones.`;
+    if(cat === 'adverbio') return `«${escHtml(tok.texto)}» es un adverbio. Los adverbios no suelen funcionar como nexos entre oraciones.`;
     if(cat === 'pronombre') return `«${escHtml(tok.texto)}» es un pronombre personal, no un nexo.`;
-    return `«${escHtml(tok.texto)}» no enlaza proposiciones aquí.`;
+    return `«${escHtml(tok.texto)}» no enlaza oraciones aquí.`;
   }
 
   // ─────────────────────────────────────────────────────────────────────
@@ -1979,17 +1979,17 @@
       // Tras fase 1: ir a fase 2 si hay nexos, si no a fase 3 (delimitar)
       mostrarToast({
         titulo:'¡Verbos identificados!',
-        subtitulo: tieneNexos ? 'Ahora vamos a por los nexos' : (!unaSolaProp ? 'Ahora vamos a delimitar las proposiciones' : 'Ahora a clasificar la oración'),
+        subtitulo: tieneNexos ? 'Ahora vamos a por los nexos' : (!unaSolaProp ? 'Ahora vamos a delimitar las oraciones' : 'Ahora a clasificar la oración'),
         colorIdx: 1
       });
       if(tieneNexos){
         eng.fase = 2;
       } else if(!unaSolaProp){
-        // Sin nexos pero con varias proposiciones (yuxtaposición sin signo)
+        // Sin nexos pero con varias oraciones (yuxtaposición sin signo)
         eng.fase = 3;
         preAsignarVerbosFase3();
       } else {
-        // Una sola proposición: ir directamente a fase 5 (clasificar y relacionar)
+        // Una sola oración: ir directamente a fase 5 (clasificar y relacionar)
         irFaseClasificarYRelacionar(ej);
       }
       eng.mensajeFeedback = null;
@@ -2000,7 +2000,7 @@
       // Tras fase 2: ir a fase 3 (delimitar). Pre-asignar los verbos.
       mostrarToast({
         titulo:'¡Nexos identificados!',
-        subtitulo:'Ahora delimita las palabras de cada proposición',
+        subtitulo:'Ahora delimita las palabras de cada oración',
         colorIdx: 2
       });
       eng.fase = 3;
@@ -2024,7 +2024,7 @@
   }
 
   // Helper: ir a la fase de "clasificar y relacionar".
-  // Si la oración solo tiene 1 proposición, no hay relaciones → resumen directo.
+  // Si la oración solo tiene 1 oración, no hay relaciones → resumen directo.
   function irFaseClasificarYRelacionar(ej){
     const eng = state.engine;
     const tieneRelaciones = (ej.relaciones||[]).length > 0;
@@ -2070,7 +2070,7 @@
     }
   }
 
-  // Pre-asignar los verbos confirmados de fase 1 a su proposición correcta
+  // Pre-asignar los verbos confirmados de fase 1 a su oración correcta
   // (para que al entrar a fase 3 el alumno los vea ya asignados y no tenga que repetirlos)
   function preAsignarVerbosFase3(){
     const eng = state.engine;
@@ -2084,7 +2084,7 @@
       }
     });
     // Tras pre-asignar verbos: si la P_n activa ya está completa (caso de propos
-    // que solo constan del verbo, como "hay quien piensa..." donde P1 = "hay"),
+    // que solo constan del verbo, como "hay quien piensa..." donde O1 = "hay"),
     // saltamos automáticamente a la siguiente P_n con tokens por asignar.
     avanzarPropActivaSiCompleta(ej);
   }
@@ -2130,8 +2130,8 @@
         if(!eng.f3Confirmados.has(i)) faltantesPorProp.set(numProp, (faltantesPorProp.get(numProp)||0)+1);
       });
       const partes = [];
-      faltantesPorProp.forEach((c, p)=>{ partes.push(`P${p}: ${c}`); });
-      html = `Te faltan <b>${totalPorAsignar}</b> tokens por asignar (${partes.join(', ')}). Recuerda que algunos tokens pueden no pertenecer a ninguna proposición (los nexos completivos).`;
+      faltantesPorProp.forEach((c, p)=>{ partes.push(`O${p}: ${c}`); });
+      html = `Te faltan <b>${totalPorAsignar}</b> tokens por asignar (${partes.join(', ')}). Recuerda que algunos tokens pueden no pertenecer a ninguna oración (los nexos completivos).`;
     }
     if(html && typeof window.showPistaFlotante === 'function'){
       window.showPistaFlotante({titulo, html, tipo:'compuesta'});
@@ -2219,10 +2219,10 @@
   }
 
   // ═════════════════════════════════════════════════════════════════════
-  // FASE 5 — Relaciones entre proposiciones
+  // FASE 5 — Relaciones entre oraciones
   // ═════════════════════════════════════════════════════════════════════
 
-  // Mini-resumen visual de las proposiciones ya clasificadas
+  // Mini-resumen visual de las oraciones ya clasificadas
   function renderResumenPropos(ej){
     const items = (ej.proposiciones||[]).map((p,idx)=>{
       const n = idx + 1;
@@ -2231,7 +2231,7 @@
       const subLbl = p.subtipo ? ' · ' + etiquetaSubtipoExtendida(p.subtipo) : '';
       return `
         <div class="cp-prop-mini ${colorCls}">
-          <span class="cp-clasif-prop-id ${colorCls}">P${n}</span>
+          <span class="cp-clasif-prop-id ${colorCls}">O${n}</span>
           <span style="font-weight:700">${escHtml(tipoLbl)}</span>
           <span style="color:var(--muted);font-size:.78rem">${escHtml(subLbl)}</span>
         </div>`;
@@ -2248,9 +2248,9 @@
     if(!eng.f5Respuestas[relIdx]) eng.f5Respuestas[relIdx] = {};
     const resp = eng.f5Respuestas[relIdx];
 
-    // ¿Qué proposiciones implica esta relación?
+    // ¿Qué oraciones implica esta relación?
     const propIds = Array.isArray(rel.proposiciones) ? rel.proposiciones : [];
-    // Calcular números visibles (P1, P2...) según el índice en ej.proposiciones
+    // Calcular números visibles (O1, O2...) según el índice en ej.proposiciones
     const propIdToNum = new Map();
     (ej.proposiciones||[]).forEach((p,i)=>propIdToNum.set(p.id, i+1));
     const propNums = propIds.map(id=>propIdToNum.get(id));
@@ -2260,15 +2260,15 @@
     html += `
       <div class="cp-clasif-prop-header">
         <span style="font-weight:800;font-size:.92rem;color:var(--ink)">Relación ${relIdx+1} de ${ej.relaciones.length}:</span>
-        ${propNums.map(n=>`<span class="cp-clasif-prop-id p${Math.min(n,4)}">P${n}</span>`).join('<span style="color:var(--muted);font-weight:800"> ↔ </span>')}
+        ${propNums.map(n=>`<span class="cp-clasif-prop-id p${Math.min(n,4)}">O${n}</span>`).join('<span style="color:var(--muted);font-weight:800"> ↔ </span>')}
       </div>
     `;
 
     // ─── Sub-paso 1: TIPO de relación ─────────────────────────────────
     const opcionesTipo = [
-      ['subordinacion','Subordinación','Una proposición depende de otra y desempeña una función dentro de ella.'],
-      ['coordinacion','Coordinación','Las proposiciones están al mismo nivel, unidas por un nexo («y», «pero», «o»).'],
-      ['yuxtaposicion','Yuxtaposición','Las proposiciones están al mismo nivel, sin nexo (separadas por coma, punto y coma…).']
+      ['subordinacion','Subordinación','Una oración depende de otra y desempeña una función dentro de ella.'],
+      ['coordinacion','Coordinación','Las oraciones están al mismo nivel, unidas por un nexo («y», «pero», «o»).'],
+      ['yuxtaposicion','Yuxtaposición','Las oraciones están al mismo nivel, sin nexo (separadas por coma, punto y coma…).']
     ];
     html += `
       <div class="cp-clasif-q">
@@ -2352,8 +2352,8 @@
       const idA = propIds[0], idB = propIds[1];
       const nA = propIdToNum.get(idA), nB = propIdToNum.get(idB);
       const opcionesDireccion = [
-        [idA, `P${nA} → P${nB}`, `P${nB} depende de P${nA}`],
-        [idB, `P${nB} → P${nA}`, `P${nA} depende de P${nB}`]
+        [idA, `O${nA} → O${nB}`, `O${nB} depende de O${nA}`],
+        [idB, `O${nB} → O${nA}`, `O${nA} depende de O${nB}`]
       ];
       html += `
         <div class="cp-clasif-q">
@@ -2399,7 +2399,7 @@
       }
     }
 
-    // ─── Sub-paso 6: FUNCIÓN DEL SP (solo si la PS es término de preposición) ────────
+    // ─── Sub-paso 6: FUNCIÓN DEL SP (solo si la oración subordinada es término de preposición) ────────
     // Entrada: si la función ya está respondida O si se saltó por redundancia
     const funcionResueltaOSaltada = (resp.funcionOk === true) || funcionEsRedundante(rel);
     if(resp.tipoOk === true && rel.tipo === 'subordinacion' && resp.direccionOk === true &&
@@ -2616,7 +2616,7 @@
             titulo: `No es ${escHtml(v)}`,
             realId: rel.tipo,
             marcadaId: v,
-            razon: 'Piensa bien si las proposiciones están al mismo nivel o si una depende de la otra'
+            razon: 'Piensa bien si las oraciones están al mismo nivel o si una depende de la otra'
           })
         };
         if(typeof playError === 'function') playError();
@@ -2650,7 +2650,7 @@
             titulo: `No es de la familia ${escHtml(v)}`,
             realId: familiaCorrecta,
             marcadaId: v,
-            razon: 'Piensa en qué hace esta proposición dentro de la principal'
+            razon: 'Piensa en qué hace esta oración dentro de la principal'
           })
         };
         if(typeof playError === 'function') playError();
@@ -2708,7 +2708,7 @@
         const nDestino = propIdToNum.get(idDestino);
         eng.mensajeFeedback = {
           tipo:'ok',
-          html: `✓ Correcto. P${nOrigen} es la principal; P${nDestino} es la subordinada.`
+          html: `✓ Correcto. O${nOrigen} es la principal; O${nDestino} es la subordinada.`
         };
         if(typeof playSuccess === 'function') playSuccess();
       } else {
@@ -2794,12 +2794,12 @@
     } else {
       // Última relación → pantalla de elección (Fase 1.4 mayo 2026):
       // antes de ir al resumen ofrecer al alumno la opción de analizar
-      // las proposiciones por dentro (sujeto, predicado, funciones).
+      // las oraciones por dentro (sujeto, predicado, funciones).
       // Si elige "Ver resumen" se va directo; si elige "Analizar por dentro"
       // se entra al mini-motor de análisis interno (eng.fase = 'interna').
       mostrarToast({
         titulo: '¡Clasificación completada!',
-        subtitulo: '¿Quieres profundizar en cada proposición?',
+        subtitulo: '¿Quieres profundizar en cada oración?',
         colorIdx: 1
       });
       eng.fase = 'interna_choice';
@@ -2809,19 +2809,19 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // Fase 1.4: análisis interno de proposiciones (Entrega 4)
+  // Fase 1.4: análisis interno de oraciones (Entrega 4)
   //
   // Punto de entrada cuando el alumno acepta "Analizar por dentro" tras
   // la clasificación. Inicializa eng.interna.respuestas[] (una por cada
-  // proposición), pone eng.fase = 'interna' y arranca por la primera
-  // proposición, sub-paso 'predicado'.
+  // oración), pone eng.fase = 'interna' y arranca por la primera
+  // oración, sub-paso 'predicado'.
   // ─────────────────────────────────────────────────────────────────────
   function iniciarAnalisisInterno(){
     const eng = state.engine;
     const ej = state.filtered[state.idx];
     if(!eng || !ej) return;
     const props = ej.proposiciones || [];
-    // Inicializar una respuesta vacía por proposición
+    // Inicializar una respuesta vacía por oración
     eng.interna.activo = true;
     eng.interna.propIdx = 0;
     eng.interna.subPaso = 'predicado';
@@ -2858,7 +2858,7 @@
   //
   // Reemplaza el sistema de cascada (3 sub-pasos con botones) por un
   // sistema de arrastrar-y-soltar al estilo del módulo de Simples:
-  //   - Todos los bloques de la proposición se muestran a la vez.
+  //   - Todos los bloques de la oración se muestran a la vez.
   //   - Un pool con 3 secciones (Predicado / Sujeto / Complementos)
   //     ofrece las etiquetas correctas + 2-3 distractores.
   //   - El alumno arrastra o hace clic para colocar etiquetas en los huecos.
@@ -2912,7 +2912,7 @@
     return m[tipo] || etiquetaFuncion(tipo);
   }
 
-  // Inicializa _idd para la proposición propIdx del ejercicio ej.
+  // Inicializa _idd para la oración propIdx del ejercicio ej.
   function _initIDD(ej, propIdx){
     const prop = (ej.proposiciones||[])[propIdx] || {};
     const ai = prop.analisis_interno || {};
@@ -3031,7 +3031,7 @@
 
   // Renderiza la oración compuesta COMPLETA (todos los tokens, incluidos
   // nexos y signos de puntuación, en orden natural) y resalta los tokens
-  // pertenecientes a la proposición que se está analizando. Mantiene la
+  // pertenecientes a la oración que se está analizando. Mantiene la
   // técnica del Word Joiner para que la puntuación no salte de línea.
   function _renderOracionConPropDestacada(ej, prop){
     if(!Array.isArray(ej.tokens)) return escHtml(prop?.texto || ej?.texto || '');
@@ -3059,9 +3059,9 @@
     const props = ej.proposiciones || [];
     const propIdx = interna.propIdx;
     const prop = props[propIdx];
-    if(!prop) return '<div style="padding:20px;color:var(--muted)">Error: proposición no disponible.</div>';
+    if(!prop) return '<div style="padding:20px;color:var(--muted)">Error: oración no disponible.</div>';
 
-    // Inicializar D&D si cambiamos de proposición o primera vez
+    // Inicializar D&D si cambiamos de oración o primera vez
     if(_idd._propIdx !== propIdx) _initIDD(ej, propIdx);
 
     const propNum = propIdx + 1;
@@ -3123,7 +3123,7 @@
     let actionHtml;
     if(_idd.confirmed){
       const allOk = _idd.blocks.every(b=>_idd.slotOk[b.id]===true);
-      const nextLabel = propIdx < totalProps-1 ? 'Siguiente proposición →' : '📋 Ver resumen';
+      const nextLabel = propIdx < totalProps-1 ? 'Siguiente oración →' : '📋 Ver resumen';
       actionHtml = `
         <div class="iidd-action">
           <div class="iidd-result-badge ${allOk?'iidd-res-ok':'iidd-res-partial'}">
@@ -3418,8 +3418,8 @@
     renderFase();
   }
 
-  // Avanza al siguiente sub-paso dentro de la proposición actual,
-  // o a la siguiente proposición cuando acabamos los 3 sub-pasos.
+  // Avanza al siguiente sub-paso dentro de la oración actual,
+  // o a la siguiente oración cuando acabamos los 3 sub-pasos.
   function avanzarInternaSubPaso(){
     const eng = state.engine;
     const ej = state.filtered[state.idx];
@@ -3461,7 +3461,7 @@
     }
   }
 
-  // Avanza a la siguiente proposición o finaliza el análisis interno.
+  // Avanza a la siguiente oración o finaliza el análisis interno.
   // Llama a renderFase() internamente — no llamar a renderFase fuera.
   function _avanzarInternaProp(eng, ej){
     const totalProps = (ej.proposiciones || []).length;
@@ -3471,8 +3471,8 @@
       eng.interna.subPaso = 'predicado';
       eng.interna.funcionIdx = 0;
       mostrarToast({
-        titulo: `P${prevIdx + 1} analizada ✓`,
-        subtitulo: `Continuamos con P${prevIdx + 2}`,
+        titulo: `O${prevIdx + 1} analizada ✓`,
+        subtitulo: `Continuamos con O${prevIdx + 2}`,
         colorIdx: 0
       });
     } else {
@@ -3518,7 +3518,7 @@
     };
     const textoDeProp = (p)=>{
       if(!p) return '';
-      // Reconstruir el texto de la proposición a partir de sus tokens
+      // Reconstruir el texto de la oración a partir de sus tokens
       const idxs = Array.isArray(p.indices) ? p.indices.slice().sort((a,b)=>a-b) : [];
       if(idxs.length === 0) return '';
       return idxs.map(i=>ej.tokens[i]?.texto||'').join(' ').replace(/\s+([,.;:!?])/g,'$1');
@@ -3559,19 +3559,19 @@
       'locativa':'locativa'
     }[s] || s);
 
-    // Caso 1: una sola proposición (oración simple) — caso degenerado
+    // Caso 1: una sola oración (oración simple) — caso degenerado
     if(nProps === 1){
-      return `<p>Esta oración tiene una sola proposición; no es propiamente una oración compuesta.</p>`;
+      return `<p>Esta es una oración simple (un único verbo): no es propiamente una oración compuesta.</p>`;
     }
 
-    // Caso 2: oración con varias proposiciones y una sola relación
+    // Caso 2: oración con varias oraciones y una sola relación
     if(relaciones.length === 1){
       const rel = relaciones[0];
       return redactarRelacionUnica(rel, propPorId, textoDeProp, nexoTextoDeRel(rel), lblFuncion, lblSubtipo);
     }
 
     // Caso 3: oración con varias relaciones — texto general + cada relación
-    let html = `<p>Oración compuesta formada por <b>${nProps} proposiciones</b> y <b>${relaciones.length} relaciones</b>.</p>`;
+    let html = `<p>Oración compuesta formada por <b>${nProps} oraciones</b> y <b>${relaciones.length} relaciones</b>.</p>`;
     relaciones.forEach((rel, idx)=>{
       html += `<p>Relación ${idx+1}: ${redactarRelacionUnica(rel, propPorId, textoDeProp, nexoTextoDeRel(rel), lblFuncion, lblSubtipo, true)}</p>`;
     });
@@ -3592,7 +3592,7 @@
       const intro = cuerpoSolo
         ? `coordinación ${escHtml(subLbl)}`
         : `<p>Oración compuesta por <b>coordinación ${escHtml(subLbl)}</b>.</p>`;
-      const cuerpo = `<p>Las proposiciones se unen mediante ${conj}, que funciona como nexo coordinante ${escHtml(subLbl)}. Ambas proposiciones tienen la misma jerarquía sintáctica y son sintácticamente independientes entre sí.</p>`;
+      const cuerpo = `<p>Las oraciones se unen mediante ${conj}, que funciona como nexo coordinante ${escHtml(subLbl)}. Ambas oraciones tienen la misma jerarquía sintáctica y son sintácticamente independientes entre sí.</p>`;
       return intro + cuerpo;
     }
 
@@ -3601,7 +3601,7 @@
       const intro = cuerpoSolo
         ? `yuxtaposición`
         : `<p>Oración compuesta por <b>yuxtaposición</b>.</p>`;
-      const cuerpo = `<p>Las proposiciones se relacionan sin nexo, separadas únicamente por un signo de puntuación (coma, punto y coma o dos puntos). Ambas tienen la misma jerarquía sintáctica.</p>`;
+      const cuerpo = `<p>Las oraciones se relacionan sin nexo, separadas únicamente por un signo de puntuación (coma, punto y coma o dos puntos). Ambas tienen la misma jerarquía sintáctica.</p>`;
       return intro + cuerpo;
     }
 
@@ -3628,34 +3628,34 @@
       // ─── Sustantivas ──────────────────────────────────────────────
       if(sub.startsWith('sustantiva')){
         const fnLbl = lblFuncion(fn);
-        cuerpo = `<p>La proposición subordinada «${escHtml(psTxt)}» funciona como <b>${escHtml(fnLbl)}</b>`;
+        cuerpo = `<p>La oración subordinada «${escHtml(psTxt)}» funciona como <b>${escHtml(fnLbl)}</b>`;
         if(verboPP) cuerpo += ` del verbo «${escHtml(verboPP)}»`;
-        cuerpo += ` dentro de la proposición principal (P${ppNum}).`;
+        cuerpo += ` dentro de la oración principal (O${ppNum}).`;
         cuerpo += ` La subordinada está incrustada en el predicado de la principal y desempeña una función propia de un sintagma nominal.`;
         if(nexo) cuerpo += ` El nexo subordinante es ${nexo}.`;
         cuerpo += `</p>`;
         // Caso especial término de preposición
         if(sub === 'sustantiva_termino_preposicion' && rel.funcion_sp){
           const fspLbl = lblFuncion(rel.funcion_sp);
-          cuerpo += `<p>La subordinada va dentro de un sintagma preposicional que, en conjunto, funciona como <b>${escHtml(fspLbl)}</b> de la proposición principal.</p>`;
+          cuerpo += `<p>La subordinada va dentro de un sintagma preposicional que, en conjunto, funciona como <b>${escHtml(fspLbl)}</b> de la oración principal.</p>`;
         }
         return intro + cuerpo;
       }
 
       // ─── Relativas ────────────────────────────────────────────────
       if(sub.startsWith('relativa')){
-        cuerpo = `<p>La proposición subordinada «${escHtml(psTxt)}» introducida por ${nexo || 'un relativo'}`;
+        cuerpo = `<p>La oración subordinada «${escHtml(psTxt)}» introducida por ${nexo || 'un relativo'}`;
         if(sub === 'relativa_especificativa' || sub === 'relativa_explicativa'){
-          cuerpo += ` modifica a un sustantivo de la proposición principal y funciona globalmente como <b>Complemento del Nombre</b>.`;
+          cuerpo += ` modifica a un sustantivo de la oración principal y funciona globalmente como <b>Complemento del Nombre</b>.`;
           if(sub === 'relativa_especificativa'){
             cuerpo += ` Al ser especificativa, restringe la referencia del sustantivo al que acompaña.`;
           } else {
             cuerpo += ` Al ser explicativa, añade información complementaria al sustantivo (separada por comas).`;
           }
         } else if(sub === 'relativa_libre'){
-          cuerpo += ` carece de antecedente expreso y adquiere valor nominal. Funciona globalmente como <b>${escHtml(lblFuncion(fn) || 'sintagma nominal')}</b> en la proposición principal.`;
+          cuerpo += ` carece de antecedente expreso y adquiere valor nominal. Funciona globalmente como <b>${escHtml(lblFuncion(fn) || 'sintagma nominal')}</b> en la oración principal.`;
         } else if(sub === 'relativa_semilibre'){
-          cuerpo += ` está formada por artículo + relativo. Funciona globalmente como <b>${escHtml(lblFuncion(fn) || 'sintagma nominal')}</b> en la proposición principal. El artículo pertenece a la principal y el relativo a la subordinada.`;
+          cuerpo += ` está formada por artículo + relativo. Funciona globalmente como <b>${escHtml(lblFuncion(fn) || 'sintagma nominal')}</b> en la oración principal. El artículo pertenece a la principal y el relativo a la subordinada.`;
         }
         cuerpo += `</p>`;
         cuerpo += `<p>El relativo funciona simultáneamente como nexo subordinante y desempeña una función sintáctica dentro de la propia subordinada.</p>`;
@@ -3674,8 +3674,8 @@
         'locativa':'expresa el lugar donde ocurre la acción principal'
       };
       const valor = valoresSemanticos[sub] || 'modifica el sentido de la principal';
-      cuerpo = `<p>La proposición subordinada «${escHtml(psTxt)}» ${valor}.`;
-      if(nexo) cuerpo += ` Ambas proposiciones se unen mediante el nexo subordinante ${nexo}.`;
+      cuerpo = `<p>La oración subordinada «${escHtml(psTxt)}» ${valor}.`;
+      if(nexo) cuerpo += ` Ambas oraciones se unen mediante el nexo subordinante ${nexo}.`;
       cuerpo += `</p>`;
       return intro + cuerpo;
     }
@@ -4255,7 +4255,7 @@
   }
 
   // Sección plegable del resumen que muestra los resultados del análisis
-  // interno (Fase 1.4) por proposición — solo si el alumno lo hizo.
+  // interno (Fase 1.4) por oración — solo si el alumno lo hizo.
   function renderResumenInternaHtml(ej, interna){
     const props = ej.proposiciones || [];
     if(!props.length || !interna.respuestas.length) return '';
@@ -4298,7 +4298,7 @@
 
       return `
         <div style="padding:10px 14px;background:var(--paper2);border-radius:8px;display:flex;flex-direction:column;gap:4px">
-          <div style="font-weight:700;font-size:.83rem;color:${colorVar};margin-bottom:2px">P${propNum} · «${escHtml(prop.texto||'')}»</div>
+          <div style="font-weight:700;font-size:.83rem;color:${colorVar};margin-bottom:2px">O${propNum} · «${escHtml(prop.texto||'')}»</div>
           ${contenido}
         </div>`;
     }).join('');
@@ -4386,7 +4386,7 @@
           diags.push({
             tipo:'aviso', emoji:'⚠️',
             titulo:'Tuviste varios errores con los verbos',
-            mensaje:'Recuerda: el núcleo de una proposición es siempre un verbo en forma personal (conjugado). Las formas no personales (infinitivo, gerundio, participio) solo son núcleos cuando forman parte de una perífrasis.'
+            mensaje:'Recuerda: el núcleo de una oración es siempre un verbo en forma personal (conjugado). Las formas no personales (infinitivo, gerundio, participio) solo son núcleos cuando forman parte de una perífrasis.'
           });
         }
       }
@@ -4398,7 +4398,7 @@
         diags.push({
           tipo:'ok', emoji:'✅',
           titulo:'Localizaste los nexos sin equivocarte',
-          mensaje:'Identificar el nexo es clave para saber qué relación hay entre las proposiciones.'
+          mensaje:'Identificar el nexo es clave para saber qué relación hay entre las oraciones.'
         });
       } else if(eng.nexosErrores >= 2){
         diags.push({
@@ -4414,14 +4414,14 @@
       if(eng.f3Errores === 0 && eng.f3Confirmados.size === eng.tokenAProp.size){
         diags.push({
           tipo:'ok', emoji:'✅',
-          titulo:'Delimitaste las proposiciones a la primera',
-          mensaje:'Ver claramente dónde empieza y dónde acaba cada proposición es lo más difícil. Lo has logrado.'
+          titulo:'Delimitaste las oraciones a la primera',
+          mensaje:'Ver claramente dónde empieza y dónde acaba cada oración es lo más difícil. Lo has logrado.'
         });
       } else if(eng.f3Errores >= 3){
         diags.push({
           tipo:'aviso', emoji:'📐',
-          titulo:'Te confundiste varias veces delimitando proposiciones',
-          mensaje:'Pista: empieza por el verbo de cada proposición y ve añadiendo las palabras que dependen de él (su sujeto, sus complementos). El nexo casi nunca pertenece a ninguna proposición.'
+          titulo:'Te confundiste varias veces delimitando oraciones',
+          mensaje:'Pista: empieza por el verbo de cada oración y ve añadiendo las palabras que dependen de él (su sujeto, sus complementos). El nexo casi nunca pertenece a ninguna oración.'
         });
       }
     }
@@ -4438,21 +4438,21 @@
         diags.push({
           tipo:'ok', emoji:'✅',
           titulo:'Identificaste todas las relaciones correctamente',
-          mensaje:'Tipo de relación, dirección y función: todo en orden. Tienes muy claro cómo se articulan las proposiciones.'
+          mensaje:'Tipo de relación, dirección y función: todo en orden. Tienes muy claro cómo se articulan las oraciones.'
         });
       } else {
         if(erroresTipoRel >= 1){
           diags.push({
             tipo:'aviso', emoji:'🔗',
             titulo:'Confundiste el tipo de relación',
-            mensaje:'Recuerda: en la <b>subordinación</b> una proposición depende de otra y hace una función dentro de ella. En la <b>coordinación</b> están al mismo nivel unidas por un nexo. En la <b>yuxtaposición</b> también al mismo nivel pero sin nexo, solo con signos.'
+            mensaje:'Recuerda: en la <b>subordinación</b> una oración depende de otra y hace una función dentro de ella. En la <b>coordinación</b> están al mismo nivel unidas por un nexo. En la <b>yuxtaposición</b> también al mismo nivel pero sin nexo, solo con signos.'
           });
         }
         if(erroresDir >= 1){
           diags.push({
             tipo:'aviso', emoji:'➡️',
             titulo:'Te equivocaste con la dirección de la subordinación',
-            mensaje:'En P1 → P2, P1 es la principal (la que rige) y P2 es la subordinada (la que depende). Pregúntate cuál de las dos podría existir sola.'
+            mensaje:'En O1 → O2, O1 es la principal (la que rige) y O2 es la subordinada (la que depende). Pregúntate cuál de las dos podría existir sola.'
           });
         }
         if(erroresFunc >= 1){
@@ -4502,7 +4502,7 @@
 
   // ─────────────────────────────────────────────────────────────────────
   // TOAST flotante animado.
-  // Útil para celebrar el fin de una proposición/fase con un mensaje visible
+  // Útil para celebrar el fin de una oración/fase con un mensaje visible
   // que NO requiera leer texto en la columna lateral.
   // ─────────────────────────────────────────────────────────────────────
   function mostrarToast(opts){
@@ -4556,7 +4556,7 @@
         <span class="cp-meta-pill">${etiquetaTipo(ej.tipo_oracion||'?')}</span>
         ${subtipo ? `<span class="cp-meta-pill">${escHtml(etiquetaSubtipo(subtipo))}</span>` : ''}
         <span class="cp-meta-pill ${nivel}">${etiquetaNivel(nivel)}</span>
-        <span class="cp-meta-pill">${nprops} ${nprops===1?'proposición':'proposiciones'}</span>
+        <span class="cp-meta-pill">${nprops} ${nprops===1?'oración':'oraciones'}</span>
       </div>
 
       <div class="cp-oracion-card">
@@ -4624,7 +4624,7 @@
   // MODELO DEFINITIVO PAU
   // Render descriptivo del análisis de la oración compuesta para "Ver
   // análisis completo". Estilo PAU/EBAU Murcia: títulos en mayúsculas,
-  // proposiciones marcadas con • o ↳, nexo y función al final.
+  // oraciones marcadas con • o ↳, nexo y función al final.
   // ═════════════════════════════════════════════════════════════════════
 
   // Devuelve la familia pedagógica de un subtipo de subordinada (NGLE):
@@ -4714,7 +4714,7 @@
     })[s] || (s||'').toUpperCase();
   }
 
-  // Ordena un array de proposiciones por su primera aparición textual.
+  // Ordena un array de oraciones por su primera aparición textual.
   function ordenarPropsPorTextoPAU(props){
     return [...props].sort((a,b) => {
       const ia = (a.indices && a.indices.length) ? Math.min(...a.indices) : 9999;
