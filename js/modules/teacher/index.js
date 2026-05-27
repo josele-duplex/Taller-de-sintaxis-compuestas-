@@ -748,8 +748,16 @@ async function generarInformeProfesor(){
                 : await fetch(url);
     const data = await r.json();
 
-    if (!data || data.ok === false){
-      _infStatus('✕ Error: ' + (data?.error || 'respuesta inválida'), 'var(--red)');
+    if (!data || !data.ok){
+      // Si el GAS devuelve { error: 'Acción desconocida' } (sin ok:false) el endpoint no existe aún
+      const msg = data?.error || 'respuesta inválida del servidor';
+      const isUnknown = msg.toLowerCase().includes('acción desconocida') || msg.toLowerCase().includes('accion desconocida');
+      _infStatus(
+        isUnknown
+          ? '✕ El servidor GAS no reconoce el endpoint. ¿Has actualizado y redesplegado el código GAS (§11)?'
+          : '✕ Error: ' + msg,
+        'var(--red)'
+      );
       return;
     }
     if (!data.alumnos || data.alumnos.length === 0){

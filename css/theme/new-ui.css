@@ -4020,10 +4020,12 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   border-bottom-color:#0A1A33;
 }
 
-/* Tarjeta de la portada con badge "Nuevo" */
-.theme-new-ui #screen-portada .mc-compuestas::before{background:var(--cp-marca)}
-.theme-new-ui #screen-portada .mc-compuestas:hover .mod-card-icon{background:var(--cp-marca)}
-.theme-new-ui #screen-portada .mc-compuestas:hover{border-color:var(--cp-marca)}
+/* Tarjeta de la portada con badge "Nuevo"
+   Verde bosque (#15803D) — distinto del navy de simples, del teal de morfología y del cyan de sintagmas.
+   El interior del módulo sigue siendo navy (var(--cp-marca)); aquí solo diferenciamos la portada. */
+.theme-new-ui #screen-portada .mc-compuestas::before{background:#15803D}
+.theme-new-ui #screen-portada .mc-compuestas:hover .mod-card-icon{background:#15803D}
+.theme-new-ui #screen-portada .mc-compuestas:hover{border-color:#15803D}
 
 /* Chips de filtro activos */
 .cp-chip:hover{border-color:var(--cp-marca);background:var(--cp-marca-bg)}
