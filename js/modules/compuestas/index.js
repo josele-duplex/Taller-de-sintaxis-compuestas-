@@ -4094,7 +4094,6 @@
       ${state.modoExamen ? renderEstadoExamenHtml() : ''}
 
       <div class="cp-actions" style="border-top:none;padding-top:0">
-        <button type="button" class="cp-btn-secondary" onclick="CP.verAnalisis()">🔍 Ver análisis completo</button>
         <div class="cp-spacer"></div>
         ${state.modoExamen ? '' : renderEstadoGuardado()}
         ${(state.idx > 0 && !state.modoExamen) ? `<button type="button" class="cp-btn-secondary" onclick="CP.anterior()">← Anterior</button>` : ''}
@@ -4475,12 +4474,11 @@
     return diags;
   }
 
-  // Tras el resumen: ir a la vista de análisis completo del ejercicio actual
-  function verAnalisis(){
-    state.modoLectura = true;
-    state.solucionVisible = true;
-    renderEjercicio();
-  }
+  // [ELIMINADO 2026-05-27] verAnalisis() — tras integrar el análisis PAU
+  // directamente en el resumen, el botón "Ver análisis completo" desaparece.
+  // La función ponía state.modoLectura=true dejando state.engine vivo, lo
+  // que causaba un estado zombi: al pulsar "Siguiente" el alumno seguía en
+  // modo lectura y no podía volver a entrar al motor de análisis.
 
   // Siguiente ejercicio en modo práctica
   function siguientePractica(){
@@ -5121,7 +5119,7 @@ export const CP = {
     onInternaPredBtn, onInternaSujBtn, onInternaFuncBtn, avanzarInternaSubPaso,
     entrarModoExamen, cancelarPIN, validarPIN,
     enviarResultadoExamen, salirTrasEnvio, cerrarExamenFinal,
-    verAnalisis, siguientePractica, abandonar,
+    siguientePractica, abandonar,
     guardarManual,
     reintentar,
     _state: state
