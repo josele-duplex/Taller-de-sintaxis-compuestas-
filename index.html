@@ -725,6 +725,17 @@ if(window.location.protocol === 'file:') {
         </div>
       </div>
 
+      <!-- Fila 6: chip "Incluir análisis interno" (F6 — desmarcado por defecto) -->
+      <div style="margin-bottom:10px;padding:8px 12px;background:#fff;border:1.5px dashed #16A34A;border-radius:8px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;font-weight:600;color:#15803D">
+          <input id="tp-cp-exam-interna" type="checkbox" style="width:16px;height:16px;cursor:pointer">
+          <span>📖 Pedir análisis interno de las proposiciones</span>
+        </label>
+        <p style="font-size:.72rem;color:var(--muted);margin:4px 0 0 24px;line-height:1.4">
+          Si lo desmarcas (recomendado para EBAU/exámenes ágiles), el alumno no clasificará los tokens internos de cada proposición. La nota se recalcula automáticamente sin la fase 6.
+        </p>
+      </div>
+
       <!-- Estado + botón activar -->
       <p id="tp-cp-exam-status" style="font-size:.85rem;display:none;padding:8px 12px;border-radius:8px;margin-bottom:8px" role="status"></p>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">

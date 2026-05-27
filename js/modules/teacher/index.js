@@ -251,6 +251,9 @@ async function createExamenCompuestaUI(){
   const timerMin    = parseInt(document.getElementById('tp-cp-exam-timer').value) || 0;
   const subtiposChk = Array.from(document.querySelectorAll('#tp-cp-exam-subtipos input:checked')).map(c => c.value);
   const subtipo     = subtiposChk.length > 0 ? subtiposChk.join(',') : '*';
+  // A2: chip "Pedir análisis interno". Desmarcado por defecto → fases 0-5.
+  const incluirInterna = !!document.getElementById('tp-cp-exam-interna')?.checked;
+  const fasesActivas   = incluirInterna ? '[0,1,2,3,4,5,6]' : '[0,1,2,3,4,5]';
 
   // Validación de PIN
   if(!pin || !/^\d{4,6}$/.test(pin)){
@@ -273,7 +276,7 @@ async function createExamenCompuestaUI(){
       nProposicionesMax: String(nPropMax),
       nEjercicios:       String(nEjercicios),
       timerMin:          String(timerMin),
-      fasesActivas:      '[0,1,2,3,4,5,6]'
+      fasesActivas:      fasesActivas
     });
     const r = await fetchWithRetry(apiUrl + '?' + params.toString(), {}, {
       timeoutMs: 15000,
@@ -291,6 +294,7 @@ async function createExamenCompuestaUI(){
       if(subtipo !== '*')    parts.push('Subtipos: ' + subtiposChk.length);
       if(nPropMax > 0)       parts.push('Max. ' + nPropMax + ' propos.');
       parts.push('Nivel: ' + nivelMax);
+      parts.push(incluirInterna ? 'Con análisis interno' : 'Sin análisis interno');
       _setCpExamStatus('✓ Examen activado. ' + parts.join(' · '), 'var(--green)');
     } else {
       _setCpExamStatus('⚠ Error: ' + (d.error || 'desconocido'), 'var(--red)');
