@@ -1300,6 +1300,10 @@
     if(!strip) return;
     const ej = state.filtered && state.filtered[state.idx];
     if(!ej || !state.engine){ strip.style.display = 'none'; return; }
+    // 2026-05-28: en la pantalla de puntuación (fase 'resumen') ocultamos la
+    // franja de contexto. El resumen ya incluye el análisis completo PAU y
+    // los diagnósticos; dejar la franja produce una banda residual sin uso.
+    if(state.engine.fase === 'resumen'){ strip.style.display = 'none'; return; }
     const html = renderCpCtxStripHtml(ej);
     if(!html){ strip.style.display = 'none'; return; }
     strip.style.display = '';
@@ -4125,9 +4129,9 @@
     const nota = computeCompScore(eng, ej);
     const notaColor = nota === null ? 'var(--muted)' : nota >= 5 ? '#15803D' : '#B91C1C';
 
-    // Orden pedagógico (mayo 2026): puntuación → errores → diagnósticos →
-    // análisis completo de nuevo. El análisis PAU cierra el resumen como
-    // recordatorio final de la estructura correcta.
+    // Orden pedagógico (revisado 2026-05-28): puntuación → análisis completo
+    // PAU → diagnósticos del análisis del alumno. El alumno ve primero cómo
+    // es la oración bien analizada y luego los comentarios sobre lo que él hizo.
     return `
       <div class="cp-summary">
         <div class="cp-summary-icon">${icono}</div>
@@ -4164,6 +4168,16 @@
           </div>
         </details>` : ''}
 
+      <!-- 2026-05-28: el análisis completo PAU pasa por encima de los
+           diagnósticos «Lo que dice tu análisis». Así el alumno lee primero
+           cómo es la oración bien analizada y después contrasta con los
+           comentarios verdes/ámbar/rojos sobre lo que él hizo. -->
+      <div class="cp-analisis-discursivo">
+        <h3 class="cp-analisis-titulo">📝 Análisis completo de la oración</h3>
+        <p class="cp-analisis-oracion">«${escHtml(ej.texto||'')}»</p>
+        ${renderModeloPAU(ej)}
+      </div>
+
       ${diagnosticos.length > 0 ? `
         <div class="cp-diag">
           <h3 class="cp-diag-title">📋 Lo que dice tu análisis</h3>
@@ -4177,12 +4191,6 @@
             </div>
           `).join('')}
         </div>` : ''}
-
-      <div class="cp-analisis-discursivo">
-        <h3 class="cp-analisis-titulo">📝 Análisis completo de la oración</h3>
-        <p class="cp-analisis-oracion">«${escHtml(ej.texto||'')}»</p>
-        ${renderModeloPAU(ej)}
-      </div>
 
       ${state.modoExamen ? renderEstadoExamenHtml() : ''}
 

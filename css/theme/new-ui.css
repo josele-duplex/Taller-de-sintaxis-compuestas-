@@ -764,10 +764,14 @@ body.theme-new-ui #screen-game #game-skip-wrap .btn:hover{
    --sint-topbar-h la actualiza Sint vía JS al renderizar cada fase
    (mide SOLO la topbar — no sumar filters-bar, que no es sticky).
    Cuando se engancha al topbar, las esquinas y el borde superior
-   desaparecen para que visualmente forme una sola pieza con él. */
+   desaparecen para que visualmente forme una sola pieza con él.
+
+   2026-05-28: STICKY DESACTIVADO a petición del usuario para evaluar
+   la experiencia sin franja pegajosa. Para reactivarlo, descomentar
+   las dos líneas marcadas más abajo. */
 body.theme-new-ui #screen-game .ctx-strip.ctx-sticky{
-  position: sticky;
-  top: var(--sint-topbar-h, 96px);
+  /* position: sticky; */                          /* sticky off — 2026-05-28 */
+  /* top: var(--sint-topbar-h, 96px); */           /* sticky off — 2026-05-28 */
   z-index: 20;
   background: var(--paper);
   border: 1px solid var(--ui-border);
@@ -2927,9 +2931,11 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 /* Banda superior con la oración completa (visible siempre en fase 3 y 4) */
 .cp-oracion-recordatorio{
   /* Sticky para que la oración nunca desaparezca de la vista al hacer scroll
-     mientras el alumno responde las preguntas de la fase de clasificar/relacionar. */
-  position:sticky;
-  top:8px;
+     mientras el alumno responde las preguntas de la fase de clasificar/relacionar.
+     2026-05-28: STICKY DESACTIVADO. Para reactivar, descomentar las dos
+     líneas marcadas abajo. */
+  /* position:sticky; */    /* sticky off — 2026-05-28 */
+  /* top:8px;          */   /* sticky off — 2026-05-28 */
   z-index:10;
   background:var(--paper);
   border:1px solid var(--border);
@@ -3332,10 +3338,13 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 /* ── CP Sticky flotante bajo la topbar ────────────────────────────────
    Misma mecánica que la sticky de Sint: position:sticky pegada al topbar,
    sin borde superior ni esquinas redondeadas arriba para formar una pieza
-   visual continua con él. La variable --cp-topbar-h la fija JS al renderizar. */
+   visual continua con él. La variable --cp-topbar-h la fija JS al renderizar.
+
+   2026-05-28: STICKY DESACTIVADO a petición del usuario. Para reactivar,
+   descomentar las dos líneas marcadas abajo. */
 #screen-compuestas #cp-ctx-strip{
-  position: sticky;
-  top: var(--cp-topbar-h, 56px);
+  /* position: sticky; */                       /* sticky off — 2026-05-28 */
+  /* top: var(--cp-topbar-h, 56px); */          /* sticky off — 2026-05-28 */
   z-index: 20;
   background: var(--paper);
   border: 1px solid var(--ui-border);
