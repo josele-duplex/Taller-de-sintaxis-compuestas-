@@ -387,7 +387,7 @@ function arcadeAnswer(chosen,correct,consejo){
         // Combo ya está roto. Solo aviso visual + micro-pista breve.
         showScoreFloat('— sin daño', false);
         showArcadeHint(consejo, correct);
-        setTimeout(()=>{ if(ARC.alive) arcadeNext(); }, 2200);
+        scheduleHintAdvance(5500);
         return;
       }
       // Error grave: si hay escudo, lo consume. Si no, pierde vida.
@@ -395,7 +395,7 @@ function arcadeAnswer(chosen,correct,consejo){
         ARC.shields--; ARC.shieldsConsumed++;
         showComboBurst(1, '🛡 ESCUDO ABSORBE');
         showArcadeHint(consejo, correct);
-        setTimeout(()=>{ if(ARC.alive) arcadeNext(); }, 2700);
+        scheduleHintAdvance(6000);
         return;
       }
       ARC.lives--; ARC.livesLost++;
@@ -417,7 +417,7 @@ function arcadeAnswer(chosen,correct,consejo){
         // Scaffolding: show micro-hint, then continue
         showArcadeHint(consejo, correct);
         ARC.pendingHint = null; // hint already shown
-        setTimeout(()=>{ if(ARC.alive) arcadeNext(); }, 2700);
+        scheduleHintAdvance(6000);
         return;
       }
     } else {
@@ -485,13 +485,40 @@ function showArcadeHint(consejo, correctFunc){
     el = document.createElement('div');
     el.id = 'arc-hint-toast';
     el.className = 'arc-hint-toast';
+    el.addEventListener('click', dismissArcadeHint);
     document.body.appendChild(el);
   }
   const text = (consejo && consejo.length > 8) ? consejo : 'La respuesta correcta era: ' + correctFunc;
-  el.innerHTML = '<div class="ht-label">💡 PISTA</div><div class="ht-text">' + text + '</div>';
+  el.innerHTML = '<div class="ht-label">💡 PISTA</div><div class="ht-text">' + text
+    + '</div><div class="ht-dismiss">Toca para continuar →</div>';
   el.classList.remove('show');
   void el.offsetWidth;
   el.classList.add('show');
+}
+
+// Cierra el toast y adelanta a la siguiente pregunta. Se llama al tocar el
+// toast o al cumplirse el timeout de avance automático.
+function dismissArcadeHint(){
+  const el = document.getElementById('arc-hint-toast');
+  if(el) el.classList.remove('show');
+  if(ARC.hintAdvance){
+    clearTimeout(ARC.hintAdvance);
+    ARC.hintAdvance = null;
+    if(ARC.alive) arcadeNext();
+  }
+}
+
+// Programa el avance automático tras mostrar una pista. Guarda el id en
+// ARC.hintAdvance para que el clic en el toast pueda cancelarlo y avanzar
+// inmediatamente sin doble llamada a arcadeNext.
+function scheduleHintAdvance(ms){
+  if(ARC.hintAdvance) clearTimeout(ARC.hintAdvance);
+  ARC.hintAdvance = setTimeout(()=>{
+    ARC.hintAdvance = null;
+    const el = document.getElementById('arc-hint-toast');
+    if(el) el.classList.remove('show');
+    if(ARC.alive) arcadeNext();
+  }, ms);
 }
 
 function arcadeNext(){

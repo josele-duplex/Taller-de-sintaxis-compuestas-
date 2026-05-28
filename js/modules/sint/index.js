@@ -124,6 +124,7 @@ function cleanAllTimers(){
   if(typeof G==='object'&&G.p3HesitationTimer){clearInterval(G.p3HesitationTimer);G.p3HesitationTimer=null;}
   if(typeof ARC==='object'){
     if(ARC.timerInterval){clearInterval(ARC.timerInterval);ARC.timerInterval=null;}
+    if(ARC.hintAdvance){clearTimeout(ARC.hintAdvance);ARC.hintAdvance=null;}
   }
   if(typeof MC==='object'){
     if(MC.timerInterval){clearInterval(MC.timerInterval);MC.timerInterval=null;}

@@ -537,16 +537,21 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 }
 
 /* ── Micropista toast (scaffolding) ────────── */
-.arc-hint-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:220;background:linear-gradient(135deg,#1E1B4B 0%,#581C87 100%);color:#FEF3C7;border:2px solid #FBBF24;border-radius:14px;padding:18px 24px;max-width:480px;box-shadow:0 0 30px rgba(251,191,36,.6),0 12px 40px rgba(0,0,0,.6);font-family:'Fraunces',serif}
-.arc-hint-toast.show{animation:hintToastIn 2.6s ease forwards}
+.arc-hint-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:220;background:linear-gradient(135deg,#1E1B4B 0%,#581C87 100%);color:#FEF3C7;border:2px solid #FBBF24;border-radius:14px;padding:18px 24px;max-width:480px;box-shadow:0 0 30px rgba(251,191,36,.6),0 12px 40px rgba(0,0,0,.6);font-family:'Fraunces',serif;cursor:pointer;user-select:none}
+.arc-hint-toast.show{animation:hintToastIn 6s ease forwards}
 .arc-hint-toast .ht-label{font-weight:900;font-size:.85rem;color:#FBBF24;letter-spacing:.16em;margin-bottom:6px;text-transform:uppercase}
 .arc-hint-toast .ht-text{font-size:1.02rem;line-height:1.45;color:#FEF9C3;font-family:'Lora',serif;font-weight:500}
+.arc-hint-toast .ht-dismiss{margin-top:10px;font-size:.72rem;font-weight:700;color:rgba(254,243,199,.55);text-align:right;letter-spacing:.06em;font-family:'DM Sans',sans-serif;animation:hintDismissPulse 1.6s ease-in-out infinite}
 @keyframes hintToastIn{
   0%{transform:translate(-50%,-50%) scale(0);opacity:0}
-  10%{transform:translate(-50%,-50%) scale(1.05);opacity:1}
-  18%{transform:translate(-50%,-50%) scale(1);opacity:1}
-  85%{transform:translate(-50%,-50%) scale(1);opacity:1}
+  4%{transform:translate(-50%,-50%) scale(1.05);opacity:1}
+  8%{transform:translate(-50%,-50%) scale(1);opacity:1}
+  93%{transform:translate(-50%,-50%) scale(1);opacity:1}
   100%{transform:translate(-50%,-50%) scale(.95);opacity:0}
+}
+@keyframes hintDismissPulse{
+  0%,100%{opacity:.45}
+  50%{opacity:.9}
 }
 
 /* ── Frenesí overlay (timer mode) ──────────── */
