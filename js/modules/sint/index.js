@@ -2727,7 +2727,14 @@ let currentModule = null; // 'sint' | 'maestro' | 'sint4' | 'arcade'
 // (3ºA / 3A / 3 A / Tercero A …). Nomenclatura: ESO = NºLetra, Bach = NºBachLetra.
 // → PARA EL PROFESOR: para añadir o quitar una clase, edita SOLO esta lista.
 // ════════════════════════════════════════════════════════════════════
-const GRUPOS = ['1ºC','2ºA','3ºB','4ºC','1ºBachA','1ºBachC','2ºBachA'];
+const GRUPOS = [
+  '1ºA','1ºB','1ºC','1ºD','1ºE',
+  '2ºA','2ºB','2ºC','2ºD','2ºE',
+  '3ºA','3ºB','3ºC','3ºD','3ºE',
+  '4ºA','4ºB','4ºC','4ºD','4ºE',
+  '1ºBachA','1ºBachB','1ºBachC','1ºBachD',
+  '2ºBachA','2ºBachB','2ºBachC','2ºBachD'
+];
 
 // Devuelve el HTML de <option> para un desplegable de grupo.
 // `sel`         (opcional) marca como seleccionada la opción que coincida.
