@@ -1693,19 +1693,26 @@ function getRankingArcade_(params) {
   const sheet = ss.getSheetByName(SHEET_ARCADE);
   if (!sheet) return { global: [], grupos: {}, myGrupoTop: [] };
   const data = sheet.getDataRange().getValues();
-  // Cols: Fecha(0) Apodo(1) Grupo(2) Nombre(3) Correo(4) Modo(5) Puntuacion(6) Racha(7)
+  // Leer columnas POR NOMBRE (no por posición fija) para que el ranking no se
+  // rompa si la cabecera se descoloca o se le añaden columnas. Mismo blindaje
+  // que el resto del backend (getColMap_).
+  const col = getColMap_(sheet);
+  const cApodo = col['Apodo'], cGrupo = col['Grupo'], cModo = col['Modo'],
+        cPunt = col['Puntuacion'], cRacha = col['Racha_Max'];
+  // Si falta alguna columna esencial, devolvemos vacío en vez de datos basura.
+  if (cApodo === undefined || cPunt === undefined) return { global: [], grupos: {}, myGrupoTop: [] };
   const global = [];
   const grupoTotals = {}; // grupo -> {sum, count}
   const myGrupoTop = [];
   for (let i = 1; i < data.length; i++) {
     const r = data[i];
-    const rowMode = String(r[5]||'').trim();
+    const rowMode = cModo !== undefined ? String(r[cModo]||'').trim() : '';
     if (mode && rowMode && rowMode !== mode) continue;
     const entry = {
-      nick: String(r[1]||''),
-      grupo: String(r[2]||''),
-      score: parseInt(r[6])||0,
-      streak: parseInt(r[7])||0
+      nick: String(r[cApodo]||''),
+      grupo: cGrupo !== undefined ? String(r[cGrupo]||'') : '',
+      score: parseInt(r[cPunt])||0,
+      streak: cRacha !== undefined ? (parseInt(r[cRacha])||0) : 0
     };
     global.push(entry);
     if (entry.grupo) {
