@@ -131,14 +131,9 @@ Cada elemento incluye:
 
 ### 4.4 Panel del profesor para compuestas
 
-- **Estado**: Backend listo (`getResultadosCompuestasStats`). Frontend no.
+- **Estado**: ✅ HECHO (verificado en código 2026-05-28). Panel "🧩 Resultados de Compuestas" en `index.html:747-800`; `loadCpDashboard()`/`exportCpCSV()` en `teacher/index.js:362-497` (expuestos en window); endpoint `getResultadosCompuestas_` en `Compuestas.gs:635-661` (ruteado línea 1134). Verificado con preview end-to-end: stats (total/media/aprobadas/suspendidas) + tabla + export CSV con Fase0-6_Pts.
 - **Tipo**: Funcional.
-- **Estimación**: 1 día.
-- **Cómo implementarlo**:
-  1. Añadir pestaña "Compuestas" en `screen-teacher`.
-  2. Llamar a `getResultadosCompuestasStats` y mostrar tabla con: alumnos, fechas, ejercicios, % aciertos.
-  3. Detección automática de qué ejercicios fallan más (los que tienen menor % medio de aciertos).
-  4. Export CSV.
+- **Pendiente opcional (mejora, no bloqueante)**: detección automática de qué ejercicios fallan más (menor % medio de aciertos) — punto 3 original, aún no implementado.
 
 ### 4.5 Vista de errores agregada por alumno
 
