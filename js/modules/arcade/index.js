@@ -43,32 +43,67 @@ function saveGhost(mode,data){
   localStorage.setItem(mode==='survival'?LS_GHOST_SRV:LS_GHOST_TMR,JSON.stringify(data));
 }
 
+// Pinta el "delta" (diferencia con un fantasma) en su badge de color.
+function _paintGhostDelta(dEl, delta){
+  if(!dEl) return;
+  dEl.textContent=(delta>0?'+':'')+delta;
+  if(delta>=0){ dEl.style.background='rgba(34,197,94,.25)'; dEl.style.color='#86EFAC'; }
+  else        { dEl.style.background='rgba(239,68,68,.25)'; dEl.style.color='#FCA5A5'; }
+}
+
 function updateGhostBar(){
   const el=document.getElementById('arc-ghost-bar');
-  if(!el||!ARC.ghost) return;
-  // Número de preguntas respondidas (idx ya fue incrementado por arcadeNext)
-  const q=Math.min(ARC.questionsAnswered, ARC.ghost.totalQuestions);
-  const expected=Math.round(ARC.ghost.avgScorePerQ * q);
-  const delta=ARC.score - expected;
-  const wasAhead=ARC.ghostAhead||false;
-  const nowAhead=delta>=0;
-  const their=document.getElementById('arc-ghost-their');
+  if(!el||(!ARC.ghost&&!ARC.ghostClass)) return;
   const mine=document.getElementById('arc-ghost-mine');
-  const dEl=document.getElementById('arc-ghost-delta');
-  if(their) their.textContent=expected+' pts';
   if(mine) mine.textContent=ARC.score+' pts';
-  if(dEl){
-    dEl.textContent=(delta>0?'+':'')+delta;
-    if(nowAhead){
-      dEl.style.background='rgba(34,197,94,.25)';dEl.style.color='#86EFAC';
-    } else if(delta<0){
-      dEl.style.background='rgba(239,68,68,.25)';dEl.style.color='#FCA5A5';
-    } else {
-      dEl.style.background='rgba(255,255,255,.1)';dEl.style.color='rgba(255,255,255,.7)';
-    }
+
+  // ── Fantasma tipo 1: tu récord ──
+  if(ARC.ghost){
+    const q=Math.min(ARC.questionsAnswered, ARC.ghost.totalQuestions);
+    const expected=Math.round(ARC.ghost.avgScorePerQ * q);
+    const delta=ARC.score - expected;
+    const nowAhead=delta>=0;
+    const their=document.getElementById('arc-ghost-their');
+    if(their) their.textContent=expected+' pts';
+    _paintGhostDelta(document.getElementById('arc-ghost-delta'), delta);
+    if(!(ARC.ghostAhead||false)&&nowAhead&&ARC.questionsAnswered>3) showComboBurst(1,'👻 ¡FANTASMA SUPERADO!');
+    ARC.ghostAhead=nowAhead;
   }
-  if(!wasAhead&&nowAhead&&ARC.questionsAnswered>3) showComboBurst(1,'👻 ¡FANTASMA SUPERADO!');
-  ARC.ghostAhead=nowAhead;
+
+  // ── Fantasma tipo 2: media de la clase ──
+  if(ARC.ghostClass){
+    const q=Math.min(ARC.questionsAnswered, ARC.ghostClass.totalQuestions);
+    const expected=Math.round(ARC.ghostClass.avgScorePerQ * q);
+    const delta=ARC.score - expected;
+    const nowAhead=delta>=0;
+    const their=document.getElementById('arc-gc-their');
+    if(their) their.textContent=expected+' pts';
+    _paintGhostDelta(document.getElementById('arc-gc-delta'), delta);
+    if(!(ARC.ghostClassAhead||false)&&nowAhead&&ARC.questionsAnswered>3) showComboBurst(1,'🏫 ¡POR DELANTE DE LA CLASE!');
+    ARC.ghostClassAhead=nowAhead;
+  }
+}
+
+// Carga el fantasma de clase (tipo 2) del backend en segundo plano.
+// Necesita grupo + apiUrl; si no hay datos suficientes, no hace nada.
+async function loadClassGhost(){
+  try{
+    const apiUrl=getApiUrl();
+    if(!apiUrl||!ARC.grupo) return;
+    const r=await fetchWithTimeout(
+      apiUrl+'?action=getRankingArcade&arcadeMode='+encodeURIComponent(ARC.arcadeMode)
+        +'&grupo='+encodeURIComponent(ARC.grupo),{},8000);
+    const d=await r.json();
+    const g=d&&d.myGrupoGhost;
+    if(!g||!g.totalQuestions||!g.avgScorePerQ) return;
+    ARC.ghostClass={ totalQuestions:g.totalQuestions, avgScorePerQ:g.avgScorePerQ, media:g.media };
+    // Encender la segunda línea de la barra ahora que tenemos datos.
+    const rowClass=document.getElementById('arc-ghost-row-class');
+    if(rowClass) rowClass.style.display='flex';
+    const gb=document.getElementById('arc-ghost-bar');
+    if(gb) gb.style.display='flex';
+    updateGhostBar();
+  }catch(e){ /* sin fantasma de clase: silencioso */ }
 }
 
 // ════════════════════════════════════════════════════════
@@ -111,32 +146,50 @@ async function startArcade({name,email,nickname,grupo,arcadeMode}){
     questionShownAt: 0,
     frenzy: false,
     alive:true,done:false,
-    // Ghost mode: récord propio
+    // Ghost mode: récord propio (tipo 1) + media de la clase (tipo 2)
     ghost: _ghost||null, ghostAhead: false, questionsAnswered: 0,
+    ghostClass: null, ghostClassAhead: false,
     startOpts:{name,email,nickname,grupo,arcadeMode}
   };
 
   // Show countdown BEFORE game starts
   showScreen('arcade');
 
-  // Ghost bar: crear o reutilizar, mostrar solo si hay récord previo
+  // Ghost bar: crear o reutilizar. Dos líneas posibles:
+  //   👻 Tu récord (tipo 1, localStorage)   ·   🏫 Media clase (tipo 2, backend)
   {
     let gb=document.getElementById('arc-ghost-bar');
     if(!gb){
       gb=document.createElement('div');
       gb.id='arc-ghost-bar';
-      gb.style.cssText='display:none;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.35);border-bottom:1px solid rgba(255,255,255,.08);padding:5px 16px;font-size:.78rem;color:rgba(255,255,255,.85);font-weight:700;font-family:\'DM Sans\',sans-serif;letter-spacing:.02em';
-      gb.innerHTML='<span style="color:rgba(255,255,255,.5)">👻 Tu récord</span>'
+      gb.style.cssText='display:none;flex-direction:column;align-items:center;gap:2px;background:rgba(0,0,0,.35);border-bottom:1px solid rgba(255,255,255,.08);padding:5px 16px;font-size:.78rem;color:rgba(255,255,255,.85);font-weight:700;font-family:\'DM Sans\',sans-serif;letter-spacing:.02em';
+      gb.innerHTML=
+        '<div id="arc-ghost-row-self" style="display:none;align-items:center;justify-content:center;gap:10px">'
+        +'<span style="color:rgba(255,255,255,.5)">👻 Tu récord</span>'
         +'<span id="arc-ghost-their" style="color:#C4B5FD;font-family:monospace">— pts</span>'
         +'<span style="color:rgba(255,255,255,.3)">·</span>'
         +'<span style="color:rgba(255,255,255,.5)">tú</span>'
         +'<span id="arc-ghost-mine" style="color:#FCD34D;font-family:monospace">0 pts</span>'
-        +'<span id="arc-ghost-delta" style="min-width:44px;text-align:center;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)">±0</span>';
+        +'<span id="arc-ghost-delta" style="min-width:44px;text-align:center;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)">±0</span>'
+        +'</div>'
+        +'<div id="arc-ghost-row-class" style="display:none;align-items:center;justify-content:center;gap:10px">'
+        +'<span style="color:rgba(255,255,255,.5)">🏫 Media clase</span>'
+        +'<span id="arc-gc-their" style="color:#A5F3FC;font-family:monospace">— pts</span>'
+        +'<span id="arc-gc-delta" style="min-width:44px;text-align:center;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)">±0</span>'
+        +'</div>';
       const aw=document.getElementById('arc-wrap');
       if(aw) aw.parentElement.insertBefore(gb,aw);
     }
-    gb.style.display=ARC.ghost?'flex':'none';
+    const rowSelf=document.getElementById('arc-ghost-row-self');
+    const rowClass=document.getElementById('arc-ghost-row-class');
+    if(rowSelf) rowSelf.style.display=ARC.ghost?'flex':'none';
+    if(rowClass) rowClass.style.display=ARC.ghostClass?'flex':'none';
+    gb.style.display=(ARC.ghost||ARC.ghostClass)?'flex':'none';
   }
+
+  // Cargar el fantasma de clase (tipo 2) en segundo plano: no bloquea el
+  // arranque. Cuando llega, se enciende la segunda línea de la barra.
+  loadClassGhost();
 
   renderArcade();
   await showArcadeCountdown();
