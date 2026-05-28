@@ -2720,6 +2720,36 @@ async function retrySendResult(){
 // ════════════════════════════════════════════════════════════════════
 let currentModule = null; // 'sint' | 'maestro' | 'sint4' | 'arcade'
 
+// ════════════════════════════════════════════════════════════════════
+// GRUPOS — lista única y cerrada de clases.
+// El alumno SOLO puede elegir de aquí (desplegable), nunca escribe a mano.
+// Esto evita los desajustes de datos por nomenclaturas distintas
+// (3ºA / 3A / 3 A / Tercero A …). Nomenclatura: ESO = NºLetra, Bach = NºBachLetra.
+// → PARA EL PROFESOR: para añadir o quitar una clase, edita SOLO esta lista.
+// ════════════════════════════════════════════════════════════════════
+const GRUPOS = ['1ºC','2ºA','3ºB','4ºC','1ºBachA','1ºBachC','2ºBachA'];
+
+// Devuelve el HTML de <option> para un desplegable de grupo.
+// `sel`         (opcional) marca como seleccionada la opción que coincida.
+// `placeholder` (opcional) etiqueta de la primera opción vacía.
+function grupoOptionsHTML(sel, placeholder){
+  const ph = placeholder || '— Elige tu clase —';
+  return `<option value="">${ph}</option>`
+    + GRUPOS.map(g=>`<option value="${g}"${g===sel?' selected':''}>${g}</option>`).join('');
+}
+
+// Rellena cualquier <select class="grupo-select"> que esté vacío.
+// Acepta data-grupo-placeholder para personalizar la opción vacía
+// (p.ej. "(todas)" en filtros del profesor). Se llama al cargar el DOM.
+function populateGrupoSelects(){
+  document.querySelectorAll('select.grupo-select').forEach(sel=>{
+    if(sel.options.length<=0 || (sel.options.length===1 && !sel.options[0].value)){
+      const prev=sel.value;
+      sel.innerHTML=grupoOptionsHTML(prev, sel.dataset.grupoPlaceholder);
+    }
+  });
+}
+
 const LOGIN_PANELS = {
   sint: `
     <p style="font-weight:800;font-size:.9rem;color:var(--ink);margin-bottom:12px">🔤 Análisis Sintáctico</p>
@@ -2798,7 +2828,7 @@ const LOGIN_PANELS = {
     </div>
     <div class="field">
       <label>Tu clase <span style="font-weight:400;color:var(--muted)">(compite contra tus compañeros)</span></label>
-      <input id="inp-arc-grupo" class="input" type="text" placeholder="Ej: 3ºA" maxlength="10" style="max-width:120px">
+      <select id="inp-arc-grupo" class="input grupo-select" style="max-width:160px">${grupoOptionsHTML()}</select>
     </div>
     <div class="field">
       <label>Modo Arcade</label>
@@ -3366,7 +3396,7 @@ function refreshHintsUI(){
 
 // Inicializar UI al cargar panel profesor
 const _origShowTeacher = typeof showTeacher !== 'undefined' ? showTeacher : null;
-document.addEventListener('DOMContentLoaded', ()=>{ refreshHintsUI(); });
+document.addEventListener('DOMContentLoaded', ()=>{ refreshHintsUI(); populateGrupoSelects(); });
 
 // ══════════════════════════════════════════════════════════════════════════
 // MÓDULO ORACIÓN COMPUESTA · CP (E2 — modo lectura)

@@ -140,7 +140,7 @@ if(window.location.protocol === 'file:') {
           Grupo
           <span id="grupo-req-hint" style="font-size:.72rem;font-weight:500;color:var(--muted)">(opcional)</span>
         </label>
-        <input id="inp-grupo" class="input" type="text" placeholder="Ej: 3ºA o 1ºBach" maxlength="12" autocomplete="off">
+        <select id="inp-grupo" class="input grupo-select"></select>
         <p id="e-grupo" class="ferr" role="alert"></p>
       </div>
       <hr class="divider">
@@ -340,7 +340,7 @@ if(window.location.protocol === 'file:') {
           </div>
           <div>
             <label style="font-size:.74rem;font-weight:700;color:var(--muted)">🎓 Grupo</label>
-            <input id="tp-inf-grupo" class="input" type="text" placeholder="(todos)" style="font-size:.85rem;padding:5px 8px;width:100%">
+            <select id="tp-inf-grupo" class="input grupo-select" data-grupo-placeholder="(todas)" style="font-size:.85rem;padding:5px 8px;width:100%"></select>
           </div>
           <div>
             <label style="font-size:.74rem;font-weight:700;color:var(--muted)">🎯 Tipo</label>
@@ -457,7 +457,7 @@ if(window.location.protocol === 'file:') {
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <div style="flex:1;min-width:100px">
           <label style="font-size:.72rem;font-weight:700;color:var(--muted)">Grupo</label>
-          <input id="tp-exam-grupo" class="input" type="text" placeholder="3ºA" style="font-size:.9rem;padding:6px 8px">
+          <select id="tp-exam-grupo" class="input grupo-select" data-grupo-placeholder="— Elige clase —" style="font-size:.9rem;padding:6px 8px"></select>
         </div>
         <div style="flex:1;min-width:60px">
           <label style="font-size:.72rem;font-weight:700;color:var(--muted)">Evaluación</label>
@@ -563,7 +563,7 @@ if(window.location.protocol === 'file:') {
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <div style="flex:1;min-width:80px">
           <label style="font-size:.72rem;font-weight:700;color:var(--muted)">Grupo</label>
-          <input id="tp-dash-grupo" class="input" type="text" placeholder="3ºA" style="font-size:.88rem;padding:5px 8px">
+          <select id="tp-dash-grupo" class="input grupo-select" data-grupo-placeholder="(todas)" style="font-size:.88rem;padding:5px 8px"></select>
         </div>
         <div style="flex:1;min-width:60px">
           <label style="font-size:.72rem;font-weight:700;color:var(--muted)">Evaluación</label>
@@ -611,7 +611,7 @@ if(window.location.protocol === 'file:') {
         </div>
         <div style="flex:1;min-width:80px">
           <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Grupo</label>
-          <input id="tp-cp-exam-grupo" class="input" type="text" placeholder="2ºA" style="font-size:.88rem;padding:6px 8px;margin-top:4px">
+          <select id="tp-cp-exam-grupo" class="input grupo-select" data-grupo-placeholder="— Elige clase —" style="font-size:.88rem;padding:6px 8px;margin-top:4px"></select>
         </div>
         <div style="flex:1;min-width:60px">
           <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Evaluación</label>
@@ -751,7 +751,7 @@ if(window.location.protocol === 'file:') {
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <div style="flex:1;min-width:80px">
           <label style="font-size:.72rem;font-weight:700;color:var(--muted)">Grupo</label>
-          <input id="tp-cp-grupo" class="input" type="text" placeholder="3ºA" style="font-size:.88rem;padding:5px 8px">
+          <select id="tp-cp-grupo" class="input grupo-select" data-grupo-placeholder="(todas)" style="font-size:.88rem;padding:5px 8px"></select>
         </div>
         <div style="flex:1;min-width:60px">
           <label style="font-size:.72rem;font-weight:700;color:var(--muted)">Evaluación</label>
