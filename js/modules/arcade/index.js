@@ -577,6 +577,14 @@ async function endArcade(){
 
   document.getElementById('go-icon').textContent=ARC.arcadeMode==='survival'?'💀':'⏱';
   document.getElementById('go-title').textContent=ARC.arcadeMode==='survival'?'¡Game Over!':'¡Tiempo!';
+
+  // Ghost mode: calcular si es nuevo récord ANTES de construir el subtítulo
+  // (antes el `if(_isNewRecord)` se ejecutaba antes de la declaración → ReferenceError
+  //  en TDZ que rompía endArcade y dejaba la pantalla de Game Over invisible).
+  const total = ARC.correctAnswers + ARC.wrongAnswers;
+  const _prevGhost = getGhost(ARC.arcadeMode);
+  const _isNewRecord = total > 0 && (!_prevGhost || ARC.score > _prevGhost.score);
+
   let sub;
   if(ARC.arcadeMode==='survival'){
     sub = `Racha máxima: ${ARC.highStreak} aciertos`;
@@ -591,10 +599,7 @@ async function endArcade(){
   document.getElementById('go-score').textContent=ARC.score;
   document.getElementById('go-score-lbl').textContent='PUNTUACIÓN TOTAL';
 
-  // Ghost mode: guardar récord si es mejor (o si no había ninguno)
-  const total = ARC.correctAnswers + ARC.wrongAnswers;
-  const _prevGhost = getGhost(ARC.arcadeMode);
-  const _isNewRecord = total > 0 && (!_prevGhost || ARC.score > _prevGhost.score);
+  // Guardar récord si es mejor (o si no había ninguno)
   if(_isNewRecord){
     saveGhost(ARC.arcadeMode,{
       nickname: ARC.nickname||'Tú',
