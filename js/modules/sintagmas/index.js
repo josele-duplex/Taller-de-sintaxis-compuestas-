@@ -422,7 +422,11 @@ export {
 
 if (typeof window !== 'undefined') {
   Object.assign(window, {
-    startSintagmas, sintNextSintagma, sintSkipNew, endSint
+    startSintagmas, sintNextSintagma, sintSkipNew, endSint,
+    // Invocadas desde onclick="..." en el HTML que renderiza este módulo.
+    // Sin esta exposición los botones de los pasos 1, 1b y 2 no hacen nada
+    // (el modo quedaba congelado en "Haz clic en el núcleo").
+    _sintCheckNucleus, _sintCheckType, _sintClassifyElem
   });
   Object.defineProperty(window, "SIN", { get: () => SIN, configurable: true });
 }
