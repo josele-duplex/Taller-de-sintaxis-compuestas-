@@ -149,7 +149,25 @@ async function startArcade({name,email,nickname,grupo,arcadeMode}){
       if(!ARC.alive)return;
       ARC.timerLeft=Math.max(0,ARC.timerLeft-1);
       updateArcadeTopbar();
-      if(ARC.timerLeft<=0){clearInterval(ARC.timerInterval);endArcade();}
+      if(ARC.timerLeft<=0){
+        // Blindaje (2026-05-28): matamos el interval Y marcamos alive=false
+        // ANTES de llamar a endArcade. Antes el síntoma del bug `_isNewRecord`
+        // era que endArcade lanzaba ReferenceError tras `clearInterval` y
+        // antes de `showScreen('gameover')`: el reloj quedaba a 0 pero el
+        // alumno podía seguir respondiendo y sus aciertos sumaban segundos a
+        // un ARC.timerLeft "zombie" (cuenta atrás muerta, sumas vivas). Con
+        // alive=false las llamadas posteriores a arcadeAnswer salen pronto.
+        clearInterval(ARC.timerInterval);
+        ARC.timerInterval = null;
+        ARC.alive = false;
+        try { endArcade(); }
+        catch(e){
+          console.error('[arcade] endArcade falló:', e);
+          // Fallback mínimo: al menos mostramos la pantalla final aunque
+          // sin ranking, para que el alumno sepa que el juego ha acabado.
+          try { showScreen('gameover'); } catch(_){}
+        }
+      }
     },1000);
   }
 }
@@ -384,7 +402,17 @@ function arcadeAnswer(chosen,correct,consejo){
       animateHeartLoss();
       if(ARC.lives <= 0){
         // Game Over
-        ARC.alive=false; setTimeout(endArcade, 600); return;
+        ARC.alive=false;
+        setTimeout(()=>{
+          try { endArcade(); }
+          catch(e){
+            // Blindaje (2026-05-28): si endArcade fallara, al menos forzamos
+            // la pantalla final para que el alumno sepa que perdió.
+            console.error('[arcade] endArcade falló (survival):', e);
+            try { showScreen('gameover'); } catch(_){}
+          }
+        }, 600);
+        return;
       } else {
         // Scaffolding: show micro-hint, then continue
         showArcadeHint(consejo, correct);
