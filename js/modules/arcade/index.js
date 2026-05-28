@@ -22,6 +22,7 @@ const LS_LB_SRV='taller_lb_survival';
 const LS_LB_TMR='taller_lb_timer';
 const LS_GHOST_SRV='taller_ghost_survival';
 const LS_GHOST_TMR='taller_ghost_timer';
+const LS_GHOST_DUEL='taller_ghost_duel'; // récord propio del Duelo Fantasma
 
 function getLB(key){try{return JSON.parse(localStorage.getItem(key)||'[]');}catch{return [];}}
 function saveLB(key,entry){
@@ -35,12 +36,15 @@ function saveLB(key,entry){
 // ════════════════════════════════════════════════════════
 // GHOST MODE — récord propio (localStorage, sin backend)
 // ════════════════════════════════════════════════════════
+function _ghostKey(mode){
+  return mode==='survival'?LS_GHOST_SRV:mode==='ghost'?LS_GHOST_DUEL:LS_GHOST_TMR;
+}
 function getGhost(mode){
-  try{return JSON.parse(localStorage.getItem(mode==='survival'?LS_GHOST_SRV:LS_GHOST_TMR)||'null');}
+  try{return JSON.parse(localStorage.getItem(_ghostKey(mode))||'null');}
   catch{return null;}
 }
 function saveGhost(mode,data){
-  localStorage.setItem(mode==='survival'?LS_GHOST_SRV:LS_GHOST_TMR,JSON.stringify(data));
+  localStorage.setItem(_ghostKey(mode),JSON.stringify(data));
 }
 
 // Pinta el "delta" (diferencia con un fantasma) en su badge de color.
@@ -111,7 +115,7 @@ async function loadClassGhost(){
 // ════════════════════════════════════════════════════════
 let ARC={};
 
-async function startArcade({name,email,nickname,grupo,arcadeMode}){
+async function startArcade({name,email,nickname,grupo,arcadeMode,ghostDuel}){
   document.getElementById('loading-txt').textContent='Cargando oraciones…';
   showScreen('loading');
   await delay(150);
@@ -128,9 +132,11 @@ async function startArcade({name,email,nickname,grupo,arcadeMode}){
   }
   oraciones=shuffle(oraciones);
 
-  const _ghost=getGhost(arcadeMode);
+  // En Duelo Fantasma el récord propio se guarda en su clave dedicada
+  // ('ghost'), independiente de Supervivencia/Contrarreloj.
+  const _ghost=getGhost(ghostDuel?'ghost':arcadeMode);
   ARC={
-    name,email,nickname,grupo:grupo||'',arcadeMode,
+    name,email,nickname,grupo:grupo||'',arcadeMode,ghostDuel:!!ghostDuel,
     oraciones,idx:0,
     score:0,streak:0,highStreak:0,
     // Survival mechanics: 3 hearts + scaffolding hint
@@ -149,7 +155,7 @@ async function startArcade({name,email,nickname,grupo,arcadeMode}){
     // Ghost mode: récord propio (tipo 1) + media de la clase (tipo 2)
     ghost: _ghost||null, ghostAhead: false, questionsAnswered: 0,
     ghostClass: null, ghostClassAhead: false,
-    startOpts:{name,email,nickname,grupo,arcadeMode}
+    startOpts:{name,email,nickname,grupo,arcadeMode,ghostDuel:!!ghostDuel}
   };
 
   // Show countdown BEFORE game starts
@@ -238,7 +244,9 @@ async function showArcadeCountdown(){
   overlay.style.display = 'flex';
   const num = document.getElementById('arc-cd-num');
   const sub = document.getElementById('arc-cd-sub');
-  sub.textContent = ARC.arcadeMode==='survival' ? '🔥 Un error = Game Over' : '⏱ Contra el reloj';
+  sub.textContent = ARC.ghostDuel
+      ? (ARC.ghost ? '👻 Persigue a tu fantasma' : '👻 Esta carrera crea tu fantasma')
+      : (ARC.arcadeMode==='survival' ? '🔥 Un error = Game Over' : '⏱ Contra el reloj');
   for(const n of ['3','2','1','¡YA!']){
     num.textContent = n;
     num.style.animation = 'none';
@@ -683,18 +691,30 @@ async function endArcade(){
   const lb=saveLB(lbKey,entry);
   const myRank=lb.findIndex(e=>e.nickname===ARC.nickname&&e.score===ARC.score)+1;
 
-  document.getElementById('go-icon').textContent=ARC.arcadeMode==='survival'?'💀':'⏱';
-  document.getElementById('go-title').textContent=ARC.arcadeMode==='survival'?'¡Game Over!':'¡Tiempo!';
+  document.getElementById('go-icon').textContent=ARC.ghostDuel?'👻':(ARC.arcadeMode==='survival'?'💀':'⏱');
+  document.getElementById('go-title').textContent=ARC.ghostDuel?'¡Duelo terminado!':(ARC.arcadeMode==='survival'?'¡Game Over!':'¡Tiempo!');
 
   // Ghost mode: calcular si es nuevo récord ANTES de construir el subtítulo
   // (antes el `if(_isNewRecord)` se ejecutaba antes de la declaración → ReferenceError
   //  en TDZ que rompía endArcade y dejaba la pantalla de Game Over invisible).
   const total = ARC.correctAnswers + ARC.wrongAnswers;
-  const _prevGhost = getGhost(ARC.arcadeMode);
+  const _ghostMode = ARC.ghostDuel ? 'ghost' : ARC.arcadeMode;
+  const _prevGhost = getGhost(_ghostMode);
   const _isNewRecord = total > 0 && (!_prevGhost || ARC.score > _prevGhost.score);
 
   let sub;
-  if(ARC.arcadeMode==='survival'){
+  if(ARC.ghostDuel){
+    // Veredicto del duelo contra el fantasma con el que competía esta carrera.
+    if(ARC.ghost){
+      const diff = ARC.score - (ARC.ghost.score||0);
+      sub = diff>=0
+        ? `🏆 Has GANADO al fantasma por ${diff} pts`
+        : `El fantasma te ganó por ${-diff} pts · ¡otra!`;
+    } else {
+      sub = '👻 Fantasma creado · ¡vuelve a batirlo!';
+    }
+    sub += ` · Racha: ${ARC.highStreak}`;
+  } else if(ARC.arcadeMode==='survival'){
     sub = `Racha máxima: ${ARC.highStreak} aciertos`;
     if(ARC.livesGained > 0) sub += ` · +${ARC.livesGained} vida${ARC.livesGained>1?'s':''} recuperada${ARC.livesGained>1?'s':''}`;
     if(ARC.shieldsGained > 0) sub += ` · ${ARC.shieldsGained}🛡 ganado${ARC.shieldsGained>1?'s':''}`;
@@ -709,7 +729,7 @@ async function endArcade(){
 
   // Guardar récord si es mejor (o si no había ninguno)
   if(_isNewRecord){
-    saveGhost(ARC.arcadeMode,{
+    saveGhost(_ghostMode,{
       nickname: ARC.nickname||'Tú',
       score: ARC.score,
       totalQuestions: total,

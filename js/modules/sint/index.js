@@ -2831,13 +2831,22 @@ const LOGIN_PANELS = {
       <select id="inp-arc-grupo" class="input grupo-select" style="max-width:160px">${grupoOptionsHTML()}</select>
     </div>
     <div class="field">
-      <label>Modo Arcade</label>
-      <div class="sel-grid" role="radiogroup">
-        <button type="button" class="sel-card" id="arc-survival" onclick="setArcadeMode('survival')" role="radio" aria-checked="false">
-          <span class="sel-icon">🔥</span><span class="sel-title">Supervivencia</span><span class="sel-desc">Un error = Game Over</span>
+      <label>Elige tu modo</label>
+      <div class="arc-mode-grid" role="radiogroup">
+        <button type="button" class="arc-mode-card am-survival" id="arc-survival" onclick="setArcadeMode('survival')" role="radio" aria-checked="false">
+          <span class="amc-icon">🔥</span>
+          <span class="amc-body"><span class="amc-title">Supervivencia</span><span class="amc-desc">Un solo error y se acaba. ¿Cuánto aguantas?</span></span>
+          <span class="amc-go">▶</span>
         </button>
-        <button type="button" class="sel-card" id="arc-timer" onclick="setArcadeMode('timer')" role="radio" aria-checked="false">
-          <span class="sel-icon">⏱</span><span class="sel-title">Contrarreloj</span><span class="sel-desc">+5s acierto · −10s error</span>
+        <button type="button" class="arc-mode-card am-timer" id="arc-timer" onclick="setArcadeMode('timer')" role="radio" aria-checked="false">
+          <span class="amc-icon">⏱️</span>
+          <span class="amc-body"><span class="amc-title">Contrarreloj</span><span class="amc-desc">Acierta para ganar segundos. ¡Suma sin parar!</span></span>
+          <span class="amc-go">▶</span>
+        </button>
+        <button type="button" class="arc-mode-card am-ghost" id="arc-ghost" onclick="setArcadeMode('ghost')" role="radio" aria-checked="false">
+          <span class="amc-icon">👻</span>
+          <span class="amc-body"><span class="amc-title">Duelo Fantasma <span class="amc-tag">NUEVO</span></span><span class="amc-desc">Compite contra tu récord y la media de tu clase.</span></span>
+          <span class="amc-go">▶</span>
         </button>
       </div>
       <p id="e-arcade" class="ferr" role="alert"></p>
@@ -3308,7 +3317,9 @@ function setSint4Mode(m){
 }
 function setArcadeMode(m){
   selectedArcadeMode=m;
-  ['arc-survival','arc-timer'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.toggle('sel-active',el.id==='arc-'+m);el.setAttribute('aria-checked',String(el.id==='arc-'+m));}});
+  // Clase 'amc-active' (NO 'sel-active'): el tema new-ui sobreescribe cualquier
+  // clase que contenga "sel-" con su color teal; 'amc-active' lo evita.
+  ['arc-survival','arc-timer','arc-ghost'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.toggle('amc-active',el.id==='arc-'+m);el.setAttribute('aria-checked',String(el.id==='arc-'+m));}});
 }
 function setMorphLevel(l){
   selectedMorphLevel=l;
@@ -3337,7 +3348,11 @@ async function handleStartAll(){
     ferr('e-nick','');ferr('e-arcade','');
     if(!nick){ferr('e-nick','Elige un apodo para el ranking.');return;}
     if(!selectedArcadeMode){ferr('e-arcade','Selecciona un modo.');return;}
-    await startArcade({name,email,nickname:nick,grupo,arcadeMode:selectedArcadeMode});return;
+    // Duelo Fantasma corre sobre el motor de Contrarreloj (timer) con el
+    // marco de duelo activado (ghostDuel): persigues tu récord + la media de clase.
+    const ghostDuel = selectedArcadeMode==='ghost';
+    const engineMode = ghostDuel ? 'timer' : selectedArcadeMode;
+    await startArcade({name,email,nickname:nick,grupo,arcadeMode:engineMode,ghostDuel});return;
   }
   if(currentModule==='morph'){
     ferr('e-morphlevel','');ferr('e-morphmode','');

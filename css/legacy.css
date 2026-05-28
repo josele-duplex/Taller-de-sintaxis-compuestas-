@@ -74,6 +74,26 @@ input{font-family:inherit;outline:none}
 .sel-icon{font-size:1.35rem}.sel-title{font-weight:800;font-size:.84rem;color:var(--ink)}
 .sel-card.sel-active .sel-title{color:var(--blue)}
 .sel-desc{font-size:.7rem;color:var(--muted);line-height:1.35}
+/* ── Tarjetas de modo Arcade (grandes, atractivas, en columna) ── */
+.arc-mode-grid{display:flex;flex-direction:column;gap:12px}
+.arc-mode-card{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;border-radius:16px;border:2px solid var(--border);background:var(--paper);cursor:pointer;text-align:left;transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease,background .14s ease}
+.arc-mode-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.13)}
+.arc-mode-card .amc-icon{flex:0 0 auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.14)}
+.arc-mode-card .amc-body{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.arc-mode-card .amc-title{font-weight:800;font-size:1rem;color:var(--ink);display:flex;align-items:center;gap:8px}
+.arc-mode-card .amc-desc{font-size:.78rem;color:var(--muted);line-height:1.35}
+.arc-mode-card .amc-go{flex:0 0 auto;font-size:1rem;font-weight:900;color:var(--muted);opacity:.4;transition:opacity .14s,transform .14s}
+.arc-mode-card:hover .amc-go{opacity:1;transform:translateX(3px)}
+.amc-tag{font-size:.6rem;font-weight:900;letter-spacing:.08em;padding:2px 7px;border-radius:999px;background:linear-gradient(135deg,#7C3AED,#EC4899);color:#fff}
+.am-survival .amc-icon{background:linear-gradient(135deg,#FB7185,#EF4444)}
+.am-timer .amc-icon{background:linear-gradient(135deg,#38BDF8,#2563EB)}
+.am-ghost .amc-icon{background:linear-gradient(135deg,#A78BFA,#7C3AED)}
+.arc-mode-card.amc-active{border-color:var(--blue)}
+/* !important: blinda el color por modo frente a reglas del tema new-ui */
+.am-survival.amc-active{border-color:#EF4444 !important;background:rgba(239,68,68,.06) !important}
+.am-timer.amc-active{border-color:#2563EB !important;background:rgba(37,99,235,.06) !important}
+.am-ghost.amc-active{border-color:#7C3AED !important;background:rgba(124,58,237,.07) !important}
+.arc-mode-card.amc-active .amc-go{opacity:1}
 .input-pin{text-align:center;font-size:1.4rem;letter-spacing:.28em;font-weight:900}
 hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 
