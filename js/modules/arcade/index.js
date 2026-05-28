@@ -712,7 +712,7 @@ async function endArcade(){
         body: JSON.stringify({
           action:'saveArcadeScore', nickname:ARC.nickname, grupo:ARC.grupo||'',
           name:ARC.name||'', email:ARC.email||'', arcadeMode:ARC.arcadeMode,
-          score:ARC.score, streak:ARC.highStreak
+          score:ARC.score, streak:ARC.highStreak, questions: total
         })
       });
       // Fetch ranking

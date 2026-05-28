@@ -1648,7 +1648,7 @@ function saveSesionPractica_(p) {
 function saveArcadeScore_(p) {
   const paramErr = requireParams_(p, ['nickname', 'arcadeMode']);
   if (paramErr) return paramErr;
-  const ARCADE_HEADER = ['Fecha','Apodo','Grupo','Nombre','Correo','Modo','Puntuacion','Racha_Max'];
+  const ARCADE_HEADER = ['Fecha','Apodo','Grupo','Nombre','Correo','Modo','Puntuacion','Racha_Max','Preguntas'];
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   let sheet   = ss.getSheetByName(SHEET_ARCADE);
   if (!sheet) sheet = ss.insertSheet(SHEET_ARCADE);
@@ -1659,6 +1659,7 @@ function saveArcadeScore_(p) {
   const mode = String(p.arcadeMode).trim();
   const score = parseInt(p.score)||0;
   const streak = parseInt(p.streak)||0;
+  const preguntas = parseInt(p.questions)||0;
   // Keep only best score per (nick + mode) using colMap
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
@@ -1669,7 +1670,8 @@ function saveArcadeScore_(p) {
           'Fecha': new Date(),
           'Grupo': grupo || data[i][col['Grupo']] || '',
           'Puntuacion': score,
-          'Racha_Max': streak
+          'Racha_Max': streak,
+          'Preguntas': preguntas
         });
         return { ok: true, improved: true };
       } else if (grupo && !data[i][col['Grupo']]) {
@@ -1681,7 +1683,7 @@ function saveArcadeScore_(p) {
   appendRowSafe_(sheet, ARCADE_HEADER, {
     'Fecha': new Date(), 'Apodo': nick, 'Grupo': grupo,
     'Nombre': p.name||'', 'Correo': p.email||'', 'Modo': mode,
-    'Puntuacion': score, 'Racha_Max': streak
+    'Puntuacion': score, 'Racha_Max': streak, 'Preguntas': preguntas
   });
   return { ok: true, improved: true, firstEntry: true };
 }
@@ -1698,11 +1700,11 @@ function getRankingArcade_(params) {
   // que el resto del backend (getColMap_).
   const col = getColMap_(sheet);
   const cApodo = col['Apodo'], cGrupo = col['Grupo'], cModo = col['Modo'],
-        cPunt = col['Puntuacion'], cRacha = col['Racha_Max'];
+        cPunt = col['Puntuacion'], cRacha = col['Racha_Max'], cPreg = col['Preguntas'];
   // Si falta alguna columna esencial, devolvemos vacío en vez de datos basura.
   if (cApodo === undefined || cPunt === undefined) return { global: [], grupos: {}, myGrupoTop: [] };
   const global = [];
-  const grupoTotals = {}; // grupo -> {sum, count}
+  const grupoTotals = {}; // grupo -> {sum, count, top, qSum}
   const myGrupoTop = [];
   for (let i = 1; i < data.length; i++) {
     const r = data[i];
@@ -1712,14 +1714,16 @@ function getRankingArcade_(params) {
       nick: String(r[cApodo]||''),
       grupo: cGrupo !== undefined ? String(r[cGrupo]||'') : '',
       score: parseInt(r[cPunt])||0,
-      streak: cRacha !== undefined ? (parseInt(r[cRacha])||0) : 0
+      streak: cRacha !== undefined ? (parseInt(r[cRacha])||0) : 0,
+      preguntas: cPreg !== undefined ? (parseInt(r[cPreg])||0) : 0
     };
     global.push(entry);
     if (entry.grupo) {
-      if (!grupoTotals[entry.grupo]) grupoTotals[entry.grupo] = {sum:0, count:0, top:0};
+      if (!grupoTotals[entry.grupo]) grupoTotals[entry.grupo] = {sum:0, count:0, top:0, qSum:0, qCount:0};
       grupoTotals[entry.grupo].sum += entry.score;
       grupoTotals[entry.grupo].count += 1;
       if (entry.score > grupoTotals[entry.grupo].top) grupoTotals[entry.grupo].top = entry.score;
+      if (entry.preguntas > 0) { grupoTotals[entry.grupo].qSum += entry.preguntas; grupoTotals[entry.grupo].qCount += 1; }
       if (myGrupo && entry.grupo === myGrupo) myGrupoTop.push(entry);
     }
   }
@@ -1732,13 +1736,32 @@ function getRankingArcade_(params) {
       grupo,
       media: Math.round(v.sum / v.count),
       top: v.top,
-      count: v.count
+      count: v.count,
+      avgPreguntas: v.qCount > 0 ? Math.round(v.qSum / v.qCount) : 0
     }))
     .sort((a,b) => b.media - a.media);
+  // Fantasma de clase: ritmo medio del grupo del alumno (para el Duelo Fantasma
+  // tipo 2). avgScorePerQ permite dibujar la línea esperada igual que el récord
+  // propio. Solo se devuelve si hay al menos 1 partida del grupo con preguntas.
+  let myGrupoGhost = null;
+  if (myGrupo && grupoTotals[myGrupo]) {
+    const g = grupoTotals[myGrupo];
+    const media = Math.round(g.sum / g.count);
+    const avgQ = g.qCount > 0 ? Math.round(g.qSum / g.qCount) : 0;
+    if (avgQ > 0) {
+      myGrupoGhost = {
+        media: media,
+        totalQuestions: avgQ,
+        avgScorePerQ: media / avgQ,
+        count: g.count
+      };
+    }
+  }
   return {
     global: global.slice(0, 10),
     myGrupoTop: myGrupoTop.slice(0, 10),
-    grupoRanking: grupoRanking.slice(0, 10)
+    grupoRanking: grupoRanking.slice(0, 10),
+    myGrupoGhost: myGrupoGhost
   };
 }
 
