@@ -91,14 +91,19 @@
   --ui-dur:        .22s;
   --ui-dur-slow:   .42s;
 
-  /* Portada aliases — keep the old portada CSS working untouched */
-  --portada-navy:      var(--ui-navy);
-  --portada-navy-soft: var(--ui-navy-soft);
-  --portada-teal:      var(--ui-teal);
-  --portada-cyan:      var(--ui-cyan);
-  --portada-magenta:   var(--ui-magenta);
-  --portada-bg:        var(--ui-bg);
-  --portada-card:      var(--ui-surface);
-  --portada-border:    var(--ui-border);
-  --portada-muted:     var(--ui-muted);
+  /* Portada palette — premium minimalista (mayo 2026).
+     Crema cálido + petróleo + esmeralda. Independiente de --ui-* para no
+     arrastrar el resto de pantallas si la paleta global cambia. */
+  --portada-bg:        #F5F1E8; /* cream — cálido */
+  --portada-card:      #FFFFFF;
+  --portada-border:    #E6E0D2;
+  --portada-navy:      #102A43; /* petróleo, títulos */
+  --portada-navy-soft: #1E3A5F;
+  --portada-teal:      #0F766E; /* esmeralda, acento */
+  --portada-teal-soft: #14B8A6;
+  --portada-blue-soft: #7FA7C9; /* azul suave (sintagmas) — más definido para que la barra superior se distinga */
+  --portada-cyan:      #0E7490;
+  --portada-magenta:   #BE185D; /* solo arcade */
+  --portada-muted:     #5C6B7E;
+  --portada-decor:     rgba(15,42,67,0.06); /* puntos/círculos decorativos */
 }

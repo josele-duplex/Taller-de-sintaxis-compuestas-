@@ -4055,12 +4055,10 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
   border-bottom-color:#0A1A33;
 }
 
-/* Tarjeta de la portada con badge "Nuevo"
-   Verde bosque (#15803D) — distinto del navy de simples, del teal de morfología y del cyan de sintagmas.
-   El interior del módulo sigue siendo navy (var(--cp-marca)); aquí solo diferenciamos la portada. */
-.theme-new-ui #screen-portada .mc-compuestas::before{background:#15803D}
-.theme-new-ui #screen-portada .mc-compuestas:hover .mod-card-icon{background:#15803D}
-.theme-new-ui #screen-portada .mc-compuestas:hover{border-color:#15803D}
+/* (Override antiguo del verde bosque #15803D retirado en mayo 2026.
+   La paleta de la portada vive ahora en legacy.css con variables --portada-*
+   y Compuestas usa --portada-teal, coherente con la imagen de referencia
+   premium minimalista. El interior del módulo sigue siendo navy (var(--cp-marca)).) */
 
 /* Chips de filtro activos */
 .cp-chip:hover{border-color:var(--cp-marca);background:var(--cp-marca-bg)}
@@ -4280,43 +4278,61 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 body.theme-new-ui .paper-grain-filter{position:absolute;width:0;height:0;overflow:hidden}
 
 /* ── PORTADA LIGHT (activa) ───────────────────────────────────────────────
-   Fondo claro y aireado con un suave oleaje pastel. Las tarjetas blancas
-   reposan sobre un degradado crema→lavanda→cielo. */
+   Premium minimalista (mayo 2026): crema cálido + petróleo + esmeralda.
+   Sin auroras pastel ni degradados violetas. Decoración muy sutil: dos
+   círculos veladísimos en los flancos y dos rejillas de puntos en las
+   esquinas, como en la referencia editorial. */
 body.theme-new-ui #screen-portada:not(.fx-futurista){
-  background:
-    radial-gradient(120% 80% at 50% -10%, rgba(124,58,237,.10), transparent 55%),
-    linear-gradient(165deg, #fbf7ef 0%, #f3eefb 46%, #eef4fd 100%);
+  background:var(--portada-bg);
   position:relative;
   overflow:hidden;
   isolation:isolate;
 }
-/* Oleaje pastel muy tenue (mismas @keyframes que la versión oscura) */
+/* Decoración: círculos suaves en los flancos (muy desvanecidos) */
 body.theme-new-ui #screen-portada:not(.fx-futurista)::before{
   content:'';
-  position:absolute; inset:-25%;
-  z-index:-2;
+  position:absolute; inset:0;
+  z-index:-2; pointer-events:none;
   background:
-    radial-gradient(40% 52% at 24% 28%, rgba(167,139,250,.20), transparent 70%),
-    radial-gradient(42% 56% at 80% 26%, rgba(244,114,182,.14), transparent 72%),
-    radial-gradient(46% 60% at 68% 82%, rgba(125,211,252,.18), transparent 70%),
-    radial-gradient(42% 56% at 14% 86%, rgba(147,197,253,.14), transparent 72%);
-  filter:blur(16px) saturate(1.05);
-  animation:portada-aurora 26s ease-in-out infinite alternate;
-  will-change:transform;
+    radial-gradient(220px 220px at -3% 42%, rgba(15,118,110,0.06), transparent 70%),
+    radial-gradient(280px 280px at 103% 62%, rgba(16,42,67,0.05), transparent 70%);
 }
-/* Título: degradado sobrio y legible sobre el fondo claro */
+/* Decoración: rejillas de puntos en esquinas opuestas */
+body.theme-new-ui #screen-portada:not(.fx-futurista)::after{
+  content:'';
+  position:absolute; inset:0;
+  z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(circle, var(--portada-decor) 1px, transparent 1.5px) 24px 24px / 14px 14px no-repeat,
+    radial-gradient(circle, var(--portada-decor) 1px, transparent 1.5px) calc(100% - 24px) calc(100% - 24px) / 14px 14px no-repeat;
+  background-repeat:repeat, repeat;
+  background-size:14px 14px, 14px 14px;
+  background-position:24px 24px, calc(100% - 24px) calc(100% - 24px);
+  /* Limita la zona de los puntos a un cuadrado de 84x84 en cada esquina */
+  -webkit-mask:
+    linear-gradient(#000,#000) 24px 24px / 84px 84px no-repeat,
+    linear-gradient(#000,#000) calc(100% - 108px) calc(100% - 108px) / 84px 84px no-repeat;
+          mask:
+    linear-gradient(#000,#000) 24px 24px / 84px 84px no-repeat,
+    linear-gradient(#000,#000) calc(100% - 108px) calc(100% - 108px) / 84px 84px no-repeat;
+}
+/* Título: color sólido petróleo, sin degradados */
 body.theme-new-ui #screen-portada:not(.fx-futurista) .portada-hero h1{
-  background:linear-gradient(92deg,#4c1d95 0%,#7c3aed 46%,#2563eb 100%);
-  -webkit-background-clip:text; background-clip:text;
-  -webkit-text-fill-color:transparent; color:transparent;
-  filter:drop-shadow(0 1px 2px rgba(124,58,237,.18));
+  background:none;
+  -webkit-text-fill-color:initial;
+  color:var(--portada-navy);
+  filter:none;
 }
-/* Tarjetas: elevación suave en clave clara */
+/* Tarjetas: elevación suave navy-tinted */
 body.theme-new-ui #screen-portada:not(.fx-futurista) .mod-card{
-  box-shadow:0 2px 8px rgba(80,60,120,.08), 0 14px 32px rgba(120,90,180,.13);
+  box-shadow:
+    0 1px 2px rgba(15,42,67,0.05),
+    0 8px 22px rgba(15,42,67,0.07);
 }
 body.theme-new-ui #screen-portada:not(.fx-futurista) .mod-card:hover{
-  box-shadow:0 2px 8px rgba(80,60,120,.10), 0 20px 44px rgba(124,58,237,.20);
+  box-shadow:
+    0 1px 2px rgba(15,42,67,0.06),
+    0 14px 32px rgba(15,42,67,0.12);
 }
 
 /* ── PORTADA RETRO-FUTURISTA (GUARDADA · inactiva) ────────────────────────

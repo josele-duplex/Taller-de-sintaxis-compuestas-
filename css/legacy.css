@@ -699,10 +699,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
     are kept as aliases for stability of this CSS block.)
    ══════════════════════════════════════════════════════════════ */
 .theme-new-ui #screen-portada{
-  background:
-    radial-gradient(circle at 12% 18%, rgba(15,118,110,0.07) 0%, transparent 38%),
-    radial-gradient(circle at 88% 82%, rgba(8,145,178,0.06) 0%, transparent 42%),
-    var(--portada-bg);
+  background:var(--portada-bg);
   padding:36px 18px 28px;
 }
 .theme-new-ui .portada-hero{
@@ -710,15 +707,16 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
   display:flex;flex-direction:column;align-items:center;gap:10px;
 }
 .theme-new-ui .portada-logo{
-  width:96px;height:96px;border-radius:50%;
+  width:104px;height:104px;border-radius:50%;
   background:#FFFFFF;
   box-shadow:
-    0 0 0 1px rgba(15,35,66,0.08),
-    0 6px 20px rgba(15,35,66,0.10);
+    0 0 0 1px rgba(15,42,67,0.07),
+    0 8px 26px rgba(15,42,67,0.10);
   display:flex;align-items:center;justify-content:center;
   margin-bottom:4px;
 }
-.theme-new-ui .portada-logo img{width:78px;height:78px;display:block}
+.theme-new-ui .portada-logo img,
+.theme-new-ui .portada-logo svg{width:74px;height:74px;display:block}
 .theme-new-ui .portada-hero h1{
   font-family:'Fraunces',serif;font-size:2.1rem;font-weight:700;
   color:var(--portada-navy);letter-spacing:-.015em;margin:0;line-height:1.05;
@@ -744,29 +742,39 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 .theme-new-ui .portada-inkmark:hover{opacity:.55}
 
 .theme-new-ui #screen-portada .mod-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:18px;
-  width:100%;max-width:620px;margin:0 auto;
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;
+  width:100%;max-width:760px;margin:0 auto;
 }
-@media(max-width:520px){
-  .theme-new-ui #screen-portada .mod-grid{grid-template-columns:1fr;gap:12px}
-  .theme-new-ui .portada-logo{width:78px;height:78px}
-  .theme-new-ui .portada-logo img{width:62px;height:62px}
-  .theme-new-ui .portada-hero h1{font-size:1.7rem}
+@media(max-width:560px){
+  .theme-new-ui #screen-portada .mod-grid{grid-template-columns:1fr;gap:14px}
+  .theme-new-ui .portada-logo{width:88px;height:88px}
+  .theme-new-ui .portada-logo img,
+  .theme-new-ui .portada-logo svg{width:64px;height:64px}
+  .theme-new-ui .portada-hero h1{font-size:1.8rem}
 }
 
 .theme-new-ui #screen-portada .mod-card{
   background:var(--portada-card);
   border:1px solid var(--portada-border);
   border-radius:14px;
-  padding:24px 22px 22px;
+  padding:22px 22px 20px;
   text-align:left;
   cursor:pointer;
-  display:flex;flex-direction:column;align-items:flex-start;gap:12px;
+  /* Layout grid: icono a la izquierda + título/desc a la derecha, botón abajo */
+  display:grid;
+  grid-template-columns:auto 1fr;
+  grid-template-areas:
+    "icon  title"
+    "icon  desc"
+    "cta   cta";
+  column-gap:16px;
+  row-gap:6px;
+  align-items:start;
   font-family:'Lora',serif;
   position:relative;overflow:hidden;
   box-shadow:
-    0 1px 2px rgba(15,35,66,0.04),
-    0 4px 14px rgba(15,35,66,0.05);
+    0 1px 2px rgba(15,42,67,0.04),
+    0 4px 14px rgba(15,42,67,0.05);
   transition:
     transform .25s cubic-bezier(.16,1,.3,1),
     box-shadow .25s cubic-bezier(.16,1,.3,1),
@@ -781,23 +789,24 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 .theme-new-ui #screen-portada .mod-card:hover{
   transform:translateY(-3px);
   box-shadow:
-    0 1px 2px rgba(15,35,66,0.04),
-    0 12px 28px rgba(15,35,66,0.13);
+    0 1px 2px rgba(15,42,67,0.05),
+    0 12px 28px rgba(15,42,67,0.13);
   border-color:var(--portada-navy-soft);
 }
 .theme-new-ui #screen-portada .mod-card:active{transform:translateY(-1px)}
 
 .theme-new-ui #screen-portada .mod-card-icon{
-  width:46px;height:46px;display:flex;align-items:center;justify-content:center;
-  background:rgba(15,35,66,0.06);
-  border-radius:11px;
+  grid-area:icon;
+  width:56px;height:56px;display:flex;align-items:center;justify-content:center;
+  background:rgba(15,42,67,0.05);
+  border-radius:12px;
   color:var(--portada-navy);
   font-size:0;
   transition:background .2s, color .2s;
   filter:none;
 }
 .theme-new-ui #screen-portada .mod-card-icon svg{
-  width:26px;height:26px;display:block;
+  width:30px;height:30px;display:block;
   stroke:currentColor;stroke-width:1.7;fill:none;
   stroke-linecap:round;stroke-linejoin:round;
 }
@@ -806,26 +815,35 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 }
 
 .theme-new-ui #screen-portada .mod-card-title{
+  grid-area:title;
   font-family:'Fraunces',serif;font-weight:700;font-size:1.18rem;
-  color:var(--portada-navy);letter-spacing:-.005em;line-height:1.15;
+  color:var(--portada-navy);letter-spacing:-.005em;line-height:1.2;
   margin:0;
 }
 .theme-new-ui #screen-portada .mod-card-desc{
-  font-size:.86rem;font-family:'Lora',serif;font-weight:400;
+  grid-area:desc;
+  font-size:.84rem;font-family:'Lora',serif;font-weight:400;
   color:var(--portada-muted);line-height:1.45;margin:0;
 }
+/* CTA como botón pill oscuro relleno (estilo referencia) */
 .theme-new-ui #screen-portada .mod-card-cta{
-  margin-top:auto;font-size:.78rem;font-weight:700;font-family:'Lora',serif;
-  color:var(--portada-teal);letter-spacing:.02em;
-  display:inline-flex;align-items:center;gap:5px;
-  text-transform:uppercase;padding-top:6px;
-  transition:color .2s, gap .2s;
+  grid-area:cta;
+  margin-top:14px;
+  justify-self:start;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 18px;border-radius:999px;
+  background:var(--portada-navy);
+  color:#FFFFFF;
+  font-family:'DM Sans','Nunito',sans-serif;
+  font-size:.72rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;
+  transition:background .2s, gap .2s, transform .2s;
 }
 .theme-new-ui #screen-portada .mod-card:hover .mod-card-cta{
-  color:var(--portada-navy);gap:9px;
+  gap:11px;
 }
 .theme-new-ui #screen-portada .mod-card-cta::after{
-  content:'→';font-size:1rem;line-height:1;
+  content:'→';font-size:1rem;line-height:1;font-weight:600;
 }
 
 .theme-new-ui #screen-portada .mod-card-badge{
@@ -837,39 +855,39 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
   box-shadow:0 2px 6px rgba(15,118,110,0.25);
 }
 
-/* Per-module accent (subtle: only the top bar and the icon active state) */
+/* Per-module accent (subtle: only the top bar and the icon active state).
+   Paleta acorde a la referencia: petróleo, verde esmeralda y azul suave.
+   No se usa violeta. */
 .theme-new-ui #screen-portada .mc-sint::before{background:var(--portada-navy)}
 .theme-new-ui #screen-portada .mc-sint:hover .mod-card-icon{background:var(--portada-navy)}
 .theme-new-ui #screen-portada .mc-maestro::before{background:var(--portada-teal)}
 .theme-new-ui #screen-portada .mc-maestro:hover .mod-card-icon{background:var(--portada-teal)}
-.theme-new-ui #screen-portada .mc-sint4::before{background:var(--portada-cyan)}
-.theme-new-ui #screen-portada .mc-sint4:hover .mod-card-icon{background:var(--portada-cyan)}
-.theme-new-ui #screen-portada .mc-compuestas::before{background:#7C3AED}
-.theme-new-ui #screen-portada .mc-compuestas:hover .mod-card-icon{background:#7C3AED}
-.theme-new-ui #screen-portada .mc-compuestas:hover{border-color:#7C3AED}
+.theme-new-ui #screen-portada .mc-sint4::before{background:var(--portada-blue-soft)}
+.theme-new-ui #screen-portada .mc-sint4:hover .mod-card-icon{background:var(--portada-navy-soft)}
+.theme-new-ui #screen-portada .mc-compuestas::before{background:var(--portada-teal)}
+.theme-new-ui #screen-portada .mc-compuestas:hover .mod-card-icon{background:var(--portada-teal)}
+.theme-new-ui #screen-portada .mc-compuestas:hover{border-color:var(--portada-teal)}
 
-/* Arcade card: more energetic but still serious — magenta accent on white */
+/* Arcade card: carácter algo más enérgico que las académicas pero dentro
+   de la paleta editorial: barra ámbar suave (no neón, no magenta). Resto
+   de la tarjeta idéntico al resto para no romper la composición. */
 .theme-new-ui #screen-portada .mc-arcade{
   background:var(--portada-card);
   border-color:var(--portada-border);
 }
 .theme-new-ui #screen-portada .mc-arcade::before{
-  background:linear-gradient(90deg,var(--portada-magenta),var(--portada-cyan));
-  height:4px;
+  background:#B45309; /* ámbar editorial, no saturado */
+  height:3px;
 }
 .theme-new-ui #screen-portada .mc-arcade .mod-card-icon{
-  background:linear-gradient(135deg,rgba(190,24,93,0.10),rgba(8,145,178,0.10));
-  color:var(--portada-magenta);
+  background:rgba(180,83,9,0.10);
+  color:#B45309;
 }
-.theme-new-ui #screen-portada .mc-arcade .mod-card-title{color:var(--portada-navy)}
+.theme-new-ui #screen-portada .mc-arcade .mod-card-title{color:var(--portada-navy);font-family:'Fraunces',serif}
 .theme-new-ui #screen-portada .mc-arcade .mod-card-desc{color:var(--portada-muted)}
-.theme-new-ui #screen-portada .mc-arcade .mod-card-cta{color:var(--portada-magenta)}
-.theme-new-ui #screen-portada .mc-arcade:hover{border-color:var(--portada-magenta)}
-.theme-new-ui #screen-portada .mc-arcade:hover .mod-card-icon{
-  background:linear-gradient(135deg,var(--portada-magenta),var(--portada-cyan));
-  color:#FFFFFF;
-}
-.theme-new-ui #screen-portada .mc-arcade:hover .mod-card-cta{color:var(--portada-navy)}
+.theme-new-ui #screen-portada .mc-arcade .mod-card-cta{background:var(--portada-navy);color:#FFFFFF}
+.theme-new-ui #screen-portada .mc-arcade:hover{border-color:#B45309}
+.theme-new-ui #screen-portada .mc-arcade:hover .mod-card-icon{background:#B45309;color:#FFFFFF}
 
 .theme-new-ui .portada-footer{
   margin-top:30px;text-align:center;font-size:.72rem;
