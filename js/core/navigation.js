@@ -39,6 +39,9 @@ export function goModule(mod) {
   }
   const panel = document.getElementById('login-module-panel');
   if (panel) panel.innerHTML = LOGIN_PANELS[mod] || '';
+  // Hook CSS para la estética «arcade años 90»: solo cuando el módulo es Arcade.
+  const scrLogin = document.getElementById('screen-login');
+  if (scrLogin) scrLogin.classList.toggle('login-arcade', mod === 'arcade');
   if (mod === 'sint') {
     if (selectedMode) setMode(selectedMode);
     // Build subfase grid after panel renders

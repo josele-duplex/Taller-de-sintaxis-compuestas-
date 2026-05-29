@@ -2829,7 +2829,7 @@ const LOGIN_PANELS = {
   arcade: `
     <p style="font-weight:800;font-size:.9rem;color:#DC2626;margin-bottom:12px">🎮 Arcade</p>
     <div class="field">
-      <label>Apodo <span style="font-weight:400;color:var(--muted)">(visible en el ranking)</span></label>
+      <label>Nick <span style="font-weight:400;color:var(--muted)">(visible en el ranking)</span></label>
       <input id="inp-nickname" class="input" type="text" placeholder="Ej: GramatiKing99" maxlength="20">
       <p id="e-nick" class="ferr" role="alert"></p>
     </div>
@@ -3358,7 +3358,7 @@ async function handleStartAll(){
     const nick=document.getElementById('inp-nickname')?.value.trim();
     const grupo=document.getElementById('inp-arc-grupo')?.value.trim()||'';
     ferr('e-nick','');ferr('e-arcade','');
-    if(!nick){ferr('e-nick','Elige un apodo para el ranking.');return;}
+    if(!nick){ferr('e-nick','Elige un Nick para el ranking.');return;}
     if(!selectedArcadeMode){ferr('e-arcade','Selecciona un modo.');return;}
     // Duelo Fantasma corre sobre el motor de Contrarreloj (timer) con el
     // marco de duelo activado (ghostDuel): persigues tu récord + la media de clase.
