@@ -4264,3 +4264,126 @@ body.theme-new-ui #ml-overlay #ml-progress > div{
 .cp-prop.subordinada{border-left-color:var(--cp-marca)}
 .cp-prop.subordinada .cp-prop-id{background:var(--cp-marca)}
 
+/* ════════════════════════════════════════════════════════════════════════
+   PORTADA RETRO-FUTURISTA · «cambio grande al entrar» (añadido 2026-05-29)
+   ────────────────────────────────────────────────────────────────────────
+   Capa 100% ADITIVA y REVERSIBLE: para volver al diseño claro basta con
+   borrar TODO este bloque (hasta el final del archivo). Solo afecta a
+   #screen-portada (la pantalla de entrada). Las tarjetas siguen siendo
+   blancas → cero riesgo de legibilidad en su interior.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* El <svg> que aloja el filtro de grano se renderizaba como caja inline de
+   ~150px y empujaba todo el contenido hacia abajo (banda clara visible ahora
+   que la portada es oscura). Lo sacamos del flujo sin desactivar el filtro. */
+body.theme-new-ui .paper-grain-filter{position:absolute;width:0;height:0;overflow:hidden}
+
+/* Fondo profundo índigo→violeta sobre el que «flotan» las tarjetas */
+body.theme-new-ui #screen-portada{
+  background:
+    radial-gradient(130% 90% at 50% -15%, rgba(124,58,237,.25), transparent 55%),
+    linear-gradient(165deg, #0a0f24 0%, #150d33 48%, #241046 100%);
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+}
+
+/* Capa 1 de ondas de color oscilantes ("gamas que se distribuyen por la pantalla") */
+body.theme-new-ui #screen-portada::before{
+  content:'';
+  position:absolute; inset:-30%;
+  z-index:-2;
+  background:
+    radial-gradient(38% 50% at 22% 30%, rgba(124,58,237,.55), transparent 70%),
+    radial-gradient(40% 55% at 80% 24%, rgba(236,72,153,.42), transparent 72%),
+    radial-gradient(46% 60% at 66% 80%, rgba(34,211,238,.40), transparent 70%),
+    radial-gradient(42% 56% at 14% 86%, rgba(59,130,246,.38), transparent 72%);
+  filter:blur(10px) saturate(1.2);
+  animation:portada-aurora 22s ease-in-out infinite alternate;
+  will-change:transform;
+}
+/* Capa 2: otra velocidad y dirección → movimiento orgánico, no mecánico */
+body.theme-new-ui #screen-portada::after{
+  content:'';
+  position:absolute; inset:-30%;
+  z-index:-2;
+  background:
+    radial-gradient(36% 46% at 70% 36%, rgba(167,139,250,.32), transparent 70%),
+    radial-gradient(40% 50% at 30% 68%, rgba(244,114,182,.26), transparent 72%);
+  mix-blend-mode:screen;
+  animation:portada-aurora2 30s ease-in-out infinite alternate;
+  will-change:transform;
+}
+@keyframes portada-aurora{
+  0%  {transform:translate3d(-4%,-3%,0) scale(1.05) rotate(0deg)}
+  50% {transform:translate3d(5%,5%,0)   scale(1.18) rotate(6deg)}
+  100%{transform:translate3d(-2%,7%,0)  scale(1.08) rotate(-5deg)}
+}
+@keyframes portada-aurora2{
+  0%  {transform:translate3d(4%,2%,0)   scale(1.10)}
+  50% {transform:translate3d(-6%,-4%,0) scale(1.00)}
+  100%{transform:translate3d(3%,-2%,0)  scale(1.16)}
+}
+
+/* Logo: halo de neón */
+body.theme-new-ui #screen-portada .portada-logo{
+  background:rgba(255,255,255,.97);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.22),
+    0 8px 30px rgba(124,58,237,.45),
+    0 0 46px rgba(34,211,238,.22);
+}
+
+/* Título: degradado luminoso + brillo (legible sobre el fondo oscuro) */
+body.theme-new-ui #screen-portada .portada-hero h1{
+  background:linear-gradient(92deg,#ffffff 0%,#c4b5fd 38%,#7dd3fc 72%,#f0abfc 100%);
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+  filter:drop-shadow(0 2px 20px rgba(124,58,237,.45));
+}
+body.theme-new-ui #screen-portada .subtitle-rule{ color:rgba(226,232,240,.85) }
+body.theme-new-ui #screen-portada .subtitle-rule::before,
+body.theme-new-ui #screen-portada .subtitle-rule::after{
+  background:rgba(226,232,240,.7); opacity:.55;
+}
+body.theme-new-ui #screen-portada .portada-inkmark{ color:#e2e8f0; opacity:.45 }
+body.theme-new-ui #screen-portada .portada-inkmark:hover{ opacity:.8 }
+
+/* Tarjetas: sombra «flotante» sobre el neón + brillo violeta al pasar */
+body.theme-new-ui #screen-portada .mod-card{
+  box-shadow:0 2px 8px rgba(0,0,0,.28), 0 18px 42px rgba(10,15,36,.5);
+}
+body.theme-new-ui #screen-portada .mod-card:hover{
+  box-shadow:0 2px 8px rgba(0,0,0,.28), 0 24px 54px rgba(124,58,237,.5);
+}
+
+/* ── Entrada dramática (se reproduce al cargar la portada) ── */
+body.theme-new-ui #screen-portada .portada-hero{
+  animation:portada-hero-in .9s var(--ui-ease) both;
+}
+body.theme-new-ui #screen-portada .mod-card{
+  animation:portada-rise .7s var(--ui-ease) both;
+}
+body.theme-new-ui #screen-portada .mod-card:nth-child(1){animation-delay:.10s}
+body.theme-new-ui #screen-portada .mod-card:nth-child(2){animation-delay:.18s}
+body.theme-new-ui #screen-portada .mod-card:nth-child(3){animation-delay:.26s}
+body.theme-new-ui #screen-portada .mod-card:nth-child(4){animation-delay:.34s}
+body.theme-new-ui #screen-portada .mod-card:nth-child(5){animation-delay:.42s}
+@keyframes portada-hero-in{
+  from{opacity:0; transform:translateY(-16px) scale(.97); filter:blur(5px)}
+  to  {opacity:1; transform:none; filter:blur(0)}
+}
+@keyframes portada-rise{
+  from{opacity:0; transform:translateY(28px) scale(.96)}
+  to  {opacity:1; transform:none}
+}
+
+/* Accesibilidad: respeta a quien pide menos movimiento */
+@media (prefers-reduced-motion: reduce){
+  body.theme-new-ui #screen-portada::before,
+  body.theme-new-ui #screen-portada::after,
+  body.theme-new-ui #screen-portada .portada-hero,
+  body.theme-new-ui #screen-portada .mod-card{ animation:none !important }
+}
+/* ═══════════════════ FIN PORTADA RETRO-FUTURISTA ═══════════════════ */
+
