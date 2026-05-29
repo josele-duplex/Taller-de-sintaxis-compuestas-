@@ -2282,17 +2282,18 @@ function crearDashboard_() {
   sheet.getRange('A2').setValue('Actualizado: ' + new Date().toLocaleString('es-ES'))
     .setFontColor('#666').setFontSize(10);
 
-  // ── MÉTRICAS PRINCIPALES ──
-  sheet.getRange('A4').setValue('📈 ESTADO DEL SISTEMA').setFontWeight('bold').setFontSize(12).setBackground('#e7f0f7');
+  // ── MÉTRICAS PRINCIPALES (simples + morfología) ──
+  sheet.getRange('A4').setValue('📈 ESTADO DEL SISTEMA (Simples + Morfología)')
+    .setFontWeight('bold').setFontSize(12).setBackground('#e7f0f7');
   sheet.getRange('A4:C4').merge();
 
   const metrics = [
-    ['Exámenes activos',      contarExamenesActivos_()],
-    ['Resultados registrados',contarResultados_()],
-    ['Intentos hoy',          contarIntentosHoy_()],
-    ['Oraciones activas',     contarOracionesActivas_()],
-    ['Textos de morfología',  contarMorfologia_()],
-    ['Nota media (últimos 30 días)', notaMedia30d_()]
+    ['Exámenes activos (simples)',      contarExamenesActivos_()],
+    ['Resultados registrados (simples)',contarResultados_()],
+    ['Intentos hoy (simples)',          contarIntentosHoy_()],
+    ['Oraciones simples activas',       contarOracionesActivas_()],
+    ['Textos de morfología',            contarMorfologia_()],
+    ['Nota media (simples, 30 días)',   notaMedia30d_()]
   ];
   metrics.forEach((m, i) => {
     sheet.getRange(5+i, 1).setValue(m[0]).setFontWeight('bold');
@@ -2306,8 +2307,9 @@ function crearDashboard_() {
   sheet.getRange('A13').setValue(alertas || '✓ Todo correcto')
     .setFontColor(alertas ? '#b00020' : '#2d8a3e');
 
-  // ── EXÁMENES ACTIVOS (tabla) ──
-  sheet.getRange('A15').setValue('🎯 EXÁMENES ACTIVOS (últimos 10)').setFontWeight('bold').setFontSize(12).setBackground('#e7f0f7');
+  // ── EXÁMENES ACTIVOS — simples (tabla) ──
+  sheet.getRange('A15').setValue('🎯 EXÁMENES SIMPLES ACTIVOS (últimos 10)')
+    .setFontWeight('bold').setFontSize(12).setBackground('#e7f0f7');
   sheet.getRange('A15:E15').merge();
   sheet.getRange('A16:E16').setValues([['PIN','Grupo','Examen','Oraciones','Fecha']]).setFontWeight('bold').setBackground('#f0f0f0');
   const examSheet = ss.getSheetByName(SHEET_EXAMS);
@@ -2334,9 +2336,10 @@ function crearDashboard_() {
     }
   }
 
-  // ── TOP ALUMNOS (últimos 30 días) ──
+  // ── TOP ALUMNOS — simples (últimos 30 días) ──
   const startTop = 30;
-  sheet.getRange(startTop, 1).setValue('🏆 TOP ALUMNOS (últimos 30 días)').setFontWeight('bold').setFontSize(12).setBackground('#e7f0f7');
+  sheet.getRange(startTop, 1).setValue('🏆 TOP ALUMNOS — SIMPLES (últimos 30 días)')
+    .setFontWeight('bold').setFontSize(12).setBackground('#e7f0f7');
   sheet.getRange(startTop, 1, 1, 4).merge();
   sheet.getRange(startTop+1, 1, 1, 4).setValues([['Alumno','Grupo','Nota media','Nº exámenes']]).setFontWeight('bold').setBackground('#f0f0f0');
   const topRows = topAlumnos_();
@@ -2346,7 +2349,57 @@ function crearDashboard_() {
     sheet.getRange(startTop+2, 1).setValue('Aún no hay resultados').setFontColor('#999');
   }
 
-  sheet.setColumnWidth(1, 250);
+  // ─────────────────────────────────────────────────────────────
+  // BLOQUE NUEVO (mayo 2026): MÓDULO ORACIÓN COMPUESTA
+  // Métricas equivalentes a las de simples, leyendo de las 4 hojas
+  // Compuestas_*. Si las hojas aún no existen, todo da 0/—/vacío y
+  // el bloque se pinta igual (no rompe).
+  // ─────────────────────────────────────────────────────────────
+  const startCp = 44;
+  sheet.getRange(startCp, 1).setValue('🌳 MÓDULO ORACIÓN COMPUESTA')
+    .setFontWeight('bold').setFontSize(12).setBackground('#dbeafe').setFontColor('#1f4e78');
+  sheet.getRange(startCp, 1, 1, 3).merge();
+
+  const metricsCp = [
+    ['Oraciones compuestas activas',     contarOracionesActivasCp_()],
+    ['Exámenes compuestas activos',      contarExamenesActivosCp_()],
+    ['Resultados de examen registrados', contarResultadosCp_()],
+    ['Registros de práctica libre',      contarPracticasLogCp_()],
+    ['Intentos hoy (compuestas)',        contarIntentosHoyCp_()],
+    ['Nota media (compuestas, 30 días)', notaMedia30dCp_()]
+  ];
+  metricsCp.forEach((m, i) => {
+    sheet.getRange(startCp+1+i, 1).setValue(m[0]).setFontWeight('bold');
+    sheet.getRange(startCp+1+i, 2).setValue(m[1]).setHorizontalAlignment('center').setFontSize(12).setFontWeight('bold');
+  });
+
+  // ── EXÁMENES ACTIVOS — compuestas (tabla) ──
+  const startExCp = startCp + 9;
+  sheet.getRange(startExCp, 1).setValue('🎯 EXÁMENES COMPUESTAS ACTIVOS (últimos 10)')
+    .setFontWeight('bold').setFontSize(12).setBackground('#dbeafe').setFontColor('#1f4e78');
+  sheet.getRange(startExCp, 1, 1, 5).merge();
+  sheet.getRange(startExCp+1, 1, 1, 5).setValues([['PIN','Grupo','Examen','Ejercicios','Fecha']]).setFontWeight('bold').setBackground('#f0f0f0');
+  const examRowsCp = examenesActivosCpRows_();
+  if (examRowsCp.length > 0) {
+    sheet.getRange(startExCp+2, 1, examRowsCp.length, 5).setValues(examRowsCp);
+  } else {
+    sheet.getRange(startExCp+2, 1).setValue('No hay exámenes activos').setFontColor('#999');
+  }
+
+  // ── TOP ALUMNOS — compuestas (últimos 30 días) ──
+  const startTopCp = startExCp + 14;
+  sheet.getRange(startTopCp, 1).setValue('🏆 TOP ALUMNOS — COMPUESTAS (últimos 30 días)')
+    .setFontWeight('bold').setFontSize(12).setBackground('#dbeafe').setFontColor('#1f4e78');
+  sheet.getRange(startTopCp, 1, 1, 4).merge();
+  sheet.getRange(startTopCp+1, 1, 1, 4).setValues([['Alumno','Grupo','Nota media','Nº exámenes']]).setFontWeight('bold').setBackground('#f0f0f0');
+  const topRowsCp = topAlumnosCp_();
+  if (topRowsCp.length > 0) {
+    sheet.getRange(startTopCp+2, 1, topRowsCp.length, 4).setValues(topRowsCp);
+  } else {
+    sheet.getRange(startTopCp+2, 1).setValue('Aún no hay resultados').setFontColor('#999');
+  }
+
+  sheet.setColumnWidth(1, 280);
   sheet.setColumnWidth(2, 120);
   sheet.setColumnWidth(3, 280);
   sheet.setColumnWidth(4, 120);
@@ -2469,6 +2522,134 @@ function menuDashboard() {
   } catch(e) {
     SpreadsheetApp.getUi().alert('Error', e.message, SpreadsheetApp.getUi().ButtonSet.OK);
   }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  HELPERS DEL DASHBOARD PARA COMPUESTAS (mayo 2026)
+//  Equivalentes a contarExamenesActivos_, contarResultados_, etc., pero
+//  leyendo de las hojas Compuestas_*. Toda función es defensiva: si la
+//  hoja no existe, devuelve 0 / '—' / [].
+// ════════════════════════════════════════════════════════════════════════
+
+function contarExamenesActivosCp_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Compuestas_Examenes');
+  if (!sh || sh.getLastRow() < 2) return 0;
+  const col = getColMap_(sh);
+  if (col['Estado'] == null) return 0;
+  const data = sh.getDataRange().getValues();
+  let count = 0;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][col['Estado']]).trim() === 'activo') count++;
+  }
+  return count;
+}
+
+function contarResultadosCp_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Compuestas_Resultados');
+  if (!sh) return 0;
+  return Math.max(0, sh.getLastRow() - 1);
+}
+
+function contarPracticasLogCp_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Compuestas_Practica_Log');
+  if (!sh) return 0;
+  return Math.max(0, sh.getLastRow() - 1);
+}
+
+function contarIntentosHoyCp_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Compuestas_Resultados');
+  if (!sh || sh.getLastRow() < 2) return 0;
+  const col = getColMap_(sh);
+  if (col['Fecha'] == null) return 0;
+  const data = sh.getDataRange().getValues();
+  const hoy = new Date().toDateString();
+  let count = 0;
+  for (let i = 1; i < data.length; i++) {
+    try {
+      if (new Date(data[i][col['Fecha']]).toDateString() === hoy) count++;
+    } catch (e) {}
+  }
+  return count;
+}
+
+function contarOracionesActivasCp_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Compuestas_Banco');
+  if (!sh || sh.getLastRow() < 2) return 0;
+  const col = getColMap_(sh);
+  if (col['Activo'] == null) return 0;
+  const data = sh.getDataRange().getValues();
+  let count = 0;
+  for (let i = 1; i < data.length; i++) {
+    const v = String(data[i][col['Activo']]).trim();
+    if (v === 'Sí' || v === 'Si' || v === 'sí' || v === 'si') count++;
+  }
+  return count;
+}
+
+function notaMedia30dCp_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Compuestas_Resultados');
+  if (!sh || sh.getLastRow() < 2) return '—';
+  const col = getColMap_(sh);
+  if (col['Fecha'] == null || col['Nota'] == null) return '—';
+  const data = sh.getDataRange().getValues();
+  const cutoff = Date.now() - 30*24*60*60*1000;
+  let sum = 0, n = 0;
+  for (let i = 1; i < data.length; i++) {
+    try {
+      const fecha = new Date(data[i][col['Fecha']]).getTime();
+      if (fecha >= cutoff) { sum += parseFloat(data[i][col['Nota']]) || 0; n++; }
+    } catch (e) {}
+  }
+  return n > 0 ? (sum / n).toFixed(1) + ' / 10' : '—';
+}
+
+function topAlumnosCp_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Compuestas_Resultados');
+  if (!sh || sh.getLastRow() < 2) return [];
+  const col = getColMap_(sh);
+  if (col['Fecha'] == null || col['Nota'] == null || col['Nombre'] == null) return [];
+  const data = sh.getDataRange().getValues();
+  const cutoff = Date.now() - 30*24*60*60*1000;
+  const agg = {};
+  for (let i = 1; i < data.length; i++) {
+    try {
+      const fecha = new Date(data[i][col['Fecha']]).getTime();
+      if (fecha < cutoff) continue;
+      const nombre = String(data[i][col['Nombre']] || '—').trim();
+      const grupo  = String(data[i][col['Grupo']]  || '—').trim();
+      const key    = nombre + '|' + grupo;
+      if (!agg[key]) agg[key] = { sum: 0, n: 0, nombre, grupo };
+      agg[key].sum += parseFloat(data[i][col['Nota']]) || 0;
+      agg[key].n++;
+    } catch (e) {}
+  }
+  return Object.values(agg)
+    .filter(a => a.n >= 1)
+    .map(a => [a.nombre, a.grupo, (a.sum / a.n).toFixed(1), a.n])
+    .sort((a, b) => parseFloat(b[2]) - parseFloat(a[2]))
+    .slice(0, 10);
+}
+
+function examenesActivosCpRows_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Compuestas_Examenes');
+  if (!sh || sh.getLastRow() < 2) return [];
+  const col = getColMap_(sh);
+  if (col['Estado'] == null) return [];
+  const data = sh.getDataRange().getValues();
+  const rows = [];
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][col['Estado']]).trim() !== 'activo') continue;
+    const fecha = data[i][col['Fecha']];
+    rows.push([
+      data[i][col['PIN']]            || '—',
+      data[i][col['Grupo']]          || '—',
+      data[i][col['Nombre_Examen']]  || '—',
+      data[i][col['N_Ejercicios']]   || 0,
+      fecha ? new Date(fecha).toLocaleDateString('es-ES') : '—'
+    ]);
+  }
+  rows.sort((a, b) => String(b[4]).localeCompare(String(a[4])));
+  return rows.slice(0, 10);
 }
 
 // ════════════════════════════════════════════════════════════════════════
