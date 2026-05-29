@@ -1408,134 +1408,180 @@ body.theme-new-ui #screen-results .btn-primary:hover{
   filter: none;
 }
 
-/* ═══ LOGIN screen ═════════════════════════════════════════════════════ */
-body.theme-new-ui #screen-login{
-  background: var(--ui-bg);
+/* ═══ LOGIN screen ═════════════════════════════════════════════════════
+   Versión normal (académica). El login del arcade (.login-arcade)
+   conserva su synthwave y vive más abajo. Todo lo de aquí se excluye
+   con :not(.login-arcade) para no pisarlo. */
+body.theme-new-ui #screen-login:not(.login-arcade){
+  background: var(--portada-bg);
   padding: 36px 18px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
 }
-body.theme-new-ui #screen-login .login-hero{
+/* Decoración: dos círculos veladísimos en los flancos, igual que portada */
+body.theme-new-ui #screen-login:not(.login-arcade)::before{
+  content:'';
+  position:absolute; inset:0;
+  z-index:-2; pointer-events:none;
+  background:
+    radial-gradient(220px 220px at -3% 42%, rgba(15,118,110,0.06), transparent 70%),
+    radial-gradient(280px 280px at 103% 62%, rgba(16,42,67,0.05), transparent 70%);
+}
+/* Decoración: rejilla de puntos en esquinas opuestas */
+body.theme-new-ui #screen-login:not(.login-arcade)::after{
+  content:'';
+  position:absolute; inset:0;
+  z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(circle, var(--portada-decor) 1px, transparent 1.5px) 24px 24px / 14px 14px no-repeat,
+    radial-gradient(circle, var(--portada-decor) 1px, transparent 1.5px) calc(100% - 24px) calc(100% - 24px) / 14px 14px no-repeat;
+  background-repeat:repeat, repeat;
+  background-size:14px 14px, 14px 14px;
+  background-position:24px 24px, calc(100% - 24px) calc(100% - 24px);
+  -webkit-mask:
+    linear-gradient(#000,#000) 24px 24px / 84px 84px no-repeat,
+    linear-gradient(#000,#000) calc(100% - 108px) calc(100% - 108px) / 84px 84px no-repeat;
+          mask:
+    linear-gradient(#000,#000) 24px 24px / 84px 84px no-repeat,
+    linear-gradient(#000,#000) calc(100% - 108px) calc(100% - 108px) / 84px 84px no-repeat;
+}
+body.theme-new-ui #screen-login:not(.login-arcade) .login-hero{
   text-align: center;
   margin-bottom: 22px;
 }
-body.theme-new-ui #screen-login .login-hero h1{
-  font-family: var(--ui-font-display);
+body.theme-new-ui #screen-login:not(.login-arcade) .login-hero h1{
+  font-family: 'Fraunces','Lora',serif;
   font-size: 2.4rem;
   font-weight: 700;
-  color: var(--ui-ink);
+  color: var(--portada-navy);
   letter-spacing: -.02em;
   line-height: 1.05;
 }
-body.theme-new-ui #screen-login .login-hero p{
-  font-family: var(--ui-font-body);
-  color: var(--ui-muted);
+body.theme-new-ui #screen-login:not(.login-arcade) .login-hero p{
+  font-family: 'Lora',serif;
+  color: var(--portada-muted);
   font-size: .94rem;
   margin-top: 8px;
 }
-body.theme-new-ui #screen-login .login-card{
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-r-lg);
-  box-shadow: var(--ui-sh-3);
+body.theme-new-ui #screen-login:not(.login-arcade) .login-card{
+  background: var(--portada-card);
+  border: 1px solid var(--portada-border);
+  border-radius: 16px;
+  box-shadow:
+    0 1px 2px rgba(15,42,67,0.05),
+    0 8px 28px rgba(15,42,67,0.09);
   padding: 28px 30px;
 }
-/* Small section labels inside the login card */
-body.theme-new-ui #screen-login label,
-body.theme-new-ui #screen-login .form-label{
-  font-family: var(--ui-font-ui);
+/* Labels del formulario */
+body.theme-new-ui #screen-login:not(.login-arcade) label,
+body.theme-new-ui #screen-login:not(.login-arcade) .form-label{
+  font-family: 'DM Sans','Nunito',sans-serif;
   font-weight: 600;
   font-size: .82rem;
-  color: var(--ui-ink);
+  color: var(--portada-navy);
   letter-spacing: -.005em;
 }
-body.theme-new-ui #screen-login .input{
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border-strong);
-  border-radius: var(--ui-r);
+body.theme-new-ui #screen-login:not(.login-arcade) .input{
+  background: #FFFFFF;
+  border: 1px solid var(--portada-border);
+  border-radius: 10px;
   padding: 12px 16px;
-  font-family: var(--ui-font-ui);
+  font-family: 'DM Sans','Nunito',sans-serif;
   font-size: .94rem;
-  color: var(--ui-ink);
-  transition: all var(--ui-dur) var(--ui-ease);
+  color: var(--portada-navy);
+  transition: border-color .2s, box-shadow .2s;
 }
-body.theme-new-ui #screen-login .input:focus{
+body.theme-new-ui #screen-login:not(.login-arcade) .input:focus{
   outline: none;
-  border-color: var(--ui-teal);
-  box-shadow: var(--ui-sh-focus);
-  background: var(--ui-surface);
+  border-color: var(--portada-teal);
+  box-shadow: 0 0 0 3px rgba(15,118,110,.18);
+  background: #FFFFFF;
 }
-body.theme-new-ui #screen-login .input::placeholder{
-  color: var(--ui-muted-2);
+body.theme-new-ui #screen-login:not(.login-arcade) .input::placeholder{
+  color: #94A3B8;
 }
 /* Mode/depth selection cards (sel-card style) */
-body.theme-new-ui #screen-login .sel-card,
-body.theme-new-ui #screen-login [class*="sel-"][role="button"]{
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-r);
+body.theme-new-ui #screen-login:not(.login-arcade) .sel-card,
+body.theme-new-ui #screen-login:not(.login-arcade) [class*="sel-"][role="button"]{
+  background: #FFFFFF;
+  border: 1px solid var(--portada-border);
+  border-radius: 12px;
   padding: 14px 16px;
   cursor: pointer;
-  transition: all var(--ui-dur) var(--ui-ease);
-  box-shadow: var(--ui-sh-1);
+  transition: border-color .2s, transform .2s, box-shadow .2s;
+  box-shadow: 0 1px 2px rgba(15,42,67,0.04);
 }
-body.theme-new-ui #screen-login .sel-card:hover{
-  border-color: var(--ui-teal);
+body.theme-new-ui #screen-login:not(.login-arcade) .sel-card:hover{
+  border-color: var(--portada-teal);
   transform: translateY(-2px);
-  box-shadow: var(--ui-sh-2);
+  box-shadow: 0 6px 18px rgba(15,42,67,0.09);
 }
-body.theme-new-ui #screen-login .sel-card.is-selected,
-body.theme-new-ui #screen-login .sel-card.sel-active,
-body.theme-new-ui #screen-login [class*="sel-"][aria-pressed="true"],
-body.theme-new-ui #screen-login [class*="sel-"][aria-checked="true"]{
-  border: 2px solid var(--ui-teal);
-  background: var(--ui-teal-tint);
+body.theme-new-ui #screen-login:not(.login-arcade) .sel-card.is-selected,
+body.theme-new-ui #screen-login:not(.login-arcade) .sel-card.sel-active,
+body.theme-new-ui #screen-login:not(.login-arcade) [class*="sel-"][aria-pressed="true"],
+body.theme-new-ui #screen-login:not(.login-arcade) [class*="sel-"][aria-checked="true"]{
+  border: 2px solid var(--portada-teal);
+  background: rgba(15,118,110,0.06);
 }
-body.theme-new-ui #screen-login .sel-title{
-  font-family: var(--ui-font-ui);
+body.theme-new-ui #screen-login:not(.login-arcade) .sel-title{
+  font-family: 'DM Sans','Nunito',sans-serif;
   font-weight: 700;
-  color: var(--ui-ink);
+  color: var(--portada-navy);
   font-size: .92rem;
 }
-body.theme-new-ui #screen-login .sel-desc{
-  font-family: var(--ui-font-body);
-  color: var(--ui-muted);
+body.theme-new-ui #screen-login:not(.login-arcade) .sel-desc{
+  font-family: 'Lora',serif;
+  color: var(--portada-muted);
   font-size: .82rem;
   margin-top: 2px;
   line-height: 1.45;
 }
-/* Primary CTA on login */
-body.theme-new-ui #screen-login .btn-primary{
-  background: var(--ui-teal) !important;
+/* Separador armonizado con la paleta cálida */
+body.theme-new-ui #screen-login:not(.login-arcade) hr.divider{
+  border:none;
+  border-top:1px solid var(--portada-border);
+  margin:18px 0;
+}
+/* Botón primario: pill petróleo relleno, igual carácter que la portada.
+   Usamos navy en lugar de teal para coherencia visual con los CTA
+   "EMPEZAR" de las tarjetas. */
+body.theme-new-ui #screen-login:not(.login-arcade) .btn-primary{
+  background: var(--portada-navy) !important;
   color: #FFFFFF !important;
   border: none;
-  border-radius: var(--ui-r);
+  border-radius: 999px;
   padding: 14px 28px;
-  font-family: var(--ui-font-ui);
+  font-family: 'DM Sans','Nunito',sans-serif;
   font-weight: 700;
-  font-size: 1rem;
-  box-shadow: 0 6px 16px rgba(15,118,110,.28) !important;
-  transition: all var(--ui-dur) var(--ui-ease);
+  font-size: .95rem;
+  letter-spacing: .04em;
+  box-shadow: 0 6px 16px rgba(15,42,67,.18) !important;
+  transition: background .2s, transform .2s, box-shadow .2s;
 }
-body.theme-new-ui #screen-login .btn-primary:hover{
-  background: var(--ui-teal-dk) !important;
+body.theme-new-ui #screen-login:not(.login-arcade) .btn-primary:hover{
+  background: #1E3A5F !important;
   transform: translateY(-2px);
-  box-shadow: 0 10px 22px rgba(15,118,110,.36) !important;
+  box-shadow: 0 10px 22px rgba(15,42,67,.26) !important;
   filter: none;
 }
-/* Back-to-portada link */
-body.theme-new-ui #screen-login a[onclick*="goPortada"],
-body.theme-new-ui #screen-login button[onclick*="goPortada"]{
-  font-family: var(--ui-font-ui);
+/* Link "← Volver" */
+body.theme-new-ui #screen-login:not(.login-arcade) a[onclick*="goPortada"],
+body.theme-new-ui #screen-login:not(.login-arcade) button[onclick*="goPortada"],
+body.theme-new-ui #screen-login:not(.login-arcade) button[onclick*="showPortada"]{
+  font-family: 'DM Sans','Nunito',sans-serif;
   font-weight: 600;
   font-size: .85rem;
-  color: var(--ui-muted);
+  color: var(--portada-muted);
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: color var(--ui-dur) var(--ui-ease);
+  transition: color .2s;
 }
-body.theme-new-ui #screen-login a[onclick*="goPortada"]:hover,
-body.theme-new-ui #screen-login button[onclick*="goPortada"]:hover{
-  color: var(--ui-teal);
+body.theme-new-ui #screen-login:not(.login-arcade) a[onclick*="goPortada"]:hover,
+body.theme-new-ui #screen-login:not(.login-arcade) button[onclick*="goPortada"]:hover,
+body.theme-new-ui #screen-login:not(.login-arcade) button[onclick*="showPortada"]:hover{
+  color: var(--portada-navy);
 }
 
 /* ═══ GENERIC MODALS (teacher pw, mission selector, exit confirm…) ════ */
