@@ -20,9 +20,11 @@
 // ════════════════════════════════════════════════════════
 const LS_LB_SRV='taller_lb_survival';
 const LS_LB_TMR='taller_lb_timer';
+const LS_LB_RADAR='taller_lb_radar';   // ranking local del Radar de Errores
 const LS_GHOST_SRV='taller_ghost_survival';
 const LS_GHOST_TMR='taller_ghost_timer';
 const LS_GHOST_DUEL='taller_ghost_duel'; // récord propio del Duelo Fantasma
+const LS_GHOST_RADAR='taller_ghost_radar'; // récord propio del Radar de Errores
 
 function getLB(key){try{return JSON.parse(localStorage.getItem(key)||'[]');}catch{return [];}}
 function saveLB(key,entry){
@@ -37,7 +39,10 @@ function saveLB(key,entry){
 // GHOST MODE — récord propio (localStorage, sin backend)
 // ════════════════════════════════════════════════════════
 function _ghostKey(mode){
-  return mode==='survival'?LS_GHOST_SRV:mode==='ghost'?LS_GHOST_DUEL:LS_GHOST_TMR;
+  return mode==='survival'?LS_GHOST_SRV
+       : mode==='ghost'?LS_GHOST_DUEL
+       : mode==='radar'?LS_GHOST_RADAR
+       : LS_GHOST_TMR;
 }
 function getGhost(mode){
   try{return JSON.parse(localStorage.getItem(_ghostKey(mode))||'null');}
@@ -115,7 +120,7 @@ async function loadClassGhost(){
 // ════════════════════════════════════════════════════════
 let ARC={};
 
-async function startArcade({name,email,nickname,grupo,arcadeMode,ghostDuel}){
+async function startArcade({name,email,nickname,grupo,arcadeMode,ghostDuel,radar}){
   document.getElementById('loading-txt').textContent='Cargando oraciones…';
   showScreen('loading');
   await delay(150);
@@ -133,10 +138,13 @@ async function startArcade({name,email,nickname,grupo,arcadeMode,ghostDuel}){
   oraciones=shuffle(oraciones);
 
   // En Duelo Fantasma el récord propio se guarda en su clave dedicada
-  // ('ghost'), independiente de Supervivencia/Contrarreloj.
-  const _ghost=getGhost(ghostDuel?'ghost':arcadeMode);
+  // ('ghost'), independiente de Supervivencia/Contrarreloj. El Radar corre
+  // sobre el motor de Supervivencia (3 vidas) pero NO muestra barra de
+  // fantasma: por eso _ghost es null cuando radar=true.
+  const _ghost=radar?null:getGhost(ghostDuel?'ghost':arcadeMode);
   ARC={
     name,email,nickname,grupo:grupo||'',arcadeMode,ghostDuel:!!ghostDuel,
+    radar:!!radar, radarRound:null,
     oraciones,idx:0,
     score:0,streak:0,highStreak:0,
     // Survival mechanics: 3 hearts + scaffolding hint
@@ -155,7 +163,7 @@ async function startArcade({name,email,nickname,grupo,arcadeMode,ghostDuel}){
     // Ghost mode: récord propio (tipo 1) + media de la clase (tipo 2)
     ghost: _ghost||null, ghostAhead: false, questionsAnswered: 0,
     ghostClass: null, ghostClassAhead: false,
-    startOpts:{name,email,nickname,grupo,arcadeMode,ghostDuel:!!ghostDuel}
+    startOpts:{name,email,nickname,grupo,arcadeMode,ghostDuel:!!ghostDuel,radar:!!radar}
   };
 
   // Show countdown BEFORE game starts
@@ -244,7 +252,9 @@ async function showArcadeCountdown(){
   overlay.style.display = 'flex';
   const num = document.getElementById('arc-cd-num');
   const sub = document.getElementById('arc-cd-sub');
-  sub.textContent = ARC.ghostDuel
+  sub.textContent = ARC.radar
+      ? '🛰️ Encuentra el error oculto'
+      : ARC.ghostDuel
       ? (ARC.ghost ? '👻 Persigue a tu fantasma' : '👻 Esta carrera crea tu fantasma')
       : (ARC.arcadeMode==='survival' ? '🔥 Un error = Game Over' : '⏱ Contra el reloj');
   for(const n of ['3','2','1','¡YA!']){
@@ -320,6 +330,9 @@ function stopArcadeMusic(){
 function restartArcade(){startArcade(ARC.startOpts||{});}
 
 function renderArcade(){
+  // Radar de Errores usa su propio renderizador (revisar un análisis en vez
+  // de clasificar un bloque). Comparte motor, vidas, combo y pantalla final.
+  if(ARC.radar){ renderRadar(); return; }
   try{
   updateArcadeTopbar();
   const o=ARC.oraciones[ARC.idx%ARC.oraciones.length];
@@ -362,6 +375,197 @@ function renderArcade(){
     console.error('[renderArcade]',e);
     document.getElementById('arc-wrap').innerHTML=errorCard('Error en Arcade',e.message);
   }
+}
+
+// ════════════════════════════════════════════════════════
+// RADAR DE ERRORES — el alumno revisa un análisis y caza el fallo
+// ════════════════════════════════════════════════════════
+// Mecánica: se muestra la oración con TODOS sus bloques ya etiquetados con
+// una función. En el 75% de las rondas, uno de los bloques lleva una etiqueta
+// equivocada (una "trampa" creíble generada por GrammarRules.filterTraps); en
+// el 25% no hay ningún error (trampa cognitiva). El alumno: 1) DETECTA el
+// bloque mal etiquetado (o pulsa "No hay error"), 2) si acierta el bloque,
+// lo CORRIGE eligiendo la función correcta. Corre sobre el motor de
+// Supervivencia: cada fallo de detección cuesta una vida (o un escudo).
+
+function renderRadar(){
+  try{
+  updateArcadeTopbar();
+  const o=ARC.oraciones[ARC.idx%ARC.oraciones.length];
+  const wrap=document.getElementById('arc-wrap');
+  wrap.innerHTML='';
+  ARC.questionShownAt=Date.now();
+
+  // Bloques analizables (con función), excluyendo pre-resueltos (NP/PV…).
+  const raw=(o.fase3?.bloques||[]).filter(b=>!isPreResolved(b.solucion));
+  const allFuncs=[...FUNC_ARGUMENTOS,...FUNC_ADJUNTOS,...FUNC_MARCAS];
+  const blocks=raw.map(b=>{
+    const words=b.indices.map(i=>o.palabras[i]).join(' ');
+    const isMarca=FUNC_MARCAS.has(b.solucion);
+    const fn=isMarca?b.solucion:b.solucion.split(' | ')[1];
+    const correct=GrammarRules.applyAll(fn, words);
+    return { words, correct, consejo:b.consejo||'' };
+  }).filter(b=>b.correct);
+
+  // Necesitamos ≥2 bloques para que revisar el análisis tenga sentido.
+  if(blocks.length<2){ arcadeNext(); return; }
+
+  // ¿Hay error oculto en esta ronda? 75% sí · 25% trampa "no hay error".
+  let errIdx=-1;
+  let shownLabels=blocks.map(b=>b.correct);
+  if(Math.random()<0.75){
+    // Sólo sirven bloques con al menos una alternativa creíble (trap).
+    const candidates=blocks
+      .map((b,i)=>({i, traps:GrammarRules.filterTraps(allFuncs, b.correct, b.words)}))
+      .filter(c=>c.traps && c.traps.length);
+    if(candidates.length){
+      const pick=candidates[Math.floor(Math.random()*candidates.length)];
+      errIdx=pick.i;
+      const wrongLabel=shuffle([...pick.traps])[0];
+      shownLabels=blocks.map((b,i)=> i===errIdx ? wrongLabel : b.correct);
+    }
+  }
+  const roundHasError=errIdx>=0;
+  ARC.radarRound={ blocks, shownLabels, errIdx, roundHasError, phase:'detect' };
+
+  const rows=blocks.map((b,i)=>`
+    <button type="button" class="radar-row" onclick="radarPick(${i})">
+      <span class="radar-words">${b.words}</span>
+      <span class="radar-arrow">→</span>
+      <span class="radar-label">${shownLabels[i]}</span>
+    </button>`).join('');
+
+  wrap.innerHTML=`
+    <div class="inst-card" style="animation:slideUp .3s ease;max-width:680px;width:100%;margin:0 auto">
+      <div class="inst-badge">🛰️ Radar de Errores · ¿Qué función está mal?</div>
+      <div class="radar-sentence">"${o.palabras.join(' ')}"</div>
+      <div class="radar-hint-line">Revisa el análisis. Toca la función equivocada… o pulsa «No hay error» si todo es correcto.</div>
+      <div class="radar-list">${rows}</div>
+      <button type="button" class="radar-noerr" onclick="radarPick(-1)">✓ No hay ningún error</button>
+    </div>`;
+  }catch(e){
+    console.error('[renderRadar]',e);
+    document.getElementById('arc-wrap').innerHTML=errorCard('Error en Radar',e.message);
+  }
+}
+
+// Paso 1: el alumno señala un bloque (i) o dice "no hay error" (i=-1).
+function radarPick(i){
+  if(!ARC.alive) return;
+  const R=ARC.radarRound;
+  if(!R || R.phase!=='detect') return;
+  ARC.questionsAnswered++;
+
+  if(i===-1){
+    if(!R.roundHasError){ _radarWin(false); }            // acierto: no había error
+    else{
+      const b=R.blocks[R.errIdx];
+      _radarLose('Sí había un error: «'+b.words+'» es '+b.correct+', no '+R.shownLabels[R.errIdx]+'.', b.consejo, b.correct);
+    }
+    return;
+  }
+  if(!R.roundHasError){
+    const b=R.blocks[i];
+    _radarLose('«'+b.words+'» sí es '+b.correct+'. En esta ronda no había ningún error.', b.consejo, b.correct);
+    return;
+  }
+  if(i!==R.errIdx){
+    const b=R.blocks[i], real=R.blocks[R.errIdx];
+    _radarLose('«'+b.words+'» está bien ('+b.correct+'). El error estaba en «'+real.words+'».', real.consejo, real.correct);
+    return;
+  }
+  // Detectó el bloque correcto → paso 2: corregir.
+  R.phase='correct';
+  _renderRadarCorrect();
+}
+
+// Paso 2: tras detectar el bloque, elegir su función correcta.
+function _renderRadarCorrect(){
+  const R=ARC.radarRound;
+  const b=R.blocks[R.errIdx];
+  const allFuncs=[...FUNC_ARGUMENTOS,...FUNC_ADJUNTOS,...FUNC_MARCAS];
+  const traps=shuffle(GrammarRules.filterTraps(allFuncs, b.correct, b.words)).slice(0,3);
+  const options=shuffle([b.correct,...traps]);
+  const wrap=document.getElementById('arc-wrap');
+  wrap.innerHTML=`
+    <div class="inst-card" style="animation:slideUp .3s ease;max-width:680px;width:100%;margin:0 auto">
+      <div class="inst-badge">🛰️ ¡Error localizado! ¿Cuál es la función correcta?</div>
+      <div class="radar-sentence">"${b.words}"</div>
+      <div class="radar-wronglabel">Estaba marcado como <s>${R.shownLabels[R.errIdx]}</s></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:500px;margin:0 auto">
+      ${options.map(f=>`
+        <button type="button" class="pvpn-card" onclick="radarFix('${f}')" style="padding:16px 12px">
+          <div class="pvpn-title">${f}</div>
+        </button>`).join('')}
+    </div>`;
+}
+
+// Paso 2 (resolución): ¿acertó la corrección?
+function radarFix(chosen){
+  if(!ARC.alive) return;
+  const R=ARC.radarRound;
+  if(!R || R.phase!=='correct') return;
+  const b=R.blocks[R.errIdx];
+  R.phase='done';
+  if(chosen===b.correct){
+    _radarWin(true);                                      // detectado + corregido
+  } else {
+    // Encontró el error pero no acertó la corrección: sin daño, sin puntos.
+    playError();
+    ARC.streak=0; ARC.frenzy=false;
+    showScoreFloat('casi…', false);
+    showArcadeHint((b.consejo && b.consejo.length>8) ? b.consejo : ('La función correcta era '+b.correct+'.'), b.correct);
+    scheduleHintAdvance(6000);
+  }
+}
+
+// Acierto en Radar. perfect=true cuando detectó Y corrigió (vale más).
+function _radarWin(perfect){
+  playSuccess();
+  ARC.streak++; ARC.correctAnswers++;
+  if(ARC.streak>ARC.highStreak) ARC.highStreak=ARC.streak;
+  const mult=arcComboMultiplier();
+  const pts=(perfect?15:10)*mult;
+  ARC.score+=pts;
+  showScoreFloat('+'+pts+(mult>1?' ×'+mult:''), true);
+  if(mult>1 && (ARC.streak===3||ARC.streak===5||ARC.streak===10)) showComboBurst(mult,'COMBO');
+  // Escudos / vida bonus: misma economía que Supervivencia.
+  if(ARC.streak>0 && ARC.streak%5===0){
+    if(ARC.shields<ARC.maxShields){ ARC.shields++; ARC.shieldsGained++; showComboBurst(1,'🛡 +1 ESCUDO'); }
+    else if(ARC.lives<ARC.maxLives){ ARC.lives++; ARC.livesGained++; animateHeartGain(); showComboBurst(1,'+1 VIDA'); }
+  }
+  if(ARC.streak>0 && ARC.streak%10===0 && ARC.lives<ARC.maxLives){
+    ARC.lives++; ARC.livesGained++; animateHeartGain(); showComboBurst(1,'⭐ PRECISIÓN +1 VIDA');
+  }
+  arcadeNext();
+}
+
+// Fallo de detección en Radar: cuesta una vida (o un escudo) y revela la
+// solución como momento de enseñanza.
+function _radarLose(reveal, consejo, correctLabel){
+  playError();
+  ARC.streak=0; ARC.frenzy=false; ARC.wrongAnswers++;
+  const text=reveal+((consejo && consejo.length>8)?(' '+consejo):'');
+  if(ARC.shields>0){
+    ARC.shields--; ARC.shieldsConsumed++;
+    showComboBurst(1,'🛡 ESCUDO ABSORBE');
+    showArcadeHint(text, correctLabel);
+    scheduleHintAdvance(6500);
+    return;
+  }
+  ARC.lives--; ARC.livesLost++;
+  animateHeartLoss();
+  if(ARC.lives<=0){
+    ARC.alive=false;
+    setTimeout(()=>{
+      try{ endArcade(); }
+      catch(e){ console.error('[arcade] endArcade falló (radar):', e); try{ showScreen('gameover'); }catch(_){} }
+    },600);
+    return;
+  }
+  showArcadeHint(text, correctLabel);
+  scheduleHintAdvance(6500);
 }
 
 // Returns the multiplier for current streak (combo system)
@@ -601,7 +805,7 @@ function showScoreFloat(txt, positive, yOffset){
 
 function updateArcadeTopbar(){
   const isTimer=ARC.arcadeMode==='timer';
-  document.getElementById('arc-title').textContent=isTimer?'⏱ Contrarreloj':'🔥 Supervivencia';
+  document.getElementById('arc-title').textContent=ARC.radar?'🛰️ Radar de Errores':(isTimer?'⏱ Contrarreloj':'🔥 Supervivencia');
 
   // Hearts: only in survival
   const hearts = document.getElementById('arc-hearts');
@@ -686,24 +890,26 @@ async function endArcade(){
   if(ff) ff.classList.remove('active');
   stopArcadeMusic();
   playComplete();
-  const lbKey=ARC.arcadeMode==='survival'?LS_LB_SRV:LS_LB_TMR;
+  const lbKey=ARC.radar?LS_LB_RADAR:(ARC.arcadeMode==='survival'?LS_LB_SRV:LS_LB_TMR);
   const entry={nickname:ARC.nickname,score:ARC.score,streak:ARC.highStreak,name:ARC.name,email:ARC.email,grupo:ARC.grupo||''};
   const lb=saveLB(lbKey,entry);
   const myRank=lb.findIndex(e=>e.nickname===ARC.nickname&&e.score===ARC.score)+1;
 
-  document.getElementById('go-icon').textContent=ARC.ghostDuel?'👻':(ARC.arcadeMode==='survival'?'💀':'⏱');
-  document.getElementById('go-title').textContent=ARC.ghostDuel?'¡Duelo terminado!':(ARC.arcadeMode==='survival'?'¡Game Over!':'¡Tiempo!');
+  document.getElementById('go-icon').textContent=ARC.radar?'🛰️':(ARC.ghostDuel?'👻':(ARC.arcadeMode==='survival'?'💀':'⏱'));
+  document.getElementById('go-title').textContent=ARC.radar?'¡Radar apagado!':(ARC.ghostDuel?'¡Duelo terminado!':(ARC.arcadeMode==='survival'?'¡Game Over!':'¡Tiempo!'));
 
   // Ghost mode: calcular si es nuevo récord ANTES de construir el subtítulo
   // (antes el `if(_isNewRecord)` se ejecutaba antes de la declaración → ReferenceError
   //  en TDZ que rompía endArcade y dejaba la pantalla de Game Over invisible).
   const total = ARC.correctAnswers + ARC.wrongAnswers;
-  const _ghostMode = ARC.ghostDuel ? 'ghost' : ARC.arcadeMode;
+  const _ghostMode = ARC.radar ? 'radar' : (ARC.ghostDuel ? 'ghost' : ARC.arcadeMode);
   const _prevGhost = getGhost(_ghostMode);
   const _isNewRecord = total > 0 && (!_prevGhost || ARC.score > _prevGhost.score);
 
   let sub;
-  if(ARC.ghostDuel){
+  if(ARC.radar){
+    sub = `Errores cazados: ${ARC.correctAnswers} · Racha máxima: ${ARC.highStreak}`;
+  } else if(ARC.ghostDuel){
     // Veredicto del duelo contra el fantasma con el que competía esta carrera.
     if(ARC.ghost){
       const diff = ARC.score - (ARC.ghost.score||0);
@@ -775,9 +981,11 @@ async function endArcade(){
 
   showScreen('gameover');
 
-  // Send score to GAS + load class/global rankings
+  // Send score to GAS + load class/global rankings.
+  // El Radar no se envía al backend (su arcadeMode no existe en el GAS):
+  // usa el ranking local para no contaminar Supervivencia/Contrarreloj.
   const apiUrl=getApiUrl();
-  if(apiUrl && ARC.nickname){
+  if(apiUrl && ARC.nickname && !ARC.radar){
     try{
       // POST saveArcadeScore
       await fetch(apiUrl, {
@@ -897,6 +1105,7 @@ export {
   startArcade, restartArcade, showArcadeCountdown,
   startArcadeMusic, stopArcadeMusic,
   renderArcade, arcComboMultiplier,
+  renderRadar, radarPick, radarFix,
   arcadeAnswer, arcadeNext, updateArcadeTopbar, endArcade,
   renderArcadeLocalFallback, renderArcadeRanking,
   animateHeartLoss, animateHeartGain, updateHeartsBar,
@@ -910,6 +1119,7 @@ if (typeof window !== 'undefined') {
     startArcade, restartArcade, showArcadeCountdown,
     startArcadeMusic, stopArcadeMusic,
     renderArcade, arcComboMultiplier,
+    renderRadar, radarPick, radarFix,
     arcadeAnswer, arcadeNext, updateArcadeTopbar, endArcade,
     renderArcadeLocalFallback, renderArcadeRanking,
     animateHeartLoss, animateHeartGain, updateHeartsBar,

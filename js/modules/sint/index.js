@@ -2855,6 +2855,11 @@ const LOGIN_PANELS = {
           <span class="amc-body"><span class="amc-title">Duelo Fantasma <span class="amc-tag">NUEVO</span></span><span class="amc-desc">Compite contra tu récord y la media de tu clase.</span></span>
           <span class="amc-go">▶</span>
         </button>
+        <button type="button" class="arc-mode-card am-radar" id="arc-radar" onclick="setArcadeMode('radar')" role="radio" aria-checked="false">
+          <span class="amc-icon">🛰️</span>
+          <span class="amc-body"><span class="amc-title">Radar de Errores <span class="amc-tag">NUEVO</span></span><span class="amc-desc">Un análisis ya hecho esconde un fallo. Cázalo y corrígelo.</span></span>
+          <span class="amc-go">▶</span>
+        </button>
       </div>
       <p id="e-arcade" class="ferr" role="alert"></p>
     </div>`
@@ -3326,7 +3331,7 @@ function setArcadeMode(m){
   selectedArcadeMode=m;
   // Clase 'amc-active' (NO 'sel-active'): el tema new-ui sobreescribe cualquier
   // clase que contenga "sel-" con su color teal; 'amc-active' lo evita.
-  ['arc-survival','arc-timer','arc-ghost'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.toggle('amc-active',el.id==='arc-'+m);el.setAttribute('aria-checked',String(el.id==='arc-'+m));}});
+  ['arc-survival','arc-timer','arc-ghost','arc-radar'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.toggle('amc-active',el.id==='arc-'+m);el.setAttribute('aria-checked',String(el.id==='arc-'+m));}});
 }
 function setMorphLevel(l){
   selectedMorphLevel=l;
@@ -3357,9 +3362,11 @@ async function handleStartAll(){
     if(!selectedArcadeMode){ferr('e-arcade','Selecciona un modo.');return;}
     // Duelo Fantasma corre sobre el motor de Contrarreloj (timer) con el
     // marco de duelo activado (ghostDuel): persigues tu récord + la media de clase.
+    // Radar de Errores corre sobre el motor de Supervivencia (3 vidas).
     const ghostDuel = selectedArcadeMode==='ghost';
-    const engineMode = ghostDuel ? 'timer' : selectedArcadeMode;
-    await startArcade({name,email,nickname:nick,grupo,arcadeMode:engineMode,ghostDuel});return;
+    const radar = selectedArcadeMode==='radar';
+    const engineMode = ghostDuel ? 'timer' : (radar ? 'survival' : selectedArcadeMode);
+    await startArcade({name,email,nickname:nick,grupo,arcadeMode:engineMode,ghostDuel,radar});return;
   }
   if(currentModule==='morph'){
     ferr('e-morphlevel','');ferr('e-morphmode','');

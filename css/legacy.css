@@ -88,12 +88,27 @@ input{font-family:inherit;outline:none}
 .am-survival .amc-icon{background:linear-gradient(135deg,#FB7185,#EF4444)}
 .am-timer .amc-icon{background:linear-gradient(135deg,#38BDF8,#2563EB)}
 .am-ghost .amc-icon{background:linear-gradient(135deg,#A78BFA,#7C3AED)}
+.am-radar .amc-icon{background:linear-gradient(135deg,#34D399,#059669)}
 .arc-mode-card.amc-active{border-color:var(--blue)}
 /* !important: blinda el color por modo frente a reglas del tema new-ui */
 .am-survival.amc-active{border-color:#EF4444 !important;background:rgba(239,68,68,.06) !important}
 .am-timer.amc-active{border-color:#2563EB !important;background:rgba(37,99,235,.06) !important}
 .am-ghost.amc-active{border-color:#7C3AED !important;background:rgba(124,58,237,.07) !important}
+.am-radar.amc-active{border-color:#059669 !important;background:rgba(5,150,105,.07) !important}
 .arc-mode-card.amc-active .amc-go{opacity:1}
+/* ── Radar de Errores (tarjetas claras sobre #screen-arcade oscuro) ── */
+.radar-sentence{font-size:1.15rem;font-weight:800;color:var(--ink);text-align:center;line-height:1.4;margin:2px 0 6px}
+.radar-hint-line{font-size:.82rem;color:var(--muted);text-align:center;line-height:1.4;margin-bottom:14px}
+.radar-list{display:flex;flex-direction:column;gap:9px;margin-bottom:14px}
+.radar-row{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;border-radius:13px;border:2px solid var(--border);background:var(--paper);cursor:pointer;text-align:left;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+.radar-row:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.16);border-color:#059669}
+.radar-words{flex:1;font-weight:700;font-size:.95rem;color:var(--ink);min-width:0}
+.radar-arrow{flex:0 0 auto;color:var(--muted);font-weight:900}
+.radar-label{flex:0 0 auto;font-weight:900;font-size:.8rem;color:#059669;background:rgba(5,150,105,.1);padding:4px 11px;border-radius:999px;white-space:nowrap}
+.radar-noerr{display:block;width:100%;padding:13px 14px;border-radius:13px;border:2px solid var(--border);background:var(--paper);cursor:pointer;font-weight:800;font-size:.92rem;color:var(--ink);transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+.radar-noerr:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.16);border-color:#059669;color:#059669}
+.radar-wronglabel{text-align:center;font-size:.86rem;color:var(--muted);margin-bottom:14px}
+.radar-wronglabel s{color:#EF4444;font-weight:700}
 .input-pin{text-align:center;font-size:1.4rem;letter-spacing:.28em;font-weight:900}
 hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 
