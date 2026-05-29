@@ -19,9 +19,14 @@
 // ════════════════════════════════════════════════════════════════════════
 
 // ── Nombres de hojas nuevas ──────────────────────────────────────────────
-const SHEET_COMPUESTAS_BANCO       = 'Compuestas_Banco';
-const SHEET_COMPUESTAS_EXAMENES    = 'Compuestas_Examenes';
-const SHEET_COMPUESTAS_RESULTADOS  = 'Compuestas_Resultados';
+const SHEET_COMPUESTAS_BANCO         = 'Compuestas_Banco';
+const SHEET_COMPUESTAS_EXAMENES      = 'Compuestas_Examenes';
+const SHEET_COMPUESTAS_RESULTADOS    = 'Compuestas_Resultados';   // solo examen con PIN
+const SHEET_COMPUESTAS_PRACTICA_LOG  = 'Compuestas_Practica_Log'; // solo practica libre
+
+// ── Estilo visual unificado para las cabeceras (igual que setupSheetUI_)
+const COMP_HEADER_BG = '#1f4e78';
+const COMP_HEADER_FG = '#ffffff';
 
 // ── Cabeceras (orden visual en la hoja, pero NUNCA leemos por posición) ──
 const COMP_BANCO_HEADER = [
@@ -36,12 +41,29 @@ const COMP_EXAM_HEADER = [
   'Estado', 'Fecha', 'Oraciones_JSON'
 ];
 
+// Cabecera de la hoja Compuestas_Resultados (SOLO examen con PIN).
+// Equivale conceptualmente a Alumnos_Resultados de simples.
 const COMP_RESULT_HEADER = [
   'Fecha', 'Correo', 'Nombre', 'Grupo', 'Evaluacion', 'PIN', 'Modo',
   'Total_Ejercicios', 'Completados', 'Nota',
   'Fase0_Pts', 'Fase1_Pts', 'Fase2_Pts', 'Fase3_Pts',
   'Fase4_Pts', 'Fase5_Pts', 'Fase6_Pts',
   'Detalle_JSON'
+];
+
+// Cabecera de la hoja Compuestas_Practica_Log (SOLO practica libre).
+// Antes vivian las dos en SHEET_COMPUESTAS_RESULTADOS y se pisaban entre si;
+// separadas en mayo 2026.
+const COMP_PRACTICA_LOG_HEADER = [
+  'Timestamp', 'Session_ID', 'Ejercicio_ID', 'Texto',
+  'Tipo_Oracion', 'N_Proposiciones',
+  'Aciertos_Verbos', 'Errores_Verbos',
+  'Aciertos_Nexos', 'Errores_Nexos',
+  'Aciertos_Delimitar', 'Errores_Delimitar',
+  'Aciertos_Clasificar', 'Errores_Clasificar',
+  'Total_Aciertos', 'Total_Errores', 'Porcentaje',
+  'Fases_Saltadas', 'Pistas_Usadas',
+  'Duracion_Segundos', 'User_Agent'
 ];
 
 // ── Versión del esquema de JSON_Compuesta (debe coincidir con Config) ────
@@ -87,19 +109,32 @@ function setCompConfigValueIfMissing_(clave, valorPorDefecto) {
 //  ENSURE-SHEET FUNCTIONS — patrón idéntico a ensureExamSheet_
 // ════════════════════════════════════════════════════════════════════════
 
+// Helper compartido: aplica el mismo estilo de cabecera azul/blanco/bold
+// que setupSheetUI_ de Code_v6.gs. Lo usamos en cada ensure*Sheet_ para
+// garantizar coherencia visual entre hojas de compuestas y las de simples.
+function styleCompHeader_(sheet, nCols) {
+  if (!sheet || nCols <= 0) return;
+  const header = sheet.getRange(1, 1, 1, nCols);
+  header.setFontWeight('bold')
+        .setBackground(COMP_HEADER_BG)
+        .setFontColor(COMP_HEADER_FG)
+        .setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+}
+
 function ensureCompBancoSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_COMPUESTAS_BANCO);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_COMPUESTAS_BANCO);
     sheet.appendRow(COMP_BANCO_HEADER);
-    sheet.getRange(1, 1, 1, COMP_BANCO_HEADER.length).setFontWeight('bold');
-    sheet.setFrozenRows(1);
+    styleCompHeader_(sheet, COMP_BANCO_HEADER.length);
     sheet.setColumnWidth(2, 380); // Texto: ancha para legibilidad
     sheet.setColumnWidth(7, 220); // JSON_Compuesta: ancha también
     return sheet;
   }
   ensureSheetHeaders_(sheet, COMP_BANCO_HEADER);
+  styleCompHeader_(sheet, sheet.getLastColumn());
   return sheet;
 }
 
@@ -109,11 +144,11 @@ function ensureCompExamSheet_() {
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_COMPUESTAS_EXAMENES);
     sheet.appendRow(COMP_EXAM_HEADER);
-    sheet.getRange(1, 1, 1, COMP_EXAM_HEADER.length).setFontWeight('bold');
-    sheet.setFrozenRows(1);
+    styleCompHeader_(sheet, COMP_EXAM_HEADER.length);
     return sheet;
   }
   ensureSheetHeaders_(sheet, COMP_EXAM_HEADER);
+  styleCompHeader_(sheet, sheet.getLastColumn());
   return sheet;
 }
 
@@ -123,20 +158,43 @@ function ensureCompResultSheet_() {
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_COMPUESTAS_RESULTADOS);
     sheet.appendRow(COMP_RESULT_HEADER);
-    sheet.getRange(1, 1, 1, COMP_RESULT_HEADER.length).setFontWeight('bold');
-    sheet.setFrozenRows(1);
+    styleCompHeader_(sheet, COMP_RESULT_HEADER.length);
     return sheet;
   }
   ensureSheetHeaders_(sheet, COMP_RESULT_HEADER);
+  styleCompHeader_(sheet, sheet.getLastColumn());
   return sheet;
 }
 
-// Crea/parchea las tres hojas + las dos filas de Config en una sola llamada.
+// Hoja dedicada a practica libre (mayo 2026). Antes vivian en
+// Compuestas_Resultados y pisaban las cabeceras del examen.
+function ensureCompPracticaLogSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_COMPUESTAS_PRACTICA_LOG);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_COMPUESTAS_PRACTICA_LOG);
+    sheet.appendRow(COMP_PRACTICA_LOG_HEADER);
+    styleCompHeader_(sheet, COMP_PRACTICA_LOG_HEADER.length);
+    // Anchos generosos para campos largos
+    sheet.setColumnWidth(1, 160);   // Timestamp
+    sheet.setColumnWidth(2, 220);   // Session_ID
+    sheet.setColumnWidth(3, 100);   // Ejercicio_ID
+    sheet.setColumnWidth(4, 360);   // Texto
+    for (let i = 5; i <= COMP_PRACTICA_LOG_HEADER.length; i++) sheet.setColumnWidth(i, 110);
+    return sheet;
+  }
+  ensureSheetHeaders_(sheet, COMP_PRACTICA_LOG_HEADER);
+  styleCompHeader_(sheet, sheet.getLastColumn());
+  return sheet;
+}
+
+// Crea/parchea las cuatro hojas + las dos filas de Config en una sola llamada.
 // Idempotente: se puede ejecutar todas las veces que haga falta.
 function ensureCompuestasInfra_() {
   ensureCompBancoSheet_();
   ensureCompExamSheet_();
   ensureCompResultSheet_();
+  ensureCompPracticaLogSheet_();
   setCompConfigValueIfMissing_('compuestas_activo', 'Sí');
   setCompConfigValueIfMissing_('compuestas_version', String(COMP_SCHEMA_VERSION));
 }
@@ -1160,6 +1218,7 @@ function buildCompuestasSubMenu_(ui) {
   m.addItem('🔍 Auditar Compuestas_Banco',          'menuAuditarCompuestas');
   m.addItem('🧹 Limpiar duplicados',                'menuLimpiarDuplicadosCompuestas');
   m.addItem('🧹 Limpiar cabeceras fantasma',        'menuLimpiarCabecerasFantasma');
+  m.addItem('🧹 Separar Resultados ⇄ Practica_Log', 'menuMigrarResultadosCompuestas');
   m.addItem('🔁 Migrar seeds a 4 dígitos (OC_NNN → OC_0NNN)', 'menuMigrarSeedsA4Digitos');
   m.addItem('🔢 Asignar IDs automáticamente',       'menuAsignarIDsCompuestas');
   m.addSeparator();
@@ -1167,6 +1226,122 @@ function buildCompuestasSubMenu_(ui) {
   m.addItem('📊 Resumen de resultados',             'menuStatsCompuestas');
   m.addItem('🧪 Probar getModulesEnabled',          'menuProbarGetModulesEnabled');
   return m;
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  MIGRACIÓN: separar examen (Resultados) y práctica libre (Practica_Log)
+//  Lee la hoja Compuestas_Resultados actual (que puede tener cabeceras
+//  mezcladas tras el bug de mayo 2026), clasifica cada fila por su
+//  contenido, y la copia a la hoja correcta. La hoja vieja se renombra
+//  a Compuestas_Resultados_OLD_<timestamp> por seguridad (no se borra).
+//
+//  Clasificación de fila:
+//    - Tiene Session_ID (col 'Session_ID') no vacío → práctica libre.
+//    - Tiene PIN (col 'PIN') no vacío            → examen.
+//    - Si tiene ambos                             → examen (más prioritario).
+//    - Si no tiene ninguno                        → no migra, queda en OLD.
+//  Idempotente: si la hoja Compuestas_Resultados ya tiene SOLO el header
+//  limpio (sin filas o sin columnas viejas), no hace nada destructivo.
+// ════════════════════════════════════════════════════════════════════════
+function menuMigrarResultadosCompuestas() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetVieja = ss.getSheetByName(SHEET_COMPUESTAS_RESULTADOS);
+  if (!sheetVieja) {
+    ui.alert('Sin hoja', 'No existe Compuestas_Resultados. Nada que migrar.', ui.ButtonSet.OK);
+    return;
+  }
+
+  const lastRow = sheetVieja.getLastRow();
+  const lastCol = sheetVieja.getLastColumn();
+  if (lastRow < 2) {
+    ui.alert('Sin filas', 'La hoja Compuestas_Resultados está vacía. Aplicando solo limpieza de cabeceras…', ui.ButtonSet.OK);
+    // Reset puro: recreo con cabeceras limpias.
+    sheetVieja.clear();
+    sheetVieja.appendRow(COMP_RESULT_HEADER);
+    styleCompHeader_(sheetVieja, COMP_RESULT_HEADER.length);
+    ensureCompPracticaLogSheet_();
+    return;
+  }
+
+  const colVieja = getColMap_(sheetVieja);
+  const colSession = (colVieja['Session_ID'] != null) ? colVieja['Session_ID'] : -1;
+  const colPin     = (colVieja['PIN']        != null) ? colVieja['PIN']        : -1;
+
+  const data = sheetVieja.getRange(1, 1, lastRow, lastCol).getValues();
+  // Mapas de cabecera para reescribir por nombre, no por posición.
+  const headerVieja = data[0].map(h => String(h).trim());
+
+  let countExamen = 0, countLibre = 0, countSinClasificar = 0;
+  const filasExamen = [];
+  const filasLibre  = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    // Fila vacía total → ignorar
+    if (row.every(v => v === '' || v == null)) continue;
+
+    const tieneSession = (colSession >= 0) && String(row[colSession] || '').trim() !== '';
+    const tienePin     = (colPin     >= 0) && String(row[colPin]     || '').trim() !== '';
+
+    if (tienePin) {
+      filasExamen.push(rowAsObj_(row, headerVieja));
+      countExamen++;
+    } else if (tieneSession) {
+      filasLibre.push(rowAsObj_(row, headerVieja));
+      countLibre++;
+    } else {
+      countSinClasificar++;
+    }
+  }
+
+  // Confirmar antes de tocar.
+  const resp = ui.alert(
+    '🧹 Migrar Compuestas_Resultados',
+    'Filas detectadas:\n' +
+    '  • Examen (con PIN):  ' + countExamen + '\n' +
+    '  • Práctica libre (con Session_ID): ' + countLibre + '\n' +
+    '  • Sin clasificar (se ignoran): ' + countSinClasificar + '\n\n' +
+    'Acción:\n' +
+    '  1) Hoja vieja → renombrada a "Compuestas_Resultados_OLD_<timestamp>".\n' +
+    '  2) Se crea Compuestas_Resultados limpio (solo examen).\n' +
+    '  3) Se crea o usa Compuestas_Practica_Log (solo libre).\n' +
+    '  4) Cada fila se copia a su hoja por NOMBRE de columna.\n\n' +
+    '¿Continuar?',
+    ui.ButtonSet.YES_NO);
+  if (resp !== ui.Button.YES) return;
+
+  // 1) Renombrar la vieja
+  const ts = new Date();
+  const stamp = Utilities.formatDate(ts, Session.getScriptTimeZone() || 'Europe/Madrid', 'yyyyMMdd_HHmmss');
+  const nombreOld = SHEET_COMPUESTAS_RESULTADOS + '_OLD_' + stamp;
+  sheetVieja.setName(nombreOld);
+
+  // 2) Crear las dos hojas limpias
+  const sheetExamen = ensureCompResultSheet_();      // ahora la crea desde 0 porque ya no existe SHEET_COMPUESTAS_RESULTADOS
+  const sheetLibre  = ensureCompPracticaLogSheet_();
+
+  // 3) Volcar filas con appendRowSafe_ para que se coloquen por nombre
+  filasExamen.forEach(obj => appendRowSafe_(sheetExamen, COMP_RESULT_HEADER, obj));
+  filasLibre .forEach(obj => appendRowSafe_(sheetLibre,  COMP_PRACTICA_LOG_HEADER, obj));
+
+  ui.alert('✓ Listo',
+    'Migración completada.\n\n' +
+    '  • Compuestas_Resultados   ← ' + filasExamen.length + ' filas de examen\n' +
+    '  • Compuestas_Practica_Log ← ' + filasLibre.length  + ' filas de práctica libre\n\n' +
+    'Backup: ' + nombreOld + ' (revísalo y, si todo cuadra, puedes borrarlo manualmente).',
+    ui.ButtonSet.OK);
+}
+
+// Convierte una fila (array) en un objeto {cabecera: valor} usando
+// la cabecera real de la hoja origen. Reutilizado por la migración.
+function rowAsObj_(row, headerArr) {
+  const obj = {};
+  for (let i = 0; i < headerArr.length; i++) {
+    const k = headerArr[i];
+    if (k) obj[k] = row[i];
+  }
+  return obj;
 }
 
 function menuCrearHojasCompuestas() {
@@ -1177,10 +1352,13 @@ function menuCrearHojasCompuestas() {
       'Se han creado/parcheado las hojas:\n' +
       '  • Compuestas_Banco\n' +
       '  • Compuestas_Examenes\n' +
-      '  • Compuestas_Resultados\n\n' +
+      '  • Compuestas_Resultados (solo examen con PIN)\n' +
+      '  • Compuestas_Practica_Log (solo práctica libre)\n\n' +
       'Y las dos filas de Config:\n' +
       '  • compuestas_activo = Sí\n' +
       '  • compuestas_version = ' + COMP_SCHEMA_VERSION + '\n\n' +
+      'Si tienes una hoja vieja con cabeceras mezcladas, ejecuta\n' +
+      '"🧹 Separar Resultados ⇄ Practica_Log" para limpiarla.\n\n' +
       'Es seguro ejecutarlo varias veces (idempotente).',
       ui.ButtonSet.OK);
   } catch (e) {
@@ -1450,49 +1628,15 @@ function menuProbarGetModulesEnabled() {
 //  }
 // ════════════════════════════════════════════════════════════════════════
 
-const COMP_RESULTADOS_LIBRE_HEADER = [
-  'Timestamp', 'Session_ID', 'Ejercicio_ID', 'Texto',
-  'Tipo_Oracion', 'N_Proposiciones',
-  'Aciertos_Verbos', 'Errores_Verbos',
-  'Aciertos_Nexos', 'Errores_Nexos',
-  'Aciertos_Delimitar', 'Errores_Delimitar',
-  'Aciertos_Clasificar', 'Errores_Clasificar',
-  'Total_Aciertos', 'Total_Errores', 'Porcentaje',
-  'Fases_Saltadas', 'Pistas_Usadas',
-  'Duracion_Segundos', 'User_Agent'
-];
-
-function ensureCompResultadosLibreHeaders_(sheet) {
-  const primera = sheet.getRange(1, 1, 1, COMP_RESULTADOS_LIBRE_HEADER.length).getValues()[0];
-  // Si la primera fila está vacía o no tiene la nueva cabecera Session_ID, reescribir.
-  if (!primera[1] || String(primera[1]).trim() !== 'Session_ID') {
-    sheet.getRange(1, 1, 1, COMP_RESULTADOS_LIBRE_HEADER.length)
-      .setValues([COMP_RESULTADOS_LIBRE_HEADER])
-      .setFontWeight('bold')
-      .setBackground('#0F2342')
-      .setFontColor('#FFFFFF');
-    sheet.setFrozenRows(1);
-    // Anchos
-    sheet.setColumnWidth(1, 160);
-    sheet.setColumnWidth(2, 220);
-    sheet.setColumnWidth(3, 100);
-    sheet.setColumnWidth(4, 360);
-    for (let i = 5; i <= COMP_RESULTADOS_LIBRE_HEADER.length; i++) {
-      sheet.setColumnWidth(i, 110);
-    }
-  }
-}
-
 function saveResultadoCompuestasLibre_(p) {
   const lock = LockService.getScriptLock();
   try { lock.waitLock(10000); }
   catch (e) { return { ok: false, error: 'Servidor ocupado, inténtalo de nuevo.' }; }
 
   try {
-    const sheet = ensureCompResultSheet_();
-
-    // Asegurar que la hoja tiene las nuevas cabeceras (actualización idempotente).
-    ensureCompResultadosLibreHeaders_(sheet);
+    // Mayo 2026: la practica libre vive en su propia hoja (antes pisaba
+    // las cabeceras de Compuestas_Resultados, que es solo para examen).
+    const sheet = ensureCompPracticaLogSheet_();
 
     const aciertosTotales =
       (Number(p.aciertos_verbos)     || 0) +
@@ -1509,7 +1653,7 @@ function saveResultadoCompuestasLibre_(p) {
     const total      = aciertosTotales + erroresTotales;
     const porcentaje = total > 0 ? Math.round((aciertosTotales / total) * 100) : 0;
 
-    appendRowSafe_(sheet, COMP_RESULTADOS_LIBRE_HEADER, {
+    appendRowSafe_(sheet, COMP_PRACTICA_LOG_HEADER, {
       'Timestamp':           new Date(),
       'Session_ID':          String(p.session_id          || ''),
       'Ejercicio_ID':        String(p.ejercicio_id        || ''),
