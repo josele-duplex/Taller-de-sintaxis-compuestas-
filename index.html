@@ -124,6 +124,12 @@ if(window.location.protocol === 'file:') {
       font-family:'Nunito',sans-serif;font-weight:700;margin-bottom:18px;padding:0">
       ← Volver
     </button>
+    <!-- Banner "Hola, [nombre]" — visible solo si hay perfil guardado.
+         Permite resetear identidad con un click. -->
+    <div id="login-greeting" class="login-greeting" style="display:none">
+      <span class="lg-text">Hola, <strong id="login-greeting-name"></strong></span>
+      <button type="button" class="lg-reset" onclick="resetProfile()">No soy yo · Cambiar usuario</button>
+    </div>
     <div class="card login-card" style="max-width:530px">
       <div class="field">
         <label for="inp-name">Nombre completo</label>

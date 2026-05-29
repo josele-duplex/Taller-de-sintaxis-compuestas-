@@ -1446,6 +1446,43 @@ body.theme-new-ui #screen-login:not(.login-arcade)::after{
     linear-gradient(#000,#000) 24px 24px / 84px 84px no-repeat,
     linear-gradient(#000,#000) calc(100% - 108px) calc(100% - 108px) / 84px 84px no-repeat;
 }
+/* Banner "Hola, [nombre]" — solo visible si hay perfil guardado en
+   localStorage. El alumno puede limpiar con el boton de la derecha. */
+body.theme-new-ui #screen-login:not(.login-arcade) .login-greeting{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 10px 16px;
+  background: rgba(15,118,110,0.07);
+  border: 1px solid rgba(15,118,110,0.18);
+  border-radius: 12px;
+  font-family: 'DM Sans','Nunito',sans-serif;
+  font-size: .86rem;
+  color: var(--portada-navy);
+}
+body.theme-new-ui #screen-login:not(.login-arcade) .login-greeting .lg-text strong{
+  color: var(--portada-teal);
+  font-weight: 700;
+}
+body.theme-new-ui #screen-login:not(.login-arcade) .login-greeting .lg-reset{
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--portada-muted);
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color .2s, background .2s;
+}
+body.theme-new-ui #screen-login:not(.login-arcade) .login-greeting .lg-reset:hover{
+  color: var(--portada-navy);
+  background: rgba(15,42,67,0.06);
+}
+
 body.theme-new-ui #screen-login:not(.login-arcade) .login-hero{
   text-align: center;
   margin-bottom: 22px;

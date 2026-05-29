@@ -30,6 +30,7 @@ import * as storage from './core/storage.js';
 import * as audio from './core/audio.js';
 import * as api from './core/api.js';
 import * as navigation from './core/navigation.js';
+import * as profile from './core/profile.js';
 
 // ─────────────────────────────────────────────────────────────
 // 2. Datos pedagógicos
@@ -72,7 +73,7 @@ import * as fPistaFlotante from './feedback/pista-flotante.js';
 // referirlas libremente, igual que hacía el monolito.
 // ─────────────────────────────────────────────────────────────
 Object.assign(window,
-  constants, auth, escape, storage, audio, api, navigation,
+  constants, auth, escape, storage, audio, api, navigation, profile,
   dictMorf, dictSintax, dictSintag, haberForms,
   glosTags, glosData, glosRender,
   gLevels, gMissions, gStreak, gXp, gDashboard,

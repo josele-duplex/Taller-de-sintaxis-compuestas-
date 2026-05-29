@@ -8,6 +8,8 @@
    Se resolverán como imports cuando los módulos correspondientes
    se extraigan (Pasos 6-9). */
 
+import { applyProfileToLogin } from './profile.js';
+
 export function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => {
     s.style.display = 'none';
@@ -48,5 +50,13 @@ export function goModule(mod) {
     setTimeout(buildSubfaseGrid, 0);
   }
   showScreen('login');
-  setTimeout(() => document.getElementById('inp-name')?.focus(), 100);
+  // Pre-rellenar nombre/email/grupo si hay perfil guardado de una sesion
+  // anterior. Si no hay, applyProfileToLogin() es un no-op silencioso.
+  setTimeout(() => {
+    try { applyProfileToLogin(); } catch (e) {}
+    // Si el nombre ya esta puesto, saltamos el foco al primer campo vacio.
+    const nameVal = document.getElementById('inp-name')?.value || '';
+    if (!nameVal) document.getElementById('inp-name')?.focus();
+    else document.getElementById('inp-email')?.focus();
+  }, 100);
 }

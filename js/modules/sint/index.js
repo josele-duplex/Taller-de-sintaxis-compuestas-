@@ -3352,6 +3352,17 @@ async function handleStartAll(){
   if(!email){ferr('e-email','El correo es obligatorio.');ok=false;}
   else if(!EMAIL_RE.test(email)){ferr('e-email','Correo inválido. Usa @murciaeduca.es, @alu.murciaeduca.es o @gmail.com');ok=false;}
   if(!ok)return;
+  // Persistir identidad para que las proximas entradas no la pidan otra
+  // vez. El grupo se intenta leer tanto del campo compartido como del de
+  // arcade (cada modulo usa el que tenga visible). Si no hay grupo, se
+  // guarda cadena vacia y el Paso 2 lo hara obligatorio.
+  try {
+    const grupoCompartido = document.getElementById('inp-grupo')?.value?.trim() || '';
+    const grupoArcade     = document.getElementById('inp-arc-grupo')?.value?.trim() || '';
+    if (typeof window.saveProfile === 'function') {
+      window.saveProfile({ name, email, grupo: grupoCompartido || grupoArcade });
+    }
+  } catch (e) {}
   if(currentModule==='maestro'){startMaestro({name,email});return;}
   if(currentModule==='sint'){handleStart();return;}
   if(currentModule==='arcade'){
