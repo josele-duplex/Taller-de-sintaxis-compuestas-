@@ -44,6 +44,11 @@ export function goModule(mod) {
   // Hook CSS para la estética «arcade años 90»: solo cuando el módulo es Arcade.
   const scrLogin = document.getElementById('screen-login');
   if (scrLogin) scrLogin.classList.toggle('login-arcade', mod === 'arcade');
+  // El campo grupo compartido (#campo-grupo) es obligatorio para todos los
+  // modulos academicos. Arcade tiene su propio campo (inp-arc-grupo) dentro
+  // de su LOGIN_PANEL, asi que ocultamos el compartido para no duplicar.
+  const campoGrupo = document.getElementById('campo-grupo');
+  if (campoGrupo) campoGrupo.style.display = (mod === 'arcade') ? 'none' : '';
   if (mod === 'sint') {
     if (selectedMode) setMode(selectedMode);
     // Build subfase grid after panel renders

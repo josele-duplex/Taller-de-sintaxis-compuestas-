@@ -3346,19 +3346,23 @@ function setMorphMode(m){
 async function handleStartAll(){
   const name=document.getElementById('inp-name')?.value.trim();
   const email=document.getElementById('inp-email')?.value.trim().toLowerCase();
-  ferr('e-name','');ferr('e-email','');
+  ferr('e-name','');ferr('e-email','');ferr('e-grupo','');
   let ok=true;
   if(!name){ferr('e-name','Escribe tu nombre completo.');ok=false;}
   if(!email){ferr('e-email','El correo es obligatorio.');ok=false;}
   else if(!EMAIL_RE.test(email)){ferr('e-email','Correo inválido. Usa @murciaeduca.es, @alu.murciaeduca.es o @gmail.com');ok=false;}
+  // Grupo obligatorio para todos los modulos academicos. Arcade usa su
+  // propio campo (inp-arc-grupo) y NO valida aqui el compartido (esta
+  // oculto cuando mod==='arcade', ver navigation.js).
+  const grupoCompartido = document.getElementById('inp-grupo')?.value?.trim() || '';
+  if (currentModule !== 'arcade') {
+    if (!grupoCompartido) { ferr('e-grupo','Elige tu grupo.'); ok=false; }
+  }
   if(!ok)return;
   // Persistir identidad para que las proximas entradas no la pidan otra
-  // vez. El grupo se intenta leer tanto del campo compartido como del de
-  // arcade (cada modulo usa el que tenga visible). Si no hay grupo, se
-  // guarda cadena vacia y el Paso 2 lo hara obligatorio.
+  // vez. Si el modulo es arcade, leemos su grupo especifico.
   try {
-    const grupoCompartido = document.getElementById('inp-grupo')?.value?.trim() || '';
-    const grupoArcade     = document.getElementById('inp-arc-grupo')?.value?.trim() || '';
+    const grupoArcade = document.getElementById('inp-arc-grupo')?.value?.trim() || '';
     if (typeof window.saveProfile === 'function') {
       window.saveProfile({ name, email, grupo: grupoCompartido || grupoArcade });
     }
