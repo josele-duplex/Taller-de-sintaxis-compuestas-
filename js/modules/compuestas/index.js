@@ -55,9 +55,6 @@
     examAlumno: '',         // nombre del alumno
     examTiempoRestanteS: 0, // segundos restantes del countdown
     examTimerRunning: false, // true mientras el countdown está activo
-    pinInputView: false,    // estamos mostrando el formulario de PIN
-    pinError: '',           // último mensaje de error del PIN
-    pinLoading: false,      // hay una petición de carga en curso
     ejerciciosBanco: null,  // copia del banco antes de cargar el examen (para restaurar al salir)
     // ── Recolección de resultados del examen (Fase 1.5.C) ────────────
     // En examen NO enviamos por ejercicio (como hacemos en práctica).
@@ -217,9 +214,6 @@
     state.examFasesActivas = fasesExam;
     // Si el examen viene con grupo, prevalece (el profesor lo asigno).
     if(data.grupo) state.examGrupo = data.grupo;
-    state.pinInputView = false;
-    state.pinLoading   = false;
-    state.pinError     = '';
     state.examResultados = [];
     state.examEnviado    = false;
     state.examEnviando   = false;
@@ -437,11 +431,6 @@
       renderError();
       return;
     }
-    // Fase 1.5: si estamos en la pantalla de entrada de PIN, renderizar eso
-    if(state.pinInputView){
-      renderEntradaPIN();
-      return;
-    }
     aplicarFiltros();
     const opc = calcularOpcionesFiltro();
     const total = state.ejercicios.length;
@@ -549,88 +538,16 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // Fase 1.5.A: ENTRADA AL MODO EXAMEN
-  // El alumno introduce un PIN y el módulo carga los ejercicios pre-
-  // computados desde GAS (endpoint getExamenCompuesta). Una vez cargados,
-  // se llama a iniciarPractica() y el flujo continúa como práctica normal.
+  // ENTRADA AL MODO EXAMEN
+  // El PIN se introduce en el login compartido (#screen-login). La rama
+  // currentModule==='compuestas' de handleStartAll llama a
+  // CP.iniciarExamenDesdeLogin({name,email,grupo,pin}), que reutiliza
+  // fetchExamenCompuesta (mas abajo) y arranca iniciarPractica().
+  //
+  // Hasta mayo 2026 existia aqui un 2o formulario interno duplicado
+  // (entrarModoExamen, cancelarPIN, renderEntradaPIN, validarPIN) que
+  // se eliminado en el Paso 4 del rediseno de login.
   // ─────────────────────────────────────────────────────────────────────
-
-  // Activa la pantalla de entrada de PIN (sustituye el card de filtros).
-  function entrarModoExamen(){
-    state.pinInputView = true;
-    state.pinError = '';
-    state.pinLoading = false;
-    renderFiltros();
-  }
-
-  // Cancela la entrada de PIN y vuelve a la pantalla de filtros.
-  function cancelarPIN(){
-    state.pinInputView = false;
-    state.pinError = '';
-    state.pinLoading = false;
-    renderFiltros();
-  }
-
-  // Pinta el formulario de PIN (sustituye al card de filtros mientras
-  // state.pinInputView === true).
-  function renderEntradaPIN(){
-    const wrap = document.getElementById('cp-wrap');
-    if(!wrap) return;
-    document.getElementById('cp-counter').textContent = '🎓 Modo examen';
-    const loading = state.pinLoading;
-    const error = state.pinError;
-
-    const fieldStyle = 'width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-size:1rem;font-family:inherit;box-sizing:border-box';
-    wrap.innerHTML = `
-      <div class="cp-card" style="max-width:480px;margin:0 auto">
-        <h2 style="display:flex;align-items:center;gap:10px"><span>🎓</span> Modo examen</h2>
-        <p class="cp-sub">Introduce el PIN y tus datos. Tu profesor verá el resultado con tu nombre.</p>
-
-        <div style="display:flex;flex-direction:column;gap:14px;margin:18px 0">
-          <div>
-            <label for="cp-alumno-input" style="display:block;font-weight:700;margin-bottom:5px;font-size:.85rem;color:var(--ink2)">Nombre completo <span style="color:#DC2626">*</span></label>
-            <input type="text" id="cp-alumno-input" placeholder="Tu nombre y apellidos"
-              value="${escAttr(state.examAlumno)}" ${loading?'disabled':''}
-              style="${fieldStyle}">
-          </div>
-          <div>
-            <label for="cp-email-input" style="display:block;font-weight:700;margin-bottom:5px;font-size:.85rem;color:var(--ink2)">Correo electrónico <span style="color:#DC2626">*</span></label>
-            <input type="email" id="cp-email-input" placeholder="tu@correo.es"
-              value="${escAttr(state.examEmail)}" ${loading?'disabled':''}
-              style="${fieldStyle}">
-          </div>
-          <div>
-            <label for="cp-pin-input" style="display:block;font-weight:700;margin-bottom:5px;font-size:.85rem;color:var(--ink2)">PIN del examen <span style="color:#DC2626">*</span></label>
-            <input type="text" id="cp-pin-input" inputmode="numeric" pattern="\\d{4,6}" maxlength="6"
-              placeholder="4-6 dígitos" ${loading?'disabled':''}
-              style="${fieldStyle};letter-spacing:.3em;text-align:center;font-size:1.2rem;font-weight:700">
-          </div>
-        </div>
-
-        ${error ? `<div style="color:#991B1B;background:#FEF2F2;padding:10px 14px;border-radius:8px;font-size:.85rem;margin-bottom:14px;border-left:3px solid #DC2626">⚠ ${escHtml(error)}</div>` : ''}
-
-        ${loading
-          ? `<div style="text-align:center;padding:20px;color:var(--muted)"><div class="spinner"></div><div style="margin-top:8px">Cargando examen…</div></div>`
-          : `<div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button type="button" class="cp-btn-primary" onclick="CP.validarPIN()">✓ Iniciar examen</button>
-              <button type="button" class="cp-btn-secondary" onclick="CP.cancelarPIN()">← Cancelar</button>
-            </div>`
-        }
-      </div>
-    `;
-
-    // Auto-focus en el input + Enter dispara la validación
-    if(!loading){
-      setTimeout(()=>{
-        const inp = document.getElementById('cp-pin-input');
-        if(!inp) return;
-        inp.focus();
-        inp.addEventListener('keydown', e=>{
-          if(e.key === 'Enter'){ e.preventDefault(); validarPIN(); }
-        });
-      }, 50);
-    }
-  }
 
   // Llama al endpoint getExamenCompuesta del GAS y devuelve el objeto
   // { ok, ejercicios, timer, fasesActivas, pin, grupo, evaluacion, nombreExamen }.
@@ -651,89 +568,6 @@
       throw new Error('El examen no contiene ejercicios.');
     }
     return d;
-  }
-
-  // Handler del botón "Validar PIN": lee el input, valida formato,
-  // llama al backend y, si todo va bien, sustituye el banco por los
-  // ejercicios del examen y arranca iniciarPractica().
-  async function validarPIN(){
-    const inpAlumno = document.getElementById('cp-alumno-input');
-    const inpEmail  = document.getElementById('cp-email-input');
-    const inp       = document.getElementById('cp-pin-input');
-    if(!inp) return;
-    const alumno = String((inpAlumno && inpAlumno.value) || '').trim();
-    const email  = String((inpEmail  && inpEmail.value)  || '').trim().toLowerCase();
-    const pin    = String(inp.value || '').trim();
-    if(!alumno){
-      state.pinError = 'Introduce tu nombre completo.';
-      renderFiltros(); return;
-    }
-    if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-      state.pinError = 'Introduce un correo electrónico válido.';
-      renderFiltros(); return;
-    }
-    if(!pin || !/^\d{4,6}$/.test(pin)){
-      state.pinError = 'El PIN debe tener entre 4 y 6 dígitos numéricos.';
-      renderFiltros(); return;
-    }
-    state.examAlumno = alumno;
-    state.examEmail  = email;
-    state.pinError   = '';
-    state.pinLoading = true;
-    renderFiltros();
-
-    try {
-      const data = await fetchExamenCompuesta(pin);
-      // A3+A4: fases activas del examen — si no llegan o no son array, fallback a todas (legacy).
-      const fasesExam = Array.isArray(data.fasesActivas) && data.fasesActivas.length > 0
-        ? data.fasesActivas.map(n => parseInt(n)).filter(n => !isNaN(n))
-        : [0,1,2,3,4,5,6];
-      // Validar mínimamente los ejercicios (mismo filtro que el banco normal)
-      const validos = data.ejercicios.filter(isValidEjercicio);
-      if(validos.length === 0){
-        throw new Error('El examen tiene ejercicios pero ninguno pasa la validación mínima.');
-      }
-      // A4: inyectar las fases del examen en metadatos de cada ejercicio para
-      // que computeCompScore las respete por ejercicio. NO machacar las del
-      // banco si el examen viene con [0,1,2,3,4,5,6] (legacy) y el ejercicio
-      // ya define las suyas — el examen prima cuando viene con menos fases.
-      validos.forEach(ej => {
-        if(!ej.metadatos) ej.metadatos = {};
-        ej.metadatos.fases_activas = fasesExam.slice();
-      });
-      // Guardar el banco original para poder volver
-      if(state.ejerciciosBanco === null){
-        state.ejerciciosBanco = state.ejercicios;
-      }
-      // Sustituir el banco por los ejercicios del examen
-      state.ejercicios = validos;
-      state.filtered   = validos.slice();
-      state.idx        = 0;
-      // Metadata del examen
-      state.modoExamen  = true;
-      state.examPin     = pin;
-      state.examGrupo   = data.grupo        || '';
-      state.examEval    = data.evaluacion   || '';
-      state.examName    = data.nombreExamen || '';
-      state.examTimerMin= parseInt(data.timer) || 0;
-      state.examFasesActivas = fasesExam;
-      state.pinInputView= false;
-      state.pinLoading  = false;
-      state.pinError    = '';
-      // Reset del estado de envío del examen
-      state.examResultados   = [];
-      state.examEnviado      = false;
-      state.examEnviando     = false;
-      state.examErrorEnvio   = '';
-      console.log('[CP examen] PIN', pin, '·', validos.length, 'ejercicios cargados · grupo:', state.examGrupo, '· eval:', state.examEval);
-      // Mostrar banner del modo examen y arrancar la práctica
-      showExamenBanner();
-      iniciarPractica();
-    } catch(e){
-      state.pinLoading = false;
-      state.pinError   = String(e && e.message || e);
-      renderFiltros();
-    }
   }
 
   // Sale del modo examen y restaura el banco original.
@@ -5511,7 +5345,6 @@ export const CP = {
     iiddTagClick, iiddTagClickSlot, iiddSlotClick,
     iiddConfirm, iiddAvanzar,
     onInternaPredBtn, onInternaSujBtn, onInternaFuncBtn, avanzarInternaSubPaso,
-    entrarModoExamen, cancelarPIN, validarPIN,
     enviarResultadoExamen, salirTrasEnvio, cerrarExamenFinal,
     siguientePractica, abandonar, finalizarSesion,
     guardarManual,
