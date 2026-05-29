@@ -735,6 +735,81 @@ function regenerarCompuestas_() {
   }
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  RESUMEN DEL BANCO (paralelo a menuResumenBanco de simples)
+//  Cuenta ejercicios por tipo, subtipo, nivel, nº proposiciones, y top
+//  relaciones leidas del JSON. Defensivo: parses fallidos no rompen el
+//  recuento general; se cuentan aparte como "con_error".
+// ════════════════════════════════════════════════════════════════════════
+function getResumenBancoCompuestas_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_COMPUESTAS_BANCO);
+  if (!sheet) return { ok: false, error: 'No existe Compuestas_Banco.' };
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { ok: true, total: 0, activos: 0, inactivos: 0, sin_json: 0, con_error: 0,
+                            por_tipo: {}, por_subtipo: {}, por_nivel: {}, por_n_props: {}, top_relaciones: [] };
+
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+
+  let activos = 0, inactivos = 0, sinJson = 0, conError = 0;
+  const porTipo    = {};
+  const porSubtipo = {};
+  const porNivel   = {};
+  const porNProps  = {};
+  const relacContador = {};
+
+  for (const row of data) {
+    // Saltar filas totalmente vacías
+    if (row.every(v => v === '' || v == null)) continue;
+
+    const activo  = String(row[col['Activo']]            || '').trim();
+    const tipo    = String(row[col['Tipo_Oracion']]      || '').trim().toLowerCase();
+    const subtipo = String(row[col['Subtipo']]           || '').trim().toLowerCase();
+    const nivel   = String(row[col['Nivel']]             || '').trim().toLowerCase();
+    const nProps  = String(row[col['N_Proposiciones']]   || '').trim();
+    const rawJson = String(row[col['JSON_Compuesta']]    || '').trim();
+
+    if (activo === 'Sí' || activo === 'Si' || activo === 'sí' || activo === 'si') activos++;
+    else if (activo === 'No' || activo === 'no') inactivos++;
+
+    if (!rawJson) { sinJson++; continue; }
+    let parsed;
+    try { parsed = JSON.parse(rawJson); }
+    catch (e) { conError++; continue; }
+
+    // Conteos por columna directa de la hoja (fuente más fiable)
+    if (tipo)    porTipo[tipo]       = (porTipo[tipo]       || 0) + 1;
+    if (subtipo) porSubtipo[subtipo] = (porSubtipo[subtipo] || 0) + 1;
+    if (nivel)   porNivel[nivel]     = (porNivel[nivel]     || 0) + 1;
+    if (nProps)  porNProps[nProps]   = (porNProps[nProps]   || 0) + 1;
+
+    // Top relaciones desde el JSON (relaciones[].subtipo, fallback a .tipo)
+    if (parsed && Array.isArray(parsed.relaciones)) {
+      parsed.relaciones.forEach(r => {
+        const etiqueta = String((r && (r.subtipo || r.tipo)) || '').trim().toLowerCase();
+        if (etiqueta) relacContador[etiqueta] = (relacContador[etiqueta] || 0) + 1;
+      });
+    }
+  }
+
+  const topRelaciones = Object.entries(relacContador)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15)
+    .map(([nombre, n]) => ({ nombre, n }));
+
+  return {
+    ok: true,
+    total: activos + inactivos,
+    activos, inactivos, sin_json: sinJson, con_error: conError,
+    por_tipo: porTipo,
+    por_subtipo: porSubtipo,
+    por_nivel: porNivel,
+    por_n_props: porNProps,
+    top_relaciones: topRelaciones
+  };
+}
+
 // Resumen estadístico simple de Compuestas_Resultados (para panel/menú).
 function getStatsCompuestas_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1223,6 +1298,7 @@ function buildCompuestasSubMenu_(ui) {
   m.addItem('🔢 Asignar IDs automáticamente',       'menuAsignarIDsCompuestas');
   m.addSeparator();
   m.addItem('🔄 Regenerar caché de compuestas',     'menuRegenerarCompuestas');
+  m.addItem('📊 Ver resumen de mi banco',           'menuResumenBancoCompuestas');
   m.addItem('📊 Resumen de resultados',             'menuStatsCompuestas');
   m.addItem('🧪 Probar getModulesEnabled',          'menuProbarGetModulesEnabled');
   return m;
@@ -1436,6 +1512,37 @@ function menuStatsCompuestas() {
     'Total de sesiones registradas: ' + (s.total || 0) + '\n' +
     'Nota media: ' + (s.mediaNota || 0) + ' / 10',
     ui.ButtonSet.OK);
+}
+
+// Resumen del BANCO de compuestas (paralelo a menuResumenBanco de simples).
+// Muestra activos/inactivos, top por tipo de oracion, subtipo, nivel, nº de
+// proposiciones y top relaciones encontradas en los JSON.
+function menuResumenBancoCompuestas() {
+  const ui = SpreadsheetApp.getUi();
+  const r = getResumenBancoCompuestas_();
+  if (!r.ok) { ui.alert('❌ Error', String(r.error || 'desconocido'), ui.ButtonSet.OK); return; }
+
+  function fmtTop(map, max) {
+    const entries = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, max || 10);
+    if (entries.length === 0) return '  (sin datos)';
+    return entries.map(([k, n]) => '  • ' + k + ': ' + n).join('\n');
+  }
+
+  const msg =
+    '✅ Activos:   ' + r.activos    + '\n' +
+    '❌ Inactivos: ' + r.inactivos  + '\n' +
+    '⚠ Sin JSON:  ' + r.sin_json   + '\n' +
+    '🔴 Con error: ' + r.con_error  + '\n' +
+    '\n🌳 Por tipo de oración:\n' + fmtTop(r.por_tipo, 10) +
+    '\n\n🔬 Por subtipo (top 12):\n' + fmtTop(r.por_subtipo, 12) +
+    '\n\n📊 Por nivel:\n'      + fmtTop(r.por_nivel, 10) +
+    '\n\n🔢 Por nº de proposiciones:\n' + fmtTop(r.por_n_props, 10) +
+    '\n\n🔗 Top relaciones (en los JSON):\n' +
+      (r.top_relaciones.length === 0
+        ? '  (sin etiquetas)'
+        : r.top_relaciones.slice(0, 12).map(o => '  • ' + o.nombre + ': ' + o.n).join('\n'));
+
+  ui.alert('📊 Resumen — Compuestas_Banco', msg, ui.ButtonSet.OK);
 }
 
 function menuAuditarCompuestas() {
