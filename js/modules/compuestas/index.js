@@ -146,6 +146,89 @@
     iniciarPractica();
   }
 
+  // Variante de enter() para cuando se llega desde el login compartido
+  // (mayo 2026, Paso 3 del rediseno de login). Diferencias con enter():
+  //   1. Recibe name/email/grupo del login y los guarda en state para
+  //      que el examen pueda reusarlos sin volver a pedirlos.
+  //   2. Aterriza en la pantalla de filtros (renderFiltros), no en la
+  //      primera oracion. Esto cumple la Opcion B elegida por el usuario.
+  async function enterDesdeLogin({ name, email, grupo } = {}){
+    showScreen('screen-compuestas');
+    if(!state.loaded){
+      await loadBanco();
+    }
+    if(state.loadError){
+      renderError();
+      return;
+    }
+    // Guardar la identidad del login para futuras llamadas (envio de
+    // resultados, examen, etc.). state.examAlumno/Email/Grupo se usan ya
+    // en validarPIN y en enviarResultadoExamen.
+    if(name)  state.examAlumno = String(name).trim();
+    if(email) state.examEmail  = String(email).trim().toLowerCase();
+    if(grupo) state.examGrupo  = String(grupo).trim();
+    // Banco completo (cualquier filtro lo aplicara el alumno desde
+    // renderFiltros antes de empezar).
+    state.filtered = state.ejercicios.slice();
+    renderFiltros();
+  }
+
+  // Inicia el modo examen con datos pre-validados desde el login
+  // compartido. Hace el fetch al GAS y, si todo va bien, arranca el
+  // examen (iniciarPractica). Si falla, lanza un Error con un mensaje
+  // legible para que el caller lo muestre en el panel del login.
+  async function iniciarExamenDesdeLogin({ name, email, grupo, pin } = {}){
+    if(!pin || !/^\d{4,6}$/.test(String(pin))){
+      throw new Error('El PIN debe tener entre 4 y 6 digitos numericos.');
+    }
+    showScreen('screen-compuestas');
+    if(!state.loaded){
+      await loadBanco();
+    }
+    // Guardamos identidad antes del fetch (utiles si renderFiltros se
+    // pinta despues de un error).
+    state.examAlumno = String(name  || '').trim();
+    state.examEmail  = String(email || '').trim().toLowerCase();
+    state.examGrupo  = String(grupo || '').trim();
+
+    const data = await fetchExamenCompuesta(String(pin).trim());
+    const fasesExam = Array.isArray(data.fasesActivas) && data.fasesActivas.length > 0
+      ? data.fasesActivas.map(n => parseInt(n)).filter(n => !isNaN(n))
+      : [0,1,2,3,4,5,6];
+    const validos = data.ejercicios.filter(isValidEjercicio);
+    if(validos.length === 0){
+      throw new Error('El examen tiene ejercicios pero ninguno pasa la validacion minima.');
+    }
+    validos.forEach(ej => {
+      if(!ej.metadatos) ej.metadatos = {};
+      ej.metadatos.fases_activas = fasesExam.slice();
+    });
+    if(state.ejerciciosBanco === null){
+      state.ejerciciosBanco = state.ejercicios;
+    }
+    state.ejercicios = validos;
+    state.filtered   = validos.slice();
+    state.idx        = 0;
+    state.modoExamen     = true;
+    state.examPin        = String(pin).trim();
+    state.examEval       = data.evaluacion   || '';
+    state.examName       = data.nombreExamen || '';
+    state.examTimerMin   = parseInt(data.timer) || 0;
+    state.examFasesActivas = fasesExam;
+    // Si el examen viene con grupo, prevalece (el profesor lo asigno).
+    if(data.grupo) state.examGrupo = data.grupo;
+    state.pinInputView = false;
+    state.pinLoading   = false;
+    state.pinError     = '';
+    state.examResultados = [];
+    state.examEnviado    = false;
+    state.examEnviando   = false;
+    state.examErrorEnvio = '';
+    console.log('[CP examen] PIN', pin, '·', validos.length, 'ejercicios cargados · grupo:', state.examGrupo, '· eval:', state.examEval);
+    showExamenBanner();
+    iniciarPractica();
+  }
+
   function exit(){
     if(!confirmarSalidaExamen()) return;
     if(state.modoExamen) salirModoExamen();
@@ -369,7 +452,25 @@
     wrap.innerHTML = `
       <div class="cp-card">
         <h2>Explora el banco de oraciones compuestas</h2>
-        <p class="cp-sub">Filtra por tipo, subtipo, nivel o número de oraciones. Cuando estés listo, pulsa <b>Ver primera oración</b> para empezar a explorar.</p>
+        <p class="cp-sub">Filtra por tipo, subtipo, nivel o número de oraciones. Cuando estés listo, pulsa <b>Empezar a practicar</b> para arrancar.</p>
+
+        <div style="margin:6px 0 14px">
+          <button type="button" id="cp-filter-help-btn" class="cp-btn-secondary"
+                  aria-expanded="false" aria-controls="cp-filter-help"
+                  onclick="CP.mostrarAyudaFiltros()"
+                  style="font-size:.84rem;padding:6px 12px">
+            ℹ️ ¿Cómo funcionan estos filtros?
+          </button>
+          <div id="cp-filter-help" role="region" aria-label="Ayuda de filtros" style="display:none;margin-top:10px;padding:12px 14px;background:rgba(15,118,110,0.06);border:1px solid rgba(15,118,110,0.18);border-radius:10px;font-size:.86rem;line-height:1.55;color:var(--portada-navy,#102A43)">
+            <p style="margin:0 0 6px"><b>Cada chip tiene 3 estados</b> (toca para alternar):</p>
+            <ul style="margin:0 0 6px 18px;padding:0">
+              <li><span style="color:#15803D;font-weight:700">✓ Incluir</span> — solo verás oraciones que <b>tengan</b> esa característica.</li>
+              <li><span style="color:#B91C1C;font-weight:700">✕ Excluir</span> — esas oraciones <b>no aparecerán</b>.</li>
+              <li><b>Sin marca</b> — indistinto.</li>
+            </ul>
+            <p style="margin:0;color:var(--muted)">Si dejas todo en neutro, practicarás con el banco completo mezclado al azar. Mismo sistema que el de “funciones a practicar / funciones que no quiero que aparezcan” del análisis simple.</p>
+          </div>
+        </div>
 
         <div class="cp-stats">
           <div class="cp-stat">
@@ -419,11 +520,9 @@
           </button>
           <button type="button" class="cp-btn-secondary" onclick="CP.limpiarFiltros()">Limpiar filtros</button>
         </div>
-
-        <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-size:.85rem;color:var(--muted)">¿Tienes un PIN del profesor?</span>
-          <button type="button" class="cp-btn-secondary" onclick="CP.entrarModoExamen()">🎓 Modo examen</button>
-        </div>
+        <!-- El boton "Modo examen" se ha retirado de aqui (mayo 2026,
+             Paso 3 del rediseno de login). El examen se elige ya en el
+             login compartido y el PIN se introduce alli. -->
       </div>
 
       <div class="cp-tip">
@@ -768,6 +867,17 @@
       state.filtrosExcl[k].clear();
     });
     renderFiltros();
+  }
+
+  // Toggle del panel "Como funcionan los filtros" inline en la pantalla
+  // de filtros. Se anade en renderFiltros (mayo 2026, Paso 3 login).
+  function mostrarAyudaFiltros(){
+    const panel = document.getElementById('cp-filter-help');
+    const btn   = document.getElementById('cp-filter-help-btn');
+    if(!panel) return;
+    const open = panel.style.display !== 'none';
+    panel.style.display = open ? 'none' : 'block';
+    if(btn) btn.setAttribute('aria-expanded', String(!open));
   }
 
   function iniciarLectura(){
@@ -5390,8 +5500,9 @@
   // Exportar API pública
 export const CP = {
     enter, exit,
+    enterDesdeLogin, iniciarExamenDesdeLogin,
     iniciarPractica, iniciarLectura,
-    limpiarFiltros,
+    limpiarFiltros, mostrarAyudaFiltros,
     siguiente, anterior, volverFiltros, toggleSolucion,
     avanzarFase, avanzarRelacionF5, pedirPista, saltarFase,
     abrirPistaFlotante,

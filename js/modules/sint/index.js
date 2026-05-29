@@ -2826,6 +2826,26 @@ const LOGIN_PANELS = {
       Identifica el tipo de sintagma y analiza la función de cada elemento: Núcleo, Modificadores, Término. Basado en la NGLE.
     </div>`,
 
+  compuestas: `
+    <p style="font-weight:800;font-size:.9rem;color:#0F766E;margin-bottom:12px">🧩 Oración Compuesta</p>
+    <div class="field">
+      <label>Modo de sesión</label>
+      <div class="sel-grid" role="radiogroup">
+        <button type="button" class="sel-card" id="mc-cp-practice" onclick="setCpLoginMode('practice')" role="radio" aria-checked="false">
+          <span class="sel-icon">📖</span><span class="sel-title">Práctica</span><span class="sel-desc">Filtros · Banco completo</span>
+        </button>
+        <button type="button" class="sel-card" id="mc-cp-exam" onclick="setCpLoginMode('exam')" role="radio" aria-checked="false">
+          <span class="sel-icon">📝</span><span class="sel-title">Examen</span><span class="sel-desc">PIN del profesor · Oraciones fijas</span>
+        </button>
+      </div>
+      <p id="e-cp-mode" class="ferr" role="alert"></p>
+    </div>
+    <div id="pin-cp-block" class="field" style="display:none">
+      <label for="inp-cp-pin">PIN del examen</label>
+      <input id="inp-cp-pin" class="input input-pin" type="password" inputmode="numeric" maxlength="6" placeholder="····">
+      <p id="e-cp-pin" class="ferr" role="alert"></p>
+    </div>`,
+
   arcade: `
     <p style="font-weight:800;font-size:.9rem;color:#DC2626;margin-bottom:12px">🎮 Arcade</p>
     <div class="field">
@@ -2864,6 +2884,23 @@ const LOGIN_PANELS = {
       <p id="e-arcade" class="ferr" role="alert"></p>
     </div>`
 };
+
+// Estado y handler del selector de modo del login de Compuestas.
+// Vive aqui porque LOGIN_PANELS tambien esta aqui; el handleStartAll
+// lo lee en su rama currentModule==='compuestas'.
+let selectedCpMode = null;
+function setCpLoginMode(m){
+  selectedCpMode = m;
+  ['mc-cp-practice','mc-cp-exam'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.toggle('sel-active', el.id === 'mc-cp-' + m);
+      el.setAttribute('aria-checked', String(el.id === 'mc-cp-' + m));
+    }
+  });
+  const pinBlock = document.getElementById('pin-cp-block');
+  if (pinBlock) pinBlock.style.display = m === 'exam' ? 'block' : 'none';
+}
 
 
 
@@ -3391,6 +3428,30 @@ async function handleStartAll(){
   }
   if(currentModule==='sint4'){
     startSintagmas({name,email});return;
+  }
+  if(currentModule==='compuestas'){
+    ferr('e-cp-mode',''); ferr('e-cp-pin','');
+    if(!selectedCpMode){ ferr('e-cp-mode','Elige practica o examen.'); return; }
+    const grupoCp = document.getElementById('inp-grupo')?.value?.trim() || '';
+    if(selectedCpMode === 'practice'){
+      if(typeof window.CP !== 'undefined' && typeof window.CP.enterDesdeLogin === 'function'){
+        window.CP.enterDesdeLogin({ name, email, grupo: grupoCp });
+      } else if(typeof window.CP !== 'undefined' && typeof window.CP.enter === 'function'){
+        window.CP.enter();
+      }
+      return;
+    }
+    if(selectedCpMode === 'exam'){
+      const pin = document.getElementById('inp-cp-pin')?.value?.trim() || '';
+      if(!/^\d{4,6}$/.test(pin)){ ferr('e-cp-pin','El PIN debe tener entre 4 y 6 digitos numericos.'); return; }
+      if(typeof window.CP !== 'undefined' && typeof window.CP.iniciarExamenDesdeLogin === 'function'){
+        window.CP.iniciarExamenDesdeLogin({ name, email, grupo: grupoCp, pin })
+          .catch(err => {
+            ferr('e-cp-pin', String((err && err.message) || err || 'No se ha podido cargar el examen.'));
+          });
+      }
+      return;
+    }
   }
 }
 

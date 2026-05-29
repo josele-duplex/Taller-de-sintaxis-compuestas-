@@ -34,11 +34,9 @@ export function showPortada() {
 
 export function goModule(mod) {
   currentModule = mod;
-  // El módulo de oración compuesta no requiere login: entra directo a su pantalla
-  if (mod === 'compuestas') {
-    if (typeof CP !== 'undefined' && CP.enter) CP.enter();
-    return;
-  }
+  // Compuestas pasa por el login unificado (mayo 2026, Paso 3):
+  // mismo nombre/email/grupo que el resto y eleccion de modo
+  // (practica o examen con PIN) desde el panel.
   const panel = document.getElementById('login-module-panel');
   if (panel) panel.innerHTML = LOGIN_PANELS[mod] || '';
   // Hook CSS para la estética «arcade años 90»: solo cuando el módulo es Arcade.
