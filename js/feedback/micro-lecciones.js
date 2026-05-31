@@ -242,6 +242,162 @@ export const MICRO_LECCIONES = {
         explicacion:'"Jugar" no pertenece al grupo de los copulativos (ser, estar, parecer). Tiene significado pleno de acción. El verbo es el motor de la frase. Es Predicado Verbal.'},
     ]
   },
+  'cc_finalidad': {
+    tag: 'Lección · CC Finalidad',
+    titulo: '¿Para qué? El propósito de la acción',
+    bloques: [
+      {tipo:'concepto', html:`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:#FEF3C7;border:2px solid #FCD34D;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">🎯</div>
+            <strong style="color:#92400E">CC Finalidad</strong>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#78350F">Sintagma <strong>preposicional</strong> que expresa el <strong>propósito</strong> de la acción. Introducido sobre todo por <em>para</em> (y por <em>a</em> con verbos de movimiento).</p>
+            <p style="font-size:.78rem;color:#B45309;margin-top:4px">Responde a <strong>¿para qué?</strong></p>
+          </div>
+          <div style="background:#EFF6FF;border:2px solid #93C5FD;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">🧪</div>
+            <strong style="color:#1D4ED8">Pruebas</strong>
+            <ul style="font-size:.82rem;margin:6px 0 0;color:#1E40AF;padding-left:16px">
+              <li>Se sustituye por <strong>«para eso»</strong> o «para ello».</li>
+              <li>Es <strong>prescindible</strong>: si lo quitas, la oración sigue siendo gramatical.</li>
+              <li>OJO con «para» + persona → no es CI, es CC Finalidad.</li>
+            </ul>
+          </div>
+        </div>
+        <div style="background:var(--paper2);border-radius:10px;padding:12px;font-size:.85rem;border-left:3px solid #6366F1">
+          🎯 <em>"Ahorra dinero <strong>para el viaje</strong>."</em> → quita el SP → "Ahorra dinero" ✓ (adjunto prescindible)<br>
+          🎯 <em>"Encargó una tarta <strong>para su madre</strong>."</em> → «para su madre» = CC Finalidad (no CI, no lleva «le»)
+        </div>
+      `},
+      {tipo:'quiz', pregunta:'En «Estudió mucho para el examen de conducir», ¿qué función tiene "para el examen de conducir"?',
+        opciones:['Complemento Indirecto (CI)','Complemento de Régimen (C.Rég.)','CC Finalidad — indica el propósito de estudiar','Atributo'],
+        correcta:2,
+        explicacion:'"Para el examen" expresa el propósito (¿para qué estudia?) y es prescindible: "Estudió mucho" sigue siendo gramatical. Sustituye por "para eso". Es CC Finalidad.'},
+      {tipo:'quiz', pregunta:'¿Cuál de estas oraciones contiene un CC Finalidad introducido por la preposición "a"?',
+        opciones:['Saludó a su nuevo profesor','Vino a la entrega de diplomas','Entregó el regalo a su hermano','Llegó a las ocho'],
+        correcta:1,
+        explicacion:'Con verbos de movimiento, la preposición "a" puede introducir la meta/propósito de la acción. "Vino a la entrega" responde a "¿a qué vino?". En las otras: "a su nuevo profesor" es CD (persona), "a su hermano" es CI, "a las ocho" es CC Tiempo.'},
+      {tipo:'quiz', pregunta:'En «Compró guantes para el frío», ¿por qué "para el frío" es CC y no un argumento del verbo?',
+        opciones:['Porque el verbo "comprar" lo exige por contrato','Porque es una circunstancia opcional: "Compró guantes" sigue siendo correcto','Porque funciona como Sujeto','Porque lleva preposición'],
+        correcta:1,
+        explicacion:'Los complementos circunstanciales son adjuntos periféricos y prescindibles. La prueba decisiva es la supresión: si la oración sigue siendo gramatical sin el sintagma, no es argumento.'},
+    ]
+  },
+  'cc_causa': {
+    tag: 'Lección · CC Causa',
+    titulo: '¿Por qué? El motivo de la acción',
+    bloques: [
+      {tipo:'concepto', html:`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:#FEF2F2;border:2px solid #FCA5A5;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">🌧️</div>
+            <strong style="color:#991B1B">CC Causa</strong>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#991B1B">Sintagma preposicional que expresa el <strong>motivo, razón o causa</strong> del evento. Es <strong>prescindible</strong>.</p>
+            <p style="font-size:.78rem;color:#DC2626;margin-top:4px">Preposiciones: <strong>por</strong> (la más frecuente), <em>de</em> (con sentimientos extremos), <em>con</em>, <em>ante</em>.</p>
+          </div>
+          <div style="background:#FEF3C7;border:2px solid #FCD34D;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">⚠️</div>
+            <strong style="color:#92400E">No confundir con C. Agente</strong>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#78350F">Ambos pueden empezar por <em>por</em>. El <strong>C. Agente</strong> es el ejecutor real en una pasiva perifrástica (ser + participio) y se convierte en sujeto al pasar a activa. El <strong>CC Causa</strong> solo explica el motivo, no ejecuta nada.</p>
+          </div>
+        </div>
+        <div style="background:var(--paper2);border-radius:10px;padding:12px;font-size:.85rem;border-left:3px solid #6366F1">
+          🌧️ <em>"No salimos <strong>por la lluvia</strong>."</em> → motivo, no ejecutor → CC Causa (sustituye por "por eso").<br>
+          🕵️ <em>"Fue arrestado <strong>por la policía</strong>."</em> → pasiva, la policía ejecuta → C. Agente (al pasar a activa: "La policía lo arrestó").<br>
+          😱 <em>"Saltaba <strong>de alegría</strong>."</em> → causa extrema con preposición «de».
+        </div>
+      `},
+      {tipo:'quiz', pregunta:'En «Muchos ciudadanos sufren por la crisis económica», ¿qué función tiene "por la crisis económica"?',
+        opciones:['Complemento de Régimen (C.Rég.)','CC Causa — indica el motivo del sufrimiento','Complemento Agente (C.Ag.)','Atributo'],
+        correcta:1,
+        explicacion:'"Sufrir" no es pasiva perifrástica (no hay ser + participio), así que no puede ser C. Agente. "Por la crisis" explica el motivo del sufrimiento ("¿por qué sufren?"). Se sustituye por "por eso". Es CC Causa.'},
+      {tipo:'quiz', pregunta:'¿En cuál de estas oraciones el sintagma subrayado es un CC Causa introducido por la preposición "de"?',
+        opciones:['La mesa es de madera','Me acuerdo de tu hermano','Casi me desmayo del susto','Vengo de la biblioteca'],
+        correcta:2,
+        explicacion:'En "Casi me desmayo del susto", la preposición "de" introduce la causa extrema del desmayo. Sustituye por "por ese motivo": "Casi me desmayo por ese motivo". En las otras: "de madera" es CN (de qué material), "de tu hermano" es C.Rég. (acordarse exige "de"), "de la biblioteca" es CC Lugar.'},
+      {tipo:'quiz', pregunta:'En «Lo regañaron por perezoso», ¿por qué "por perezoso" es CC Causa?',
+        opciones:['Porque es exigido por el verbo "regañar" por contrato','Porque explica la razón de la acción y es prescindible: "Lo regañaron" sigue siendo gramatical','Porque indica quién realiza la acción en pasiva','Porque sustituye al CD'],
+        correcta:1,
+        explicacion:'Es un adjunto periférico y prescindible que aporta el motivo de la reprimenda. "Lo regañaron" sigue siendo correcto sin él. No es pasiva perifrástica (no hay ser+participio), así que no puede ser C. Agente.'},
+    ]
+  },
+  'cc_cantidad': {
+    tag: 'Lección · CC Cantidad',
+    titulo: '¿Cuánto? Grado, medida e intensidad',
+    bloques: [
+      {tipo:'concepto', html:`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:#F0FDF4;border:2px solid #86EFAC;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">📏</div>
+            <strong style="color:#166534">CC Cantidad (adjunto)</strong>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#14532D">Mide la <strong>intensidad o grado</strong> del verbo. Es <strong>opcional</strong>: si lo quitas, el verbo conserva su sentido pleno.</p>
+            <p style="font-size:.78rem;color:#16A34A;margin-top:4px">Adverbios: <em>mucho, poco, bastante</em>… | SN: <em>dos veces, un montón</em> | SP: <em>en buena medida</em></p>
+          </div>
+          <div style="background:#FEF2F2;border:2px solid #FCA5A5;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">⚖️</div>
+            <strong style="color:#991B1B">Argumento cuantitativo (CD)</strong>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#991B1B">Algunos verbos (<em>medir, pesar, costar, durar</em>) <strong>exigen</strong> la cantidad. Sin ella la frase se rompe: <em>*"El paquete pesa"</em>.</p>
+            <p style="font-size:.78rem;color:#DC2626;margin-top:4px">La NGLE los analiza como <strong>Complemento Directo</strong>.</p>
+          </div>
+        </div>
+        <div style="background:var(--paper2);border-radius:10px;padding:12px;font-size:.85rem;border-left:3px solid #6366F1">
+          📏 <em>"Entrena <strong>mucho</strong>."</em> → "Entrena" ✓ (adjunto opcional → CC Cantidad)<br>
+          ⚖️ <em>"El paquete pesa <strong>diez kilos</strong>."</em> → *"El paquete pesa" 🚫 (argumento exigido → CD)
+        </div>
+      `},
+      {tipo:'quiz', pregunta:'En «Los excursionistas caminaron bastante por la mañana», ¿qué función tiene "bastante"?',
+        opciones:['Complemento Directo (CD)','CC Cantidad — indica la intensidad de caminar','Atributo','Sujeto'],
+        correcta:1,
+        explicacion:'El adverbio "bastante" indica la medida o intensidad de la acción y es prescindible: "Los excursionistas caminaron por la mañana" sigue siendo gramatical. Responde a "¿cuánto?". Es CC Cantidad.'},
+      {tipo:'quiz', pregunta:'¿En cuál de estas oraciones el segmento subrayado es CC Cantidad y NO CD?',
+        opciones:['La película dura dos horas','Esta bicicleta cuesta cien euros','Disfruté mucho con tu visita','El paquete pesa diez kilos'],
+        correcta:2,
+        explicacion:'En las otras tres, los verbos de medida (durar, costar, pesar) exigen el argumento cuantitativo: si lo quitas la frase se rompe. La NGLE los analiza como CD. En "Disfruté mucho", "mucho" es opcional ("Disfruté con tu visita" sigue siendo correcto) y responde a "¿cuánto?". Es CC Cantidad.'},
+      {tipo:'quiz', pregunta:'En «Grita una barbaridad», ¿por qué "una barbaridad" es CC Cantidad y no CD?',
+        opciones:['Porque es un SN definido','Porque concuerda en género con el sujeto','Porque indica un grado extremo de la acción y se puede eliminar: "Grita" sigue siendo correcto','Porque es el ejecutor de la acción'],
+        correcta:2,
+        explicacion:'"Una barbaridad" funciona aquí como locución adverbial de sentido cuantitativo (≈ "muchísimo"). Es un grupo nominal que actúa como adjunto del verbo: prescindible y responde a "¿cuánto grita?".'},
+    ]
+  },
+  'vocativo': {
+    tag: 'Lección · Vocativo',
+    titulo: 'Ana, escucha: la llamada al interlocutor',
+    bloques: [
+      {tipo:'concepto', html:`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:#FFF7ED;border:2px solid #FDBA74;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">📣</div>
+            <strong style="color:#9A3412">Vocativo</strong>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#9A3412">Función <strong>extraoracional</strong>: no forma parte del sujeto ni del predicado. Sirve para <strong>apelar al interlocutor</strong>.</p>
+            <p style="font-size:.78rem;color:#C2410C;margin-top:4px">Suele ser un <strong>sintagma nominal</strong>. En la escritura aparece <strong>aislado por comas</strong>.</p>
+          </div>
+          <div style="background:#EFF6FF;border:2px solid #93C5FD;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">🆚</div>
+            <strong style="color:#1D4ED8">No confundir con Sujeto</strong>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#1E40AF">El sujeto <strong>siempre concuerda</strong> con el verbo en número y persona. El vocativo <strong>no</strong>.</p>
+            <p style="font-size:.78rem;color:#3B82F6;margin-top:4px">"Juan, ven": Juan es 3.ª persona; "ven" es 2.ª persona. No hay concordancia → no es sujeto.</p>
+          </div>
+        </div>
+        <div style="background:var(--paper2);border-radius:10px;padding:12px;font-size:.85rem;border-left:3px solid #6366F1">
+          📣 <em>"<strong>Ana</strong>, trae las llaves."</em> → vocativo al inicio (apelación)<br>
+          📣 <em>"Trae las llaves, <strong>Ana</strong>."</em> → vocativo al final (mismo papel)<br>
+          📣 <em>"Trae, <strong>Ana</strong>, las llaves."</em> → vocativo en medio, siempre entre comas
+        </div>
+      `},
+      {tipo:'quiz', pregunta:'En «Camarero, tráiganos la cuenta», ¿qué función tiene "Camarero"?',
+        opciones:['Sujeto — quien hace la acción','Vocativo — apelación al interlocutor, aislado por coma','Complemento Directo','Atributo'],
+        correcta:1,
+        explicacion:'"Tráiganos" es 3.ª persona de cortesía con sujeto tácito (usted/ustedes). "Camarero" no concuerda con el verbo y está aislado por una coma: es una llamada, no el sujeto. Es vocativo.'},
+      {tipo:'quiz', pregunta:'En «Niños, quedaos quietos», ¿por qué "Niños" NO es el sujeto?',
+        opciones:['Porque es un sintagma preposicional','Porque es una función extraoracional de llamada; el sujeto real está tácito (Ø Vosotros)','Porque funciona como Atributo','Porque va antes del verbo'],
+        correcta:1,
+        explicacion:'El vocativo sirve para llamar la atención; el sujeto rige la terminación del verbo. "Quedaos" es 2.ª del plural → sujeto tácito "Vosotros". "Niños" no es ese sujeto: es la apelación.'},
+      {tipo:'quiz', pregunta:'¿Qué marca gráfica permite identificar al vocativo en un texto escrito?',
+        opciones:['Un punto y seguido detrás del nombre','La ausencia total de signos','Una o varias comas que lo aíslan del resto','Mayúscula inicial'],
+        correcta:2,
+        explicacion:'El vocativo se aísla mediante comas para señalar que es una apelación fuera de la estructura predicativa principal. Esa coma es la marca decisiva para distinguirlo de un posible sujeto.'},
+    ]
+  },
   'reflexivos': {
     tag: 'Lección · Reflexivos y Dativos',
     titulo: 'Me, Te, Se: ¿Argumento o Matiz?',
@@ -281,11 +437,20 @@ export const MICRO_LECCIONES = {
 // Map syntax function errors to micro-lessons
 export const ERROR_TO_LECCION = {
   'CD': 'cd_ci', 'CI': 'cd_ci',
-  'Sujeto': 'sujeto', 'Vocativo': 'sujeto',          // Sujeto: deuda técnica 1.9 saldada
+  'Sujeto': 'sujeto',
+  // Vocativo tiene leccion propia desde mayo 2026 (antes iba a 'sujeto').
+  'Vocativo': 'vocativo', 'Vocat.': 'vocativo',
   'PN': 'pn_pv', 'PV': 'pn_pv',                      // antes apuntaban a atr_cpvo (incorrecto)
   'Dativo': 'reflexivos',
   'C.Ag.': 'pasivas', 'Marca.Pas.Ref.': 'pasivas', 'Marca.Imp.': 'impersonales',
   'Atr.': 'atr_cpvo', 'CPvo': 'atr_cpvo',
   'C.Rég.': 'regimen_cc',
-  'CC Tiempo': 'regimen_cc', 'CC Lugar': 'regimen_cc', 'CC Modo': 'regimen_cc', 'CC Causa': 'regimen_cc', 'CC': 'regimen_cc',
+  // Lecciones especificas para CC (antes todas iban al 'regimen_cc' generico).
+  'CC Finalidad': 'cc_finalidad',
+  'CC Causa': 'cc_causa',
+  'CC Cantidad': 'cc_cantidad',
+  // El resto de CC sin leccion propia se queda en el generico de Regimen vs CC.
+  'CC Tiempo': 'regimen_cc', 'CC Lugar': 'regimen_cc', 'CC Modo': 'regimen_cc',
+  'CC Compañía': 'regimen_cc', 'CC Instrumento': 'regimen_cc',
+  'CC': 'regimen_cc',
 };
