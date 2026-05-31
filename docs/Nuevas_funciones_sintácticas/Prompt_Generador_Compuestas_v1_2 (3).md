@@ -12,6 +12,62 @@ Cambios anteriores (v1.0 → v1.1): `schema_version`, `verbo.indices_perifrasis`
 
 ---
 
+# Novedades v1.3 (junio 2026) — LÉELAS: amplían y corrigen las secciones siguientes
+
+Estas reglas se añaden a todo lo de abajo. Donde haya conflicto, mandan estas.
+
+## N1. Funciones nuevas en `analisis_interno.funciones[].tipo`
+
+La lista cerrada de `tipo` (sección 4.1) se amplía con:
+
+- `atributo_locativo` — **atributo de lugar** con verbo copulativo/semicopulativo (ser/estar/parecer), **obligatorio** para completar la predicación. NO se sustituye por «lo» pero SÍ por «allí». Ej.: «El jefe **está en la oficina**», «La conferencia **es en el auditorio**». (Si el verbo es pleno y el lugar es prescindible → es `cc` con `subtipo: "lugar"`, no `atributo_locativo`.)
+- `dativo` — **dativo no argumental** (ético o de interés): pronombre átono (me/te/se/nos/os/le/les) que se puede **suprimir** sin romper la oración. Si al quitarlo se pierde un participante necesario, es `ci`, no `dativo`. El matiz ético/interés no se distingue en la etiqueta (se explica en el feedback).
+
+## N2. Subtipo de CC (campo OPCIONAL, compatible hacia atrás)
+
+En `analisis_interno.funciones`, cada complemento circunstancial puede llevar ahora un campo **`subtipo`** con el tipo concreto:
+
+```json
+{ "tipo": "cc", "subtipo": "lugar", "indices": [5, 6, 7] }
+```
+
+Valores válidos de `subtipo`: `lugar`, `tiempo`, `modo`, `causa`, `finalidad`, `cantidad`, `compania`, `instrumento`, `beneficiario`.
+
+- `beneficiario` = **CC de Beneficiario**: persona/entidad favorecida o perjudicada, introducida por «para». NO admite *le/les* (eso lo distingue del CI, que va con «a»). Ej.: «Compré un regalo **para mi madre**».
+- El campo `subtipo` es **opcional**: las oraciones antiguas sin él siguen siendo válidas. Pero en los lotes nuevos, **rellénalo siempre que la función sea `cc`**.
+
+## N3. CC de Finalidad — marcadores ampliados (revisión)
+
+El CC de Finalidad (`cc` con `subtipo: "finalidad"`) puede introducirse por:
+
+- «para» (lo más común): «Estudia **para aprobar**».
+- «a» con **verbos de movimiento** (ir, venir, subir, bajar, volver, detenerse): «Vengo **a la revisión**».
+- «por» con **valor final** (causa y finalidad se solapan): «Habla bajo **por no molestar**». NO lo conviertas automáticamente en causa.
+- **Locuciones**: a fin de (que), con miras a, en orden a, al objeto de / con el objeto de, con la intención de, con el propósito de.
+
+Recuerda (sección 6, sin cambios): cuando la finalidad es una **proposición** subordinada, NGLE la analiza como construcción (`subtipo` de relación `final`) o como SP cuyo término es una sustantiva, no como «adverbial final» independiente.
+
+## N4. Ejemplo de `cc` con `subtipo` y de `atributo_locativo`
+
+«Mis primos están en el parque y juegan allí por la tarde.» → la PP «juegan allí por la tarde» tendría:
+
+```json
+"funciones": [
+  { "tipo": "cc", "subtipo": "lugar",  "indices": [/* allí */] },
+  { "tipo": "cc", "subtipo": "tiempo", "indices": [/* por la tarde */] }
+]
+```
+
+Y la PP «Mis primos están en el parque» (verbo estar + lugar obligatorio):
+
+```json
+"funciones": [
+  { "tipo": "atributo_locativo", "indices": [/* en el parque */] }
+]
+```
+
+---
+
 # Tarea para la IA
 
 Eres un lingüista-programador especializado en sintaxis del español según la **Nueva Gramática de la Lengua Española (NGLE, RAE)**. Tu tarea es generar ejercicios de **oración compuesta** para el banco de datos del Taller de Sintaxis, una aplicación didáctica para alumnos de 3.º ESO, 4.º ESO y Bachillerato.
@@ -41,12 +97,12 @@ Cada ejercicio que generes irá a una hoja de cálculo de Google Sheets como **u
 - Usar **«sintagma»**, nunca «grupo».  
 - Usar **«proposición»** para cada cláusula con verbo finito o no finito dentro de la oración compuesta.  
 - La preposición es siempre el **núcleo** de su sintagma preposicional (N Prep).  
-- Etiquetas de función válidas: `cd`, `ci`, `cc`, `atributo`, `cpvo`, `c_regimen`, `c_agente`, `marca_pas_ref`, `mod_oracional`, `vocativo`.  
+- Etiquetas de función válidas: `cd`, `ci`, `cc` (con `subtipo` opcional, ver N2), `atributo`, `atributo_locativo` (ver N1), `cpvo`, `c_regimen`, `c_agente`, `dativo` (ver N1), `marca_pas_ref`, `mod_oracional`, `vocativo`.  
 - En relativas, el pronombre relativo (`que`, `quien`, `cual`, etc.) tiene una **función interna** dentro de la PS y no se confunde con la función de la PS dentro de la PP.
 
 ## 1.2 Reglas duras (errores que invalidan el ejercicio)
 
-1. **«para» NUNCA introduce CI.** «Trabajo para mi padre» → CC de finalidad / C.Régimen, según el verbo. Nunca CI.  
+1. **«para» NUNCA introduce CI.** Según el verbo y el sentido, «para + X» es `cc` con `subtipo: "beneficiario"` (persona favorecida: «un regalo para mi madre»), `cc` con `subtipo: "finalidad"` (propósito: «estudia para aprobar») o `c_regimen` (si el verbo lo exige). Nunca CI.  
 2. **El subjuntivo desencadenado por nexos** (`que venga`) NO es CD por el subjuntivo, sino por la prueba de sustitución pronominal (`lo dijo`).  
 3. **El sujeto tácito** se marca como `tipo: "tacito"` con `indices: []`. NO se introduce un token Ø en `tokens`.  
 4. **Las perífrasis verbales** (`tengo que estudiar`, `voy a comer`, `había salido`) se tratan como **un único núcleo verbal**. En el campo `verbo` de la proposición:  
