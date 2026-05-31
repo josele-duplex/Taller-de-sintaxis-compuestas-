@@ -206,6 +206,23 @@ export const MICRO_LECCIONES = {
         opciones:['Sujeto — realiza la acción de traer','Vocativo — apelación al interlocutor marcada por la coma','Atributo','CD'],
         correcta:1,
         explicacion:'El verbo "trae" está en 2.ª persona del imperativo y "Ana" es 3.ª persona: no concuerdan, así que no puede ser el Sujeto. Es Vocativo: llamada de atención al interlocutor, función extraoracional marcada por la coma.'},
+      // ── Quizzes ampliados (mayo 2026): sujeto tacito y sujetos disfrazados
+      {tipo:'quiz', pregunta:'En «Mañana viajaremos a Sevilla», ¿cuál es el análisis correcto del sujeto?',
+        opciones:['El sujeto es "Sevilla"','El sujeto es tácito (Ø Nosotros/as)','Es una oración impersonal sin sujeto','El sujeto es "Mañana"'],
+        correcta:1,
+        explicacion:'"Viajaremos" es 1.ª persona del plural. La desinencia te da la clave: hay un sujeto pronominal invisible "Nosotros/as" (Ø). El sujeto tácito existe aunque no esté escrito.'},
+      {tipo:'quiz', pregunta:'En «Me molesta que grites tanto», ¿cuál es el sujeto?',
+        opciones:['Un sujeto tácito (Tú)','«Que grites tanto» — oración subordinada sustantiva de sujeto','No tiene sujeto, es impersonal','«Me» es el sujeto'],
+        correcta:1,
+        explicacion:'Sustituye toda la subordinada por «ESO»: "Me molesta ESO" ✓. Si «ESO» fuerza la concordancia con el verbo principal ("molestan ESAS COSAS"), has encontrado un sujeto oracional. «Me» es CI, no sujeto.'},
+      {tipo:'quiz', pregunta:'En «Se buscan actores para la serie», ¿qué función tiene "actores"?',
+        opciones:['Sujeto paciente — concuerda en plural con el verbo (pasiva refleja)','Complemento Directo (CD)','Vocativo','CC Finalidad'],
+        correcta:0,
+        explicacion:'Pasa el verbo a singular: "Se busca actor". El sintagma se ve forzado a cambiar. Ese cambio obligado confirma que es el Sujeto paciente de una pasiva refleja (no una impersonal, porque sí hay sujeto que concuerda).'},
+      {tipo:'quiz', pregunta:'En «Ø Estaban agotadas tras la carrera», ¿cómo identificamos el género del sujeto tácito?',
+        opciones:['Por el verbo "Estaban"','Por el complemento "tras la carrera"','Por el adjetivo "agotadas" (femenino plural), que concuerda con el sujeto tácito invisible','No se puede saber el género'],
+        correcta:2,
+        explicacion:'Aunque el sujeto sea tácito, sigue "mandando" sobre los adjetivos y atributos. "Agotadas" (femenino plural) nos confirma que el sujeto tácito es un sintagma pronominal femenino y plural ("Ellas" / "Nosotras"). Esa concordancia es la prueba.'},
     ]
   },
   'pn_pv': {
