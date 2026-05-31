@@ -1,7 +1,33 @@
 # Roadmap y pendientes — Taller de Sintaxis v6
 
-> Lista priorizada de funciones a medias o por hacer · Mayo 2026
-> Basado en las conversaciones de las últimas sesiones de desarrollo
+> Lista priorizada de funciones a medias o por hacer · Creado mayo 2026
+> **Revisado mayo 2026** tras completar la modularización y varias sesiones
+> de desarrollo. Cada entrada lleva estado real (✅/🟡/🔴).
+
+---
+
+## 0. Hecho desde la creación del roadmap (resumen)
+
+Trabajo completado que en su día estaba en este roadmap o surgió después:
+
+- ✅ **Modularización** del monolito (era prioridad máxima 2.1).
+- ✅ **Entrega 2** — feedback escalonado de compuestas (`pistas-compuestas.js`).
+- ✅ **Entrega 3** — micro-lecciones de compuestas (`micro-lecciones-cp.js`).
+- ✅ **Entrega 4** — análisis interno de proposiciones (drag & drop `iidd*` en CP).
+- ✅ **Login del alumno en compuestas** (4.2) — login compartido unificado.
+- ✅ **Modo examen con PIN en compuestas** (4.3) — `iniciarExamenDesdeLogin`.
+- ✅ **Panel del profesor para compuestas** (4.4) — + ampliado con dashboard.
+- ✅ **Colores de funciones Sint↔CP unificados** (7.5.1).
+- ✅ **Rediseño premium de portada + logo nuevo** (no estaba en el roadmap).
+- ✅ **Perfil persistente** (nombre/email/grupo en localStorage).
+- ✅ **Grupo obligatorio** en todos los módulos académicos.
+- ✅ **Separación `Compuestas_Resultados` / `Compuestas_Practica_Log`** + estética azul.
+- ✅ **Resumen del banco de compuestas** (menú profesor).
+- ✅ **Micro-lecciones nuevas**: CC Finalidad, CC Causa, CC Cantidad, Vocativo,
+  ampliación de Sujeto. Normalización `Vocativo → Vocat.`.
+
+Sigue pendiente lo de las secciones 3 (cerrar contenido del banco CP),
+4.5 (vista de errores por alumno) y 5 (nice-to-have, incluidos tests).
 
 ---
 
@@ -15,55 +41,37 @@ Cada elemento incluye:
 
 ---
 
-## 2. Prioridad MÁXIMA · Hacer antes que nada más
+## 2. ✅ Prioridad MÁXIMA original — TODO HECHO
 
-### 2.1 Modularización del archivo monolítico
+### 2.1 Modularización del archivo monolítico — ✅ HECHO
 
-- **Estado**: Diseñado (estrategia completa en `estrategia_division.md`).
-- **Tipo**: Técnico crítico.
-- **Estimación**: 2-3 días completos.
-- **Por qué es máxima**: cualquier mejora futura sufre por trabajar sobre 16.000 líneas en un único fichero. Modularizar **antes** de seguir añadiendo features evita que la deuda crezca.
-- **Cómo**: ver `estrategia_division.md`.
+Completada en mayo 2026. El monolito de ~16.000 líneas se repartió en docenas
+de módulos ES. Ver `estrategia_division.md` y `arquitectura.md`.
 
-### 2.2 Entrega 2 — Sistema de feedback escalonado para Compuestas
+### 2.2 Entrega 2 — Feedback escalonado para Compuestas — ✅ HECHO
 
-- **Estado**: Diseñado, parcialmente preparado (el sistema `trackError` ya está implementado en la Entrega 1 con claves por función).
-- **Tipo**: Pedagógico.
-- **Estimación**: 2-3 horas.
-- **Cómo implementarlo**:
-  1. Crear `FEEDBACK_COMPUESTAS` análogo a `FEEDBACK_SINTAXIS` de Sint. Estructura: array de objetos `{real, marcada, fijo, pista}`.
-  2. Poblarlo con las **tarjetas didácticas tipo "X VS Y"** del archivo `Tarjetas_didácticas_compuestas.md` que envió el usuario.
-  3. Modificar `onClasifClick` y `onRelacionClick` para que, al detectar una confusión `{real: X, marcada: Y}`, muestren el `fijo` (pregunta socrática) y la `pista` (pista concreta).
-  4. Estilo visual: reutilizar `.fb-card-label` / `.fb-card-body` de Sint para mantener consistencia.
+Implementado en `js/feedback/pistas-compuestas.js` (`FEEDBACK_COMPUESTAS`,
+`DICCIONARIO_BASE_COMPUESTAS`), conectado a `lookupScaffold` con `tipo='compuesta'`.
 
-### 2.3 Entrega 3 — Micro-lecciones de Compuestas
+### 2.3 Entrega 3 — Micro-lecciones de Compuestas — ✅ HECHO
 
-- **Estado**: Diseñado, sistema `trackError` ya activo.
-- **Tipo**: Pedagógico.
-- **Estimación**: 3-4 horas.
-- **Cómo implementarlo**:
-  1. Crear `MICRO_LECCIONES_CP` análogo a `MICRO_LECCIONES` de Sint. Estructura: diccionario `id → {titulo, pasos: [...]}`. Cada paso es texto explicativo + opcionalmente quiz.
-  2. Poblarlo con las **tarjetas conceptuales** del archivo del usuario (las que tienen título "Tarjeta N: Concepto X").
-  3. Añadir entradas a `ERROR_TO_LECCION` para mapear las claves de `trackError('compuestas', X)` a IDs de micro-lección. Ejemplo: `'compuestas.subtipo_sustantiva_cd' → 'sustantivas_cd'`.
-  4. Llamar a `updateMicroLeccionButton()` tras cada `trackError` para que aparezca el botón de "Ver lección" si se supera el umbral.
+Implementado en `js/feedback/micro-lecciones-cp.js` (`MICRO_LECCIONES_CP`).
 
 ---
 
 ## 3. Prioridad ALTA · Cerrar el módulo de compuestas
 
-### 3.1 Entrega 4 — Análisis interno de proposiciones
+### 3.1 Entrega 4 — Análisis interno de proposiciones — ✅ HECHO
 
-- **Estado**: Diseñado en el informe del proyecto. Schema ya existe en el banco (`analisis_interno` en 92% de los ejercicios).
-- **Tipo**: Pedagógico, gran complejidad.
-- **Estimación**: 1 día.
-- **Cómo implementarlo** (Opción B del informe: mini-motor propio en CP):
-  1. Al final de la fase fusionada "Clasificar y relacionar", **antes** del resumen, mostrar pantalla de elección: "Ver resumen" o "Analizar las proposiciones por dentro".
-  2. Si el alumno elige "Analizar por dentro", lanzar un mini-motor que recorre cada proposición y hace 3 pasos: NP → Sujeto → Funciones del predicado.
-  3. El estado del mini-motor vive en `state.interna` (sub-objeto). Datos a usar: `proposicion.analisis_interno.sujeto/predicado/funciones`.
-  4. Reutilizar `funcTagCss()` del Core para los chips de función.
-  5. Al final, mostrar el resumen global enriquecido con el desglose por proposición.
+Implementado: la API `CP` expone el flujo de análisis interno con drag & drop
+(`iiddDragStart`, `iiddOver`, `iiddDrop`, `iiddTagClick`, `iiddSlotClick`,
+`iiddConfirm`, `iiddAvanzar`, `onInternaPredBtn`, `onInternaSujBtn`,
+`onInternaFuncBtn`). Tras "Clasificar y relacionar" el alumno puede analizar
+cada proposición por dentro (NP → Sujeto → Funciones).
 
-**Pre-requisito**: completar los 5 ejercicios viejos (OC_001–OC_005) que carecen de `analisis_interno`.
+**Deuda residual**: los 5 ejercicios viejos (OC_0001–OC_0005) siguen sin
+`analisis_interno` completo (ver `deuda_tecnica.md` 1.2). No se deben tocar
+sin avisar; se regenerarán en un lote futuro.
 
 ### 3.2 Auditoría y reconstrucción de oraciones embebidas
 
@@ -77,7 +85,8 @@ Cada elemento incluye:
 
 ### 3.3 Adaptar `construirDiagnosticos()` a la fase fusionada
 
-- **Estado**: Pendiente.
+- **Estado**: 🔴 PENDIENTE (verificado mayo 2026: sigue en
+  `js/modules/compuestas/index.js:4566`).
 - **Tipo**: Limpieza tras refactor.
 - **Estimación**: 1 hora.
 - **Cómo implementarlo**: el resumen interpretativo todavía habla de "fase 4" y "fase 5" como si fueran pasos separados. Hay que reescribir los mensajes hablando de un solo paso "clasificar y relacionar" con sub-pasos.
@@ -111,29 +120,35 @@ Cada elemento incluye:
   2. Reescribir `redactarAnalisis()` para usar estos campos cuando estén disponibles.
   3. Si el campo falta, caer a la plantilla de Opción A.
 
-### 4.2 Login del alumno en el módulo de compuestas
+### 4.2 Login del alumno en el módulo de compuestas — ✅ HECHO
 
-- **Estado**: Sí guardado anónimo implementado en la Entrega de persistencia. Login real pendiente.
-- **Tipo**: Funcional.
-- **Estimación**: 1 hora.
-- **Cómo implementarlo**:
-  1. Reutilizar la pantalla de login de Sint (campos email + nombre + grupo).
-  2. Validar email con `EMAIL_RE` ya existente.
-  3. Pasar email/nombre/grupo en el payload de `saveResultadoCompuestas`.
-  4. Modificar el GAS para guardarlos en columnas adicionales.
+Implementado en mayo 2026. Compuestas pasa por el **login compartido** con
+nombre + email + grupo (obligatorio). El perfil se persiste en localStorage
+(`taller_profile`) y se pre-rellena en futuras entradas. Ver `core/profile.js`,
+`core/navigation.js` (`goModule`) y `CP.enterDesdeLogin`.
 
-### 4.3 Modo examen con PIN en compuestas
+### 4.3 Modo examen con PIN en compuestas — ✅ HECHO
 
-- **Estado**: Backend ya soporta (`createExamenCompuesta_`, `getExamenCompuesta_`). Frontend no.
-- **Tipo**: Funcional.
-- **Estimación**: 1 día.
-- **Cómo implementarlo**: clonar el flujo del modo examen de Sint. Pantallas: introducir PIN → cargar ejercicios pre-computados desde GAS → ejecutar examen sin filtros locales → guardar resultado con PIN y datos del examen.
+Implementado en mayo 2026. El alumno elige "📝 Examen" en el login compartido
+e introduce el PIN allí mismo. `handleStartAll` llama a
+`CP.iniciarExamenDesdeLogin({name, email, grupo, pin})`, que usa
+`fetchExamenCompuesta` y arranca el examen. Se eliminó el 2.º formulario de PIN
+interno que existía (duplicado). El resultado se guarda en `Compuestas_Resultados`.
 
-### 4.4 Panel del profesor para compuestas
+### 4.4 Panel del profesor para compuestas — ✅ HECHO + AMPLIADO
 
-- **Estado**: ✅ HECHO (verificado en código 2026-05-28). Panel "🧩 Resultados de Compuestas" en `index.html:747-800`; `loadCpDashboard()`/`exportCpCSV()` en `teacher/index.js:362-497` (expuestos en window); endpoint `getResultadosCompuestas_` en `Compuestas.gs:635-661` (ruteado línea 1134). Verificado con preview end-to-end: stats (total/media/aprobadas/suspendidas) + tabla + export CSV con Fase0-6_Pts.
-- **Tipo**: Funcional.
-- **Pendiente opcional (mejora, no bloqueante)**: detección automática de qué ejercicios fallan más (menor % medio de aciertos) — punto 3 original, aún no implementado.
+- **Estado base** (2026-05-28): panel "🧩 Resultados de Compuestas" en el
+  frontend del profesor; `loadCpDashboard()`/`exportCpCSV()` en
+  `teacher/index.js`; endpoint `getResultadosCompuestas_` en `Compuestas.gs`.
+  Stats (total/media/aprobadas/suspendidas) + tabla + export CSV.
+- **Ampliación** (mayo 2026, panel del Sheet): el dashboard del Sheet
+  (`crearDashboard_` en `Code_v6.gs`) ahora tiene un bloque "🌳 MÓDULO ORACIÓN
+  COMPUESTA" con métricas (oraciones activas, exámenes activos, resultados de
+  examen, registros de práctica libre, intentos hoy, nota media 30 días),
+  tabla de exámenes activos y top alumnos. Además, menú "📊 Ver resumen de mi
+  banco" (compuestas) con conteos por tipo/subtipo/nivel/nº props/relaciones.
+- **Pendiente opcional (no bloqueante)**: detección automática de qué
+  ejercicios fallan más (menor % medio de aciertos).
 
 ### 4.5 Vista de errores agregada por alumno
 
@@ -146,23 +161,27 @@ Cada elemento incluye:
 
 ## 5. Prioridad BAJA · Mejoras "nice to have"
 
-### 5.0 Cambiar fuente de `.cp-prop-text` a una más pedagógica
+### 5.0 ~~Cambiar fuente de `.cp-prop-text`~~ — OBSOLETO
 
-- **Estado**: Pendiente. Detectado durante la migración (Paso 2 CSS, mayo 2026): el texto de cada proposición en compuestas usa `font-family:'Fraunces',serif` (línea ~3686 de `css/styles.css`). Es la fuente "display" del proyecto, poco pedagógica para textos de análisis.
-- **Tipo**: UI / Pedagógico.
-- **Estimación**: 5 minutos.
-- **Cómo implementarlo**: en `.cp-prop-text` cambiar a `'Lora',serif` (serif suave, legible) o a `'DM Sans','Nunito',sans-serif` (sans-serif, coherente con `.cp-oracion-text`). Verificar también si hay otros selectores CP con `'Fraunces'` que también deban revisarse.
-- **Nota**: hubo un intento previo de cambio que no llegó a guardarse en este `index.html`.
+El selector `.cp-prop-text` ya no existe en el CSS actual (verificado mayo
+2026). La estructura de proposiciones de compuestas cambió en algún refactor
+posterior. Entrada retirada del roadmap.
 
 ### 5.1 Tests automatizados básicos
 
-- **Estado**: No existe ningún test.
+- **Estado**: 🔴 PENDIENTE. Cero tests (ver `deuda_tecnica.md` 2.9).
 - **Tipo**: Infraestructura.
-- **Estimación**: 1-2 días.
-- **Cómo implementarlo**: tras modularizar, usar Vitest o Playwright para:
-  - Tests unitarios de helpers puros (etiquetas, normalización).
-  - Tests de integración del motor de CP simulando clicks.
-  - Tests de schema del banco (validar que cada ejercicio cumple el esquema).
+- **Estimación**: 1-2 tardes.
+- **Cómo implementarlo (enfoque sencillo, SIN frameworks)**:
+  1. **Validador del banco** (Python): ampliar `scripts/validate_compuesta.py`
+     para recorrer el banco entero y avisar de etiquetas mal escritas. Y uno
+     equivalente para simples (`Oraciones_Banco`).
+  2. **Tests de funciones puras** (Node, `node archivo.test.js`): empezar por
+     `GrammarRules.applyAll` (cubre los bugs "por"/"para" ya conocidos),
+     `normalizeOracion`, `ScoringEngine.toGrade`. Requiere extraerlas a su
+     propio archivo importable.
+  3. **Runner mínimo** `tests/run.js` que cuente OK/FALLA.
+  - NO usar Jest/Vitest/Playwright: mantenimiento alto para este perfil.
 
 ### 5.2 PWA (Progressive Web App)
 
@@ -263,49 +282,41 @@ Trabajo paralelo de desarrollo de negocio:
 
 ---
 
-## 8. Cómo organizar las próximas semanas
+## 8. Qué queda por hacer (estado mayo 2026)
 
-Una propuesta de calendario realista:
+El calendario original de "semanas" quedó superado: casi todo lo que estaba
+planificado para las semanas 1-3 ya está hecho. Lo que sigue abierto, por
+orden de utilidad:
 
-### Semana 1 (días 1-3)
+**Contenido del banco de compuestas (sección 3)**
+- 3.2 Auditar oraciones embebidas (3+ proposiciones) y reconstruir `indices`.
+- 3.4 Completar subtipos faltantes (lote nuevo de ejercicios).
+- Completar `analisis_interno` de OC_0001–OC_0005.
 
-- Migrar a Claude Code y a la estructura modular (`estrategia_division.md`).
-- Hacer commit inicial. Crear ramas (`main`, `dev`).
-- Validar que la app sigue funcionando tras la división.
+**Limpieza pedagógica/técnica**
+- 3.3 Adaptar `construirDiagnosticos()` (terminología "fase 4/5" obsoleta).
+- 1.9 (deuda) Micro-lecciones que faltan: NP, CC Tiempo/Lugar/Modo/Compañía/
+  Instrumento, Mod.Or., Conector.
 
-### Semana 1 (días 4-7)
+**Profesor / analítica**
+- 4.5 Vista de errores agregada por alumno.
+- Detección automática de ejercicios más fallados (mejora de 4.4).
 
-- Entrega 2: feedback escalonado de compuestas.
-- Entrega 3: micro-lecciones de compuestas.
-- Adaptar diagnósticos a fase fusionada.
+**Infraestructura**
+- 5.1 / deuda 2.9 Tests mínimos (validador de banco + funciones puras).
+- 4.3 (deuda) Auditar y reducir el CSS legacy.
 
-### Semana 2
-
-- Completar 5 ejercicios viejos sin `analisis_interno`.
-- Auditar oraciones embebidas y reconstruir JSON.
-- Entrega 4: análisis interno de proposiciones.
-- Completar subtipos faltantes del banco (lote nuevo de ejercicios).
-
-### Semana 3
-
-- Login y modo examen para compuestas.
-- Panel del profesor para compuestas.
-- Tests mínimos del motor de CP.
-
-### Semana 4
-
-- Pruebas reales con alumnos en clase.
-- Iteración sobre bugs encontrados.
-- Lanzamiento del pilotaje formal.
+**Producto / negocio (sección 6 y 7)**
+- Documentación para profesores, vídeos demostrativos, pilotaje en aula.
 
 ---
 
-## 9. Próximo paso inmediato
+## 9. Pendientes de validar contra datos reales
 
-Cuando estés en Claude Code con el proyecto migrado, los primeros tres comandos deberían ser:
+Algunas tareas dependen de mirar el Sheet de producción, no solo el código:
 
-1. "Lee `arquitectura.md`, `deuda_tecnica.md`, `roadmap.md` y `estrategia_division.md`."
-2. "Procedemos con la modularización siguiendo `estrategia_division.md`."
-3. "Una vez modularizado, atacamos la Entrega 2 (feedback escalonado)."
-
-A partir de ahí, el ritmo será mucho más rápido que en la web.
+- ¿Cuántos ejercicios del banco tienen 3+ proposiciones y `indices` solapados?
+- ¿Qué subtipos están realmente vacíos hoy en `Compuestas_Banco`?
+  (El menú "📊 Ver resumen de mi banco" de compuestas ahora da estos conteos.)
+- El bug pedagógico "por la lluvia" (CC Causa que se muestra como CC Finalidad)
+  quedó aparcado a la espera de una captura del JSON real de esa fila.
