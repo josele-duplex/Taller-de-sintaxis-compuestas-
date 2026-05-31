@@ -5,6 +5,46 @@
 
 ---
 
+## 🟢 ESTADO (actualizado mayo 2026): MIGRACIÓN COMPLETADA
+
+Este documento se mantiene como **referencia histórica** del plan
+original y como **guía futura** si en algún momento se decide partir
+los dos últimos archivos grandes (`js/modules/compuestas/index.js`
+con 5.355 líneas y `js/modules/sint/index.js` con 3.523 líneas).
+
+**Lo que se hizo (Pasos 1 a 12 del plan original)**:
+
+- ✅ `index.html` reducido de ~15.914 líneas a **1.099** (solo markup
+  estático de las 12 pantallas).
+- ✅ CSS extraído a `css/tokens.css`, `css/legacy.css`, `css/theme/new-ui.css`
+  (~5.900 líneas en total).
+- ✅ JavaScript modularizado en `js/core/`, `js/data/`, `js/glosario/`,
+  `js/gamification/`, `js/feedback/`, `js/modules/{sint,compuestas,arcade,
+  morph,sintagmas,maestro,teacher}/`. Total: ~16.000 líneas en docenas
+  de módulos pequeños (50-1.500 líneas cada uno) + dos grandes
+  pendientes de sub-partir.
+- ✅ Backend GAS sin tocar: `server/Code_v6.gs` (3.851 líneas) y
+  `server/Compuestas.gs` (1.798 líneas).
+- ✅ Punto de entrada único: `js/app.js` orquesta los imports.
+- ✅ Compatibilidad onclick="" preservada con `Object.assign(window, ...)`.
+- ✅ Verificación visual y funcional pasada en todos los módulos.
+
+**Lo que no se hizo (a propósito, esperando demanda real)**:
+
+- 🟡 `js/modules/compuestas/index.js` no se subdividió en `state.js`,
+  `validator.js`, `motor/fase*.js`, etc. (sigue siendo un solo archivo
+  grande de 5.355 líneas). Funciona bien y es manejable; cuando moleste,
+  el plan de la sección 9 de este documento sigue siendo válido.
+- 🟡 `js/modules/sint/index.js` tampoco se subdividió (3.523 líneas).
+  Mismo razonamiento.
+
+**Tamaño total del proyecto hoy**: ~35.800 líneas (frontend + backend).
+Es MÁS grande que el monolito original porque se ha añadido mucha
+funcionalidad (compuestas entera, arcade con 4 modos, micro-lecciones,
+gamificación, etc.), pero **mucho más manejable** por estar repartido.
+
+---
+
 ## 1. Filosofía de la migración
 
 **Sin sobre-ingeniería.** No vamos a meter React, ni Vite, ni TypeScript, ni un bundler complejo. La app funciona como SPA estática sin servidor y queremos mantenerlo así. Solo dividimos.
