@@ -1,6 +1,25 @@
 # Bugs y deuda técnica — Taller de Sintaxis v6
 
-> Análisis crítico para migración a Claude Code · Mayo 2026
+> Análisis crítico del proyecto · Creado para la migración a Claude Code (mayo 2026)
+> **Revisado y actualizado mayo 2026** tras completar la modularización y varias
+> sesiones de desarrollo. Cada entrada lleva su estado real (✅ resuelto /
+> 🟡 parcial / 🔴 pendiente).
+
+---
+
+## 0. Resumen del estado (lectura rápida)
+
+**Resueltas desde la creación del documento**:
+- 1.8 (mostrarToast duplicado) — resuelta con la modularización.
+- 1.9 (funciones sin micro-lección) — parcialmente: Sujeto, CC Finalidad,
+  CC Causa, CC Cantidad y Vocat. ya tienen lección. Faltan NP, CC Compañía,
+  CC Instrumento, Mod.Or., Conector.
+- 1.10 (reset `_sessionFuncErrors`) — resuelta.
+- 2.1 (monolito de 16.000 líneas) — resuelta: proyecto modularizado.
+
+**Siguen pendientes (las importantes)**:
+- 1.1 embebidas, 1.2 cinco ejercicios viejos, 1.3 diagnósticos CP, 1.4
+  subtipos del banco, 2.9 tests automatizados, 2.10 telemetría.
 
 ---
 
@@ -26,7 +45,11 @@ OC_001, OC_002, OC_003, OC_004, OC_005 son del lote más antiguo y tienen un for
 
 ### 1.3 Diagnósticos del resumen interpretativo desactualizados
 
-La función `construirDiagnosticos(ej)` en CP sigue hablando de "fase 4" y "fase 5" como si fueran pasos separados, pero el refactor de Entrega 3 las fusionó en una sola fase llamada "Clasificar y relacionar". Los mensajes salen incoherentes.
+**Estado: 🔴 PENDIENTE (verificado mayo 2026).** `construirDiagnosticos(ej)`
+sigue en `js/modules/compuestas/index.js:4566` y el código del módulo aún
+menciona "fase 4" / "fase 5" (líneas ~1085, 1195, 1996, 2540). El refactor
+fusionó esas fases en "Clasificar y relacionar" (paso 4 para el alumno) pero
+los mensajes pueden salir con terminología incoherente.
 
 **Impacto**: bajo. No rompe la app, solo confunde al alumno con terminología obsoleta.
 
@@ -56,32 +79,35 @@ Las proposiciones coordinadas en el JSON tienen `subtipo: null` y el subtipo rea
 
 ### 1.8 Definición duplicada de `function mostrarToast` dentro del IIFE de CP
 
-**Estado**: detectado durante la migración (Paso 9.1, mayo 2026).
-
-**Problema**: el IIFE de CP en `index.html` declara `function mostrarToast(...)` dos veces (líneas 10793 y 10831). En sloppy mode (donde corre el `<script>` actual) el hoisting hace que la segunda definición sobreescriba a la primera, así que el código en runtime usa siempre la segunda. En strict mode (ES modules) sería un `SyntaxError`.
-
-**Solución provisional**: en el módulo extraído `js/modules/compuestas/index.js` se eliminó la primera definición (líneas 10788-10817 del original, incluyendo su docstring). Comportamiento en runtime idéntico al original. El `index.html` no se ha modificado todavía (sigue con las dos copias hasta el Paso 10).
-
-**Acción pendiente**: cuando se elimine el JS inline del HTML en el Paso 10 esta deuda desaparece sola, porque ya no quedará la versión sloppy con el duplicado.
-
-**Impacto**: nulo en runtime, bloqueador para la modularización si no se elimina una de las dos.
+**Estado: ✅ RESUELTO con la modularización.** Al extraer el JS inline del HTML
+y pasar a módulos ES (strict mode), la versión duplicada desapareció:
+`js/modules/compuestas/index.js` tiene una única definición de `mostrarToast`.
+Ya no hay HTML monolítico con la copia sloppy.
 
 ### 1.9 Funciones sin micro-lección asignada en Sint
 
-**Estado**: detectado en revisión de mayo 2026 (post-Fase 1.2 CP). El usuario recordaba que las micro-lecciones no saltaban como esperaba; investigando se vio que la lógica del umbral (3 errores) funciona, pero varias funciones no tienen entrada en `ERROR_TO_LECCION` y por tanto NUNCA disparan micro-lección por mucho que el alumno se equivoque.
+**Estado: 🟡 PARCIALMENTE RESUELTO (mayo 2026).**
 
-**Funciones SIN lección asignada** (en `js/feedback/micro-lecciones.js → ERROR_TO_LECCION`):
+**Ya tienen lección** (añadidas en sesiones de mayo 2026):
+- `Sujeto` → lección `'sujeto'` (con prueba de concordancia, sujeto tácito,
+  sujeto oracional, pasiva refleja).
+- `Vocativo` / `Vocat.` → lección `'vocativo'` (función extraoracional,
+  contraste con sujeto). La etiqueta canónica `Vocat.` se normalizó.
+- `CC Finalidad` → lección `'cc_finalidad'`.
+- `CC Causa` → lección `'cc_causa'` (con contraste C. Agente).
+- `CC Cantidad` → lección `'cc_cantidad'` (adjunto vs argumento de medida).
+- `PN` / `PV` → lección `'pn_pv'`.
 
-- `Sujeto` (la más sangrante: es donde el alumnado se equivoca más).
+**Siguen SIN lección propia** (van al genérico `'regimen_cc'` o a nada):
 - `NP` (núcleo del predicado).
-- `CC Cantidad`, `CC Compañía`, `CC Finalidad`, `CC Instrumento` (solo CC Tiempo/Lugar/Modo/Causa tienen `regimen_cc`).
-- `Mod.Or.`, `Vocat.`, `Conector` (las "marcas").
+- `CC Tiempo`, `CC Lugar`, `CC Modo` (van al genérico `regimen_cc`).
+- `CC Compañía`, `CC Instrumento` (van al genérico `regimen_cc`).
+- `Mod.Or.`, `Conector` (las "marcas" restantes).
 
-**Funciones que SÍ están mapeadas correctamente**: CD, CI, C.Ag., Marca.Pas.Ref., Marca.Imp., Atr., CPvo, PN, PV, C.Rég., CC Tiempo/Lugar/Modo/Causa, CC.
+**Solución pendiente**: crear lecciones específicas para las CC que faltan
+y para NP, Mod.Or. y Conector. No es bug de código, es contenido faltante.
 
-**Solución pendiente**: crear contenido didáctico (concepto + 2-3 quizzes) para una nueva micro-lección `'sujeto'` que aborde la prueba de la concordancia, sujetos tácitos, impersonales y los principales errores tipo "Sujeto vs CD". Después, añadir `'Sujeto': 'sujeto'` a `ERROR_TO_LECCION`. Lo mismo para NP y las CCs faltantes.
-
-**Impacto**: pedagógico. El alumno que falle 30 veces en Sujeto nunca recibirá la lección de refuerzo. No es un bug de código sino de contenido faltante.
+**Impacto**: pedagógico, ya muy reducido respecto al estado original.
 
 ### 1.10 Regresión de migración: reset de `_sessionFuncErrors` no funcionaba
 
@@ -100,19 +126,17 @@ Las proposiciones coordinadas en el JSON tienen `subtipo: null` y el subtipo rea
 
 ### 2.1 Archivo monolítico de 16.000 líneas
 
-**El problema más grande del proyecto.** Todo está en un único `taller-sintaxis-v6.html`:
-- 4.500 líneas de CSS.
-- 750 líneas de HTML estático (las 12 pantallas).
-- 10.500 líneas de JavaScript.
+**Estado: ✅ RESUELTO (mayo 2026).** El monolito `taller-sintaxis-v6.html` se
+modularizó por completo (ver `estrategia_division.md` y `arquitectura.md`):
+- `index.html` quedó en 1.099 líneas (solo markup).
+- CSS en `css/tokens.css`, `css/legacy.css`, `css/theme/new-ui.css`.
+- JS repartido en `js/core`, `js/data`, `js/feedback`, `js/gamification`,
+  `js/glosario` y `js/modules/*`, cargado con `<script type="module">`.
 
-Consecuencias:
-- Búsqueda lenta y propensa a errores.
-- Imposible aplicar herramientas de linting / formateo automático efectivamente.
-- Cualquier cambio toca el archivo entero. Los conflictos de Git son inmanejables si dos personas editan a la vez.
-- Claude (web) tarda en cargarlo en contexto.
-- Las dependencias entre funciones son invisibles: ¿quién llama a `awardXP`? Hay que hacer grep.
-
-**Solución**: la migración a Claude Code es la oportunidad perfecta. El plan está en `estrategia_division.md`.
+**Deuda residual** (no bloqueante): los dos módulos más grandes siguen sin
+subdividirse internamente — `js/modules/compuestas/index.js` (5.355 líneas)
+y `js/modules/sint/index.js` (3.523 líneas). El plan para partirlos está en
+`estrategia_division.md` § 9. Se hará solo cuando moleste de verdad.
 
 ### 2.2 Estado global descontrolado
 
@@ -166,9 +190,24 @@ El módulo CP llama a `playSuccess()`, `awardXP()`, `trackError()` del Core. Si 
 
 ### 2.9 No hay tests automatizados
 
-Cero. Toda la verificación es manual. Esto es **deuda técnica grave** para un proyecto de 16.000 líneas. Cualquier cambio puede romper algo lejano sin que nadie se entere hasta que un alumno lo encuentra.
+**Estado: 🔴 PENDIENTE.** Cero tests. Toda la verificación es manual. Sigue
+siendo deuda real, ahora sobre un proyecto de ~35.800 líneas, aunque la
+modularización lo ha hecho MÁS testable (cada módulo se puede importar y
+probar aislado, cosa imposible en el monolito).
 
-Mínimo viable a futuro: tests de integración del motor de CP (simular un flujo completo) y validaciones de schema del banco.
+**Enfoque sencillo recomendado** (sin frameworks, sin npm install):
+1. **Validador del banco** (Python, ampliando `scripts/validate_compuesta.py`):
+   recorrer `Oraciones_Banco` y `Compuestas_Banco` y avisar de etiquetas con
+   drift (`CCLugar`, `Aposición`, `CC Finalida`...) antes de que el alumno las
+   encuentre.
+2. **Tests del motor** (Node + `node archivo.test.js`): para funciones puras
+   como `GrammarRules.applyAll`, `normalizeOracion`, `ScoringEngine.toGrade`.
+   Empezar por los bugs ya conocidos (la regla del "por"/"para"). Requiere
+   extraer esas funciones a su propio archivo importable.
+3. **Runner mínimo** `tests/run.js` que importe los tests y cuente OK/FALLA.
+
+NO recomendado: Jest, Vitest, Playwright (mantenimiento alto para un proyecto
+sin programador dedicado).
 
 ### 2.10 Logs y telemetría limitados
 
@@ -193,34 +232,37 @@ Es un proceso muy fácil de equivocarse. No hay automatización ni CI.
 
 ---
 
-## 3. Riesgos por orden de gravedad
+## 3. Riesgos por orden de gravedad (actualizado mayo 2026)
 
 | Riesgo | Probabilidad | Impacto | Prioridad |
 |---|---|---|---|
 | Romper algo sin saberlo al editar (no hay tests) | Alta | Alto | 1 |
-| Conflictos de merge al modularizar el archivo | Alta | Medio | 2 |
-| Despliegue erróneo del GAS (URL nueva) | Media | Alto | 3 |
-| Estado global de Sint contaminado entre ejercicios | Baja | Medio | 4 |
-| Bug del banco con embebidas (datos malformados) | Media | Bajo | 5 |
-| Regresiones al limpiar código muerto (fase 0/4 antiguas) | Baja | Bajo | 6 |
+| Despliegue erróneo del GAS (URL nueva) | Media | Alto | 2 |
+| Estado global de Sint contaminado entre ejercicios | Baja | Medio | 3 |
+| Bug del banco con embebidas (datos malformados) | Media | Bajo | 4 |
+| Regresiones al limpiar código muerto (fase 0/4 antiguas) | Baja | Bajo | 5 |
+
+> El riesgo "conflictos de merge al modularizar" desapareció: la
+> modularización ya está hecha.
 
 ---
 
 ## 4. Refactorizaciones urgentes recomendadas
 
-En orden, antes de añadir más features:
+### 4.1 ~~PRIORIDAD MÁXIMA — Modularizar el archivo~~ ✅ HECHO
 
-### 4.1 PRIORIDAD MÁXIMA — Modularizar el archivo
+Completado en mayo 2026. Ver `estrategia_division.md` y `arquitectura.md`.
 
-Imprescindible antes de seguir desarrollando. Ver `estrategia_division.md`.
+### 4.2 ALTA — Crear tests mínimos (ver 2.9)
 
-### 4.2 ALTA — Crear tests mínimos del motor de CP
-
-Aunque sean tests manuales escritos paso a paso ("dado este JSON, simula estos clicks, verifica que la respuesta es correcta"), tener algo es infinitamente mejor que nada.
+🔴 Pendiente. El enfoque sencillo (validador del banco + tests de funciones
+puras con Node, sin frameworks) está detallado en 2.9.
 
 ### 4.3 ALTA — Eliminar el CSS legacy
 
-Auditar el primer bloque CSS (1.154 líneas) clase por clase. Lo que ya no se usa, fuera. Lo que sí se usa, mover al sistema new-ui.
+🟡 Parcialmente abordable. El CSS legacy ya vive aislado en `css/legacy.css`
+(~1.139 líneas). Auditar clase por clase: lo que ya no se usa, fuera; lo que
+sí, mover a `css/theme/new-ui.css`. Requiere pruebas visuales por especificidad.
 
 ### 4.4 MEDIA — Limpiar código muerto
 
