@@ -456,7 +456,9 @@ export const ERROR_TO_LECCION = {
   'CD': 'cd_ci', 'CI': 'cd_ci',
   'Sujeto': 'sujeto',
   // Vocativo tiene leccion propia desde mayo 2026 (antes iba a 'sujeto').
-  'Vocativo': 'vocativo', 'Vocat.': 'vocativo',
+  // La etiqueta canonica es 'Vocat.' (con punto, NGLE-Murcia); el backend GAS
+  // normaliza 'Vocativo' -> 'Vocat.' al guardar (Code_v6.gs).
+  'Vocat.': 'vocativo',
   'PN': 'pn_pv', 'PV': 'pn_pv',                      // antes apuntaban a atr_cpvo (incorrecto)
   'Dativo': 'reflexivos',
   'C.Ag.': 'pasivas', 'Marca.Pas.Ref.': 'pasivas', 'Marca.Imp.': 'impersonales',
