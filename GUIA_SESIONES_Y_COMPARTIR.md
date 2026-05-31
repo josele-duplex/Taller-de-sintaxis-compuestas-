@@ -33,7 +33,7 @@ La app vive en **GitHub Pages**. Cualquier persona con el enlace puede usarla si
 ### Tu enlace de GitHub Pages
 
 ```
-https://<tu-usuario-github>.github.io/proyecto_taller-sintaxis/taller-sintaxis-v6.html
+https://<tu-usuario-github>.github.io/proyecto_taller-sintaxis/index.html
 ```
 
 > Sustituye `<tu-usuario-github>` por tu nombre de usuario real en GitHub.  
@@ -65,7 +65,7 @@ npx -p http-server http-server -p 8765 -c-1
 Luego abre en el navegador:
 
 ```
-http://localhost:8765/taller-sintaxis-v6.html
+http://localhost:8765/index.html
 ```
 
 Para parar el servidor, pulsa `Ctrl + C` en la terminal.
