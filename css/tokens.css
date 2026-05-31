@@ -97,11 +97,13 @@
   --portada-bg:        #F5F1E8; /* cream — cálido */
   --portada-card:      #FFFFFF;
   --portada-border:    #E6E0D2;
-  --portada-navy:      #102A43; /* petróleo, títulos */
+  --portada-navy:      #102A43; /* petróleo, títulos — barra de Sintáctico */
   --portada-navy-soft: #1E3A5F;
-  --portada-teal:      #0F766E; /* esmeralda, acento */
+  --portada-teal:      #0F766E; /* esmeralda — barra de Morfológico */
   --portada-teal-soft: #14B8A6;
-  --portada-blue-soft: #7FA7C9; /* azul suave (sintagmas) — más definido para que la barra superior se distinga */
+  --portada-azul:      #2F6FB0; /* azul acero medio — barra de Sintagmas (distinto del navy) */
+  --portada-vino:      #9D4B5E; /* granate suave — barra de Compuesta (cálido, ni violeta ni naranja) */
+  --portada-blue-soft: #7FA7C9; /* azul suave (legacy, otros usos) */
   --portada-cyan:      #0E7490;
   --portada-magenta:   #BE185D; /* solo arcade */
   --portada-muted:     #5C6B7E;

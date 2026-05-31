@@ -4380,25 +4380,10 @@ body.theme-new-ui #screen-portada:not(.fx-futurista)::before{
     radial-gradient(220px 220px at -3% 42%, rgba(15,118,110,0.06), transparent 70%),
     radial-gradient(280px 280px at 103% 62%, rgba(16,42,67,0.05), transparent 70%);
 }
-/* Decoración: rejillas de puntos en esquinas opuestas */
-body.theme-new-ui #screen-portada:not(.fx-futurista)::after{
-  content:'';
-  position:absolute; inset:0;
-  z-index:-1; pointer-events:none;
-  background:
-    radial-gradient(circle, var(--portada-decor) 1px, transparent 1.5px) 24px 24px / 14px 14px no-repeat,
-    radial-gradient(circle, var(--portada-decor) 1px, transparent 1.5px) calc(100% - 24px) calc(100% - 24px) / 14px 14px no-repeat;
-  background-repeat:repeat, repeat;
-  background-size:14px 14px, 14px 14px;
-  background-position:24px 24px, calc(100% - 24px) calc(100% - 24px);
-  /* Limita la zona de los puntos a un cuadrado de 84x84 en cada esquina */
-  -webkit-mask:
-    linear-gradient(#000,#000) 24px 24px / 84px 84px no-repeat,
-    linear-gradient(#000,#000) calc(100% - 108px) calc(100% - 108px) / 84px 84px no-repeat;
-          mask:
-    linear-gradient(#000,#000) 24px 24px / 84px 84px no-repeat,
-    linear-gradient(#000,#000) calc(100% - 108px) calc(100% - 108px) / 84px 84px no-repeat;
-}
+/* (Retirada mayo 2026: la rejilla de puntos en las esquinas distraía junto
+   al logo. Se conservan solo los círculos veladísimos de los flancos del
+   ::before. Si en el futuro se quiere recuperar la textura de puntos, estaba
+   aquí como ::after con dos radial-gradient enmascarados en las esquinas.) */
 /* Título: color sólido petróleo, sin degradados */
 body.theme-new-ui #screen-portada:not(.fx-futurista) .portada-hero h1{
   background:none;

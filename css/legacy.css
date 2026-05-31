@@ -714,11 +714,16 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
     0 8px 26px rgba(15,42,67,0.10);
   display:flex;align-items:center;justify-content:center;
   margin-bottom:4px;
+  overflow:hidden; /* recorta el sobrante del logo ampliado al borde circular */
 }
+/* El logo llena el círculo (sin holgura) y se amplía un poco con scale para
+   aprovechar mejor el espacio. El círculo NO cambia de tamaño; el exceso se
+   recorta por overflow+border-radius. */
 .theme-new-ui .portada-logo img,
 .theme-new-ui .portada-logo svg{
-  width:92px;height:92px;display:block;
+  width:104px;height:104px;display:block;
   object-fit:contain;object-position:center;
+  transform:scale(1.16);
 }
 .theme-new-ui .portada-hero h1{
   font-family:'Fraunces',serif;font-size:2.1rem;font-weight:700;
@@ -752,7 +757,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
   .theme-new-ui #screen-portada .mod-grid{grid-template-columns:1fr;gap:14px}
   .theme-new-ui .portada-logo{width:88px;height:88px}
   .theme-new-ui .portada-logo img,
-  .theme-new-ui .portada-logo svg{width:78px;height:78px}
+  .theme-new-ui .portada-logo svg{width:88px;height:88px;transform:scale(1.16)}
   .theme-new-ui .portada-hero h1{font-size:1.8rem}
 }
 
@@ -858,18 +863,26 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
   box-shadow:0 2px 6px rgba(15,118,110,0.25);
 }
 
-/* Per-module accent (subtle: only the top bar and the icon active state).
-   Paleta acorde a la referencia: petróleo, verde esmeralda y azul suave.
-   No se usa violeta. */
+/* Per-module accent (la barra superior de 3px + el estado activo del icono).
+   Cuatro colores CLARAMENTE distintos, uno por módulo académico, dentro de
+   la paleta editorial (petróleo, esmeralda, azul acero, granate). No se usa
+   violeta ni neón. Arcade aparte (ámbar, más abajo).
+     · Sintáctico → petróleo (navy oscuro)
+     · Morfológico → esmeralda (verde)
+     · Sintagmas   → azul acero medio
+     · Compuesta   → granate suave */
 .theme-new-ui #screen-portada .mc-sint::before{background:var(--portada-navy)}
 .theme-new-ui #screen-portada .mc-sint:hover .mod-card-icon{background:var(--portada-navy)}
+.theme-new-ui #screen-portada .mc-sint:hover{border-color:var(--portada-navy)}
 .theme-new-ui #screen-portada .mc-maestro::before{background:var(--portada-teal)}
 .theme-new-ui #screen-portada .mc-maestro:hover .mod-card-icon{background:var(--portada-teal)}
-.theme-new-ui #screen-portada .mc-sint4::before{background:var(--portada-blue-soft)}
-.theme-new-ui #screen-portada .mc-sint4:hover .mod-card-icon{background:var(--portada-navy-soft)}
-.theme-new-ui #screen-portada .mc-compuestas::before{background:var(--portada-teal)}
-.theme-new-ui #screen-portada .mc-compuestas:hover .mod-card-icon{background:var(--portada-teal)}
-.theme-new-ui #screen-portada .mc-compuestas:hover{border-color:var(--portada-teal)}
+.theme-new-ui #screen-portada .mc-maestro:hover{border-color:var(--portada-teal)}
+.theme-new-ui #screen-portada .mc-sint4::before{background:var(--portada-azul)}
+.theme-new-ui #screen-portada .mc-sint4:hover .mod-card-icon{background:var(--portada-azul)}
+.theme-new-ui #screen-portada .mc-sint4:hover{border-color:var(--portada-azul)}
+.theme-new-ui #screen-portada .mc-compuestas::before{background:var(--portada-vino)}
+.theme-new-ui #screen-portada .mc-compuestas:hover .mod-card-icon{background:var(--portada-vino)}
+.theme-new-ui #screen-portada .mc-compuestas:hover{border-color:var(--portada-vino)}
 
 /* Arcade card: carácter algo más enérgico que las académicas pero dentro
    de la paleta editorial: barra ámbar suave (no neón, no magenta). Resto
