@@ -415,6 +415,86 @@ export const MICRO_LECCIONES = {
         explicacion:'El vocativo se aísla mediante comas para señalar que es una apelación fuera de la estructura predicativa principal. Esa coma es la marca decisiva para distinguirlo de un posible sujeto.'},
     ]
   },
+  'atr_locativo': {
+    tag: 'Lección · Atributo Locativo',
+    titulo: 'El lugar que NO se puede quitar',
+    bloques: [
+      {tipo:'concepto', html:`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:#FBEEF6;border:2px solid #E4A4D8;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">📍</div>
+            <strong style="color:#701A75">Atributo Locativo</strong>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#86198F">Lugar <strong>obligatorio</strong> con verbos <strong>copulativos</strong> (ser, estar, parecer). Completa la predicación: sin él, la oración se queda coja.</p>
+            <p style="font-size:.78rem;color:#A21CAF;margin-top:4px">"El jefe está <u>en la oficina</u>"</p>
+          </div>
+          <div style="background:#E5F4F1;border:2px solid #5BC9B6;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">🎨</div>
+            <strong style="color:#134E4A">CC de Lugar</strong>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#115E59">Lugar <strong>opcional</strong> con verbos <strong>plenos</strong> (comer, vivir, jugar…). Es un "decorado": se puede eliminar.</p>
+            <p style="font-size:.78rem;color:#0F766E;margin-top:4px">"Comió <u>en el restaurante</u>"</p>
+          </div>
+        </div>
+        <div style="background:var(--paper2);border-radius:10px;padding:12px;font-size:.85rem;border-left:3px solid #6366F1">
+          <strong>La prueba doble del atributo locativo:</strong><br>
+          ① NO se sustituye por «lo»: <em>*"El jefe lo está"</em> 🚫<br>
+          ② SÍ se sustituye por «allí»: <em>"El jefe está allí"</em> ✓<br>
+          <span style="font-size:.8rem;color:var(--muted)">Recuerda: con <strong>eventos</strong> (reunión, concierto) se usa «ser» («La conferencia <u>es en el auditorio</u>»); con <strong>cosas/personas</strong> se usa «estar».</span>
+        </div>
+      `},
+      {tipo:'quiz', pregunta:'En «Mis primos están en el parque», ¿qué función tiene "en el parque"?',
+        opciones:['CC de Lugar — es un decorado opcional','Atributo Locativo — lugar obligatorio con "estar"','Complemento de Régimen','Sujeto'],
+        correcta:1,
+        explicacion:'"Estar" es copulativo y el lugar es obligatorio: *"Mis primos están" queda incompleto. No se puede sustituir por "lo" pero sí por "allí". Es Atributo Locativo.'},
+      {tipo:'quiz', pregunta:'En «La conferencia es en el auditorio», ¿por qué "en el auditorio" es Atributo Locativo?',
+        opciones:['Porque "conferencia" es un evento y "ser" sitúa el evento de forma obligatoria','Porque responde a "¿dónde?" y eso siempre es CC','Porque lleva preposición "en"','Porque va al final de la oración'],
+        correcta:0,
+        explicacion:'Con sujetos de evento (conferencia, concierto, reunión), el verbo "ser" localiza de forma obligatoria. Se sustituye por "allí" ("La conferencia es allí") pero no por "lo". Es Atributo Locativo.'},
+      {tipo:'quiz', pregunta:'En «Los niños comieron en el jardín», ¿qué función tiene "en el jardín"?',
+        opciones:['Atributo Locativo — lugar obligatorio','CC de Lugar — el verbo es pleno y el lugar es prescindible','Complemento Directo','Atributo'],
+        correcta:1,
+        explicacion:'"Comer" es un verbo pleno (no copulativo). El lugar es prescindible: "Los niños comieron" sigue teniendo sentido. Por eso es un CC de Lugar normal, no un atributo.'},
+    ]
+  },
+  'cc_beneficiario': {
+    tag: 'Lección · CC Beneficiario',
+    titulo: '¿Para quién? El que sale ganando',
+    bloques: [
+      {tipo:'concepto', html:`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:#E5F4F1;border:2px solid #5BC9B6;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">🎁</div>
+            <strong style="color:#134E4A">CC de Beneficiario</strong>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#115E59">Persona o entidad <strong>favorecida o perjudicada</strong> por la acción. Introducido por <strong>«para»</strong>. Adjunto prescindible.</p>
+            <p style="font-size:.78rem;color:#0F766E;margin-top:4px">Responde a <strong>¿para quién?</strong></p>
+          </div>
+          <div style="background:#F2EBFF;border:2px solid #B49AF0;border-radius:12px;padding:14px">
+            <div style="font-size:1.3rem;margin-bottom:4px">📨</div>
+            <strong style="color:#4C1D95">No es CI</strong>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#5B21B6">El CI va con <strong>«a»</strong> y se sustituye por <strong>«le/les»</strong>. El beneficiario va con «para» y NO admite «le».</p>
+            <p style="font-size:.78rem;color:#6D28D9;margin-top:4px">Pueden coaparecer: "Le entregó la carta para el Rey".</p>
+          </div>
+        </div>
+        <div style="background:var(--paper2);border-radius:10px;padding:12px;font-size:.85rem;border-left:3px solid #6366F1">
+          <strong>Cómo distinguirlo:</strong><br>
+          🎁 <em>"Compré un regalo <strong>para mi madre</strong>."</em> → ¿para quién? mi madre. No admite «le» → CC Benef.<br>
+          📨 <em>"Di un regalo <strong>a mi madre</strong>."</em> → «Le di un regalo» ✓ → CI<br>
+          🎯 <em>"Estudia <strong>para aprobar</strong>."</em> → ¿para qué? un propósito → CC Finalidad
+        </div>
+      `},
+      {tipo:'quiz', pregunta:'En «He preparado una tarta para mi mejor amiga», ¿qué función tiene "para mi mejor amiga"?',
+        opciones:['Complemento Indirecto (CI)','CC de Beneficiario — persona favorecida, con "para"','CC de Finalidad','Complemento de Régimen'],
+        correcta:1,
+        explicacion:'"Para mi mejor amiga" indica quién se beneficia (¿para quién?) y va con "para". No admite "le" con ese sentido. Es prescindible. Es CC de Beneficiario.'},
+      {tipo:'quiz', pregunta:'¿Cuál de estas oraciones tiene un CC de Beneficiario y NO un CI?',
+        opciones:['Entregué el diploma a la directora','Guardé una silla para mi novia','Dije la verdad a mis padres','Le compré flores'],
+        correcta:1,
+        explicacion:'"Para mi novia" lleva "para" y no admite "le" (es beneficiaria). Las otras tres llevan "a" y se sustituyen por "le/les": son CI. La clave es la preposición + la prueba del "le".'},
+      {tipo:'quiz', pregunta:'En «Le entregó la carta para el Rey», ¿por qué hay dos funciones distintas?',
+        opciones:['Es un error: solo puede haber una','"Le" es CI (a quien entrega) y "para el Rey" es CC Beneficiario (destinatario final)','Las dos son CI','Las dos son beneficiario'],
+        correcta:1,
+        explicacion:'Que CI y beneficiario puedan coaparecer demuestra que son funciones distintas. "Le" (CI, con "a" implícita, sustituible por le) y "para el Rey" (beneficiario, con "para") conviven sin problema.'},
+    ]
+  },
   'reflexivos': {
     tag: 'Lección · Reflexivos y Dativos',
     titulo: 'Me, Te, Se: ¿Argumento o Matiz?',
@@ -463,11 +543,14 @@ export const ERROR_TO_LECCION = {
   'Dativo': 'reflexivos',
   'C.Ag.': 'pasivas', 'Marca.Pas.Ref.': 'pasivas', 'Marca.Imp.': 'impersonales',
   'Atr.': 'atr_cpvo', 'CPvo': 'atr_cpvo',
+  // Atributo locativo: leccion propia (junio 2026).
+  'Atr. Loc.': 'atr_locativo',
   'C.Rég.': 'regimen_cc',
   // Lecciones especificas para CC (antes todas iban al 'regimen_cc' generico).
   'CC Finalidad': 'cc_finalidad',
   'CC Causa': 'cc_causa',
   'CC Cantidad': 'cc_cantidad',
+  'CC Benef.': 'cc_beneficiario',
   // El resto de CC sin leccion propia se queda en el generico de Regimen vs CC.
   'CC Tiempo': 'regimen_cc', 'CC Lugar': 'regimen_cc', 'CC Modo': 'regimen_cc',
   'CC Compañía': 'regimen_cc', 'CC Instrumento': 'regimen_cc',
