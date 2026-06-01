@@ -3,9 +3,12 @@
    Líneas originales: 1390-1392, 1534-1570. */
 
 // CC subtipos v4.0 — aparecen en el pool de Adjuntos con submenú
-export const CC_SUBTIPOS = ['CC Lugar','CC Tiempo','CC Modo','CC Causa','CC Cantidad','CC Compañía','CC Finalidad','CC Instrumento'];
+// 'CC Benef.' (beneficiario) añadido junio 2026: al estar en CC_SUBTIPOS se
+// propaga solo a isCC(), al submenú de CC y al color (los CC se pintan tag-f-cc).
+export const CC_SUBTIPOS = ['CC Lugar','CC Tiempo','CC Modo','CC Causa','CC Cantidad','CC Compañía','CC Finalidad','CC Instrumento','CC Benef.'];
 
-export const FUNC_ORAC = ['Sujeto','PN','PV','NP','CD','CI','C.Rég.','Atr.','CPvo',...CC_SUBTIPOS,'C.Ag.','Mod.Or.','Conector','Vocat.','Marca.Imp.','Marca.Pas.Ref.'];
+// 'Atr. Loc.' (atributo locativo) y 'Dativo' (no argumental) añadidos junio 2026.
+export const FUNC_ORAC = ['Sujeto','PN','PV','NP','CD','CI','Dativo','C.Rég.','Atr.','Atr. Loc.','CPvo',...CC_SUBTIPOS,'C.Ag.','Mod.Or.','Conector','Vocat.','Marca.Imp.','Marca.Pas.Ref.'];
 
 export const FUNC_SINT = ['N','N (enlace)','Mod/Det.','Mod/Cuant.','Mod.','SN/CN','SAdj/CN','SPrep/CN','CAdj','CAdv','SN/T','SAdj/T','SAdv/T','SP/T','Nexo','Aposición'];
 
@@ -15,13 +18,19 @@ export function funcTagCss(label) {
   const func = label.includes(' | ') ? label.split(' | ')[1] : label;
   const map = {
     'CD':'tag-f-cd','CI':'tag-f-ci','C.Rég.':'tag-f-creg','Atr.':'tag-f-atr',
+    // junio 2026: Atr. Loc. comparte color con el atributo (es un atributo);
+    // Dativo comparte color con el CI (es un dativo no argumental, "primo" del CI).
+    'Atr. Loc.':'tag-f-atr','Dativo':'tag-f-ci',
     'PV':'tag-f-pv','PN':'tag-f-pn','CC':'tag-f-cc','CPvo':'tag-f-cpvo',
     'C.Ag.':'tag-f-cag',
     'Mod.Or.':'tag-f-modor2','Vocat.':'tag-f-voc2',
     'Marca.Imp.':'tag-f-imp','Marca.Pas.Ref.':'tag-f-pasref',
     'Sujeto':'tag-sn','NP':'tag-sv'
   };
-  return map[func] || 'tag-func-lbl';
+  if (map[func]) return map[func];
+  // Cualquier subtipo de CC ('CC Lugar', 'CC Benef.', etc.) usa el color CC.
+  if (func.startsWith('CC ')) return 'tag-f-cc';
+  return 'tag-func-lbl';
 }
 
 // tagContent: renders the tag label — Marcas have no tipo so show only func

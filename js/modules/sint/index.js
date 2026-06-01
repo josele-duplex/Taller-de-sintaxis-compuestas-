@@ -55,24 +55,26 @@
 
 // ── GRAMMAR RULES (NGLE / PAU Murcia) ──────────────────────────────
 const GrammarRules = {
-  applyAll(label, blockText = '') {
-    let r = label;
-    const t = (blockText||'').toLowerCase().trim();
-    if (t.startsWith('para ') || t === 'para') {
-      if (r === 'CI' || r === 'CC Causa') r = 'CC Finalidad';
-    }
-    if (t.startsWith('por ') || t === 'por') {
-      if (r === 'CC Finalidad') r = 'CC Causa';
-    }
-    return r;
+  // junio 2026: la AUTOCORRECCIÓN por→Causa / para→Finalidad se ELIMINÓ.
+  // Antes el motor "corregía" la etiqueta del banco según la preposición
+  // inicial del bloque, lo que provocaba el bug "Se suspendió el partido por
+  // la lluvia" (CC Causa en el JSON) mostrado como CC Finalidad. Ahora el
+  // motor RESPETA la etiqueta del banco: la fuente de verdad es el JSON, no
+  // una heurística de preposición. Esto permite además CC Finalidad con
+  // "por" (valor final), con "a" (verbos de movimiento) y con locuciones.
+  applyAll(label /*, blockText */) {
+    return label;
   },
+  // 'para' nunca introduce CI (regla NGLE dura que SÍ conservamos como
+  // distractor prohibido). El resto de suposiciones rígidas se retiran:
+  // con "para"/"por" pueden coexistir Causa, Finalidad y Beneficiario según
+  // el contexto, y es el banco quien decide la correcta.
   filterTraps(allFunctions, correctLabel, blockText = '') {
     const t = (blockText||'').toLowerCase().trim();
     const forbidden = new Set();
     if (t.startsWith('para ') || t === 'para') {
-      forbidden.add('CI'); forbidden.add('CC Causa'); forbidden.add('C.Ag.');
+      forbidden.add('CI'); // NGLE: "para" nunca es CI
     }
-    if (t.startsWith('por ') || t === 'por') { forbidden.add('CC Finalidad'); }
     return allFunctions.filter(f => f !== correctLabel && !forbidden.has(f));
   },
 };
@@ -89,9 +91,9 @@ const SUBFASE_CONFIGS = {
 const WEIGHTS = { NP:2, SUJETO:4, PVPN:2, FUNCION:3 };
 // Weighted scoring by function type (pedagogically calibrated)
 const FUNC_WEIGHT = {
-  'Sujeto':2,'CD':1.5,'CI':1.5,'Atr.':1.5,'CPvo':1.5,'C.Rég.':1.5,'C.Ag.':1.5,
-  'Marca.Pas.Ref.':1,'Marca.Imp.':1,
-  'CC Tiempo':1,'CC Lugar':1,'CC Modo':1,'CC Causa':1,'CC Cantidad':1,'CC Compañía':1,'CC Finalidad':1,'CC Instrumento':1,
+  'Sujeto':2,'CD':1.5,'CI':1.5,'Atr.':1.5,'Atr. Loc.':1.5,'CPvo':1.5,'C.Rég.':1.5,'C.Ag.':1.5,
+  'Marca.Pas.Ref.':1,'Marca.Imp.':1,'Dativo':1,
+  'CC Tiempo':1,'CC Lugar':1,'CC Modo':1,'CC Causa':1,'CC Cantidad':1,'CC Compañía':1,'CC Finalidad':1,'CC Instrumento':1,'CC Benef.':1,
 };
 function getFuncWeight(func){ return FUNC_WEIGHT[func] || 1; }
 const ScoringEngine = {
@@ -247,8 +249,11 @@ function ccSubtipo(f){ return CC_SUBTIPOS.includes(f)?f:null; }
 // FIX: Formas de haber para distinguir TIEMPO COMPUESTO de PERÍFRASIS
 
 // Clasificación v4.0: CPvo pasa a Argumentos; CC usa subtipos
-const FUNC_ARGUMENTOS = new Set(['CD','CI','C.Rég.','Atr.','CPvo','PN','PV']);
-const FUNC_ADJUNTOS   = new Set([...CC_SUBTIPOS,'C.Ag.']);
+// junio 2026: 'Atr. Loc.' (atributo locativo) es argumento, como el atributo.
+const FUNC_ARGUMENTOS = new Set(['CD','CI','C.Rég.','Atr.','Atr. Loc.','CPvo','PN','PV']);
+// 'Dativo' (no argumental: ético / de interés) y 'CC Benef.' (vía CC_SUBTIPOS)
+// son adjuntos.
+const FUNC_ADJUNTOS   = new Set([...CC_SUBTIPOS,'C.Ag.','Dativo']);
 function isAdjunto(f){ return FUNC_ADJUNTOS.has(f)||f==='CC'; }
 const FUNC_MARCAS     = new Set(['Mod.Or.','Conector','Vocat.','Marca.Imp.','Marca.Pas.Ref.']);
 

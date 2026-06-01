@@ -7,7 +7,9 @@ export const GLOS_DATA = [
     {abbr:'CD',       full:'Complemento Directo',       expl:'Sintagma nominal que recibe la acción del verbo. Se sustituye por «lo, la, los, las».', ex:'Veo el gato.'},
     {abbr:'CI',       full:'Complemento Indirecto',     expl:'Sintagma preposicional con «a» que indica el destinatario. Pregunta: ¿a quién?', ex:'Doy el libro a María.'},
     {abbr:'C.Rég.',   full:'Complemento de Régimen',    expl:'Sintagma preposicional cuya preposición es obligatoria; sin ella, la oración resulta agramatical.', ex:'Me acuerdo de ti (no «me acuerdo ti»).'},
+    {abbr:'Dativo',   full:'Dativo (no argumental)',    expl:'Pronombre átono (me, te, se, nos, os, le, les) que se puede suprimir sin romper la oración. Aporta afectividad (ético) o señala a quien se beneficia o perjudica (de interés). No es un CI argumental.', ex:'No te me caigas. / Me buscaron un albergue.'},
     {abbr:'Atr.',     full:'Atributo',                  expl:'Sintagma adjetival, nominal o preposicional que califica al sujeto a través de un verbo copulativo (ser, estar, parecer).', ex:'Juan es ingeniero.'},
+    {abbr:'Atr. Loc.',full:'Atributo Locativo',         expl:'Lugar OBLIGATORIO con ser/estar/parecer. No se sustituye por «lo» pero sí por «allí». Aunque indica lugar, no es un CC: completa la predicación.', ex:'El jefe está en la oficina. / La conferencia es en el auditorio.'},
     {abbr:'CPvo',     full:'Complemento Predicativo',   expl:'Sintagma adjetival que modifica simultáneamente al sujeto (o al CD) y al verbo. Aparece con verbos no copulativos.', ex:'Entró cansado.'},
     {abbr:'C.Ag.',    full:'Complemento Agente',        expl:'Sintagma preposicional con «por» (a veces «de») que aparece en oraciones pasivas. Indica quién realiza la acción.', ex:'El cuadro fue pintado por Picasso.'},
     {abbr:'CC',       full:'Complemento Circunstancial',expl:'Añade circunstancias a la acción (cuándo, dónde, cómo, etc.). No es un argumento obligatorio.', ex:'Corrí en el parque ayer.'}
@@ -16,8 +18,9 @@ export const GLOS_DATA = [
     {abbr:'CC Tiempo',     full:'CC de Tiempo',     expl:'Indica cuándo se realiza la acción.', ex:'Corrí ayer.'},
     {abbr:'CC Lugar',      full:'CC de Lugar',      expl:'Indica dónde se realiza la acción.', ex:'Corro en el parque.'},
     {abbr:'CC Modo',       full:'CC de Modo',       expl:'Indica cómo se realiza la acción.', ex:'Habla claramente.'},
-    {abbr:'CC Causa',      full:'CC de Causa',      expl:'Indica el motivo por el que se produce la acción. Pregunta: ¿por qué?', ex:'Llueve por la presión atmosférica.'},
-    {abbr:'CC Finalidad',  full:'CC de Finalidad',  expl:'Indica el propósito o el objetivo de la acción. Pregunta: ¿para qué?', ex:'Estudio para aprender.'},
+    {abbr:'CC Causa',      full:'CC de Causa',      expl:'Indica el motivo por el que se produce la acción. Pregunta: ¿por qué? Preposiciones: «por» (frecuente), «de» (sentimientos), «con», «ante». Se sustituye por «por eso».', ex:'No salimos por la lluvia.'},
+    {abbr:'CC Finalidad',  full:'CC de Finalidad',  expl:'Indica el propósito de la acción. Pregunta: ¿para qué? Marcadores: «para», «a» (con verbos de movimiento), «por» (valor final) y locuciones (a fin de, con miras a, con el propósito de…). Se sustituye por «para eso».', ex:'Ahorra para el viaje. / Vengo a la revisión. / Habla bajo por no molestar.'},
+    {abbr:'CC Benef.',     full:'CC de Beneficiario',expl:'Persona o entidad favorecida o perjudicada por la acción, introducida por «para». Pregunta: ¿para quién? No admite «le/les» (eso lo distingue del CI).', ex:'Compré un regalo para mi madre.'},
     {abbr:'CC Instrumento',full:'CC de Instrumento',expl:'Indica con qué medio o herramienta se realiza la acción.', ex:'Corto con tijeras.'},
     {abbr:'CC Compañía',   full:'CC de Compañía',   expl:'Indica con quién se realiza la acción.', ex:'Juego con mi hermano.'},
     {abbr:'CC Cantidad',   full:'CC de Cantidad',   expl:'Indica el grado o la intensidad con que se realiza la acción.', ex:'Comí mucho.'}
