@@ -2,3 +2,8 @@ node_modules/
 .DS_Store
 Thumbs.db
 .claude/
+
+# TSV exportados del Sheet para validar (datos en bruto, no versionar).
+# La carpeta y su LEEME.md sí se versionan; los .tsv/.csv no.
+banco_export/*.tsv
+banco_export/*.csv
