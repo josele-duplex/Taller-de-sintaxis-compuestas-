@@ -2904,16 +2904,21 @@
     'cd','ci','atributo','cpvo','c_regimen','c_agente','termino_preposicion'
   ]);
   const _ADJUNTO_TIPOS = new Set([
-    'cc','cc_temporal','cc_locativo','cc_modal','cc_causal','cc_final','cc_comparativo'
+    'cc','cc_temporal','cc_locativo','cc_modal','cc_causal','cc_final','cc_comparativo',
+    // modelo unificado (junio 2026)
+    'cc_lugar','cc_tiempo','cc_modo','cc_causa','cc_finalidad','cc_cantidad',
+    'cc_compania','cc_instrumento','cc_beneficiario','dativo'
   ]);
   const _MARCA_TIPOS = new Set([
     'mod_oracional','vocativo','aposicion','cn','c_adj','c_adv',
     'incidental','marca_pas_ref'
   ]);
+  // Atr. Loc. es argumento como el atributo.
+  _ARGUMENTO_TIPOS.add('atributo_locativo');
 
   function _categoriaFunc(tipo){
     if(_ARGUMENTO_TIPOS.has(tipo)) return 'arg';
-    if(_ADJUNTO_TIPOS.has(tipo))   return 'adj';
+    if(_ADJUNTO_TIPOS.has(tipo) || (tipo||'').startsWith('cc')) return 'adj';
     if(_MARCA_TIPOS.has(tipo))     return 'mar';
     return 'arg';                  // default conservador
   }
@@ -2974,8 +2979,13 @@
     const funcs = Array.isArray(ai.funciones) ? ai.funciones : [];
     funcs.forEach((f,i)=>{
       const fWords = getWords(f.indices||[]) || '?';
+      // CC: el tipo correcto es el subtipo efectivo (cc_lugar, cc_tiempo…) si
+      // el ejercicio lo trae. Si es un CC pelado (sin subtipo), queda 'cc'.
+      const correctTipo = (f.tipo === 'cc' || (f.tipo||'').startsWith('cc_'))
+        ? _ccTipoEfectivo(f)
+        : f.tipo;
       blocks.push({
-        id:`func_${i}`, words:fWords, correctTipo:f.tipo,
+        id:`func_${i}`, words:fWords, correctTipo,
         section:'comp', sortIdx: minIdx(f.indices||[])
       });
     });
@@ -2998,17 +3008,22 @@
       {id:'sd_imp', label:'Impersonal',         tipo:'suj_imp'}
     ];
 
-    // Clasificar funciones correctas por categoría
+    // Clasificar funciones correctas por categoría. Para los CC usamos el
+    // tipo EFECTIVO (cc_lugar, cc_tiempo…) derivado de tipo+subtipo, de modo
+    // que el resto del pool (detección de CC, colapso a "CC", validación) sea
+    // coherente con el correctTipo que ya guardamos en cada block.
+    const _tipoEf = f => ((f.tipo==='cc' || (f.tipo||'').startsWith('cc_')) ? _ccTipoEfectivo(f) : f.tipo);
     const correctsByCat = {arg:[], adj:[], mar:[]};
     funcs.forEach((f,i)=>{
-      const cat = _categoriaFunc(f.tipo);
+      const te = _tipoEf(f);
+      const cat = _categoriaFunc(te);
       correctsByCat[cat].push({
-        id:`cd_${i}`, label:etiquetaFuncion(f.tipo), tipo:f.tipo
+        id:`cd_${i}`, label:etiquetaFuncion(te), tipo:te
       });
     });
 
     // Distractores por categoría: 1-2 por sección que NO estén en las correctas
-    const usados = new Set(funcs.map(f=>f.tipo));
+    const usados = new Set(funcs.map(_tipoEf));
     const buildDistractors = (set, prefix, n) => {
       const pool = [...set].filter(t => !usados.has(t));
       pool.sort(()=>Math.random()-.5);
@@ -3017,20 +3032,30 @@
       }));
     };
     const argDis = buildDistractors(_ARGUMENTO_TIPOS, 'ad', 2);
-    // Si entre los correctos hay un CC genérico (tipo `cc` sin subtipo), los
-    // distractores Adjuntos NO deben usar subtipos `cc_temporal/cc_locativo/…`
-    // porque entonces el correcto se delata visualmente por ser el único
-    // etiquetado como "CC" pelado. Generamos distractores también como "CC"
-    // genéricos: mismos label y tipo. Cualquier tag CC valida en el slot CC;
-    // los sobrantes simplemente quedan en el pool como distracción visual.
-    const adjDis = usados.has('cc')
-      ? Array.from({length:2}, (_,i) => ({ id:`dd_d${i}`, label:'CC', tipo:'cc' }))
-      : buildDistractors(_ADJUNTO_TIPOS, 'dd', 2);
     const marDis = buildDistractors(_MARCA_TIPOS,     'md', 1);
+
+    // ── Adjuntos con submenú de subtipo de CC (junio 2026) ───────────────
+    // Todos los CC (con o sin subtipo) se ofrecen al alumno como UNA etiqueta
+    // genérica "CC". Al soltarla sobre un hueco cuyo correctTipo es un CC con
+    // subtipo (cc_lugar, cc_tiempo…), se abre un submenú para elegir el subtipo
+    // exacto (igual que en oraciones simples). Así el correcto no se delata y
+    // el alumno demuestra que sabe el subtipo.
+    const hayCC = correctsByCat.adj.some(b => (b.tipo||'').startsWith('cc'));
+    // Las correctas que son CC se colapsan a una sola etiqueta "CC" en el pool;
+    // las correctas adjuntas que NO son CC (p. ej. dativo) se mantienen.
+    const adjCorrectNoCC = correctsByCat.adj.filter(b => !(b.tipo||'').startsWith('cc'));
+    const adjCCcorrect   = correctsByCat.adj.filter(b =>  (b.tipo||'').startsWith('cc'));
+    // Una etiqueta genérica "CC" por cada hueco CC (para poder rellenar todos).
+    const ccTags = adjCCcorrect.map((_, i) => ({ id:`cc_generic_${i}`, label:'CC', tipo:'cc' }));
+    // Distractores adjuntos: si hay CC, añade un par de adjuntos no-CC como
+    // distracción (p. ej. dativo); si no hay CC, distractores normales.
+    const adjDis = hayCC
+      ? buildDistractors(new Set(['dativo']), 'dd', 1)
+      : buildDistractors(_ADJUNTO_TIPOS, 'dd', 2);
 
     const shuffle = arr => arr.sort(()=>Math.random()-.5);
     const argPool = shuffle([...correctsByCat.arg, ...argDis]);
-    const adjPool = shuffle([...correctsByCat.adj, ...adjDis]);
+    const adjPool = shuffle([...adjCorrectNoCC, ...ccTags, ...adjDis]);
     const marPool = shuffle([...correctsByCat.mar, ...marDis]);
 
     // Estado de slots ─────────────────────────────────────────
@@ -3282,13 +3307,52 @@
     if(_idd.confirmed) return;
     const tag = _allIddTags().find(b=>b.id===tagId);
     if(!tag) return;
-    // Si el tag estaba en otro slot, limpiarlo
+    const block = _idd.blocks.find(b=>b.id===slotId);
+    // Si el alumno coloca la etiqueta genérica "CC" sobre un hueco cuyo
+    // correcto es un CC con subtipo, abrir submenú para elegir el subtipo.
+    if(tag.tipo === 'cc' && block && (block.correctTipo||'').startsWith('cc_')){
+      _abrirCcSubmenuIdd(tagId, slotId);
+      return;
+    }
+    _iiddPlaceFinal(tagId, slotId, tag.tipo);
+  }
+  // Coloca definitivamente (con el tipo efectivo elegido) y refresca.
+  function _iiddPlaceFinal(tagId, slotId, tipoEfectivo){
+    const tag = _allIddTags().find(b=>b.id===tagId);
+    if(!tag) return;
     Object.keys(_idd.slots).forEach(sid=>{ if(_idd.slots[sid]?.id===tagId) _idd.slots[sid]=null; });
-    _idd.slots[slotId] = tag;
+    // Clonamos el tag para fijarle el tipo concreto sin alterar el del pool.
+    _idd.slots[slotId] = { ...tag, tipo: tipoEfectivo };
     _rebuildIddBlocks(); _rebuildIddPool();
-    // Sticky: refrescar etiquetas de la fila inferior en tiempo real
     updateCpCtxStrip();
   }
+  // Submenú flotante para elegir el subtipo de CC (reutiliza .cc-submenu).
+  function _cerrarCcSubmenuIdd(){
+    document.getElementById('iidd-cc-submenu')?.remove();
+  }
+  function _abrirCcSubmenuIdd(tagId, slotId){
+    _cerrarCcSubmenuIdd();
+    const slotEl = document.getElementById('iidd-ds-'+slotId);
+    const menu = document.createElement('div');
+    menu.className = 'cc-submenu';
+    menu.id = 'iidd-cc-submenu';
+    const r = slotEl ? slotEl.getBoundingClientRect() : {left:window.innerWidth/2, bottom:window.innerHeight/2};
+    const vw = window.innerWidth;
+    let left = Math.min(Math.max(8, r.left), vw - 230);
+    let top  = (r.bottom || 0) + 8;
+    menu.style.cssText = `left:${left}px;top:${top}px`;
+    menu.innerHTML = `<div class="cc-submenu-title">¿Qué tipo de CC es?</div>
+      <div class="cc-submenu-grid">${_CC_SUBTIPOS_CP.map(st =>
+        `<button type="button" class="cc-sub-btn" onclick="CP.iiddConfirmCcSubtipo('${tagId}','${slotId}','${st}')">${etiquetaFuncion(st)}</button>`
+      ).join('')}</div>
+      <button type="button" class="cc-sub-btn" style="margin-top:6px;opacity:.7" onclick="CP.iiddCancelCcSubtipo()">Cancelar</button>`;
+    document.body.appendChild(menu);
+  }
+  function iiddConfirmCcSubtipo(tagId, slotId, subtipoTipo){
+    _cerrarCcSubmenuIdd();
+    _iiddPlaceFinal(tagId, slotId, subtipoTipo);
+  }
+  function iiddCancelCcSubtipo(){ _cerrarCcSubmenuIdd(); }
   function _rebuildIddBlocks(){
     const cont = document.getElementById('iidd-blocks');
     if(cont) cont.innerHTML = _idd.blocks.map(b=>_renderIddBlock(b)).join('');
@@ -4918,14 +4982,26 @@
       termino_preposicion: 'Término de preposición',
       aposicion:           'Aposición',
       cn:                  'Complemento del Nombre',
+      atributo_locativo:   'Atributo Locativo',
+      dativo:              'Dativo',
+      cc:                  'Complemento Circunstancial',
+      // Modelo unificado cc_<subtipo> (junio 2026).
+      cc_lugar:            'Complemento Circunstancial de Lugar',
+      cc_tiempo:           'Complemento Circunstancial de Tiempo',
+      cc_modo:             'Complemento Circunstancial de Modo',
+      cc_causa:            'Complemento Circunstancial de Causa',
+      cc_finalidad:        'Complemento Circunstancial de Finalidad',
+      cc_cantidad:         'Complemento Circunstancial de Cantidad',
+      cc_compania:         'Complemento Circunstancial de Compañía',
+      cc_instrumento:      'Complemento Circunstancial de Instrumento',
+      cc_beneficiario:     'Complemento Circunstancial de Beneficiario',
+      // Aliases del esquema viejo (compatibilidad).
       cc_temporal:         'Complemento Circunstancial de Tiempo',
       cc_locativo:         'Complemento Circunstancial de Lugar',
       cc_modal:            'Complemento Circunstancial de Modo',
       cc_causal:           'Complemento Circunstancial de Causa',
-      cc_finalidad:        'Complemento Circunstancial de Finalidad',
+      cc_final:            'Complemento Circunstancial de Finalidad',
       cc_instrumental:     'Complemento Circunstancial de Instrumento',
-      cc_compania:         'Complemento Circunstancial de Compañía',
-      cc_cantidad:         'Complemento Circunstancial de Cantidad',
       cc_comparativo:      'Complemento Circunstancial de Comparación'
     })[f] || f;
   }
@@ -5177,10 +5253,23 @@
       'marca_pas_ref':'marca de pasiva refleja',
       'mod_oracional':'modificador oracional',
       'vocativo':'vocativo',
+      'atributo_locativo':'atributo locativo',
+      'dativo':'dativo',
       'cc':'complemento circunstancial',
+      'cc_lugar':'complemento circunstancial de lugar',
+      'cc_tiempo':'complemento circunstancial de tiempo',
+      'cc_modo':'complemento circunstancial de modo',
+      'cc_causa':'complemento circunstancial de causa',
+      'cc_finalidad':'complemento circunstancial de finalidad',
+      'cc_cantidad':'complemento circunstancial de cantidad',
+      'cc_compania':'complemento circunstancial de compañía',
+      'cc_instrumento':'complemento circunstancial de instrumento',
+      'cc_beneficiario':'complemento circunstancial de beneficiario',
       'cc_temporal':'complemento circunstancial de tiempo',
       'cc_locativo':'complemento circunstancial de lugar',
       'cc_modal':'complemento circunstancial de modo',
+      'cc_causal':'complemento circunstancial de causa',
+      'cc_final':'complemento circunstancial de finalidad',
       'cc_comparativo':'complemento circunstancial comparativo',
       'termino_preposicion':'término de preposición',
       'aposicion':'aposición',
@@ -5297,12 +5386,19 @@
   function etiquetaFuncion(f){
     const m = {
       'sujeto':'Sujeto', 'cd':'CD', 'ci':'CI',
-      'atributo':'Atributo', 'cpvo':'CPvo',
+      'atributo':'Atributo', 'atributo_locativo':'Atr. Locativo',
+      'cpvo':'CPvo', 'dativo':'Dativo',
       'c_regimen':'C. Régimen', 'c_agente':'C. Agente',
       'marca_pas_ref':'Marca Pas. Refleja', 'mod_oracional':'Mod. Oracional',
       'vocativo':'Vocativo', 'cc':'CC',
-      'cc_temporal':'CC Temporal', 'cc_locativo':'CC Locativo',
-      'cc_modal':'CC Modal', 'cc_causal':'CC Causal', 'cc_final':'CC Final',
+      // Subtipos de CC — modelo unificado cc_<subtipo> (junio 2026).
+      'cc_lugar':'CC Lugar', 'cc_tiempo':'CC Tiempo', 'cc_modo':'CC Modo',
+      'cc_causa':'CC Causa', 'cc_finalidad':'CC Finalidad', 'cc_cantidad':'CC Cantidad',
+      'cc_compania':'CC Compañía', 'cc_instrumento':'CC Instrumento',
+      'cc_beneficiario':'CC Benef.',
+      // Aliases del esquema viejo del motor (compatibilidad hacia atrás).
+      'cc_temporal':'CC Tiempo', 'cc_locativo':'CC Lugar',
+      'cc_modal':'CC Modo', 'cc_causal':'CC Causa', 'cc_final':'CC Finalidad',
       'cc_comparativo':'CC Comparativo',
       'termino_preposicion':'Término de prep.',
       'aposicion':'Aposición', 'cn':'CN', 'c_adj':'C. Adjetivo', 'c_adv':'C. Adverbio',
@@ -5315,6 +5411,36 @@
     };
     return m[f] || f;
   }
+
+  // Modelo unificado de subtipos de CC (junio 2026). Combina los tres formatos
+  // posibles del banco en un único "tipo efectivo" cc_<subtipo>:
+  //   1. Prompt v1.3:   {tipo:'cc', subtipo:'lugar'}     → 'cc_lugar'
+  //   2. Motor viejo:   {tipo:'cc_locativo'}             → 'cc_lugar' (alias)
+  //   3. CC pelado:     {tipo:'cc'} sin subtipo          → 'cc' (genérico)
+  // Devuelve el tipo efectivo que se usa como correctTipo y para la etiqueta.
+  const _CC_SUBTIPO_ALIAS = {
+    // alias del motor viejo → forma canónica
+    'cc_temporal':'cc_tiempo', 'cc_locativo':'cc_lugar',
+    'cc_modal':'cc_modo', 'cc_causal':'cc_causa', 'cc_final':'cc_finalidad'
+  };
+  function _ccTipoEfectivo(func){
+    const tipo = func && func.tipo;
+    if(!tipo) return '';
+    if(tipo === 'cc'){
+      const sub = (func.subtipo || '').toString().trim().toLowerCase();
+      // normaliza algún sinónimo de tildes
+      const norm = sub === 'compañia' ? 'compania' : sub;
+      return norm ? 'cc_' + norm : 'cc';
+    }
+    // tipo ya viene como cc_xxx: aplicar alias si procede
+    if(tipo.startsWith('cc_')) return _CC_SUBTIPO_ALIAS[tipo] || tipo;
+    return tipo;
+  }
+  // Lista de subtipos canónicos para el submenú (orden didáctico).
+  const _CC_SUBTIPOS_CP = [
+    'cc_lugar','cc_tiempo','cc_modo','cc_causa','cc_finalidad',
+    'cc_cantidad','cc_compania','cc_instrumento','cc_beneficiario'
+  ];
   function etiquetaTipoProp(t){
     return {
       'principal':'Principal',
@@ -5344,6 +5470,7 @@ export const CP = {
     iiddDragStart, iiddOver, iiddLeave, iiddDrop,
     iiddTagClick, iiddTagClickSlot, iiddSlotClick,
     iiddConfirm, iiddAvanzar,
+    iiddConfirmCcSubtipo, iiddCancelCcSubtipo,
     onInternaPredBtn, onInternaSujBtn, onInternaFuncBtn, avanzarInternaSubPaso,
     enviarResultadoExamen, salirTrasEnvio, cerrarExamenFinal,
     siguientePractica, abandonar, finalizarSesion,
