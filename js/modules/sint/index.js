@@ -238,8 +238,6 @@ const TIPOS     = ['SN','SP','SAdj','SAdv','SV'];
 // T alone is only used internally for intermediate level; not a draggable label
 // Helpers CC
 function isCC(f){ return f==='CC'||CC_SUBTIPOS.includes(f); }
-function ccBase(f){ return isCC(f)?'CC':f; }
-function ccSubtipo(f){ return CC_SUBTIPOS.includes(f)?f:null; }
 
 // ════════════════════════════════════════════════════════
 // FEEDBACK ESCALONADO — Matrices de andamiaje cognitivo
@@ -1432,12 +1430,6 @@ function buildPronounGrid(){
     `<button type="button" class="pronoun-btn" data-idx="${idx}" data-val="${p.match[0]}" onclick="selectPronoun(${idx})">${p.display}</button>`
   ).join('');
 }
-function showPronounPicker(){
-  document.getElementById('p2-tacito-panel').style.display='block';
-}
-function hidePronounPicker(){
-  p2BackToChoice();
-}
 function selectPronoun(idx){
   p2pronoun=PRONOUNS[idx];
   document.querySelectorAll('.pronoun-btn').forEach(b=>b.classList.remove('pron-sel'));
@@ -2618,27 +2610,6 @@ function practiceMyErrors(){
   },300);
 }
 
-// ════════════════════════════════════════════════════════
-// UNIFIED NOTIFICATION SYSTEM
-// type: 'info' | 'success' | 'warn' | 'error'
-// ════════════════════════════════════════════════════════
-const NOTIF_STYLES={
-  info:   {bg:'var(--blue-lt)',  border:'#93C5FD',   color:'#1D4ED8'},
-  success:{bg:'var(--green-lt)', border:'#86EFAC',   color:'#166534'},
-  warn:   {bg:'var(--amber-lt)', border:'#FDE68A',   color:'#78350F'},
-  error:  {bg:'var(--red-lt)',   border:'#FCA5A5',   color:'#991B1B'},
-};
-function showNotification(el, msg, type='info'){
-  if(!el)return;
-  const s=NOTIF_STYLES[type]||NOTIF_STYLES.info;
-  el.style.display='block';
-  el.style.background=s.bg;
-  el.style.borderColor=s.border;
-  el.style.color=s.color;
-  el.textContent=msg;
-  el.setAttribute('role','status');
-}
-
 let _pendingResult = null;
 let _examSent = false; // prevent duplicate submissions
 
@@ -3364,11 +3335,7 @@ let selectedArcadeMode=null, selectedMorphLevel=null, selectedMorphMode=null;
 function setModule(m){
   currentModule=m;
 }
-let selectedSint4Mode=null;
-function setSint4Mode(m){
-  selectedSint4Mode=m;
-  ['sint4-beginner','sint4-expert'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.toggle('sel-active',el.id==='sint4-'+m);el.setAttribute('aria-checked',String(el.id==='sint4-'+m));}});
-}
+let selectedSint4Mode=null; // (reservada; el reset de initState la usa)
 function setArcadeMode(m){
   selectedArcadeMode=m;
   // Clase 'amc-active' (NO 'sel-active'): el tema new-ui sobreescribe cualquier
@@ -3378,10 +3345,6 @@ function setArcadeMode(m){
 function setMorphLevel(l){
   selectedMorphLevel=l;
   [1,2,3].forEach(n=>{const el=document.getElementById('ml-'+n);if(el){el.classList.toggle('sel-active',n===l);el.setAttribute('aria-checked',String(n===l));}});
-}
-function setMorphMode(m){
-  selectedMorphMode=m;
-  ['mm-practice','mm-exam'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.toggle('sel-active',el.id==='mm-'+m);el.setAttribute('aria-checked',String(el.id==='mm-'+m));}});
 }
 
 // Master start handler — routes to correct module

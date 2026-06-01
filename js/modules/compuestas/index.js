@@ -1207,25 +1207,6 @@
     return '';
   }
 
-  // ─────────────────────────────────────────────────────────────────────
-  // FASE 3: selector de oración activa (encima de la oración)
-  // ─────────────────────────────────────────────────────────────────────
-  function renderPropSelector(){
-    const eng = state.engine;
-    const ej = state.filtered[state.idx];
-    const nProps = (ej.proposiciones||[]).length;
-    let html = `<div class="cp-prop-selector"><span class="cp-prop-selector-label">Asignar a:</span>`;
-    for(let n = 1; n <= nProps; n++){
-      const activo = eng.f3PropActiva === n ? 'active' : '';
-      // Contar cuántos tokens hay actualmente asignados a esta P_n
-      let count = 0;
-      eng.f3Asignaciones.forEach(v=>{ if(v===n) count++; });
-      html += `<button type="button" class="cp-prop-btn ${activo}" data-p="${n}">O${n}<span class="cp-prop-btn-count">${count}</span></button>`;
-    }
-    html += `</div>`;
-    return html;
-  }
-
   // ── CP STICKY ─────────────────────────────────────────────────────────
   // Ventana fija bajo la topbar que muestra el progreso del alumno:
   // fases 0-3 → tokens coloreados por rol; fases 4+ → chips de oración.
