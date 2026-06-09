@@ -857,14 +857,20 @@ function validatePin_(pin, email) {
   if (!storedPin) return { valid: false, reason: 'no_pin_set', message: 'No hay PIN configurado. Genéralo en el panel del profesor.' };
   if (String(pin).trim() !== storedPin) return { valid: false, reason: 'wrong_pin', message: 'PIN incorrecto.' };
 
-  // Check duplicate: same email + same pin in results sheet
+  // Check duplicate: same email + same pin in results sheet.
+  // Columnas POR NOMBRE (no índices fijos): si se reordena Alumnos_Resultados,
+  // los índices [1]/[4] comparaban columnas equivocadas sin avisar.
   const results = ss.getSheetByName(SHEET_RESULTS);
-  if (results && email) {
-    const rData = results.getDataRange().getValues();
-    for (let i = 1; i < rData.length; i++) {
-      if (String(rData[i][1]).trim().toLowerCase() === email.toLowerCase() &&
-          String(rData[i][4]).trim() === storedPin) {
-        return { valid: false, reason: 'duplicate', message: 'Ya has realizado este examen con este PIN.' };
+  if (results && email && results.getLastRow() > 1) {
+    const rcol = getColMap_(results);
+    const iCorreo = rcol['Correo'], iPin = rcol['PIN'];
+    if (iCorreo !== undefined && iPin !== undefined) {
+      const rData = results.getDataRange().getValues();
+      for (let i = 1; i < rData.length; i++) {
+        if (String(rData[i][iCorreo]).trim().toLowerCase() === email.toLowerCase() &&
+            String(rData[i][iPin]).trim() === storedPin) {
+          return { valid: false, reason: 'duplicate', message: 'Ya has realizado este examen con este PIN.' };
+        }
       }
     }
   }
@@ -1648,6 +1654,12 @@ function saveSesionPractica_(p) {
 function saveArcadeScore_(p) {
   const paramErr = requireParams_(p, ['nickname', 'arcadeMode']);
   if (paramErr) return paramErr;
+  // Lock: esta función LEE y MODIFICA la fila del récord. Sin lock, dos
+  // alumnos terminando a la vez pueden pisarse el récord (lectura sucia).
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); }
+  catch (e) { return gasError_('Servidor ocupado, inténtalo de nuevo.', ERR.LOCK_TIMEOUT); }
+  try {
   const ARCADE_HEADER = ['Fecha','Apodo','Grupo','Nombre','Correo','Modo','Puntuacion','Racha_Max','Preguntas'];
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   let sheet   = ss.getSheetByName(SHEET_ARCADE);
@@ -1686,6 +1698,9 @@ function saveArcadeScore_(p) {
     'Puntuacion': score, 'Racha_Max': streak, 'Preguntas': preguntas
   });
   return { ok: true, improved: true, firstEntry: true };
+  } finally {
+    try { lock.releaseLock(); } catch (e) {}
+  }
 }
 
 function getRankingArcade_(params) {

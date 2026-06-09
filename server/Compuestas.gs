@@ -134,7 +134,8 @@ function ensureCompBancoSheet_() {
     return sheet;
   }
   ensureSheetHeaders_(sheet, COMP_BANCO_HEADER);
-  styleCompHeader_(sheet, sheet.getLastColumn());
+  // El formato de cabecera solo se aplica al CREAR la hoja (rama de arriba):
+  // repintarlo en cada llamada gastaba cuota de Sheets sin necesidad.
   return sheet;
 }
 
@@ -148,7 +149,6 @@ function ensureCompExamSheet_() {
     return sheet;
   }
   ensureSheetHeaders_(sheet, COMP_EXAM_HEADER);
-  styleCompHeader_(sheet, sheet.getLastColumn());
   return sheet;
 }
 
@@ -162,7 +162,6 @@ function ensureCompResultSheet_() {
     return sheet;
   }
   ensureSheetHeaders_(sheet, COMP_RESULT_HEADER);
-  styleCompHeader_(sheet, sheet.getLastColumn());
   return sheet;
 }
 
@@ -184,7 +183,6 @@ function ensureCompPracticaLogSheet_() {
     return sheet;
   }
   ensureSheetHeaders_(sheet, COMP_PRACTICA_LOG_HEADER);
-  styleCompHeader_(sheet, sheet.getLastColumn());
   return sheet;
 }
 
