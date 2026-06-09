@@ -37,16 +37,7 @@
    del monolito original. Refactor estructural mas fino queda para Fase B.
    */
 
-// ═══ FECHA DE EXPIRACIÓN — Versión beta ═══
-(function(){
-  const EXPIRY = new Date('2026-07-01T00:00:00');
-  if(new Date() > EXPIRY){
-    document.addEventListener('DOMContentLoaded',function(){
-      document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#FEF2F2;font-family:Arial,sans-serif;padding:40px;text-align:center"><div style="max-width:500px"><div style="font-size:3rem;margin-bottom:16px">⏰</div><h1 style="color:#991B1B;margin-bottom:12px">Versión de prueba finalizada</h1><p style="color:#78350F;font-size:1.1rem;line-height:1.6">Esta versión beta de Taller de Sintaxis dejó de funcionar el 30 de junio de 2026.</p><p style="color:#78350F;margin-top:12px">Contacta con el profesor responsable para obtener la versión actualizada.</p></div></div>';
-    });
-    throw new Error('App expired');
-  }
-})();
+// (Mecanismo de caducidad beta eliminado en junio 2026: la app ya no expira.)
 
 // ════════════════════════════════════════════════════════
 // CORE ENGINE v4.7 — Rules, Scoring, State Management

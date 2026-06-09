@@ -1013,7 +1013,7 @@ function renderArcadeLocalFallback(lb, entry){
     document.getElementById('go-lb-body').innerHTML=lb.slice(0,8).map((e,i)=>`
       <tr class="${e.nickname===entry.nickname&&e.score===entry.score?'lb-you':''}">
         <td class="lb-rank">${i+1}</td>
-        <td>${e.nickname}</td>
+        <td>${escHtml(e.nickname)}</td>
         <td style="font-weight:800;font-family:monospace">${e.score}</td>
       </tr>`).join('');
   }
@@ -1046,7 +1046,7 @@ function renderArcadeRanking(data, entry){
           const medal = medals[i] || (i+1)+'.';
           return `<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:8px;background:${isMe?'rgba(252,211,77,.2)':'rgba(255,255,255,.05)'};border:${isMe?'2px solid #FCD34D':'1px solid rgba(255,255,255,.1)'}">
             <span style="min-width:24px;font-weight:800">${medal}</span>
-            <span style="flex:1;color:${isMe?'#FCD34D':'#fff'};font-weight:${isMe?'800':'600'}">${e.nick}${isMe?' (tú)':''}</span>
+            <span style="flex:1;color:${isMe?'#FCD34D':'#fff'};font-weight:${isMe?'800':'600'}">${escHtml(e.nick)}${isMe?' (tú)':''}</span>
             <span style="font-family:monospace;font-weight:800;color:#FCD34D">${e.score}</span>
           </div>`;
         }).join('')}</div>
@@ -1062,8 +1062,8 @@ function renderArcadeRanking(data, entry){
           const medal = medals[i] || (i+1)+'.';
           return `<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:8px;background:${isMe?'rgba(165,243,252,.2)':'rgba(255,255,255,.05)'};border:${isMe?'2px solid #A5F3FC':'1px solid rgba(255,255,255,.1)'}">
             <span style="min-width:24px;font-weight:800">${medal}</span>
-            <span style="flex:1;color:${isMe?'#A5F3FC':'#fff'};font-weight:${isMe?'800':'600'}">${e.nick}</span>
-            <span style="font-size:.7rem;color:rgba(255,255,255,.5);margin-right:6px">${e.grupo||''}</span>
+            <span style="flex:1;color:${isMe?'#A5F3FC':'#fff'};font-weight:${isMe?'800':'600'}">${escHtml(e.nick)}</span>
+            <span style="font-size:.7rem;color:rgba(255,255,255,.5);margin-right:6px">${escHtml(e.grupo||'')}</span>
             <span style="font-family:monospace;font-weight:800;color:#A5F3FC">${e.score}</span>
           </div>`;
         }).join('')}</div>
