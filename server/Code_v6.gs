@@ -1570,14 +1570,21 @@ function saveResult_(p) {
     ensureSheetHeaders_(sheet, RESULT_HEADER);
     const col = getColMap_(sheet);
 
-    // DEDUP via colMap (not fixed indices)
+    // DEDUP via colMap (not fixed indices).
+    // Eficiencia: leemos SOLO el rango de columnas que va de Correo a PIN
+    // (no las 14 columnas completas con puntuaciones/detalle). Con cientos de
+    // filas, esto reduce mucho las celdas leídas en cada envío.
     const email = String(p.email||'').trim().toLowerCase();
     const pin   = String(p.pin||'').trim();
-    if(email && pin){
-      const data = sheet.getDataRange().getValues();
-      const emailIdx = col['Correo'], pinIdx = col['PIN'];
-      for(let i=1; i<data.length; i++){
-        if(String(data[i][emailIdx]).trim().toLowerCase()===email && String(data[i][pinIdx]).trim()===pin){
+    const emailIdx = col['Correo'], pinIdx = col['PIN'];
+    const lastRow = sheet.getLastRow();
+    if(email && pin && emailIdx !== undefined && pinIdx !== undefined && lastRow > 1){
+      const c0 = Math.min(emailIdx, pinIdx);
+      const c1 = Math.max(emailIdx, pinIdx);
+      const data = sheet.getRange(2, c0+1, lastRow-1, c1-c0+1).getValues();
+      const eRel = emailIdx - c0, pRel = pinIdx - c0;
+      for(let i=0; i<data.length; i++){
+        if(String(data[i][eRel]).trim().toLowerCase()===email && String(data[i][pRel]).trim()===pin){
           return { ok: true, duplicate: true };
         }
       }
