@@ -95,7 +95,36 @@ const ERR = {
   UNKNOWN_ACTION:  'UNKNOWN_ACTION',
   LOCK_TIMEOUT:    'LOCK_TIMEOUT',
   EXCEPTION:       'EXCEPTION',
+  NO_AUTORIZADO:   'NO_AUTORIZADO',
 };
+
+// ════════════════════════════════════════════════════════════════════════
+//  AUTORIZACIÓN DEL PROFESOR (S1/S2/S4 — junio 2026)
+//  Los endpoints que leen datos de alumnos o crean exámenes exigen una
+//  clave que el profesor configura UNA vez en Script Properties (menú
+//  "Fijar clave de profesor"). El frontend la envía como params.clave
+//  (es la misma contraseña del panel del profesor). Sin clave correcta,
+//  la API rechaza la petición: así la URL del GAS deja de ser una puerta
+//  abierta a las notas de toda la clase.
+// ════════════════════════════════════════════════════════════════════════
+const PROP_CLAVE_PROFESOR = 'CLAVE_PROFESOR';
+
+// Devuelve null si autorizado; un objeto de error si NO. Patrón:
+//   const noAuth = requiereClaveProfesor_(params); if (noAuth) return noAuth;
+function requiereClaveProfesor_(params) {
+  const guardada = PropertiesService.getScriptProperties().getProperty(PROP_CLAVE_PROFESOR);
+  // Si el profesor aún no ha fijado clave, NO bloqueamos (evita dejar la app
+  // inservible tras desplegar). Pero avisamos en el log para que la configure.
+  if (!guardada) {
+    logToSheet_('WARN', 'auth', 'CLAVE_PROFESOR no configurada: endpoints de profesor SIN protección. Usa el menú "Fijar clave de profesor".', ERR.NO_AUTORIZADO, '');
+    return null;
+  }
+  const enviada = String((params && params.clave) || '');
+  if (enviada !== guardada) {
+    return gasError_('No autorizado. Revisa la contraseña del profesor.', ERR.NO_AUTORIZADO);
+  }
+  return null;
+}
 
 const SHEET_LOGS = 'Logs_GAS';
 const LOGS_HEADER = ['Fecha','Nivel','Endpoint','Mensaje','Code','Stack'];
@@ -690,22 +719,22 @@ function doGet(e) {
     if      (action === 'ping')         result = { ok: true, t: Date.now() };
     else if (action === 'getOraciones') result = getOraciones_(mode);
     else if (action === 'validatePin')  result = validatePin_(params.pin, params.email);
-    else if (action === 'getResults')    result = getResults_();
+    else if (action === 'getResults')    { const na=requiereClaveProfesor_(params); result = na || getResults_(); }
     else if (action === 'getOracionesFiltradas') result = getOracionesFiltradas_(params);
     else if (action === 'getStats')     result = getStats_();
     else if (action === 'getTextosMorfologia') result = getTextosMorfologia_(params);
     else if (action === 'getMisiones')          result = getMisiones_(params);
-    else if (action === 'createMision')          result = createMision_(params);
+    else if (action === 'createMision')          { const na=requiereClaveProfesor_(params); result = na || createMision_(params); }
     else if (action === 'saveMisionResult')     result = saveMisionResult_(params);
     else if (action === 'saveResult')            result = saveResult_(params);
     else if (action === 'saveSesionPractica')    result = saveSesionPractica_(params);
-    else if (action === 'createExam')             result = createExam_(params);
+    else if (action === 'createExam')             { const na=requiereClaveProfesor_(params); result = na || createExam_(params); }
     else if (action === 'getExamConfig')           result = getExamConfig_(params);
-    else if (action === 'getResultsByGroup')       result = getResultsByGroup_(params);
+    else if (action === 'getResultsByGroup')       { const na=requiereClaveProfesor_(params); result = na || getResultsByGroup_(params); }
     else if (action === 'getRankingArcade')        result = getRankingArcade_(params);
     else if (action === 'regenerarMorfologia')     result = regenerarMorfologia_();
     else if (action === 'saveArcadeScore')         result = saveArcadeScore_(params);
-    else if (action === 'getInformeProfesor')      result = getInformeProfesor_(params);
+    else if (action === 'getInformeProfesor')      { const na=requiereClaveProfesor_(params); result = na || getInformeProfesor_(params); }
     else {
       // v6.3 — Delegación al módulo de oración compuesta (Compuestas.gs).
       // Si la action no la reconoce el dispatcher, devuelve null y caemos al error original.
@@ -1852,6 +1881,7 @@ function onOpen() {
 
   // BLOQUE 3 — HERRAMIENTAS (solo si es necesario)
   const tecnico = ui.createMenu('⚙️ Avanzado');
+  tecnico.addItem('🔐 Fijar clave de profesor', 'menuFijarClaveProfesor');
   tecnico.addItem('🔑 Generar PIN global',   'generarPin');
   tecnico.addItem('👁 Ver PIN actual',       'verPin');
   tecnico.addItem('🏷 Rellenar etiquetas con IA','generarEtiquetas');
@@ -2106,6 +2136,29 @@ function verPin() {
     if (String(row[0]).trim().toLowerCase() === 'pin') { pin = row[1] || '(vacío)'; break; }
   }
   SpreadsheetApp.getUi().alert('PIN actual: ' + pin);
+}
+
+// Fija (o cambia) la clave de profesor en Script Properties. Es la contraseña
+// que el profesor escribe en el panel del alumno y que la API exige para los
+// endpoints que leen datos de alumnos o crean exámenes (S1/S2/S4).
+function menuFijarClaveProfesor() {
+  const ui = SpreadsheetApp.getUi();
+  const actual = PropertiesService.getScriptProperties().getProperty(PROP_CLAVE_PROFESOR);
+  const estado = actual ? 'Ya hay una clave configurada.' : 'Todavía NO hay clave (la API está SIN proteger).';
+  const resp = ui.prompt(
+    '🔐 Clave de profesor',
+    estado + '\n\nEscribe la nueva clave (mínimo 6 caracteres).\n' +
+    'Debe ser la MISMA que escribirás en el panel del profesor de la app.\n' +
+    'Déjala vacía y pulsa Aceptar para CANCELAR.',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (resp.getSelectedButton() !== ui.Button.OK) return;
+  const nueva = String(resp.getResponseText() || '').trim();
+  if (!nueva) { ui.alert('Cancelado: no se ha cambiado la clave.'); return; }
+  if (nueva.length < 6) { ui.alert('La clave debe tener al menos 6 caracteres. No se ha guardado.'); return; }
+  PropertiesService.getScriptProperties().setProperty(PROP_CLAVE_PROFESOR, nueva);
+  ui.alert('✅ Clave guardada.\n\nIMPORTANTE: en la app, entra al panel del profesor y escribe esta MISMA clave. ' +
+           'Si no coincide, no podrás ver resultados ni crear exámenes.');
 }
 
 function activarTodas() {

@@ -122,7 +122,8 @@ async function activateExam(){
       action:'createExam',pin,funciones:JSON.stringify(checks),prohibidas:JSON.stringify(prohib),
       minCoincidencias:'1',
       dificultad:String(dif),nOraciones:String(examCount),timerMin:String(timerMin),subfase,
-      grupo,evaluacion,nombreExamen
+      grupo,evaluacion,nombreExamen,
+      clave: (typeof getTeacherPw==='function'?getTeacherPw():'')
     });
     const r=await fetchWithRetry(apiUrl+'?'+params.toString(), {}, {
       timeoutMs: 12000,
@@ -276,7 +277,8 @@ async function createExamenCompuestaUI(){
       nProposicionesMax: String(nPropMax),
       nEjercicios:       String(nEjercicios),
       timerMin:          String(timerMin),
-      fasesActivas:      fasesActivas
+      fasesActivas:      fasesActivas,
+      clave: (typeof getTeacherPw==='function'?getTeacherPw():'')
     });
     const r = await fetchWithRetry(apiUrl + '?' + params.toString(), {}, {
       timeoutMs: 15000,
@@ -376,6 +378,7 @@ async function loadCpDashboard(){
   msg.style.display = 'block';
   try {
     const params = new URLSearchParams({ action: 'getResultadosCompuestas' });
+    params.set('clave', (typeof getTeacherPw==='function'?getTeacherPw():''));
     if(grupo)      params.set('grupo', grupo);
     if(evaluacion) params.set('evaluacion', evaluacion);
     if(modo)       params.set('modo', modo);
@@ -527,7 +530,8 @@ async function createMision(){
       const params=new URLSearchParams({
         action:'createMision',id,nombre:name,modo,subfase:'completo',
         funciones:JSON.stringify(funcs),dificultad:'0',nOraciones:String(n),
-        pin,estado:'activa'
+        pin,estado:'activa',
+        clave: (typeof getTeacherPw==='function'?getTeacherPw():'')
       });
       await fetchWithTimeout(apiUrl+'?'+params.toString(),{},8000);
       msg.textContent='✓ Misión "'+name+'" creada y sincronizada.';msg.style.color='var(--green)';
@@ -728,6 +732,7 @@ async function generarInformeProfesor(){
 
   // 1. Recoger filtros opcionales
   const params = new URLSearchParams({ action: 'getInformeProfesor' });
+  params.set('clave', (typeof getTeacherPw==='function'?getTeacherPw():''));
   const from  = document.getElementById('tp-inf-from')?.value;
   const to    = document.getElementById('tp-inf-to')?.value;
   const grupo = document.getElementById('tp-inf-grupo')?.value.trim();

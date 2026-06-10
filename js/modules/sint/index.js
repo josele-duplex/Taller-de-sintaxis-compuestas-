@@ -3118,8 +3118,17 @@ function goTeacherPanel(){
 function openOverlay(id){document.getElementById(id).classList.add('open');}
 function closeOverlay(id){document.getElementById(id).classList.remove('open');}
 function checkTeacherPw(){
-  if(document.getElementById('teacher-pw').value===getTeacherPw()){closeOverlay('teacher-modal');loadTeacherPanel();showScreen('teacher');}
-  else{document.getElementById('teacher-pw-err').style.display='block';document.getElementById('teacher-pw').focus();}
+  // S1/S2/S4 (junio 2026): la contraseña ya NO se valida en el cliente (era
+  // burlable desde la consola y la clave por defecto estaba en el JS público).
+  // Guardamos lo que teclea el profesor y se envía al GAS como `clave` en cada
+  // endpoint sensible; el SERVIDOR decide si es correcta. Si no coincide con la
+  // clave de Script Properties, el panel cargará pero los datos vendrán con
+  // "No autorizado", que es la señal de contraseña incorrecta.
+  const pw=(document.getElementById('teacher-pw').value||'').trim();
+  if(!pw){document.getElementById('teacher-pw-err').style.display='block';document.getElementById('teacher-pw').focus();return;}
+  if(typeof setTeacherPw==='function') setTeacherPw(pw);
+  document.getElementById('teacher-pw-err').style.display='none';
+  closeOverlay('teacher-modal');loadTeacherPanel();showScreen('teacher');
 }
 
 
@@ -3151,6 +3160,7 @@ async function loadDashboard(){
   msg.textContent='⏳ Cargando resultados…';msg.style.color='var(--blue)';msg.style.display='block';
   try{
     const params=new URLSearchParams({action:'getResultsByGroup'});
+    params.set('clave', (typeof getTeacherPw==='function'?getTeacherPw():''));
     if(grupo) params.set('grupo',grupo);
     if(evaluacion) params.set('evaluacion',evaluacion);
     const r=await fetchWithTimeout(apiUrl+'?'+params.toString(),{},10000);

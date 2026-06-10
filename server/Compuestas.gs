@@ -1260,9 +1260,9 @@ function dispatchCompuestasGet_(action, params) {
   switch (action) {
     case 'getModulesEnabled':       return getModulesEnabled_();
     case 'getOracionesCompuestas':  return getOracionesCompuestas_(params);
-    case 'createExamenCompuesta':   return createExamenCompuesta_(params);
+    case 'createExamenCompuesta':   { const na = (typeof requiereClaveProfesor_==='function') ? requiereClaveProfesor_(params) : null; return na || createExamenCompuesta_(params); }
     case 'getExamenCompuesta':      return getExamenCompuesta_(params);
-    case 'getResultadosCompuestas': return getResultadosCompuestas_(params);
+    case 'getResultadosCompuestas': { const na = (typeof requiereClaveProfesor_==='function') ? requiereClaveProfesor_(params) : null; return na || getResultadosCompuestas_(params); }
     case 'regenerarCompuestas':     return regenerarCompuestas_();
     case 'getStatsCompuestas':      return getStatsCompuestas_();
     default: return null;
