@@ -28,6 +28,7 @@ export const GLOS_DATA = [
   { cat:'marc', section:'Marcas especiales', items: [
     {abbr:'Marca.Pas.Ref.', full:'Marca de Pasiva Refleja', expl:'El «se» que aparece en construcciones de pasiva refleja, donde el sujeto paciente concuerda con el verbo.', ex:'Se vendieron los pisos.'},
     {abbr:'Marca.Imp.',     full:'Marca de Impersonalidad', expl:'El «se» de las oraciones impersonales, que no admiten sujeto gramatical.', ex:'Se vive bien aquí.'},
+    {abbr:'Marca.Pron.',    full:'Marca de Verbo Pronominal', expl:'El pronombre (me, te, se, nos, os) que forma parte del propio verbo pronominal: no es CD ni CI, es una pieza del verbo.', ex:'Se arrepintió de sus palabras. / Me acuerdo de ti.'},
     {abbr:'Vocat.',         full:'Vocativo',                expl:'Sintagma nominal que sirve para llamar o apelar. Se separa del resto de la oración por comas y no cumple función sintáctica.', ex:'Juan, ¿vienes?'},
     {abbr:'Mod.Or.',        full:'Modificador Oracional',   expl:'Adverbio o sintagma adverbial que modifica al conjunto de la oración, no a un elemento concreto.', ex:'Obviamente, se equivocó.'}
   ]},

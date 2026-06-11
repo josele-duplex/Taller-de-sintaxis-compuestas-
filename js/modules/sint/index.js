@@ -83,7 +83,7 @@ const WEIGHTS = { NP:2, SUJETO:4, PVPN:2, FUNCION:3 };
 // Weighted scoring by function type (pedagogically calibrated)
 const FUNC_WEIGHT = {
   'Sujeto':2,'CD':1.5,'CI':1.5,'Atr.':1.5,'Atr. Loc.':1.5,'CPvo':1.5,'C.Rég.':1.5,'C.Ag.':1.5,
-  'Marca.Pas.Ref.':1,'Marca.Imp.':1,'Dativo':1,
+  'Marca.Pas.Ref.':1,'Marca.Imp.':1,'Marca.Pron.':1,'Dativo':1,
   'CC Tiempo':1,'CC Lugar':1,'CC Modo':1,'CC Causa':1,'CC Cantidad':1,'CC Compañía':1,'CC Finalidad':1,'CC Instrumento':1,'CC Benef.':1,
 };
 function getFuncWeight(func){ return FUNC_WEIGHT[func] || 1; }
@@ -244,7 +244,10 @@ const FUNC_ARGUMENTOS = new Set(['CD','CI','C.Rég.','Atr.','Atr. Loc.','CPvo','
 // son adjuntos.
 const FUNC_ADJUNTOS   = new Set([...CC_SUBTIPOS,'C.Ag.','Dativo']);
 function isAdjunto(f){ return FUNC_ADJUNTOS.has(f)||f==='CC'; }
-const FUNC_MARCAS     = new Set(['Mod.Or.','Conector','Vocat.','Marca.Imp.','Marca.Pas.Ref.']);
+// 'Marca.Pron.' (jun-2026): el pronombre de los verbos pronominales
+// (acordarse, arrepentirse, quejarse…). El GAS ya la emitía normalizada
+// pero el motor no la conocía y esas oraciones quedaban bloqueadas.
+const FUNC_MARCAS     = new Set(['Mod.Or.','Conector','Vocat.','Marca.Imp.','Marca.Pas.Ref.','Marca.Pron.']);
 
 // Mapa de sintagmas válidos por función — evita combinaciones imposibles
 // en las cajas trampa (p.ej. "SV | CD" o "SAdj | CI"). Añadido mayo 2026.
@@ -633,6 +636,7 @@ function normalizeOracion(raw){
       // pronominal y el sustantivo del vocativo forman SN).
       if(b.solucion==='Marca.Pas.Ref.') b.solucion='SN | Marca.Pas.Ref.';
       if(b.solucion==='Marca.Imp.')     b.solucion='SN | Marca.Imp.';
+      if(b.solucion==='Marca.Pron.')    b.solucion='SN | Marca.Pron.';
       if(b.solucion==='Vocat.')         b.solucion='SN | Vocat.';
       return b;
     });

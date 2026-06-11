@@ -323,6 +323,29 @@ function buildOracionObject(row, rowIndex) {
         return { palabras: palabrasSplit, verbTokens: verbTokensSplit, verbIndices: idx };
       }
     }
+    // Intento 4 (jun-2026): tokens del verbo NO CONTIGUOS en la oración.
+    // Caso real: Verbo="se hincharon" en "Se LE hincharon los pies." (el
+    // pronombre 'le' se intercala). Buscamos cada token del verbo en orden,
+    // permitiendo huecos. Solo como último recurso: si todos los tokens
+    // aparecen, devolvemos sus índices aunque no sean consecutivos (el
+    // frontend acepta NP con índices no contiguos).
+    {
+      const idxNoContiguo = [];
+      let desde = 0;
+      let ok = true;
+      for (const tk of verbTokens) {
+        let encontrado = -1;
+        for (let i = desde; i < palabras.length; i++) {
+          if (palabras[i].toLowerCase() === tk.toLowerCase()) { encontrado = i; break; }
+        }
+        if (encontrado === -1) { ok = false; break; }
+        idxNoContiguo.push(encontrado);
+        desde = encontrado + 1;
+      }
+      if (ok && idxNoContiguo.length > 0) {
+        return { palabras: palabras, verbTokens: verbTokens, verbIndices: idxNoContiguo };
+      }
+    }
     // Sin suerte: devolvemos lo que teníamos para que el resto del flujo siga
     // funcionando (verbIndices vacío implica que el frontend mostrará la
     // oración pero nada matcheará — ya tenemos guardas para ese caso).
@@ -351,7 +374,8 @@ function buildOracionObject(row, rowIndex) {
     .map((b, i) => {
       const segmento = String(b.segmento);
       const func     = String(b.función).trim();
-      const sint     = String(b.sintagma);
+      // jun-2026: normalizar también el tipo de sintagma (SPrep→SP, etc.)
+      const sint     = normalizeSintagma_(String(b.sintagma));
       // Encontrar los índices de las palabras del segmento en el array palabras
       const segTokens = segmento.replace(/([.,;:!?¡¿])/g, ' $1 ').split(/\s+/).filter(Boolean);
       const indices   = findIndices(palabras, segTokens);
@@ -364,6 +388,19 @@ function buildOracionObject(row, rowIndex) {
         consejo:  b.consejo || generarConsejo(normFunc),
         naturaleza: b.naturaleza || '',
       };
+    })
+    // jun-2026: GUARDA ANTI-SOLAPE. Algunos lotes traen el verbo pronominal
+    // duplicado como segmento propio ("me acuerdo" → Marca.Pron.) además de
+    // estar en la columna Verbo. Ese bloque duplica los tokens del NP y deja
+    // un hueco imposible de rellenar (la oración se bloquea). Si TODOS los
+    // índices del bloque pertenecen al NP, el bloque sobra: el verbo ya se
+    // analiza como NP pre-resuelto.
+    .filter(b => {
+      if (!b.indices || b.indices.length === 0) return true;
+      const verbSet = _resolved.verbIndices || [];
+      if (verbSet.length === 0) return true;
+      const dentro = b.indices.every(ix => verbSet.indexOf(ix) !== -1);
+      return !dentro;
     });
 
   // Añadir bloques pre-resueltos: Sujeto y NP
@@ -674,10 +711,45 @@ function normalizeFuncOrac(f) {
     'Vocativo':        'Vocat.',
     'CC Procedencia':  'CC Lugar',
     'CC Lugar/Origen': 'CC Lugar',
-    'N (V. Pronominal)':'N (V. Pronominal)',
-    'N (V. Pasivo)':    'N (V. Pasivo)',
+    // ── Alias detectados en la auditoría de junio 2026 (lotes nuevos) ──
+    // Sin esta normalización, el frontend no reconoce la etiqueta, el bloque
+    // no aparece en ningún pool y la oración queda BLOQUEADA para el alumno.
+    'CC Fin.':          'CC Finalidad',
+    'CC Final':         'CC Finalidad',
+    'CC Medio':         'CC Instrumento',
+    'CI (Dat. Ético)':  'Dativo',
+    'CI (Dat. Etico)':  'Dativo',
+    'Dat. Ético':       'Dativo',
+    'Dativo Ético':     'Dativo',
+    'Dat. Interés':     'Dativo',
+    'Dativo de Interés':'Dativo',
+    'CPred':            'CPvo',
+    'CRég':             'C.Rég.',
+    'CRég.':            'C.Rég.',
+    'Atributo Locativo':'Atr. Loc.',
+    'Atr.Loc.':         'Atr. Loc.',
+    'CC Beneficiario':  'CC Benef.',
+    // Marca de verbo pronominal: etiqueta canónica del motor desde jun-2026.
+    'Morf. Verbal':     'Marca.Pron.',
+    'Morf. Pronominal': 'Marca.Pron.',
+    'N (V. Pronominal)':'Marca.Pron.',
+    'N (V. Pasivo)':    'Marca.Pas.Ref.',
   };
   return map[f] || f;
+}
+
+// Normaliza el TIPO de sintagma a los 5 canónicos del motor (SN/SV/SP/SAdj/SAdv).
+// Los lotes generados por IA traen variantes que el alumno vería como tipos
+// "raros" en las etiquetas de la fase 3.
+function normalizeSintagma_(s) {
+  const map = {
+    'SPrep': 'SP', 'S.Prep': 'SP', 'S. Prep.': 'SP',
+    'S.Verbal': 'SV', 'S. Verbal': 'SV',
+    'S.Nominal': 'SN', 'S. Nominal': 'SN',
+    'Sujeto/Morfema': 'SN', 'Morfema': 'SN',
+    'SAdv/SP': 'SAdv',
+  };
+  return map[s] || s;
 }
 
 function generarConsejoSint(func) {
@@ -1871,6 +1943,7 @@ function onOpen() {
   mantenimiento.addSeparator();
   mantenimiento.addItem('🔍 Auditar oraciones (solo lectura)',    'menuAuditarOracionesBanco');
   mantenimiento.addItem('✏️ Reparar oraciones automáticamente',   'menuRepararOracionesBanco');
+  mantenimiento.addItem('🩹 Reparar JSON roto (col. E)',          'menuRepararJSONRoto');
   mantenimiento.addItem('🧹 Limpiar colores de auditoría',        'menuLimpiarColoresAuditoria');
   mantenimiento.addSeparator();
   mantenimiento.addItem('✅ Validar coherencia del banco',         'menuValidarCoherencia');
@@ -2781,6 +2854,76 @@ const CC_COMPUESTO_MAP = {
   'CC Lugar/Modo':   ['CC Lugar','CC Modo'],
   'CC Tiempo/Modo':  ['CC Tiempo','CC Modo']
 };
+
+// ════════════════════════════════════════════════════════════════════════
+//  🩹 REPARAR JSON ROTO (col. E) — jun-2026
+//  Arregla los dos patrones de rotura detectados en los lotes pegados
+//  desde markdown / generados por IA:
+//    1. Basura tras el ']' final (backticks de bloque de código, espacios).
+//    2. Una o más llaves '}' sobrantes justo antes del ']' final.
+//  SEGURO: solo escribe en la celda si el resultado parsea como JSON.
+//  Idempotente: re-ejecutarlo no cambia nada que ya esté bien.
+// ════════════════════════════════════════════════════════════════════════
+function repararJsonRoto_(raw) {
+  let s = String(raw || '').trim();
+  if (!s) return null;
+  const parsea = function(t){ try { JSON.parse(t); return true; } catch(e){ return false; } };
+  if (parsea(s)) return null;            // ya estaba bien → no tocar
+  // Paso 1: basura tras el último ']'
+  const lastBracket = s.lastIndexOf(']');
+  if (lastBracket !== -1 && lastBracket < s.length - 1) {
+    const recortado = s.slice(0, lastBracket + 1);
+    if (parsea(recortado)) return recortado;
+    s = recortado;
+  }
+  // Paso 2: hasta 3 llaves '}' sobrantes antes del ']' final
+  for (let n = 0; n < 3; n++) {
+    const m = s.match(/\}(\s*\])\s*$/);
+    if (!m) break;
+    const candidato = s.slice(0, s.length - m[0].length) + m[1];
+    if (parsea(candidato)) return candidato;
+    s = candidato;
+  }
+  return parsea(s) ? s : false;          // false = no se pudo reparar
+}
+
+function menuRepararJSONRoto() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_BANCO);
+  if (!sheet) { ui.alert('No encuentro la hoja ' + SHEET_BANCO + '.'); return; }
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) { ui.alert('El banco está vacío.'); return; }
+
+  const rango = sheet.getRange(2, COL_JSON, lastRow - 1, 1);
+  const vals  = rango.getValues();
+  let rotos = 0, reparados = 0, irreparables = [];
+  for (let i = 0; i < vals.length; i++) {
+    const raw = String(vals[i][0] || '').trim();
+    if (!raw) continue;
+    try { JSON.parse(raw); continue; } catch (e) {}
+    rotos++;
+    const fix = repararJsonRoto_(raw);
+    if (typeof fix === 'string') {
+      vals[i][0] = fix;
+      reparados++;
+    } else {
+      irreparables.push('fila ' + (i + 2));
+    }
+  }
+  if (reparados > 0) rango.setValues(vals);
+
+  let msg = 'JSON rotos encontrados: ' + rotos + '\n' +
+            'Reparados automáticamente: ' + reparados + '\n';
+  if (irreparables.length) {
+    msg += '\n⚠ No se pudieron reparar (revísalos a mano):\n  ' + irreparables.join(', ');
+  } else if (rotos > 0) {
+    msg += '\n✅ Todos reparados. Pulsa también "Actualizar Panel del Profesor" para refrescar el contador.';
+  } else {
+    msg += '\n✅ No había nada que reparar.';
+  }
+  ui.alert('🩹 Reparar JSON roto', msg, ui.ButtonSet.OK);
+}
 
 function menuAuditarOracionesBanco() {
   const ui = SpreadsheetApp.getUi();

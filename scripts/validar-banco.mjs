@@ -32,7 +32,7 @@ const SIMPLES_FUNCIONES = new Set([
   'Sujeto','NP','PV','PN','CD','CI','Dativo','C.Rég.','Atr.','Atr. Loc.','CPvo','C.Ag.',
   'CC Lugar','CC Tiempo','CC Modo','CC Causa','CC Cantidad','CC Compañía','CC Finalidad',
   'CC Instrumento','CC Benef.','CC',
-  'Mod.Or.','Conector','Vocat.','Marca.Imp.','Marca.Pas.Ref.',
+  'Mod.Or.','Conector','Vocat.','Marca.Imp.','Marca.Pas.Ref.','Marca.Pron.',
 ]);
 // Tipos de sintagma válidos (parte izquierda de "TIPO | FUNCION").
 const SIMPLES_SINTAGMAS = new Set(['SN','SV','SP','SAdj','SAdv']);
@@ -44,6 +44,11 @@ const SIMPLES_PROHIBIDAS = {
   'Mod. Oracional':'usa "Mod.Or."', 'Modificador Oracional':'usa "Mod.Or."',
   'CC finalidad':'mayúscula: "CC Finalidad"', 'Atributo Locativo':'usa "Atr. Loc."',
   'CC Beneficiario':'usa "CC Benef."', 'CC Compania':'falta la tilde: "CC Compañía"',
+  // Alias detectados en la auditoría del banco real (jun-2026). El GAS los
+  // normaliza al servir, pero conviene corregirlos en el Sheet.
+  'CC Fin.':'usa "CC Finalidad"', 'CC Medio':'usa "CC Instrumento"',
+  'CI (Dat. Ético)':'usa "Dativo"', 'CPred':'usa "CPvo"', 'CRég':'usa "C.Rég."',
+  'Morf. Verbal':'usa "Marca.Pron."', 'N (V. Pronominal)':'usa "Marca.Pron."',
 };
 
 // ── COMPUESTAS (Compuestas_Banco, columna JSON_Compuesta, schema 1.2) ──

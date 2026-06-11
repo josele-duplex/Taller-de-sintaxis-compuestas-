@@ -7,8 +7,10 @@
 // propaga solo a isCC(), al submenú de CC y al color (los CC se pintan tag-f-cc).
 export const CC_SUBTIPOS = ['CC Lugar','CC Tiempo','CC Modo','CC Causa','CC Cantidad','CC Compañía','CC Finalidad','CC Instrumento','CC Benef.'];
 
-// 'Atr. Loc.' (atributo locativo) y 'Dativo' (no argumental) añadidos junio 2026.
-export const FUNC_ORAC = ['Sujeto','PN','PV','NP','CD','CI','Dativo','C.Rég.','Atr.','Atr. Loc.','CPvo',...CC_SUBTIPOS,'C.Ag.','Mod.Or.','Conector','Vocat.','Marca.Imp.','Marca.Pas.Ref.'];
+// 'Atr. Loc.' (atributo locativo), 'Dativo' (no argumental) y 'Marca.Pron.'
+// (marca de verbo pronominal: el me/te/se de acordarse, arrepentirse…)
+// añadidos junio 2026.
+export const FUNC_ORAC = ['Sujeto','PN','PV','NP','CD','CI','Dativo','C.Rég.','Atr.','Atr. Loc.','CPvo',...CC_SUBTIPOS,'C.Ag.','Mod.Or.','Conector','Vocat.','Marca.Imp.','Marca.Pas.Ref.','Marca.Pron.'];
 
 export const FUNC_SINT = ['N','N (enlace)','Mod/Det.','Mod/Cuant.','Mod.','SN/CN','SAdj/CN','SPrep/CN','CAdj','CAdv','SN/T','SAdj/T','SAdv/T','SP/T','Nexo','Aposición'];
 
@@ -24,7 +26,7 @@ export function funcTagCss(label) {
     'PV':'tag-f-pv','PN':'tag-f-pn','CC':'tag-f-cc','CPvo':'tag-f-cpvo',
     'C.Ag.':'tag-f-cag',
     'Mod.Or.':'tag-f-modor2','Vocat.':'tag-f-voc2',
-    'Marca.Imp.':'tag-f-imp','Marca.Pas.Ref.':'tag-f-pasref',
+    'Marca.Imp.':'tag-f-imp','Marca.Pas.Ref.':'tag-f-pasref','Marca.Pron.':'tag-f-pasref',
     'Sujeto':'tag-sn','NP':'tag-sv'
   };
   if (map[func]) return map[func];

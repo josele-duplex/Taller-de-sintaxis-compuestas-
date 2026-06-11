@@ -541,6 +541,7 @@ export const ERROR_TO_LECCION = {
   'Vocat.': 'vocativo',
   'PN': 'pn_pv', 'PV': 'pn_pv',                      // antes apuntaban a atr_cpvo (incorrecto)
   'Dativo': 'reflexivos',
+  'Marca.Pron.': 'reflexivos',  // el me/te/se pronominal se explica en la misma lección
   'C.Ag.': 'pasivas', 'Marca.Pas.Ref.': 'pasivas', 'Marca.Imp.': 'impersonales',
   'Atr.': 'atr_cpvo', 'CPvo': 'atr_cpvo',
   // Atributo locativo: leccion propia (junio 2026).
