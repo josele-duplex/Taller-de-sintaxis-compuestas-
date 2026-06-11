@@ -1944,6 +1944,7 @@ function onOpen() {
   mantenimiento.addItem('🔍 Auditar oraciones (solo lectura)',    'menuAuditarOracionesBanco');
   mantenimiento.addItem('✏️ Reparar oraciones automáticamente',   'menuRepararOracionesBanco');
   mantenimiento.addItem('🩹 Reparar JSON roto (col. E)',          'menuRepararJSONRoto');
+  mantenimiento.addItem('🧹 Eliminar oraciones duplicadas',       'menuEliminarDuplicadosBanco');
   mantenimiento.addItem('🧹 Limpiar colores de auditoría',        'menuLimpiarColoresAuditoria');
   mantenimiento.addSeparator();
   mantenimiento.addItem('✅ Validar coherencia del banco',         'menuValidarCoherencia');
@@ -2885,6 +2886,69 @@ function repararJsonRoto_(raw) {
     s = candidato;
   }
   return parsea(s) ? s : false;          // false = no se pudo reparar
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  🧹 ELIMINAR ORACIONES DUPLICADAS (banco) — jun-2026
+//  Agrupa por texto exacto de la columna A. Si las copias extra son
+//  100% IDÉNTICAS (todas las columnas A-H), borra las sobrantes y
+//  conserva la primera. Si difieren en algo (análisis, consejos…),
+//  NO borra nada y las lista para que el profesor decida cuál conservar.
+// ════════════════════════════════════════════════════════════════════════
+function menuEliminarDuplicadosBanco() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_BANCO);
+  if (!sheet) { ui.alert('No encuentro la hoja ' + SHEET_BANCO + '.'); return; }
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 3) { ui.alert('No hay suficientes filas para haber duplicados.'); return; }
+
+  const nCols = Math.max(8, sheet.getLastColumn());
+  const data = sheet.getRange(2, 1, lastRow - 1, nCols).getValues();
+
+  // Agrupar por texto de la oración (col A, trim)
+  const grupos = {};
+  data.forEach((row, i) => {
+    const txt = String(row[0] || '').trim();
+    if (!txt) return;
+    (grupos[txt] = grupos[txt] || []).push(i); // índice 0-based dentro de data
+  });
+
+  const aBorrar = [];        // filas reales de hoja, sobrantes idénticas
+  const paraRevisar = [];    // grupos con diferencias → decisión manual
+  for (const txt in grupos) {
+    const idxs = grupos[txt];
+    if (idxs.length < 2) continue;
+    const base = JSON.stringify(data[idxs[0]]);
+    const identicas = idxs.every(function(i){ return JSON.stringify(data[i]) === base; });
+    if (identicas) {
+      for (let k = 1; k < idxs.length; k++) aBorrar.push(idxs[k] + 2); // +2: cabecera y base-1
+    } else {
+      paraRevisar.push('"' + txt.slice(0, 50) + '" (filas ' + idxs.map(function(i){ return i + 2; }).join(', ') + ')');
+    }
+  }
+
+  if (aBorrar.length === 0 && paraRevisar.length === 0) {
+    ui.alert('🧹 Duplicados', 'No hay oraciones duplicadas. Banco limpio.', ui.ButtonSet.OK);
+    return;
+  }
+
+  let msg = 'Copias idénticas que se pueden borrar sin riesgo: ' + aBorrar.length + '\n';
+  if (paraRevisar.length) {
+    msg += '\nGrupos con DIFERENCIAS entre copias (NO se tocan; decide tú cuál conservar):\n  • ' +
+           paraRevisar.join('\n  • ') + '\n';
+  }
+  msg += '\n¿Borrar ahora las ' + aBorrar.length + ' copias idénticas? (Se conserva siempre la primera aparición.)';
+  const resp = ui.alert('🧹 Eliminar duplicados', msg, ui.ButtonSet.YES_NO);
+  if (resp !== ui.Button.YES) return;
+
+  // Borrar de abajo arriba para no desplazar índices
+  aBorrar.sort(function(a, b){ return b - a; });
+  aBorrar.forEach(function(fila){ sheet.deleteRow(fila); });
+
+  ui.alert('✅ Hecho', 'Borradas ' + aBorrar.length + ' filas duplicadas.' +
+    (paraRevisar.length ? '\n\nQuedan ' + paraRevisar.length + ' grupos con diferencias para revisar a mano.' : ''),
+    ui.ButtonSet.OK);
 }
 
 function menuRepararJSONRoto() {
