@@ -3773,11 +3773,15 @@
     const tieneNexos = (ej.nexos||[]).length > 0 && (ej.proposiciones||[]).length > 1;
     const tieneRelaciones = (ej.relaciones||[]).length > 0;
 
+    // Curva de penalización por fase (rediseño 2026-06-16, coherente con simples).
+    // EXAMEN = dura (0→100% · 1→40% · 2→10% · 3+→0%): mide como en papel.
+    // PRÁCTICA = suave (100/50/25/0): es para aprender, no castiga.
+    const _penaltyFactor = state.modoExamen
+      ? [1, 0.40, 0.10, 0]
+      : [1, 0.50, 0.25, 0];
     const atenPenalty = (w, e) => {
-      if (e <= 0) return w;
-      if (e === 1) return w * 0.5;
-      if (e === 2) return w * 0.25;
-      return 0;
+      const n = e <= 0 ? 0 : (e >= 3 ? 3 : e);
+      return w * _penaltyFactor[n];
     };
 
     let avail = 0, earned = 0;
