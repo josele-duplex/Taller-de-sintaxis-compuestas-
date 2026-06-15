@@ -647,6 +647,25 @@ function normalizeOracion(raw){
   return safe;
 }
 
+// Desglose de errores por función gramatical a partir de G.oraciones/G.sentenceErrors.
+// Usado tanto en analytics de práctica libre como en el envío de resultados de examen.
+function computeErrByFunc_(){
+  const errByFunc = {};
+  (G.oraciones||[]).forEach((o,idx)=>{
+    const se = (G.sentenceErrors||[])[idx]||{};
+    (o.fase3?.bloques||[]).forEach(b=>{
+      const f=(b.solucion||'').split(' | ')[1]||'';
+      if(f && f!=='—'){
+        const n=(se.blockErrors||{})[b.id]||0;
+        errByFunc[f]=(errByFunc[f]||0)+n;
+      }
+    });
+    if((se.npErrors||0)>0) errByFunc['NP']=(errByFunc['NP']||0)+se.npErrors;
+    if((se.sujetoErrors||0)>0) errByFunc['Sujeto']=(errByFunc['Sujeto']||0)+se.sujetoErrors;
+  });
+  return errByFunc;
+}
+
 // ─── Reusable practice session analytics (used by goResults, exit button, beforeunload) ───
 let _practiceAnalyticsSent = false;
 function sendPracticeAnalytics(opts){
@@ -660,19 +679,7 @@ function sendPracticeAnalytics(opts){
     const tiempoMin = G.sessionStart ? Math.round((Date.now()-G.sessionStart)/60000) : 0;
     // Don't bother saving sessions shorter than 30 seconds — usually accidental opens
     if(tiempoMin === 0 && (G.sentenceCompleted||[]).filter(Boolean).length === 0 && G.totalErrors === 0) return;
-    const errByFunc = {};
-    (G.oraciones||[]).forEach((o,idx)=>{
-      const se = G.sentenceErrors[idx]||{};
-      (o.fase3?.bloques||[]).forEach(b=>{
-        const f=(b.solucion||'').split(' | ')[1]||'';
-        if(f && f!=='—'){
-          const n=(se.blockErrors||{})[b.id]||0;
-          errByFunc[f]=(errByFunc[f]||0)+n;
-        }
-      });
-      if((se.npErrors||0)>0) errByFunc['NP']=(errByFunc['NP']||0)+se.npErrors;
-      if((se.sujetoErrors||0)>0) errByFunc['Sujeto']=(errByFunc['Sujeto']||0)+se.sujetoErrors;
-    });
+    const errByFunc = computeErrByFunc_();
     const sorted=Object.entries(errByFunc).sort((a,b)=>b[1]-a[1]);
     const peor=sorted[0]?.[0]||'';
     const mejor=sorted.filter(x=>x[1]===0).map(x=>x[0]).join(',');
@@ -2632,13 +2639,20 @@ async function submitResult(score,totalAvail,totalEarned,totals){
   });
   const completadas=(G.sentenceCompleted||[]).filter(Boolean).length;
   const totalOr=G.oraciones.length;
+  const errByFunc=computeErrByFunc_();
   _pendingResult = {
     action:'saveResult',name:G.name||'',email:G.email||'',pin:G.examPin||'',
     grupo:G.examGrupo||'',evaluacion:G.examEval||'',examen:G.examName||'',
     score:String(score||0),
     sujeto:String((pb.sujeto||{}).earned||0),funciones:String((pb.funciones||{}).earned||0),
     np:String((pb.np||{}).earned||0),elementosFallados:String(elemFallados),
-    completadas:String(completadas),totalOraciones:String(totalOr)
+    completadas:String(completadas),totalOraciones:String(totalOr),
+    errCD:String(errByFunc['CD']||0),
+    errCI:String(errByFunc['CI']||0),
+    errAtr:String(errByFunc['Atr.']||0),
+    errCPvo:String(errByFunc['CPvo']||0),
+    errCReg:String(errByFunc['C.Rég.']||0),
+    errCC:String(Object.entries(errByFunc).filter(([k])=>k.startsWith('CC ')).reduce((a,[,v])=>a+v,0))
   };
   try{
     const params=new URLSearchParams(_pendingResult);
