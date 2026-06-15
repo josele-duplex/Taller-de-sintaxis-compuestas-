@@ -1663,7 +1663,8 @@ function saveResult_(p) {
     const ss    = SpreadsheetApp.getActiveSpreadsheet();
     const RESULT_HEADER = ['Fecha','Correo','Nombre','Grupo','Evaluacion','Examen','PIN',
                            'Nota','Completadas','Total_Oraciones',
-                           'Sujeto_Pts','Funciones_Pts','NP_Pts','Elem_Fallados'];
+                           'Sujeto_Pts','Funciones_Pts','NP_Pts','Elem_Fallados',
+                           'Err_CD','Err_CI','Err_Atr','Err_CPvo','Err_CReg','Err_CC'];
     let sheet = ss.getSheetByName(SHEET_RESULTS);
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_RESULTS);
@@ -1709,7 +1710,13 @@ function saveResult_(p) {
       'Sujeto_Pts': sujetoPts,
       'Funciones_Pts': funcionesPts,
       'NP_Pts': npPts,
-      'Elem_Fallados': parseInt(p.elementosFallados)||0
+      'Elem_Fallados': parseInt(p.elementosFallados)||0,
+      'Err_CD':     parseInt(p.errCD)   ||0,
+      'Err_CI':     parseInt(p.errCI)   ||0,
+      'Err_Atr':    parseInt(p.errAtr)  ||0,
+      'Err_CPvo':   parseInt(p.errCPvo) ||0,
+      'Err_CReg':   parseInt(p.errCReg) ||0,
+      'Err_CC':     parseInt(p.errCC)   ||0
     });
     return { ok: true };
   } finally {
@@ -3732,7 +3739,7 @@ function getInformeProfesor_(params) {
       al.errores[funcion] = (al.errores[funcion] || 0) + n;
     }
 
-    // Simples examen
+    // Simples examen (con desglose de errores por función)
     simplesEx.forEach(r => {
       if (!r.correo) return;
       const a = ensureAlumno_(r.correo, r.nombre, r.grupo);
@@ -3741,6 +3748,12 @@ function getInformeProfesor_(params) {
       a.simples_examen.intentos++;
       a.simples_examen.notas.push(r.nota);
       pushUltima_(a, r.fecha);
+      sumErr_(a, 'CD',     r.errCD);
+      sumErr_(a, 'CI',     r.errCI);
+      sumErr_(a, 'Atr.',   r.errAtr);
+      sumErr_(a, 'CPvo',   r.errCPvo);
+      sumErr_(a, 'C.Rég.', r.errCReg);
+      sumErr_(a, 'CC',     r.errCC);
     });
 
     // Simples práctica (con desglose de errores por función)
@@ -4074,7 +4087,13 @@ function leerSimplesExamen_(ss, from, to, grupoFilter) {
       evaluacion: String(row[col['Evaluacion']] || '').trim(),
       examen:     String(row[col['Examen']] || '').trim(),
       pin:        String(row[col['PIN']] || '').trim(),
-      nota:       parseFloat(row[col['Nota']]) || 0
+      nota:       parseFloat(row[col['Nota']]) || 0,
+      errCD:      parseInt(row[col['Err_CD']])   || 0,
+      errCI:      parseInt(row[col['Err_CI']])   || 0,
+      errAtr:     parseInt(row[col['Err_Atr']])  || 0,
+      errCPvo:    parseInt(row[col['Err_CPvo']]) || 0,
+      errCReg:    parseInt(row[col['Err_CReg']]) || 0,
+      errCC:      parseInt(row[col['Err_CC']])   || 0
     });
   });
   return out;
