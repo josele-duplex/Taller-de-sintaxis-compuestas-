@@ -943,6 +943,16 @@
       f5Respuestas: [],                    // [{tipo, tipoOk, origen, direccionOk, funcion, funcionOk, funcionSp, funcionSpOk}]
       f5Aciertos: 0,
       f5Errores: 0,
+      // Desglose de errores de F5 por categoría (para el Top de errores del
+      // informe del profesor). Cada categoría se cuenta en su propia pregunta,
+      // así que no hay doble cómputo función↔subtipo: si el motor no pregunta
+      // la función (caso redundante), no se registra error de función.
+      f5ErrTipo: 0,        // tipo de composición (coord ↔ / subord → / yuxt ∥)
+      f5ErrFamilia: 0,     // familia de subordinada (sustantiva / relativa / construcción)
+      f5ErrSubtipo: 0,     // subtipo concreto (copulativa, sustantiva_cd, condicional…)
+      f5ErrDireccion: 0,   // cuál es la principal y cuál la subordinada
+      f5ErrFuncion: 0,     // función de la subordinada (solo cuando se pregunta)
+      f5ErrFuncionSp: 0,   // función del SP (término de preposición)
       // ── Fase 6: análisis interno de oraciones (Entrega 4 / Fase 1.4) ─
       interna: {
         activo:     false,           // se activa cuando el alumno elige "Analizar por dentro"
@@ -2600,6 +2610,7 @@
       } else {
         resp.tipoOk = false;
         eng.f5Errores += 1;
+        eng.f5ErrTipo += 1;
         // El helper ya llama a trackError internamente con el realId correcto
         // (rel.tipo). Sustituye al antiguo trackError('compuestas','tipo_relacion')
         // que no encajaba con FEEDBACK_COMPUESTAS ni con ERROR_TO_LECCION_CP.
@@ -2636,6 +2647,7 @@
       } else {
         resp.familiaOk = false;
         eng.f5Errores += 1;
+        eng.f5ErrFamilia += 1;
         // El helper trackError con el realId correcto (familia correcta)
         eng.mensajeFeedback = {
           tipo:'err',
@@ -2670,6 +2682,7 @@
       } else {
         resp.subtipoOk = false;
         eng.f5Errores += 1;
+        eng.f5ErrSubtipo += 1;
         eng.mensajeFeedback = {
           tipo:'err',
           html: buildScaffoldFeedbackCP({
@@ -2707,6 +2720,7 @@
       } else {
         resp.direccionOk = false;
         eng.f5Errores += 1;
+        eng.f5ErrDireccion += 1;
         eng.mensajeFeedback = {
           tipo:'err',
           html: `✗ La dependencia va al revés. La principal es la que «manda», la que no depende de ninguna otra.`
@@ -2732,6 +2746,7 @@
       } else {
         resp.funcionOk = false;
         eng.f5Errores += 1;
+        eng.f5ErrFuncion += 1;
         eng.mensajeFeedback = {
           tipo:'err',
           html: `✗ Esa no es la función correcta. Recuerda qué pregunta hace cada función: ¿qué? (CD), ¿a quién? (CI), ¿quién? (sujeto)…`
@@ -2757,6 +2772,7 @@
       } else {
         resp.funcionSpOk = false;
         eng.f5Errores += 1;
+        eng.f5ErrFuncionSp += 1;
         eng.mensajeFeedback = {
           tipo:'err',
           html: `✗ El SP completo no funciona como ${escHtml(nombreLargoFuncion(v))}. Piensa qué pide el verbo o el sustantivo del que depende.`
@@ -3843,6 +3859,13 @@
       errores_delimitar:    eng.f3Errores || 0,
       aciertos_clasificar:  (eng.f5Aciertos || 0),
       errores_clasificar:   (eng.f5Errores || 0),
+      // Desglose de F5 por categoría (para el Top de errores del informe)
+      err_tipo:             eng.f5ErrTipo      || 0,
+      err_familia:          eng.f5ErrFamilia   || 0,
+      err_subtipo:          eng.f5ErrSubtipo   || 0,
+      err_direccion:        eng.f5ErrDireccion || 0,
+      err_funcion:          eng.f5ErrFuncion   || 0,
+      err_funcion_sp:       eng.f5ErrFuncionSp || 0,
       // Fase 1.4: contadores del análisis interno (si el alumno lo hizo)
       aciertos_interna:     (eng.interna && eng.interna.activo) ? eng.interna.aciertos : 0,
       errores_interna:      (eng.interna && eng.interna.activo) ? eng.interna.errores : 0,
@@ -4009,6 +4032,25 @@
       pistas_usadas:      r.pistas_usadas      || ''
     }));
 
+    // Suma de errores por categoría a lo largo del examen, para el Top de
+    // errores del informe del profesor. Agrupado luego en el informe con pesos
+    // Pilar×3 / Función×2 / Procedimental×1 (decisión Josele 2026-06-15).
+    const sumKey = k => ress.reduce((a, r) => a + (r[k] || 0), 0);
+    const erroresCP = {
+      // Pilar (×3): clasificación de la relación
+      tipo:       sumKey('err_tipo'),
+      familia:    sumKey('err_familia'),
+      subtipo:    sumKey('err_subtipo'),
+      // Función (×2): solo lo no redundante con el subtipo
+      funcion:    sumKey('err_funcion'),
+      funcion_sp: sumKey('err_funcion_sp'),
+      // Procedimental (×1): identificación previa + dirección
+      verbos:     sumKey('errores_verbos'),
+      nexos:      sumKey('errores_nexos'),
+      delimitar:  sumKey('errores_delimitar'),
+      direccion:  sumKey('err_direccion')
+    };
+
     return {
       email:           state.examEmail  || '',
       name:            state.examAlumno || '',
@@ -4020,6 +4062,7 @@
       completados:     completados,
       nota:            nota,
       fasesPts:        fasesPts,
+      erroresCP:       erroresCP,
       detalle:         detalle
     };
   }
