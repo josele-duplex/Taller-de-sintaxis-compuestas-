@@ -48,7 +48,8 @@ const COMP_RESULT_HEADER = [
   'Total_Ejercicios', 'Completados', 'Nota',
   'Fase0_Pts', 'Fase1_Pts', 'Fase2_Pts', 'Fase3_Pts',
   'Fase4_Pts', 'Fase5_Pts', 'Fase6_Pts',
-  'Detalle_JSON'
+  'Detalle_JSON',
+  'Errores_Categoria_JSON'   // desglose de errores por categoría (Top del informe)
 ];
 
 // Cabecera de la hoja Compuestas_Practica_Log (SOLO practica libre).
@@ -674,7 +675,8 @@ function saveResultadoCompuesta_(p) {
       'Fase4_Pts':        fasePts('f4'),
       'Fase5_Pts':        fasePts('f5'),
       'Fase6_Pts':        fasePts('f6'),
-      'Detalle_JSON':     p.detalle ? JSON.stringify(p.detalle) : ''
+      'Detalle_JSON':     p.detalle ? JSON.stringify(p.detalle) : '',
+      'Errores_Categoria_JSON': p.erroresCP ? JSON.stringify(p.erroresCP) : ''
     });
     return { ok: true };
   } finally {

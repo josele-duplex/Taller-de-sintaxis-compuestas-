@@ -3707,6 +3707,10 @@ function getInformeProfesor_(params) {
 
     // ── 4. Agregar por alumno (clave: correo en minúsculas) ─────────────
     const alumnosMap = {};
+    // Errores de compuestas por categoría (global). Se mantiene SEPARADO del
+    // mapa `errores` de simples (que comparte etiquetas CD/CI…). El informe le
+    // aplica los pesos Pilar×3 / Función×2 / Procedimental×1.
+    const erroresGlobalCP = {};
     function ensureAlumno_(correo, nombre, grupo) {
       const key = String(correo || '').trim().toLowerCase();
       if (!alumnosMap[key]) {
@@ -3784,6 +3788,12 @@ function getInformeProfesor_(params) {
       a.compuestas.intentos++;
       a.compuestas.notas.push(r.nota);
       pushUltima_(a, r.fecha);
+      // Desglose de errores por categoría (solo los exámenes lo traen poblado;
+      // la práctica y las filas antiguas envían {} → no suman nada).
+      const ecp = r.erroresCP || {};
+      Object.keys(ecp).forEach(k => {
+        erroresGlobalCP[k] = (erroresGlobalCP[k] || 0) + (parseInt(ecp[k]) || 0);
+      });
     });
 
     // ── 5. Construir array final de alumnos con stats ───────────────────
@@ -3973,6 +3983,9 @@ function getInformeProfesor_(params) {
       por_grupo: gruposArr,
       diagnostico_global: {
         errores_top: diagnosticoGlobal,
+        // Errores de compuestas por categoría (crudos). El informe los agrupa
+        // en 3 bloques y aplica pesos Pilar×3 / Función×2 / Procedimental×1.
+        errores_compuestas: erroresGlobalCP,
         recomendacion: construirRecomendacion_(diagnosticoGlobal)
       },
       detalle: detalle,
@@ -4156,7 +4169,15 @@ function leerCompuestasRes_(ss, from, to, grupoFilter) {
       modo:            String(row[col['Modo']] || '').trim(),
       totalEjercicios: parseInt(row[col['Total_Ejercicios']]) || 0,
       completados:     parseInt(row[col['Completados']])      || 0,
-      nota:            parseFloat(row[col['Nota']]) || 0
+      nota:            parseFloat(row[col['Nota']]) || 0,
+      // Desglose de errores por categoría (columna añadida 2026-06-16; las
+      // filas anteriores no la tienen → objeto vacío).
+      erroresCP:       (function () {
+                         if (col['Errores_Categoria_JSON'] === undefined) return {};
+                         const raw = row[col['Errores_Categoria_JSON']];
+                         if (!raw) return {};
+                         try { return JSON.parse(raw) || {}; } catch (e) { return {}; }
+                       })()
     });
   });
   return out;
