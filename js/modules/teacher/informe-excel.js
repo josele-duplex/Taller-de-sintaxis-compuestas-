@@ -31,6 +31,7 @@
     verdeBg:     'D1FAE5',  verdeText: '065F46',
     ambarBg:     'FEF3C7',  ambarText: '92400E',
     rojoBg:      'FEE2E2',  rojoText:  '991B1B',
+    azulBg:      'DBEAFE',  azulText:  '1E40AF',
     grisBg:      'F3F4F6',  grisText:  '374151',
     headerTabla: '312E81',  headerTablaText: 'FFFFFF'
   };
@@ -94,16 +95,19 @@
   function S_celdaNum(extra){
     return S_celda(Object.assign({ alignment:{ horizontal:'right', vertical:'center' } }, extra || {}));
   }
+  // Escala pedagógica de 4 colores: 0-4 rojo · 5-6 amarillo · 7-8 verde · 9-10 azul.
+  function coloresNota_(n){
+    if (n === null || n === undefined || isNaN(n)) return { bg: C.grisBg, text: C.grisText };
+    if (n >= 9)      return { bg: C.azulBg,  text: C.azulText  };
+    if (n >= 7)      return { bg: C.verdeBg, text: C.verdeText };
+    if (n >= 5)      return { bg: C.ambarBg, text: C.ambarText };
+    return                    { bg: C.rojoBg,  text: C.rojoText  };
+  }
   function S_nota(n){
-    let bg = C.grisBg, text = C.grisText;
-    if (n !== null && n !== undefined && !isNaN(n)){
-      if (n >= 7)      { bg = C.verdeBg; text = C.verdeText; }
-      else if (n >= 5) { bg = C.ambarBg; text = C.ambarText; }
-      else             { bg = C.rojoBg;  text = C.rojoText;  }
-    }
+    const c = coloresNota_(n);
     return S_celda({
-      font:      { sz:10, bold:true, color:{rgb:text} },
-      fill:      { fgColor:{rgb:bg} },
+      font:      { sz:10, bold:true, color:{rgb:c.text} },
+      fill:      { fgColor:{rgb:c.bg} },
       alignment: { horizontal:'center', vertical:'center' }
     });
   }
@@ -416,15 +420,24 @@
         cell('Distribución', S_cabeceraTabla()),
         cell('', S_cabeceraTabla())
       ]);
+      // Los 4 tramos del histograma (Insuficiente/Suf.Bien/Notable/Sobresaliente)
+      // se corresponden 1:1 con la escala de colores rojo/amarillo/verde/azul.
+      const COLORES_TRAMO = [
+        { bg: C.rojoBg,  text: C.rojoText  },
+        { bg: C.ambarBg, text: C.ambarText },
+        { bg: C.verdeBg, text: C.verdeText },
+        { bg: C.azulBg,  text: C.azulText  }
+      ];
       const maxTramo = Math.max.apply(null, est.histograma.map(t => t.count).concat([1]));
-      est.histograma.forEach(t => {
+      est.histograma.forEach((t, i) => {
         const barra = '█'.repeat(Math.max(0, Math.round((t.count / maxTramo) * 22)));
+        const col = COLORES_TRAMO[i] || { bg: C.grisBg, text: C.grisText };
         aoa.push([
-          cell(t.etiqueta, S_celda({font:{bold:true,sz:10,color:{rgb:C.ink}}})),
-          cell(t.count, S_celdaCentro()),
-          cell(t.pct + '%', S_celdaCentro()),
-          cell(barra, S_celda({font:{color:{rgb:C.marcaDark}}})),
-          cell('', S_celda())
+          cell(t.etiqueta, S_celda({font:{bold:true,sz:10,color:{rgb:col.text}}, fill:{fgColor:{rgb:col.bg}}})),
+          cell(t.count, S_celdaCentro({font:{bold:true,sz:10,color:{rgb:col.text}}, fill:{fgColor:{rgb:col.bg}}})),
+          cell(t.pct + '%', S_celdaCentro({font:{bold:true,sz:10,color:{rgb:col.text}}, fill:{fgColor:{rgb:col.bg}}})),
+          cell(barra, S_celda({font:{color:{rgb:col.text}}, fill:{fgColor:{rgb:col.bg}}})),
+          cell('', S_celda({fill:{fgColor:{rgb:col.bg}}}))
         ]);
       });
       aoa.push([cell('')]); aoa.push([cell('')]);
