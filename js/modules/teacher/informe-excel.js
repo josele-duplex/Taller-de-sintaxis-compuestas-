@@ -475,6 +475,83 @@
 
     aoa.push([cell('')]); aoa.push([cell('')]);
 
+    // ── TOP ERRORES DE COMPUESTAS (ponderado por bloques) ───────────────
+    // Pilar×3 / Función×2 / Procedimental×1 (decisión Josele 2026-06-15).
+    const cp = diag.errores_compuestas || {};
+    const totalCP = Object.keys(cp).reduce((s,k) => s + (parseInt(cp[k])||0), 0);
+    const CP_BLOQUES = [
+      { titulo:'PILAR · Clasificación de la relación', peso:3, bg:C.card1, cats:[
+          ['tipo',       'Tipo de composición (coord. / subord. / yuxt.)'],
+          ['familia',    'Familia de subordinada (sustantiva / relativa / construcción)'],
+          ['subtipo',    'Subtipo concreto'] ] },
+      { titulo:'FUNCIÓN · Función de la subordinada', peso:2, bg:C.card3, cats:[
+          ['funcion',    'Función de la subordinada'],
+          ['funcion_sp', 'Función del SP (término de preposición)'] ] },
+      { titulo:'PROCEDIMENTAL · Pasos previos', peso:1, bg:C.card4, cats:[
+          ['verbos',     'Identificar núcleos verbales'],
+          ['nexos',      'Identificar nexos'],
+          ['delimitar',  'Delimitar proposiciones'],
+          ['direccion',  'Dirección de la dependencia'] ] }
+    ];
+    // Máximo índice ponderado (count × peso) para escalar las barras.
+    let maxIdxCP = 0;
+    CP_BLOQUES.forEach(b => b.cats.forEach(([k]) => {
+      const idx = (parseInt(cp[k])||0) * b.peso;
+      if (idx > maxIdxCP) maxIdxCP = idx;
+    }));
+
+    aoa.push([
+      cell('TOP ERRORES DE COMPUESTAS (ponderado)', S_seccion()),
+      cell('', S_seccion()),cell('', S_seccion()),cell('', S_seccion()),cell('', S_seccion())
+    ]);
+    merges.push(merge(aoa.length-1,0,aoa.length-1,4));
+    aoa.push([
+      cell('Índice = errores × peso del bloque. Pilar ×3 · Función ×2 · Procedimental ×1.',
+        S_celda({ font:{ italic:true, sz:9, color:{rgb:C.muted} } })),
+      cell(''),cell(''),cell(''),cell('')
+    ]);
+    merges.push(merge(aoa.length-1,0,aoa.length-1,4));
+
+    if (!totalCP){
+      aoa.push([cell('(sin exámenes de compuestas registrados en este rango)', S_celda()), cell(''),cell(''),cell(''),cell('')]);
+      aoa.push([cell('')]); aoa.push([cell('')]);
+    } else {
+      CP_BLOQUES.forEach(b => {
+        // Subcabecera del bloque
+        aoa.push([
+          cell(b.titulo + '  (peso ×' + b.peso + ')', S_celda({
+            font:{ bold:true, sz:11, color:{rgb:C.marcaDark} },
+            fill:{ fgColor:{rgb:b.bg} }
+          })),
+          cell('', S_celda({ fill:{ fgColor:{rgb:b.bg} } })),
+          cell('', S_celda({ fill:{ fgColor:{rgb:b.bg} } })),
+          cell('', S_celda({ fill:{ fgColor:{rgb:b.bg} } })),
+          cell('', S_celda({ fill:{ fgColor:{rgb:b.bg} } }))
+        ]);
+        aoa.push([
+          cell('Categoría', S_cabeceraTabla()),
+          cell('Errores',   S_cabeceraTabla()),
+          cell('Peso',      S_cabeceraTabla()),
+          cell('Índice',    S_cabeceraTabla()),
+          cell('Barra',     S_cabeceraTabla())
+        ]);
+        b.cats.forEach(([k, etiqueta]) => {
+          const n = parseInt(cp[k]) || 0;
+          const idx = n * b.peso;
+          const barra = maxIdxCP ? '█'.repeat(Math.max(0, Math.round((idx / maxIdxCP) * 20))) : '';
+          aoa.push([
+            cell(etiqueta, S_celda({ font:{ sz:10, color:{rgb:C.ink} } })),
+            cell(n,        S_celdaCentro()),
+            cell('×' + b.peso, S_celdaCentro({ font:{ sz:10, color:{rgb:C.muted} } })),
+            cell(idx,      S_celdaCentro({ font:{ bold:true, sz:10, color:{rgb:C.marcaDark} } })),
+            cell(barra,    S_celda({ font:{ color:{rgb:C.marcaDark} } }))
+          ]);
+        });
+        aoa.push([cell('')]);
+      });
+      aoa.push([cell('')]);
+    }
+
     // Por grupo
     const grupos = datos.por_grupo || [];
     if (grupos.length){
