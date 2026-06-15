@@ -1539,6 +1539,14 @@
   }
 
   function renderFeedback(msg){
+    // En EXAMEN no se revela información que ayude a corregir (paridad con el
+    // papel/EBAU y con el módulo de simples): el feedback se reduce a un aviso
+    // neutro. La nota ya penaliza el error con la curva dura; aprender el porqué
+    // se reserva para la práctica.
+    if(state.modoExamen){
+      const neutro = msg.tipo === 'ok' ? '✓ Correcto.' : '✗ Incorrecto.';
+      return `<div class="cp-feedback cp-feedback-${msg.tipo}">${neutro}</div>`;
+    }
     return `<div class="cp-feedback cp-feedback-${msg.tipo}">${msg.html}</div>`;
   }
 
@@ -1570,7 +1578,7 @@
 
       return `
         <div class="cp-actions">
-          ${(errCount >= 2 && !pistaUsada) ? `<button type="button" class="cp-btn-secondary" onclick="CP.pedirPista()">💡 Pista</button>` : ''}
+          ${(!state.modoExamen && errCount >= 2 && !pistaUsada) ? `<button type="button" class="cp-btn-secondary" onclick="CP.pedirPista()">💡 Pista</button>` : ''}
           <button type="button" class="cp-btn-secondary cp-btn-skip" onclick="CP.saltarFase()" title="Avanzar sin completar este paso">Saltar paso →</button>
           <div class="cp-spacer"></div>
           ${completos
@@ -1586,7 +1594,7 @@
       const completos = eng.f3Confirmados.size >= total;
       return `
         <div class="cp-actions">
-          ${(eng.f3Errores >= 2 && !eng.pistaUsadaF3) ? `<button type="button" class="cp-btn-secondary" onclick="CP.pedirPista()">💡 Pista</button>` : ''}
+          ${(!state.modoExamen && eng.f3Errores >= 2 && !eng.pistaUsadaF3) ? `<button type="button" class="cp-btn-secondary" onclick="CP.pedirPista()">💡 Pista</button>` : ''}
           <button type="button" class="cp-btn-secondary cp-btn-skip" onclick="CP.saltarFase()" title="Avanzar sin completar este paso">Saltar paso →</button>
           <div class="cp-spacer"></div>
           ${completos
