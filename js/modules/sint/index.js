@@ -290,7 +290,10 @@ const PRONOUNS = [
 ];
 
 // Pesos de ponderación
-const W = { NP: 2, SUJETO: 4, FUNCION: 3 };
+// Núcleo 2→1 y Sujeto 4→3 (rediseño 2026-06-16): identificar el verbo y el
+// sujeto son casi automáticos; pesaban demasiado y creaban un "suelo gratis"
+// que inflaba la nota. El peso liberado refuerza el análisis de funciones.
+const W = { NP: 1, SUJETO: 3, FUNCION: 3 };
 
 // ════════════════════════════════════════════════════════
 // TAG CONTENT HELPERS
@@ -2119,6 +2122,16 @@ function closeFb(){
 function calcDetailedScore(){
   const totals={np:{avail:0,earned:0},sujeto:{avail:0,earned:0},funciones:{avail:0,earned:0}};
   const perSentence=[];
+  // Curva de penalización por errores en un bloque (rediseño 2026-06-16).
+  // EXAMEN = dura (0→100% · 1→40% · 2→10% · 3+→0%): mide como en papel.
+  // PRÁCTICA y PROYECTOR = suave (100/50/25/0): es para aprender, no castiga.
+  const _penaltyFactor = (G && G.mode === 'exam')
+    ? [1, 0.40, 0.10, 0]
+    : [1, 0.50, 0.25, 0];
+  const atenPenalty = (weight, errors) => {
+    const e = errors <= 0 ? 0 : (errors >= 3 ? 3 : errors);
+    return weight * _penaltyFactor[e];
+  };
   let completadas=0, noCompletadas=0;
   (G.oraciones||[]).forEach((o,idx)=>{
     const se=G.sentenceErrors[idx]||{};
@@ -2142,14 +2155,6 @@ function calcDetailedScore(){
     if(completed){
       // Calculate earned points — ONLY if sentence was completed
       completadas++;
-      // IF-AT atenuada: 0 err→100%, 1→50%, 2→25%, 3+→0%. Aplica a práctica y examen.
-      const atenPenalty = (weight, errors) => {
-        if (errors <= 0) return weight;
-        if (errors === 1) return weight * 0.5;
-        if (errors === 2) return weight * 0.25;
-        return 0;
-      };
-
       const npErrors = se.npErrors || 0;
       const sujErrors = se.sujetoErrors || 0;
       const pvpnErrors = se.pvpnErrors || 0;
