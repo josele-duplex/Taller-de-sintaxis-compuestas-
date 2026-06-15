@@ -388,12 +388,55 @@
 
     aoa.push([cell('')]);
 
+    // ── A+B: CALIFICACIONES (estadísticas + histograma global) ──────────
+    const est = (datos.resumen && datos.resumen.estadisticas) || null;
+    if (est) {
+      const filaSecc = aoa.length;
+      aoa.push([
+        cell('CALIFICACIONES DE LA CLASE', S_seccion()),
+        cell('', S_seccion()),cell('', S_seccion()),cell('', S_seccion()),cell('', S_seccion())
+      ]);
+      merges.push(merge(filaSecc,0,filaSecc,4));
+
+      // Fila de estadísticas resumidas
+      aoa.push([
+        cell('Media: ' + fmtNota(est.media), S_celdaCentro({font:{bold:true,sz:10,color:{rgb:C.ink}}})),
+        cell('Mediana: ' + fmtNota(est.mediana), S_celdaCentro()),
+        cell('Máx: ' + fmtNota(est.max) + ' · Mín: ' + fmtNota(est.min), S_celdaCentro()),
+        cell('Desv.: ' + fmtNota(est.desviacion), S_celdaCentro()),
+        cell('Suspensos: ' + est.suspensos + '/' + est.n, S_celdaCentro({font:{bold:true,sz:10,color:{rgb:est.suspensos>est.aprobados?'C0392B':C.ink}}}))
+      ]);
+      aoa.push([cell('')]);
+
+      // Histograma por tramos
+      aoa.push([
+        cell('Tramo',     S_cabeceraTabla()),
+        cell('Alumnos',   S_cabeceraTabla()),
+        cell('%',         S_cabeceraTabla()),
+        cell('Distribución', S_cabeceraTabla()),
+        cell('', S_cabeceraTabla())
+      ]);
+      const maxTramo = Math.max.apply(null, est.histograma.map(t => t.count).concat([1]));
+      est.histograma.forEach(t => {
+        const barra = '█'.repeat(Math.max(0, Math.round((t.count / maxTramo) * 22)));
+        aoa.push([
+          cell(t.etiqueta, S_celda({font:{bold:true,sz:10,color:{rgb:C.ink}}})),
+          cell(t.count, S_celdaCentro()),
+          cell(t.pct + '%', S_celdaCentro()),
+          cell(barra, S_celda({font:{color:{rgb:C.marcaDark}}})),
+          cell('', S_celda())
+        ]);
+      });
+      aoa.push([cell('')]); aoa.push([cell('')]);
+    }
+
     // Sección global
+    const filaTop = aoa.length;
     aoa.push([
       cell('TOP ERRORES DE LA CLASE', S_seccion()),
       cell('', S_seccion()),cell('', S_seccion()),cell('', S_seccion()),cell('', S_seccion())
     ]);
-    merges.push(merge(3,0,3,4));
+    merges.push(merge(filaTop,0,filaTop,4));
 
     aoa.push([
       cell('#',         S_cabeceraTabla()),

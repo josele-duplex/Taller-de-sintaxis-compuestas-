@@ -3835,6 +3835,7 @@ function getInformeProfesor_(params) {
         actividades: g.actividades,
         nota_media: media_(g.notas),
         pct_aprobados: g.notas.length ? Math.round((aprob / g.notas.length) * 100) : 0,
+        estadisticas: estadisticasNotas_(g.notas),   // A+B: histograma + stats por grupo
         diagnostico: Object.keys(g.errores)
           .map(f => ({ funcion: f, count: g.errores[f] }))
           .sort((a, b) => b.count - a.count)
@@ -3946,6 +3947,7 @@ function getInformeProfesor_(params) {
         nota_media: media_(todasLasNotas),
         aprobados: aprobadosGlobal,
         pct_aprobados: todasLasNotas.length ? Math.round((aprobadosGlobal / todasLasNotas.length) * 100) : 0,
+        estadisticas: estadisticasNotas_(todasLasNotas),   // A+B: histograma + stats global
         grupos: gruposArr.map(g => ({
           nombre: g.nombre,
           alumnos: g.alumnos,
@@ -3995,6 +3997,47 @@ function media_(arr) {
   if (!validos.length) return null;
   const sum = validos.reduce((s, n) => s + n, 0);
   return Math.round((sum / validos.length) * 10) / 10;
+}
+
+// Estadísticas + histograma por tramos a partir de un array de notas (0-10).
+// Devuelve null si no hay notas. Tramos didácticos (escala española):
+//   Insuf (<5) · Suficiente/Bien [5-7) · Notable [7-9) · Sobresaliente [9-10]
+function estadisticasNotas_(arr) {
+  const v = (arr || []).filter(n => n !== null && n !== undefined && !isNaN(n));
+  if (!v.length) return null;
+  const ordenadas = v.slice().sort((a, b) => a - b);
+  const n = ordenadas.length;
+  const suma = ordenadas.reduce((s, x) => s + x, 0);
+  const media = suma / n;
+  const mediana = n % 2
+    ? ordenadas[(n - 1) / 2]
+    : (ordenadas[n / 2 - 1] + ordenadas[n / 2]) / 2;
+  const varianza = ordenadas.reduce((s, x) => s + (x - media) * (x - media), 0) / n;
+  const tramos = [
+    { etiqueta: 'Insuficiente (0–5)',    min: 0, max: 5,  count: 0 },
+    { etiqueta: 'Suf./Bien (5–7)',       min: 5, max: 7,  count: 0 },
+    { etiqueta: 'Notable (7–9)',         min: 7, max: 9,  count: 0 },
+    { etiqueta: 'Sobresaliente (9–10)',  min: 9, max: 10.01, count: 0 }
+  ];
+  ordenadas.forEach(x => {
+    for (const t of tramos) { if (x >= t.min && x < t.max) { t.count++; break; } }
+  });
+  const r1 = x => Math.round(x * 10) / 10;
+  return {
+    n: n,
+    media: r1(media),
+    mediana: r1(mediana),
+    min: r1(ordenadas[0]),
+    max: r1(ordenadas[n - 1]),
+    desviacion: r1(Math.sqrt(varianza)),
+    suspensos: tramos[0].count,
+    aprobados: n - tramos[0].count,
+    pct_aprobados: Math.round(((n - tramos[0].count) / n) * 100),
+    histograma: tramos.map(t => ({
+      etiqueta: t.etiqueta, count: t.count,
+      pct: Math.round((t.count / n) * 100)
+    }))
+  };
 }
 
 // Convierte una celda "Fecha" de Sheets (Date o string ISO) a Date.
