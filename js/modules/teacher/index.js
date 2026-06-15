@@ -357,7 +357,8 @@ async function testCpExamPin(){
 // Lee la hoja Compuestas_Resultados via el endpoint
 // getResultadosCompuestas del GAS y la pinta en una tabla
 // con filtros (grupo, evaluación, modo). Exporta CSV.
-// Patrón clonado de loadDashboard/exportCSV de Sint.
+// (El antiguo dashboard de resultados de simples se retiró 2026-06-16; el
+//  informe Excel del profesor lo sustituye con creces.)
 // ════════════════════════════════════════════════════════
 let _cpDashData = []; // cache de resultados para exportar CSV
 

@@ -18,8 +18,7 @@
    - Sint UI: login flow, render fases 1-4, success/feedback, resultados.
    - LOGIN_PANELS, currentModule, skipCurrentSentence, practice filters,
      confirm exit, login, openOverlay/closeOverlay, checkTeacherPw.
-   - Teacher dashboard (syncSents, loadDashboard, exportCSV, dlResults,
-     _dashData) y projector mode (openProj, projPrevSentence,
+   - Teacher dashboard (syncSents) y projector mode (openProj, projPrevSentence,
      openProjSelector, etc) — quedaron fuera del Teacher Panel por estar
      fuera de su rango contiguo en el original.
    - getHintsPractice/Exam + setHints* + refreshHintsUI (config pistas).
@@ -3171,88 +3170,6 @@ function checkTeacherPw(){
 
 
 function syncSents(){flashTp(`${getMock().length} oraciones de ejemplo disponibles.`,'var(--blue)');}
-
-let _dashData = []; // cached dashboard data for export
-
-async function loadDashboard(){
-  const apiUrl=getApiUrl();
-  if(!apiUrl){flashTp('Configura la URL primero.','var(--red)');return;}
-  const grupo=document.getElementById('tp-dash-grupo').value.trim();
-  const evaluacion=document.getElementById('tp-dash-eval').value.trim();
-  const msg=document.getElementById('tp-dash-msg');
-  msg.textContent='⏳ Cargando resultados…';msg.style.color='var(--blue)';msg.style.display='block';
-  try{
-    const params=new URLSearchParams({action:'getResultsByGroup'});
-    params.set('clave', (typeof getTeacherPw==='function'?getTeacherPw():''));
-    if(grupo) params.set('grupo',grupo);
-    if(evaluacion) params.set('evaluacion',evaluacion);
-    const r=await fetchWithTimeout(apiUrl+'?'+params.toString(),{},10000);
-    const d=await r.json();
-    if(!d.resultados||d.resultados.length===0){
-      msg.textContent='Sin resultados'+(grupo?' para '+grupo:'')+(evaluacion?' eval. '+evaluacion:'')+'.';
-      msg.style.color='var(--muted)';
-      document.getElementById('tp-dash-stats').style.display='none';
-      document.getElementById('tp-dash-table').style.display='none';
-      _dashData=[];
-      return;
-    }
-    _dashData=d.resultados;
-    // Stats
-    const notas=_dashData.map(r=>r.nota);
-    const media=notas.reduce((a,b)=>a+b,0)/notas.length;
-    const aprob=notas.filter(n=>n>=5).length;
-    const susp=notas.length-aprob;
-    document.getElementById('dash-total').textContent=notas.length;
-    document.getElementById('dash-media').textContent=media.toFixed(1);
-    document.getElementById('dash-media').style.color=media>=5?'#059669':'#DC2626';
-    document.getElementById('dash-aprob').textContent=aprob;
-    document.getElementById('dash-susp').textContent=susp;
-    document.getElementById('dash-bar').style.width=Math.round(aprob/notas.length*100)+'%';
-    document.getElementById('tp-dash-stats').style.display='block';
-    // Table
-    const tbody=document.getElementById('dash-tbody');
-    tbody.innerHTML=_dashData.map(r=>{
-      const color=r.nota>=8?'#059669':r.nota>=5?'#D97706':'#DC2626';
-      const hechas=r.totalOraciones>0?`${r.completadas}/${r.totalOraciones}`:(r.completadas||'—');
-      const incompleta=r.totalOraciones>0&&r.completadas<r.totalOraciones;
-      return `<tr style="border-bottom:1px solid rgba(0,0,0,.06)">
-        <td style="padding:5px 8px;font-weight:600">${r.alumno}</td>
-        <td style="padding:5px 6px;text-align:center;color:var(--muted)">${r.grupo}</td>
-        <td style="padding:5px 6px;text-align:center;font-size:.75rem;color:var(--muted)">${r.examen||'—'}</td>
-        <td style="padding:5px 6px;text-align:center;font-weight:900;color:${color}">${r.nota.toFixed(1)}</td>
-        <td style="padding:5px 6px;text-align:center;font-size:.78rem;${incompleta?'color:#DC2626;font-weight:700':''}">${hechas}</td>
-        <td style="padding:5px 6px;text-align:center;font-size:.78rem">${r.sujeto||0}</td>
-        <td style="padding:5px 6px;text-align:center;font-size:.78rem">${r.funciones||0}</td>
-        <td style="padding:5px 6px;text-align:center;font-size:.78rem">${r.np||0}</td>
-      </tr>`;
-    }).join('');
-    document.getElementById('tp-dash-table').style.display='block';
-    msg.textContent=`✓ ${notas.length} resultados cargados.`;msg.style.color='var(--green)';
-    setTimeout(()=>{msg.style.display='none';},3000);
-  }catch(e){
-    msg.textContent='⚠ Error: '+e.message;msg.style.color='var(--red)';
-  }
-}
-
-function exportCSV(){
-  if(_dashData.length===0){flashTp('Carga resultados primero.','var(--amber)');return;}
-  let csv='Alumno,Correo,Grupo,Evaluacion,Examen,PIN,Nota,Completadas,Total_Oraciones,Sujeto_Pts,Funciones_Pts,NP_Pts,Elem_Fallados,Fecha\n';
-  _dashData.forEach(r=>{
-    csv+=`"${r.alumno}","${r.correo||''}","${r.grupo}","${r.evaluacion}","${r.examen}","${r.pin}",${r.nota.toFixed(1)},${r.completadas||0},${r.totalOraciones||0},${r.sujeto||0},${r.funciones||0},${r.np||0},${r.elemFallados||0},"${r.fecha||''}"\n`;
-  });
-  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  const grupo=document.getElementById('tp-dash-grupo').value.trim()||'todos';
-  const eval_=document.getElementById('tp-dash-eval').value.trim()||'todas';
-  a.download=`resultados_${grupo}_eval${eval_}_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  flashTp('✓ CSV descargado.','var(--green)');
-}
-
-function dlResults(){loadDashboard();}
 
 // ════════════════════════════════════════════════════════
 // PROJECTOR MODE

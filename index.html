@@ -559,46 +559,9 @@ if(window.location.protocol === 'file:') {
       <div class="s-title">⚡ Acciones rápidas</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
         <button type="button" class="btn btn-ghost btn-sm" onclick="syncSents()" style="color:#1D4ED8;border-color:#BFDBFE;background:#EFF6FF">🔄 Sincronizar</button>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="dlResults()" style="color:#166534;border-color:#BBF7D0;background:#F0FDF4">📥 Descargar resultados</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="openProj()" style="color:var(--purple);border-color:#DDD6FE;background:var(--purple-lt)">📺 Proyector</button>
       </div>
     </div>
-    <div class="s-box" style="border:2px solid #059669;background:#F0FDF9">
-      <div class="s-title" style="color:#059669">📊 Resultados de exámenes</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <div style="flex:1;min-width:80px">
-          <label style="font-size:.72rem;font-weight:700;color:var(--muted)">Grupo</label>
-          <select id="tp-dash-grupo" class="input grupo-select" data-grupo-placeholder="(todas)" style="font-size:.88rem;padding:5px 8px"></select>
-        </div>
-        <div style="flex:1;min-width:60px">
-          <label style="font-size:.72rem;font-weight:700;color:var(--muted)">Evaluación</label>
-          <input id="tp-dash-eval" class="input" type="text" placeholder="1ª" style="font-size:.88rem;padding:5px 8px">
-        </div>
-        <div style="display:flex;align-items:end;gap:6px">
-          <button type="button" class="btn btn-primary btn-sm" onclick="loadDashboard()">Cargar</button>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="exportCSV()">📥 CSV</button>
-        </div>
-      </div>
-      <div id="tp-dash-stats" style="display:none;padding:10px 14px;background:#fff;border-radius:10px;border:1.5px solid #A7F3D0;margin-bottom:10px">
-        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem">
-          <div><strong>Alumnos:</strong> <span id="dash-total">0</span></div>
-          <div><strong>Media:</strong> <span id="dash-media" style="font-weight:900">—</span></div>
-          <div style="color:#059669"><strong>Aprobados:</strong> <span id="dash-aprob">0</span></div>
-          <div style="color:#DC2626"><strong>Suspensos:</strong> <span id="dash-susp">0</span></div>
-        </div>
-        <div style="margin-top:8px;height:8px;background:#E5E7EB;border-radius:99px;overflow:hidden">
-          <div id="dash-bar" style="height:100%;background:#059669;border-radius:99px;transition:width .6s"></div>
-        </div>
-      </div>
-      <div id="tp-dash-table" style="display:none;max-height:300px;overflow-y:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-          <thead><tr style="background:#F0FDF4;position:sticky;top:0"><th style="padding:6px 8px;text-align:left;border-bottom:2px solid #A7F3D0">Alumno</th><th style="padding:6px;border-bottom:2px solid #A7F3D0">Grupo</th><th style="padding:6px;border-bottom:2px solid #A7F3D0">Examen</th><th style="padding:6px;border-bottom:2px solid #A7F3D0">Nota</th><th style="padding:6px;border-bottom:2px solid #A7F3D0">Hechas</th><th style="padding:6px;border-bottom:2px solid #A7F3D0">Suj.</th><th style="padding:6px;border-bottom:2px solid #A7F3D0">Func.</th><th style="padding:6px;border-bottom:2px solid #A7F3D0">NP</th></tr></thead>
-          <tbody id="dash-tbody"></tbody>
-        </table>
-      </div>
-      <p id="tp-dash-msg" style="font-size:.82rem;color:var(--muted);display:none;margin-top:8px"></p>
-    </div>
-
     <!-- ── Fase 1.6.B: Crear examen de Compuestas ──────────────────── -->
     <div class="s-box" style="border:2px solid #16A34A;background:#F0FDF4">
       <div class="s-title" style="color:#15803D">🚀 Crear examen de Compuestas</div>
