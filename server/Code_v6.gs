@@ -1947,6 +1947,7 @@ function onOpen() {
   mantenimiento.addItem('🔄 Actualizar datos de alumnos',         'menuRegenerarMorfologia');
   mantenimiento.addItem('🎨 Configurar desplegables (Activo/Nivel)','menuConfigurarValidaciones');
   mantenimiento.addItem('✨ Aplicar estilos visuales a las hojas', 'menuConfigurarTodosLosEstilos');
+  mantenimiento.addItem('🎨 Colorear notas por color (resultados)', 'aplicarFormatoCondicionalNotas');
   mantenimiento.addSeparator();
   mantenimiento.addItem('🧪 Autotest del backend',                'menuAutotest');
   mantenimiento.addSeparator();
