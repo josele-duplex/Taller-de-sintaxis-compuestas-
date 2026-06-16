@@ -2558,8 +2558,11 @@ function crearDashboard_() {
     sheet.getRange(startTopCp+2, 1).setValue('Aún no hay resultados').setFontColor('#999');
   }
 
-  // Minigráficos SPARKLINE (Mejora 2). Se añaden al final y se reescriben en
-  // cada actualización del panel (ver Minigraficos.gs).
+  // Comparativa por grupo (Mejora 3) + minigráficos SPARKLINE (Mejora 2).
+  // Se añaden al final y se reescriben en cada actualización del panel.
+  if (typeof agregarTablaGrupos_ === 'function') {
+    try { agregarTablaGrupos_(sheet); } catch (e) { /* no romper el panel si falla */ }
+  }
   if (typeof agregarMinigraficos_ === 'function') {
     try { agregarMinigraficos_(sheet); } catch (e) { /* no romper el panel si falla */ }
   }
