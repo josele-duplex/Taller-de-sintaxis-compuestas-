@@ -1933,6 +1933,7 @@ function onOpen() {
 
   // BLOQUE 1 — OPERACIONES DEL PROFESOR (lo que usa todos los días)
   menu.addItem('📊 Actualizar Panel del Profesor',  'menuDashboard');
+  menu.addItem('📈 Actualizar Analítica Evolutiva', 'actualizarAnaliticaEvolutiva');
   menu.addSeparator();
   menu.addItem('📝 Crear examen desde esta hoja',   'menuCrearExamenDesdeHoja');
   menu.addItem('🎯 Activar oraciones seleccionadas','menuActivarSeleccionadas');
