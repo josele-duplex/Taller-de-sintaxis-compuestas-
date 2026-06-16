@@ -1939,6 +1939,8 @@ function onOpen() {
   menu.addItem('🚫 Desactivar oraciones seleccionadas','menuDesactivarSeleccionadas');
   menu.addItem('📊 Ver resumen de mi banco',        'menuResumenBanco');
   menu.addSeparator();
+  menu.addItem('📧 Enviar informes a alumnos…',     'menuEnviarInformesAlumnos');
+  menu.addSeparator();
 
   // BLOQUE 2 — MANTENIMIENTO (colapsado en submenú)
   const mantenimiento = ui.createMenu('🔧 Mantenimiento');
