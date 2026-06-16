@@ -2558,6 +2558,12 @@ function crearDashboard_() {
     sheet.getRange(startTopCp+2, 1).setValue('Aún no hay resultados').setFontColor('#999');
   }
 
+  // Minigráficos SPARKLINE (Mejora 2). Se añaden al final y se reescriben en
+  // cada actualización del panel (ver Minigraficos.gs).
+  if (typeof agregarMinigraficos_ === 'function') {
+    try { agregarMinigraficos_(sheet); } catch (e) { /* no romper el panel si falla */ }
+  }
+
   sheet.setColumnWidth(1, 280);
   sheet.setColumnWidth(2, 120);
   sheet.setColumnWidth(3, 280);
