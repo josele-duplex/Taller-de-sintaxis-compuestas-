@@ -896,24 +896,22 @@ const RETOS_SINTAXIS = [
   },
   {
     id: 'CREG_CC_PREP',
-    nombre: 'C. de Régimen vs CC parecidos',
-    descripcion: 'Oraciones con C. de Régimen junto a un CC de Lugar/Causa/Modo o introducido por la misma preposición: decide la prueba "eso/ello", no la preposición.',
+    nombre: 'C. de Régimen vs CC con preposición',
+    descripcion: 'Practica oraciones con C. de Régimen y oraciones con un CC introducido por una preposición típica de C.Rég. (en, de, a, con, sobre, por…): la preposición sola no basta, hay que aplicar la prueba "eso/ello".',
     minOraciones: 5,
+    // No exige que ambas funciones estén en la MISMA oración — el reto es
+    // simplemente reunir oraciones donde esa preposición aparece con una
+    // función distinta cada vez, para que el alumno no se acostumbre a
+    // "esta preposición = esta función" y tenga que decidir siempre con
+    // la prueba, oración a oración.
     test(o){
-      const bloques = o.fase3?.bloques||[];
-      const cregBlocks = bloques.filter(b=>(b.solucion||'').split(' | ')[1]==='C.Rég.');
-      if(cregBlocks.length===0) return false;
-      // Preposiciones del C.Rég. (para comparar con CUALQUIER token del CC,
-      // no solo el primero: cubre locuciones como "delante de").
-      const cregPreps = new Set(cregBlocks.map(b=>(o.palabras[(b.indices||[])[0]]||'').toLowerCase()));
-      return bloques.some(b=>{
-        const f=(b.solucion||'').split(' | ')[1];
+      const PREPS_CREG = ['en','de','a','con','sobre','por','contra','hacia'];
+      return (o.fase3?.bloques||[]).some(b=>{
+        const f = (b.solucion||'').split(' | ')[1];
+        if(f === 'C.Rég.') return true;
         if(!f || !f.startsWith('CC ')) return false;
-        // "CC parecidos": los subtipos con forma de SP, más fácilmente
-        // confundibles con el C.Rég. que un adverbio suelto.
-        if(f==='CC Lugar' || f==='CC Causa' || f==='CC Modo') return true;
-        const palabras=(b.indices||[]).map(i=>(o.palabras[i]||'').toLowerCase());
-        return palabras.some(w=>cregPreps.has(w));
+        const primeraPalabra = (o.palabras[(b.indices||[])[0]]||'').toLowerCase();
+        return PREPS_CREG.includes(primeraPalabra);
       });
     }
   },
