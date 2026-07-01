@@ -10,6 +10,11 @@
    fetchWithTimeout, loadOraciones, shuffle, escHtml, playSuccess, playError,
    REFLEXION_BANCO (Fase C, para la explicación tras responder). */
 
+// Pronombres átonos de CD/CI — una ficha de CD o CI de un solo token con
+// alguna de estas formas es "pronombre", no sintagma pleno (tema
+// PRONOMBRE_CD_CI, más abajo).
+const CHISPA_PRONOMBRES_CD_CI = ['lo', 'la', 'los', 'las', 'le', 'les'];
+
 // Traduce el código interno de Compuestas (analisis_interno.funciones[].tipo)
 // a la terminología exacta de Sintaxis, para poder mezclar ambos bancos.
 const CHISPA_CP_TO_SINT = {
@@ -32,7 +37,12 @@ const CHISPA_TEMAS = [
   { id: 'SUJETO_CD', nombre: 'Sujeto / Complemento Directo',  objetivo: ['Sujeto', 'CD'], confundibles: ['Sujeto', 'CD'] },
   // Reverso de CREG: aquí el objetivo es el CC (cualquier subtipo) y el
   // señuelo confundible es el C.Rég. — misma frontera, sentido contrario.
-  { id: 'CC_CREG',   nombre: 'CC / Complemento de Régimen',   objetivo: ['CC'],           confundibles: ['C.Rég.'] }
+  { id: 'CC_CREG',   nombre: 'CC / Complemento de Régimen',   objetivo: ['CC'],           confundibles: ['C.Rég.'] },
+  // Pedido expresamente por Josele: CD/CI cuando aparecen como pronombre
+  // átono (lo/la/los/las/le/les), sin sintagma pleno que analizar — el reto
+  // es reconocer la forma pronominal, no leer un sintagma. soloPronombre
+  // restringe el OBJETIVO (no los señuelos) a fichas marcadas .pronombre.
+  { id: 'PRONOMBRE_CD_CI', nombre: 'CD / CI en forma de pronombre', objetivo: ['CD', 'CI'], confundibles: ['CD', 'CI'], soloPronombre: true }
 ];
 
 let CHI = {}; // estado de la sesión (se expone como window.CHI más abajo)
@@ -75,8 +85,14 @@ function _fichasDeSimple(o){
   (o.fase3?.bloques || []).forEach(b => {
     const f = (b.solucion || '').split(' | ')[1];
     if(!f || f === '—' || f === 'NP' || vistos.has(f)) return;
-    const texto = (b.indices || []).map(i => o.palabras[i]).join(' ');
-    if(texto){ fichas.push({ func: f, texto }); vistos.add(f); }
+    const idx = b.indices || [];
+    const texto = idx.map(i => o.palabras[i]).join(' ');
+    if(texto){
+      const pronombre = (f === 'CD' || f === 'CI') && idx.length === 1 &&
+        CHISPA_PRONOMBRES_CD_CI.includes((o.palabras[idx[0]] || '').toLowerCase());
+      fichas.push({ func: f, texto, pronombre });
+      vistos.add(f);
+    }
   });
   return { oracionTexto: o.oracion_completa, fichas };
 }
@@ -97,8 +113,14 @@ function _fichasDeCompuesta(ej, prop){
   (ai.funciones || []).forEach(f => {
     const func = CHISPA_CP_TO_SINT[f.tipo] || null;
     if(!func || vistos.has(func)) return;
-    const texto = (f.indices || []).map(i => ej.tokens[i]?.texto || '').join(' ');
-    if(texto){ fichas.push({ func, texto }); vistos.add(func); }
+    const idx = f.indices || [];
+    const texto = idx.map(i => ej.tokens[i]?.texto || '').join(' ');
+    if(texto){
+      const pronombre = (func === 'CD' || func === 'CI') && idx.length === 1 &&
+        CHISPA_PRONOMBRES_CD_CI.includes((ej.tokens[idx[0]]?.texto || '').toLowerCase());
+      fichas.push({ func, texto, pronombre });
+      vistos.add(func);
+    }
   });
   return { oracionTexto: ej.texto, fichas };
 }
@@ -111,17 +133,24 @@ function _enLista(func, lista){
   return lista.includes(func) || (lista.includes('CC') && func.startsWith('CC '));
 }
 
+// Además de la función, un tema puede exigir `soloPronombre: true` — el
+// candidato a objetivo debe ser además un pronombre átono (ver
+// CHISPA_PRONOMBRES_CD_CI / tema PRONOMBRE_CD_CI).
+function _esObjetivoValido(f, tema){
+  return _enLista(f.func, tema.objetivo) && (!tema.soloPronombre || f.pronombre);
+}
+
 function _rondasParaTema(tema, poolSimples, poolCompuestas){
   const rondas = [];
   poolSimples.forEach(o => {
     const { oracionTexto, fichas } = _fichasDeSimple(o);
-    const objetivo = fichas.find(f => _enLista(f.func, tema.objetivo));
+    const objetivo = fichas.find(f => _esObjetivoValido(f, tema));
     if(objetivo && fichas.length >= 2) rondas.push({ tema, oracionTexto, fichas, objetivo });
   });
   poolCompuestas.forEach(ej => {
     (ej.proposiciones || []).forEach(prop => {
       const { oracionTexto, fichas } = _fichasDeCompuesta(ej, prop);
-      const objetivo = fichas.find(f => _enLista(f.func, tema.objetivo));
+      const objetivo = fichas.find(f => _esObjetivoValido(f, tema));
       if(objetivo && fichas.length >= 2) rondas.push({ tema, oracionTexto, fichas, objetivo });
     });
   });
