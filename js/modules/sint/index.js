@@ -965,7 +965,7 @@ const REFLEXION_BANCO = {
   },
   'CD': {
     correcta: 'Lo sustituyo por "lo/la/los/las".',
-    explicacionCorrecta: 'Esa sustitución por pronombre átono de acusativo es la prueba decisiva del CD; en pasiva, además, se convierte en sujeto paciente.',
+    explicacionCorrecta: 'Esa sustitución por pronombre átono es la prueba decisiva del CD; en pasiva, además, se convierte en sujeto paciente.',
     distractores: [
       { texto: 'Lo sustituyo por "le/les".', explicacion: 'Esa es la prueba del CI, no del CD.' },
       { texto: 'La preposición queda pegada al verbo con "eso/ello".', explicacion: 'Esa es la prueba del Complemento de Régimen.' },
