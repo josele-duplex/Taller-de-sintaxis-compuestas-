@@ -13,7 +13,13 @@
 // Pronombres átonos de CD/CI — una ficha de CD o CI de un solo token con
 // alguna de estas formas es "pronombre", no sintagma pleno (tema
 // PRONOMBRE_CD_CI, más abajo).
-const CHISPA_PRONOMBRES_CD_CI = ['lo', 'la', 'los', 'las', 'le', 'les'];
+// Formas de 3.ª persona (lo/la/los/las/le/les) + las de 1.ª/2.ª persona y
+// reflexivo/recíproco (me/te/nos/os/se). "se" es ambiguo en general (puede
+// ser marca de pasiva refleja o impersonal), pero aquí no hay riesgo: solo
+// se compara contra bloques que el banco YA etiquetó como CD o CI — si
+// "se" llegó aquí es porque el propio banco lo tiene como CD/CI genuino
+// (p. ej. "se lo dio" → CI), no como marca_pas_ref/marca_imp.
+const CHISPA_PRONOMBRES_CD_CI = ['lo', 'la', 'los', 'las', 'le', 'les', 'me', 'te', 'nos', 'os', 'se'];
 
 // Traduce el código interno de Compuestas (analisis_interno.funciones[].tipo)
 // a la terminología exacta de Sintaxis, para poder mezclar ambos bancos.
