@@ -23,9 +23,16 @@ const CHISPA_CP_TO_SINT = {
 // (para la dificultad creciente: rondas tardías prefieren señuelos de la
 // pareja en vez de una función cualquiera).
 const CHISPA_TEMAS = [
-  { id: 'CREG',     nombre: 'Complemento de Régimen', objetivo: ['C.Rég.'],        confundibles: ['CC'] },
-  { id: 'ATR_CPVO', nombre: 'Atributo / Predicativo',  objetivo: ['Atr.', 'CPvo'], confundibles: ['Atr.', 'CPvo'] },
-  { id: 'CI',       nombre: 'Complemento Indirecto',   objetivo: ['CI'],           confundibles: ['CD'] }
+  { id: 'CREG',      nombre: 'Complemento de Régimen',       objetivo: ['C.Rég.'],        confundibles: ['CC'] },
+  { id: 'ATR_CPVO',  nombre: 'Atributo / Predicativo',        objetivo: ['Atr.', 'CPvo'], confundibles: ['Atr.', 'CPvo'] },
+  { id: 'CI',        nombre: 'Complemento Indirecto',         objetivo: ['CI'],           confundibles: ['CD'] },
+  // Ampliación (2026-07-01): el error clásico del heurístico "¿quién?"
+  // (rechazado por la NGLE del proyecto) — confunde CD con Sujeto cuando
+  // el orden de palabras no es el habitual ("Me gustan las novelas").
+  { id: 'SUJETO_CD', nombre: 'Sujeto / Complemento Directo',  objetivo: ['Sujeto', 'CD'], confundibles: ['Sujeto', 'CD'] },
+  // Reverso de CREG: aquí el objetivo es el CC (cualquier subtipo) y el
+  // señuelo confundible es el C.Rég. — misma frontera, sentido contrario.
+  { id: 'CC_CREG',   nombre: 'CC / Complemento de Régimen',   objetivo: ['CC'],           confundibles: ['C.Rég.'] }
 ];
 
 let CHI = {}; // estado de la sesión (se expone como window.CHI más abajo)
@@ -98,17 +105,23 @@ function _fichasDeCompuesta(ej, prop){
 
 // ── Construcción de rondas ───────────────────────────────────────────────
 
+// 'CC' en una lista de objetivo/confundibles actúa como comodín: cualquier
+// subtipo (CC Lugar, CC Tiempo…) cuenta, no solo el genérico "CC" pelado.
+function _enLista(func, lista){
+  return lista.includes(func) || (lista.includes('CC') && func.startsWith('CC '));
+}
+
 function _rondasParaTema(tema, poolSimples, poolCompuestas){
   const rondas = [];
   poolSimples.forEach(o => {
     const { oracionTexto, fichas } = _fichasDeSimple(o);
-    const objetivo = fichas.find(f => tema.objetivo.includes(f.func));
+    const objetivo = fichas.find(f => _enLista(f.func, tema.objetivo));
     if(objetivo && fichas.length >= 2) rondas.push({ tema, oracionTexto, fichas, objetivo });
   });
   poolCompuestas.forEach(ej => {
     (ej.proposiciones || []).forEach(prop => {
       const { oracionTexto, fichas } = _fichasDeCompuesta(ej, prop);
-      const objetivo = fichas.find(f => tema.objetivo.includes(f.func));
+      const objetivo = fichas.find(f => _enLista(f.func, tema.objetivo));
       if(objetivo && fichas.length >= 2) rondas.push({ tema, oracionTexto, fichas, objetivo });
     });
   });
@@ -144,7 +157,7 @@ function _construirCola(){
 // en rondas difíciles, preferir la pareja confundible del tema.
 function _elegirDecoys(fichas, objetivo, tema, nDecoys, dificil){
   const candidatos = fichas.filter(f => f !== objetivo && f.func !== objetivo.func);
-  const esConfundible = f => tema.confundibles.includes(f.func) || (tema.confundibles.includes('CC') && f.func.startsWith('CC '));
+  const esConfundible = f => _enLista(f.func, tema.confundibles);
   const confundibles = candidatos.filter(esConfundible);
   const resto = candidatos.filter(f => !esConfundible(f));
   const orden = dificil ? [...confundibles, ...resto] : [...resto, ...confundibles];
