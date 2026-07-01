@@ -508,6 +508,7 @@ function exportCpCSV(){
 // aquí, queda confinado al scope del módulo ES y sint no lo ve → ReferenceError.
 window._pendingMissionLaunch = null; // stores launch params while mission selector is open
 window._activeMission = null; // current mission being played
+window._activeReto = null; // reto de práctica dirigida activo (ej. "Busca el sujeto"), independiente de las misiones del profesor
 
 async function createMision(){
   const name = document.getElementById('tp-mis-name').value.trim();
@@ -638,6 +639,26 @@ async function showMissionSelector(launchParams){
       '<span style="background:#FEF3C7;color:#92400E;font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:6px">PARA TI</span></div></div>';
   }
 
+  // Retos de práctica dirigida (solo en Sintaxis: se apoyan en fase2.sujeto_*).
+  // Filtro 100% cliente sobre el banco ya cargado, sin tocar el GAS.
+  if(modo === 'sintaxis' && typeof RETOS_SINTAXIS !== 'undefined' && typeof filtrarPorReto === 'function'){
+    const { oraciones: bancoReto } = await loadOraciones('practice', getApiUrl());
+    RETOS_SINTAXIS.forEach(reto=>{
+      const n = filtrarPorReto(bancoReto, reto.id).length;
+      if(n >= reto.minOraciones){
+        html += '<div style="background:#EFF6FF;border:2px solid #BFDBFE;border-radius:14px;padding:16px;margin-bottom:10px;cursor:pointer;transition:all .15s" onclick="launchReto(\''+reto.id+'\')" onmouseover="this.style.borderColor=\'var(--blue)\'" onmouseout="this.style.borderColor=\'#BFDBFE\'">'+
+          '<div style="display:flex;justify-content:space-between;align-items:start">'+
+          '<div><div style="font-size:1rem;font-weight:800">🎯 '+reto.nombre+'</div>'+
+          '<div style="font-size:.8rem;color:var(--muted);margin-top:4px">'+reto.descripcion+' · '+n+' disponibles</div></div>'+
+          '<span style="background:var(--blue-lt);color:var(--blue);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:6px">RETO</span></div></div>';
+      } else {
+        html += '<div style="background:#F5F5F5;border:2px dashed var(--border);border-radius:14px;padding:16px;margin-bottom:10px;opacity:.65">'+
+          '<div style="font-size:1rem;font-weight:800;color:var(--muted)">🎯 '+reto.nombre+'</div>'+
+          '<div style="font-size:.8rem;color:var(--muted);margin-top:4px">Banco insuficiente ahora mismo ('+n+' de '+reto.minOraciones+' necesarias).</div></div>';
+      }
+    });
+  }
+
   if(!html){
     html='<p style="text-align:center;color:var(--muted);padding:20px;font-size:.9rem">No hay misiones asignadas para este modo. Puedes practicar libremente.</p>';
   }
@@ -650,6 +671,7 @@ function closeMissionSelector(){closeOverlay('mission-overlay');window._pendingM
 
 async function launchMission(misionId){
   closeOverlay('mission-overlay');
+  window._activeReto = null;
   const misiones = await getMisionesForMode(window._pendingMissionLaunch?.modo||'sintaxis');
   window._activeMission = misiones.find(m=>m.id===misionId)||null;
   if(window._activeMission){
@@ -663,6 +685,7 @@ async function launchMission(misionId){
 
 function launchReinforcement(){
   closeOverlay('mission-overlay');
+  window._activeReto = null;
   const modo = window._pendingMissionLaunch?.modo||'sintaxis';
   const errorHist = JSON.parse(localStorage.getItem('taller_error_history')||'{}');
   const modoErrors = errorHist[modo]||{};
@@ -677,7 +700,16 @@ function launchReinforcement(){
 function startFreePlay(){
   closeOverlay('mission-overlay');
   window._activeMission = null;
+  window._activeReto = null;
   localStorage.removeItem('taller_exam_filters');
+  if(window._pendingMissionLaunch?._continue) window._pendingMissionLaunch._continue();
+}
+
+function launchReto(retoId){
+  closeOverlay('mission-overlay');
+  const reto = (typeof RETOS_SINTAXIS !== 'undefined' ? RETOS_SINTAXIS : []).find(r=>r.id===retoId);
+  window._activeReto = reto || null;
+  window._activeMission = reto ? {id:'RETO_'+reto.id, nombre:'Reto: '+reto.nombre, modo:'sintaxis', funciones:[], nOraciones:0} : null;
   if(window._pendingMissionLaunch?._continue) window._pendingMissionLaunch._continue();
 }
 
@@ -688,7 +720,7 @@ export {
   testCurrentPin, activateExam, flashTp,
   createMision, viewMisiones, deleteMision, getMisionesForMode,
   showMissionSelector, closeMissionSelector, launchMission,
-  launchReinforcement, startFreePlay,
+  launchReinforcement, startFreePlay, launchReto,
   // Fase 1.6 — dashboard de Compuestas
   loadCpDashboard, exportCpCSV,
   // Fase 1.6.B — creación de exámenes de Compuestas
@@ -798,7 +830,7 @@ if (typeof window !== 'undefined') {
     genPin, saveTimer, testApiUrl, testCurrentPin, activateExam,
     createMision, viewMisiones, deleteMision, showMissionSelector,
     closeMissionSelector, launchMission, launchReinforcement, startFreePlay,
-    getMisionesForMode,
+    launchReto, getMisionesForMode,
     flashTp,
     // Fase 1.6 — dashboard de Compuestas
     loadCpDashboard, exportCpCSV,

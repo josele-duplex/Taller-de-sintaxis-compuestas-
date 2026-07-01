@@ -850,6 +850,37 @@ function setMode(m){
 }
 function ferr(id,msg){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.classList.toggle('show',!!msg);}
 
+// ════════════════════════════════════════════════════════
+// RETOS DE PRÁCTICA DIRIGIDA — filtros sobre el banco ya cargado.
+// Cada reto aísla un fenómeno sintáctico concreto para reforzarlo,
+// eligible tanto por el alumno (en el selector de misiones) como
+// por el profesor. Distinto del filtro por "funciones" (que usa
+// taller_exam_filters): opera sobre datos ya presentes en fase1-2,
+// no requiere backend ni re-etiquetado del banco.
+// Para añadir un reto nuevo: un objeto más aquí con su test(o).
+// ════════════════════════════════════════════════════════
+const RETOS_SINTAXIS = [
+  {
+    id: 'SUJETO_NO_INICIAL',
+    nombre: 'Busca el sujeto',
+    descripcion: 'Solo oraciones con sujeto tácito o que no aparece al principio.',
+    minOraciones: 5,
+    test(o){
+      const f2 = o && o.fase2;
+      if(!f2) return false;
+      if(f2.sujeto_tacito) return true;
+      const idx = f2.sujeto_indices;
+      return Array.isArray(idx) && idx.length>0 && Math.min(...idx) > 0;
+    }
+  }
+];
+
+function filtrarPorReto(oraciones, retoId){
+  const reto = RETOS_SINTAXIS.find(r=>r.id===retoId);
+  if(!reto) return oraciones;
+  return (oraciones||[]).filter(reto.test);
+}
+
 // ── loadOraciones — separated from UI, always resolves ──────────────
 async function loadOraciones(mode, apiUrl) {
   console.log('[loadOraciones] mode:', mode, 'apiUrl:', apiUrl ? '(set)' : '(none)');
@@ -1022,6 +1053,15 @@ async function _doHandleStart(name,email,pin,examSubfase){
   }
   clearTimeout(safetyTimer);
   if (selectedMode === 'practice') oraciones = shuffle(oraciones);
+  // Apply reto de práctica dirigida (ej. "Busca el sujeto"). Se aplica antes
+  // del recorte por nOraciones de la misión: el reto define su propio alcance.
+  // El botón del reto ya comprobó la cobertura al abrir el selector; este
+  // fallback es solo defensivo por si el banco cambió entre medias.
+  if(_activeReto){
+    const filtradas = filtrarPorReto(oraciones, _activeReto.id);
+    if(filtradas.length > 0) oraciones = filtradas;
+    else console.warn('[reto] Banco insuficiente para', _activeReto.id, '— se usa el banco completo.');
+  }
   // Apply mission nOraciones limit
   if(_activeMission && _activeMission.nOraciones > 0 && oraciones.length > _activeMission.nOraciones){
     oraciones = oraciones.slice(0, _activeMission.nOraciones);
