@@ -79,25 +79,31 @@ async function _cargarPoolCompuestas(apiUrl){
 
 function _fichasDeSimple(o){
   const fichas = [];
-  // 'NP' no es una ficha válida (es el verbo, no un complemento que se
-  // pueda confundir con otro); 'vistos' evita duplicados — fase3.bloques a
-  // veces repite un bloque "SN | Sujeto" además del que ya da fase2 (mismo
-  // problema que se encontró y corrigió en la Fase C).
-  const vistos = new Set();
+  // 'NP' no es una ficha válida (es el verbo). 'vistosIdx' evita SOLO el
+  // tramo exacto ya añadido (p.ej. fase3.bloques repite a veces "SN |
+  // Sujeto" con los MISMOS índices que ya da fase2 — bug real de la Fase C).
+  // OJO: deduplicar por FUNCIÓN (no por posición) estaría mal — el CD/CI
+  // con forma de SN/SP a menudo aparece duplicado como pronombre átono en
+  // la misma oración ("A mi primo no le gusta…" → CI:"A mi primo" y
+  // CI:"le" son dos tramos distintos, ambos legítimos).
+  const vistosIdx = new Set();
   if((o.fase2?.sujeto_indices || []).length > 0){
-    fichas.push({ func: 'Sujeto', texto: o.fase2.sujeto_indices.map(i => o.palabras[i]).join(' ') });
-    vistos.add('Sujeto');
+    const idx = o.fase2.sujeto_indices;
+    fichas.push({ func: 'Sujeto', texto: idx.map(i => o.palabras[i]).join(' ') });
+    vistosIdx.add(idx.join(','));
   }
   (o.fase3?.bloques || []).forEach(b => {
     const f = (b.solucion || '').split(' | ')[1];
-    if(!f || f === '—' || f === 'NP' || vistos.has(f)) return;
+    if(!f || f === '—' || f === 'NP') return;
     const idx = b.indices || [];
+    const key = idx.join(',');
+    if(vistosIdx.has(key)) return;
     const texto = idx.map(i => o.palabras[i]).join(' ');
     if(texto){
       const pronombre = (f === 'CD' || f === 'CI') && idx.length === 1 &&
         CHISPA_PRONOMBRES_CD_CI.includes((o.palabras[idx[0]] || '').toLowerCase());
       fichas.push({ func: f, texto, pronombre });
-      vistos.add(f);
+      vistosIdx.add(key);
     }
   });
   return { oracionTexto: o.oracion_completa, fichas };
@@ -111,21 +117,27 @@ function _fichasDeSimple(o){
 function _fichasDeCompuesta(ej, prop){
   const ai = prop.analisis_interno || {};
   const fichas = [];
-  const vistos = new Set();
+  // Dedup por posición exacta, no por función — ver nota en _fichasDeSimple
+  // sobre duplicación de clíticos (CD/CI con forma de SN/SP + su pronombre
+  // átono duplicado son dos tramos legítimos, no un duplicado a filtrar).
+  const vistosIdx = new Set();
   if(ai.sujeto && Array.isArray(ai.sujeto.indices) && ai.sujeto.indices.length > 0){
-    fichas.push({ func: 'Sujeto', texto: ai.sujeto.indices.map(i => ej.tokens[i]?.texto || '').join(' ') });
-    vistos.add('Sujeto');
+    const idx = ai.sujeto.indices;
+    fichas.push({ func: 'Sujeto', texto: idx.map(i => ej.tokens[i]?.texto || '').join(' ') });
+    vistosIdx.add(idx.join(','));
   }
   (ai.funciones || []).forEach(f => {
     const func = CHISPA_CP_TO_SINT[f.tipo] || null;
-    if(!func || vistos.has(func)) return;
+    if(!func) return;
     const idx = f.indices || [];
+    const key = idx.join(',');
+    if(vistosIdx.has(key)) return;
     const texto = idx.map(i => ej.tokens[i]?.texto || '').join(' ');
     if(texto){
       const pronombre = (func === 'CD' || func === 'CI') && idx.length === 1 &&
         CHISPA_PRONOMBRES_CD_CI.includes((ej.tokens[idx[0]]?.texto || '').toLowerCase());
       fichas.push({ func, texto, pronombre });
-      vistos.add(func);
+      vistosIdx.add(key);
     }
   });
   return { oracionTexto: ej.texto, fichas };
@@ -191,7 +203,17 @@ function _construirCola(){
 // Señuelos: en rondas fáciles, preferir funciones "claramente distintas";
 // en rondas difíciles, preferir la pareja confundible del tema.
 function _elegirDecoys(fichas, objetivo, tema, nDecoys, dificil){
-  const candidatos = fichas.filter(f => f !== objetivo && f.func !== objetivo.func);
+  const candidatos = fichas.filter(f => {
+    if(f === objetivo) return false;
+    // Dos fichas con la MISMA función (p.ej. duplicación de clíticos: CI
+    // "A mi primo" + CI "le") solo se permiten como señuelo cuando el tema
+    // exige soloPronombre — ahí la pregunta ya precisa "en forma de
+    // pronombre", así que el duplicado en SN/SP no es una respuesta
+    // ambigua. En temas normales sí lo sería (dos respuestas "correctas"
+    // ante una pregunta genérica), así que se descarta.
+    if(f.func === objetivo.func && !tema.soloPronombre) return false;
+    return true;
+  });
   const esConfundible = f => _enLista(f.func, tema.confundibles);
   const confundibles = candidatos.filter(esConfundible);
   const resto = candidatos.filter(f => !esConfundible(f));
@@ -265,7 +287,12 @@ function renderRondaSpot(ronda){
   const decoys = _elegirDecoys(fichas, objetivo, tema, nDecoys, dificil);
   const opciones = shuffle([objetivo, ...decoys]);
   document.getElementById('chi-oracion').textContent = oracionTexto;
-  document.getElementById('chi-pregunta').textContent = '¿Cuál es el ' + objetivo.func + '?';
+  // Con duplicación de clíticos (p.ej. "A mi primo no LE gusta…") el
+  // sintagma pleno y el pronombre son ambos, en rigor, CI — hay que
+  // precisar "en forma de pronombre" para que la pregunta no sea ambigua
+  // cuando el señuelo es justo su propio duplicado.
+  const sufijo = tema.soloPronombre ? ' en forma de pronombre' : '';
+  document.getElementById('chi-pregunta').textContent = '¿Cuál es el ' + objetivo.func + sufijo + '?';
   document.getElementById('chi-fichas').innerHTML = opciones.map((op, i) => _fichaBtn(i, op.texto, 'chispaResponderSpot')).join('');
   CHI._opciones = opciones;
   CHI._objetivo = objetivo;
