@@ -877,6 +877,61 @@ const RETOS_SINTAXIS = [
       const idx = f2.sujeto_indices;
       return Array.isArray(idx) && idx.length>0 && Math.min(...idx) > 0;
     }
+  },
+  {
+    id: 'ATR_CPVO',
+    nombre: 'No confundas Atributo y C. Predicativo',
+    descripcion: 'Solo oraciones con Atributo o Complemento Predicativo, para aplicar la prueba de "lo" en cada una.',
+    minOraciones: 5,
+    // Atr. y CPvo no coexisten en una oración simple (verbo copulativo vs no
+    // copulativo), así que el reto es "OR": cualquiera de las dos, sesión
+    // tras sesión, obliga a decidir caso a caso en vez de reconocerlas de
+    // memoria por el contexto de la oración anterior.
+    test(o){
+      return (o.fase3?.bloques||[]).some(b=>{
+        const f=(b.solucion||'').split(' | ')[1];
+        return f==='Atr.' || f==='CPvo';
+      });
+    }
+  },
+  {
+    id: 'CREG_CC_PREP',
+    nombre: 'C. de Régimen vs CC parecidos',
+    descripcion: 'Oraciones con C. de Régimen junto a un CC de Lugar/Causa/Modo o introducido por la misma preposición: decide la prueba "eso/ello", no la preposición.',
+    minOraciones: 5,
+    test(o){
+      const bloques = o.fase3?.bloques||[];
+      const cregBlocks = bloques.filter(b=>(b.solucion||'').split(' | ')[1]==='C.Rég.');
+      if(cregBlocks.length===0) return false;
+      // Preposiciones del C.Rég. (para comparar con CUALQUIER token del CC,
+      // no solo el primero: cubre locuciones como "delante de").
+      const cregPreps = new Set(cregBlocks.map(b=>(o.palabras[(b.indices||[])[0]]||'').toLowerCase()));
+      return bloques.some(b=>{
+        const f=(b.solucion||'').split(' | ')[1];
+        if(!f || !f.startsWith('CC ')) return false;
+        // "CC parecidos": los subtipos con forma de SP, más fácilmente
+        // confundibles con el C.Rég. que un adverbio suelto.
+        if(f==='CC Lugar' || f==='CC Causa' || f==='CC Modo') return true;
+        const palabras=(b.indices||[]).map(i=>(o.palabras[i]||'').toLowerCase());
+        return palabras.some(w=>cregPreps.has(w));
+      });
+    }
+  },
+  {
+    id: 'CD_CI_PRONOMBRE',
+    nombre: 'CD y CI en forma de pronombre',
+    descripcion: 'Solo oraciones donde el CD o el CI son un pronombre átono (lo/la/los/las/le/les), sin sintagma pleno que analizar.',
+    minOraciones: 5,
+    test(o){
+      const PRON = ['lo','la','los','las','le','les'];
+      return (o.fase3?.bloques||[]).some(b=>{
+        const f=(b.solucion||'').split(' | ')[1];
+        if(f!=='CD' && f!=='CI') return false;
+        const idx=b.indices||[];
+        if(idx.length!==1) return false;
+        return PRON.includes((o.palabras[idx[0]]||'').toLowerCase());
+      });
+    }
   }
 ];
 
