@@ -1140,34 +1140,43 @@ function getMisiones_(params) {
   if (!sheet) return { misiones: [] };
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return { misiones: [] };
-  const data = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+  // Lectura por NOMBRE de columna (getColMap_), no por posición fija: así
+  // funciona aunque el Sheet tenga columnas reordenadas o añadidas (ej.
+  // 'Calificacion', Fase B) sin depender de que el orden coincida con
+  // MIS_HEADER exactamente.
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
   const modo = params.modo || '';
   const pin  = params.pin  || '';
 
   const misiones = [];
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
-    const estado = String(row[9] || '').trim();
+    const estado = String(row[col['Estado']] || '').trim();
     if (estado !== 'activa') continue;
-    const mModo = String(row[2] || '').trim();
+    const mModo = String(row[col['Modo']] || '').trim();
     if (modo && mModo !== modo) continue;
-    const mPin = String(row[8] || '').trim();
+    const mPin = String(row[col['PIN']] || '').trim();
     if (mPin && pin && mPin !== pin) continue;
 
     let funciones = [];
-    try { funciones = JSON.parse(row[4] || '[]'); } catch(e) { funciones = []; }
+    try { funciones = JSON.parse(row[col['Funciones_JSON']] || '[]'); } catch(e) { funciones = []; }
 
     misiones.push({
-      id:         String(row[0] || ''),
-      nombre:     String(row[1] || ''),
-      modo:       mModo,
-      subfase:    String(row[3] || 'completo'),
-      funciones:  funciones,
-      dificultad: parseInt(row[5]) || 0,
-      nOraciones: parseInt(row[6]) || 5,
-      fechaLimite:String(row[7] || ''),
-      pin:        mPin,
-      estado:     estado,
+      id:          String(row[col['ID_Mision']] || ''),
+      nombre:      String(row[col['Nombre']] || ''),
+      modo:        mModo,
+      subfase:     String(row[col['Subfase']] || 'completo'),
+      funciones:   funciones,
+      dificultad:  parseInt(row[col['Dificultad_Max']]) || 0,
+      nOraciones:  parseInt(row[col['N_Oraciones']]) || 5,
+      fechaLimite: String(row[col['Fecha_Limite']] || ''),
+      pin:         mPin,
+      estado:      estado,
+      // Fase B: 'examen' o 'practica'. Columna nueva → col[...] es undefined
+      // en Sheets antiguos hasta que se cree la primera misión tras el
+      // redespliegue; por defecto se trata como práctica (curva suave).
+      calificacion: col['Calificacion'] !== undefined ? (String(row[col['Calificacion']] || 'practica').trim() || 'practica') : 'practica',
     });
   }
   return { misiones };
@@ -1196,7 +1205,8 @@ function createMision_(params) {
     'Fecha_Limite':    '',
     'PIN':             params.pin || '',
     'Estado':          params.estado || 'activa',
-    'Creado':          new Date().toISOString().slice(0,10)
+    'Creado':          new Date().toISOString().slice(0,10),
+    'Calificacion':    (params.calificacion === 'examen') ? 'examen' : 'practica'
   });
   return { ok: true };
 }
@@ -1299,7 +1309,7 @@ const EXAM_HEADER = ['PIN','Funciones_JSON','Prohibidas_JSON','MinCoincid','Difi
   'Estado','Fecha','Oraciones_JSON','Reflexion'];
 
 const MIS_HEADER = ['ID_Mision','Nombre','Modo','Subfase','Funciones_JSON',
-  'Dificultad_Max','N_Oraciones','Fecha_Limite','PIN','Estado','Creado'];
+  'Dificultad_Max','N_Oraciones','Fecha_Limite','PIN','Estado','Creado','Calificacion'];
 
 const MIS_RES_HEADER = ['Fecha','Email','Nombre','ID_Mision','Modo',
   'Aciertos','Errores','Nota','Detalle_JSON'];

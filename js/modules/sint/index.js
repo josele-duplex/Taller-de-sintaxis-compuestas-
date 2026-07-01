@@ -2380,7 +2380,13 @@ function calcDetailedScore(){
   // Curva de penalización por errores en un bloque (rediseño 2026-06-16).
   // EXAMEN = dura (0→100% · 1→40% · 2→10% · 3+→0%): mide como en papel.
   // PRÁCTICA y PROYECTOR = suave (100/50/25/0): es para aprender, no castiga.
-  const _penaltyFactor = (G && G.mode === 'exam')
+  // Fase B (2026-07-01): una MISIÓN puede pedir la curva dura sin ser un
+  // examen real — el profesor la marca al crearla. G.mode sigue en
+  // 'practice' (por eso el feedback y las pistas se mantienen visibles;
+  // eso es justo lo que la distingue de un examen de verdad).
+  const _califDura = (G && G.mode === 'exam')
+    || (typeof _activeMission !== 'undefined' && _activeMission && _activeMission.calificacion === 'examen');
+  const _penaltyFactor = _califDura
     ? [1, 0.40, 0.10, 0]
     : [1, 0.50, 0.25, 0];
   const atenPenalty = (weight, errors) => {
@@ -2596,6 +2602,9 @@ async function goResults(){
   document.getElementById('res-emoji').textContent = exitedEarly ? `${grade.e} Sesión terminada` : `${grade.e} Resultado`;
   const sfLabel=SUBFASE_CONFIGS[G.subfase]?.label||'Análisis completo';
   let missionLabel = _activeMission?`Misión: ${_activeMission.nombre}`:(G.mode==='exam'?`Examen PIN ${G.examPin}`:'Modo Práctica');
+  if(_activeMission && _activeMission.calificacion === 'examen'){
+    missionLabel += ' · 📝 calificación de examen';
+  }
   if(exitedEarly){
     const total = (G.oraciones||[]).length;
     missionLabel += ` · ${completadas}/${total} oraciones`;

@@ -520,11 +520,14 @@ async function createMision(){
   const n    = parseInt(document.getElementById('tp-mis-n').value)||5;
   const funcs= [...document.querySelectorAll('#tp-mis-funcs input:checked')].map(c=>c.value);
   const sintTypes=[...document.querySelectorAll('#tp-mis-sint-types input:checked')].map(c=>c.value);
+  // Fase B: calificación de la misión. 'examen' aplica la curva dura pero
+  // mantiene el feedback visible (a diferencia de un examen real).
+  const calificacion = document.getElementById('tp-mis-calificacion')?.value === 'examen' ? 'examen' : 'practica';
   const msg  = document.getElementById('tp-mis-msg');
   if(!name){msg.textContent='Escribe un nombre.';msg.style.color='var(--red)';msg.style.display='inline';return;}
   const id = 'M'+Date.now().toString(36).toUpperCase();
   const pin = localStorage.getItem(LS_PIN)||'';
-  const mision={id,nombre:name,modo,subfase:'completo',funciones:funcs,sintTypes,dificultad:0,nOraciones:n,pin,estado:'activa',creado:new Date().toISOString().slice(0,10)};
+  const mision={id,nombre:name,modo,subfase:'completo',funciones:funcs,sintTypes,calificacion,dificultad:0,nOraciones:n,pin,estado:'activa',creado:new Date().toISOString().slice(0,10)};
   // Save to localStorage (backup)
   const saved = JSON.parse(localStorage.getItem('taller_misiones')||'[]');
   saved.push(mision);
@@ -536,7 +539,7 @@ async function createMision(){
       const params=new URLSearchParams({
         action:'createMision',id,nombre:name,modo,subfase:'completo',
         funciones:JSON.stringify(funcs),dificultad:'0',nOraciones:String(n),
-        pin,estado:'activa',
+        pin,estado:'activa',calificacion,
         clave: (typeof getTeacherPw==='function'?getTeacherPw():'')
       });
       await fetchWithTimeout(apiUrl+'?'+params.toString(),{},8000);
@@ -576,7 +579,8 @@ async function viewMisiones(){
   }
   list.innerHTML=misiones.map((m,i)=>
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--paper);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">'+
-    '<div><strong style="font-size:.88rem">'+m.nombre+'</strong> <span style="font-size:.75rem;color:var(--muted)">'+m.modo+' · '+(m.nOraciones||'∞')+' ej.'+(m.funciones&&m.funciones.length>0?' · '+m.funciones.join(', '):'')+' </span></div>'+
+    '<div><strong style="font-size:.88rem">'+m.nombre+'</strong> <span style="font-size:.75rem;color:var(--muted)">'+m.modo+' · '+(m.nOraciones||'∞')+' ej.'+(m.funciones&&m.funciones.length>0?' · '+m.funciones.join(', '):'')+' </span>'+
+    (m.calificacion==='examen'?'<span style="font-size:.68rem;font-weight:800;color:#B91C1C;background:#FEE2E2;padding:2px 7px;border-radius:6px;margin-left:4px">📝 examen</span>':'')+'</div>'+
     '</div>'
   ).join('');
 }
@@ -626,11 +630,17 @@ async function showMissionSelector(launchParams){
   // Teacher missions
   misiones.forEach(m=>{
     const funcStr = m.funciones&&m.funciones.length>0 ? m.funciones.join(', ') : 'Todas las funciones';
-    html += '<div style="background:var(--paper);border:2px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;cursor:pointer;transition:all .15s" onclick="launchMission(\''+m.id+'\')" onmouseover="this.style.borderColor=\'var(--blue)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'+
+    // Fase B: si la misión califica como examen, avisar ANTES de empezar
+    // (transparencia: el alumno no debe llevarse la curva dura por sorpresa).
+    const esExamen = m.calificacion === 'examen';
+    const badge = esExamen
+      ? '<span style="background:#FEE2E2;color:#B91C1C;font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:6px">📝 CALIFICA COMO EXAMEN</span>'
+      : '<span style="background:var(--blue-lt);color:var(--blue);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:6px">ASIGNADA</span>';
+    html += '<div style="background:var(--paper);border:2px solid '+(esExamen?'#FCA5A5':'var(--border)')+';border-radius:14px;padding:16px;margin-bottom:10px;cursor:pointer;transition:all .15s" onclick="launchMission(\''+m.id+'\')" onmouseover="this.style.borderColor=\'var(--blue)\'" onmouseout="this.style.borderColor=\''+(esExamen?'#FCA5A5':'var(--border)')+'\'">'+
       '<div style="display:flex;justify-content:space-between;align-items:start">'+
       '<div><div style="font-size:1rem;font-weight:800">📋 '+m.nombre+'</div>'+
       '<div style="font-size:.8rem;color:var(--muted);margin-top:4px">'+funcStr+' · '+m.nOraciones+' ejercicios</div></div>'+
-      '<span style="background:var(--blue-lt);color:var(--blue);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:6px">ASIGNADA</span></div></div>';
+      badge+'</div></div>';
   });
 
   // Auto reinforcement mission (if errors exist)

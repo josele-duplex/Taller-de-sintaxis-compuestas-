@@ -525,6 +525,13 @@ if(window.location.protocol === 'file:') {
           <label style="font-size:.75rem;font-weight:700;color:var(--muted)">Nº ejercicios</label>
           <input id="tp-mis-n" class="input" type="number" min="1" max="30" value="5" style="width:100%;text-align:center;font-size:.85rem">
         </div>
+        <div style="min-width:140px">
+          <label style="font-size:.75rem;font-weight:700;color:var(--muted)">Calificación</label>
+          <select id="tp-mis-calificacion" class="input" style="width:100%;font-size:.85rem;padding:8px">
+            <option value="practica">📖 Práctica (suave)</option>
+            <option value="examen">📝 Examen (dura)</option>
+          </select>
+        </div>
       </div>
       <div style="margin-bottom:10px">
         <label style="font-size:.75rem;font-weight:700;color:var(--muted)">Funciones a practicar (vacío = todas)</label>
