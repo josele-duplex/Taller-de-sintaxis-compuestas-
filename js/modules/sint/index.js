@@ -3191,7 +3191,11 @@ const LOGIN_PANELS = {
         </button>
       </div>
       <p id="e-arcade" class="ferr" role="alert"></p>
-    </div>`
+    </div>`,
+
+  chispa: `
+    <p style="font-weight:800;font-size:.9rem;color:#B45309;margin-bottom:12px">⚡ Chispa</p>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:4px">Encuentra la función a toda velocidad. Mezcla oraciones simples y compuestas — sin cronómetro, solo racha.</p>`
 };
 
 // Estado y handler del selector de modo del login de Compuestas.
@@ -3657,6 +3661,9 @@ async function handleStartAll(){
   }
   if(currentModule==='sint4'){
     startSintagmas({name,email});return;
+  }
+  if(currentModule==='chispa'){
+    startChispa({name,email,grupo:grupoCompartido});return;
   }
   if(currentModule==='compuestas'){
     ferr('e-cp-mode',''); ferr('e-cp-pin','');

@@ -112,6 +112,16 @@ if(window.location.protocol === 'file:') {
         <p class="mod-card-desc">Modos Supervivencia y Contrarreloj con clasificación entre alumnos.</p>
         <span class="mod-card-cta">Jugar</span>
       </div>
+      <div class="mod-card mc-chispa" data-module="chispa" onclick="goModule('chispa')" role="button" tabindex="0"
+           onkeydown="if(event.key==='Enter')goModule('chispa')">
+        <span class="mod-card-badge">Nuevo</span>
+        <span class="mod-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M13 2 L4 14 h6 l-1 8 9-12 h-6 z"/></svg>
+        </span>
+        <h3 class="mod-card-title">Chispa</h3>
+        <p class="mod-card-desc">Encuentra la función a toda velocidad, mezclando oraciones simples y compuestas.</p>
+        <span class="mod-card-cta">Jugar</span>
+      </div>
     </div>
     <div class="portada-footer">
       Taller de Sintaxis · v6.2 · Toca tres veces el ✒️ para acceder al panel del profesor
@@ -154,6 +164,28 @@ if(window.location.protocol === 'file:') {
       <div id="api-err" role="alert" style="display:none;padding:10px 14px;border-radius:10px;background:var(--red-lt);border:1.5px solid #FCA5A5;color:#991B1B;font-size:.82rem;font-weight:600;margin:12px 0"></div>
       <button type="button" class="btn btn-primary" style="width:100%;padding:14px;font-size:1rem;margin-top:8px" onclick="handleStartAll()">¡Empezar!</button>
       <p style="text-align:center;font-size:.7rem;color:var(--muted);margin-top:10px">Sin URL de API → oraciones de ejemplo</p>
+    </div>
+  </div>
+</div>
+
+<!-- CHISPA — ejercicios relámpago de spot-the-function -->
+<div id="screen-chispa" class="screen" style="flex-direction:column">
+  <div class="topbar">
+    <div class="tb-inner">
+      <div class="tb-row1">
+        <span class="tb-name" id="chi-name"></span>
+        <span class="tb-badge" style="background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff">⚡ Chispa</span>
+        <span class="tb-counter" id="chi-streak">🔥 0</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="exitChispa()" style="padding:5px 12px;font-size:.75rem;margin-left:auto;font-weight:700">✕ Terminar</button>
+      </div>
+    </div>
+  </div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px">
+    <div style="width:100%;max-width:640px">
+      <div id="chi-oracion" style="font-family:'Fraunces',serif;font-size:1.35rem;line-height:1.5;text-align:center;color:var(--ink);margin-bottom:8px;padding:0 8px"></div>
+      <div id="chi-pregunta" style="text-align:center;font-weight:800;font-size:1rem;color:#B45309;margin-bottom:20px"></div>
+      <div id="chi-fichas" style="display:flex;flex-direction:column;gap:10px;align-items:stretch"></div>
+      <div id="chi-explicacion" style="display:none;margin-top:16px;padding:12px 16px;border-radius:12px;font-size:.88rem;font-weight:600;line-height:1.4;text-align:center"></div>
     </div>
   </div>
 </div>
