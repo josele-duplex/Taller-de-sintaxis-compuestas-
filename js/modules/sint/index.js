@@ -702,6 +702,8 @@ function sendPracticeAnalytics(opts){
       errCPvo:String(errByFunc['CPvo']||0),
       errCReg:String(errByFunc['C.Rég.']||0),
       errCC:String(Object.entries(errByFunc).filter(([k])=>k.startsWith('CC ')).reduce((a,[,v])=>a+v,0)),
+      reflexionTotal:String((G.reflexionAnswers||[]).length),
+      reflexionCorrectas:String((G.reflexionAnswers||[]).filter(a=>a.correcta).length),
     });
     const url = apiUrl + '?' + params.toString();
     // Use sendBeacon when available (works during page unload)
@@ -762,7 +764,10 @@ function initState(opts){
     examEval:opts.examEval||'',
     examName:opts.examName||'',
     praGrupo:opts.praGrupo||'',
-    sessionStart: Date.now()
+    sessionStart: Date.now(),
+    reflexionActiva: !!opts.reflexionActiva, // Fase C: preguntas de reflexión metalingüística
+    reflexionAnswers: [],
+    _reflexionItems: []
   };
 }
 
@@ -879,6 +884,204 @@ function filtrarPorReto(oraciones, retoId){
   const reto = RETOS_SINTAXIS.find(r=>r.id===retoId);
   if(!reto) return oraciones;
   return (oraciones||[]).filter(reto.test);
+}
+
+// ════════════════════════════════════════════════════════
+// REFLEXIÓN METALINGÜÍSTICA (Fase C) — banco de pruebas NGLE por función.
+// Repertorio GENERAL (no por oración): una entrada por función, reutilizada
+// para cualquier oración que la contenga. Principio del proyecto "plan de
+// trabajo lengua": se evalúa la PRUEBA (sustituir/suprimir/conmutar/
+// transformar), nunca la etiqueta ni el heurístico "¿quién?/¿a quién?"
+// (rechazado por la NGLE del proyecto — se usa aquí como distractor).
+// Fuente: Referencia_Morfologia_Sintaxis.md §PARTE 5 "Pruebas y trucos
+// operativos" (proyecto plan_de_trabajo_lengua). Especificación completa
+// en Banco_reflexion_metalinguistica.md (raíz del repo).
+// Activación: práctica = opt-in del alumno (checkbox en selector de
+// misiones); examen = casilla del profesor al crear el PIN. NO afecta a
+// la nota (formativo); se registra para el informe del profesor.
+// ════════════════════════════════════════════════════════
+const REFLEXION_BANCO = {
+  'Sujeto': {
+    correcta: 'Si cambio el número del verbo, este sintagma se ve obligado a cambiar con él (concordancia).',
+    explicacionCorrecta: 'Esa es la prueba fiable: el sujeto concuerda en persona y número con el verbo ("Me gusta la novela → Me gustan las novelas").',
+    distractores: [
+      { texto: 'Pregunto "¿quién?" y respondo con este sintagma.', explicacion: 'Heurístico poco fiable: falla con sujetos pacientes o psicológicos, como en "Me gustan las novelas".' },
+      { texto: 'Lo puedo sustituir por "lo/la".', explicacion: 'Esa es la prueba del Complemento Directo, no del sujeto.' },
+      { texto: 'Lo puedo suprimir sin que la oración se rompa.', explicacion: 'Esa prueba vale para un adjunto (CC); el sujeto es obligatorio.' }
+    ]
+  },
+  'CD': {
+    correcta: 'Lo sustituyo por "lo/la/los/las".',
+    explicacionCorrecta: 'Esa sustitución por pronombre átono de acusativo es la prueba decisiva del CD; en pasiva, además, se convierte en sujeto paciente.',
+    distractores: [
+      { texto: 'Lo sustituyo por "le/les".', explicacion: 'Esa es la prueba del CI, no del CD.' },
+      { texto: 'La preposición queda pegada al verbo con "eso/ello".', explicacion: 'Esa es la prueba del Complemento de Régimen.' },
+      { texto: 'Lleva la preposición "a", luego es CI.', explicacion: 'Error clásico: el CD de persona también lleva "a" ("Avisaron a la policía → La avisaron"). Decide el pronombre, no la preposición.' }
+    ]
+  },
+  'CI': {
+    correcta: 'Lo sustituyo por "le/les" (y por "se" ante lo/la/los/las).',
+    explicacionCorrecta: 'Es la prueba fiable del CI; además, no cambia al pasar la oración a pasiva.',
+    distractores: [
+      { texto: 'Lo sustituyo por "lo/la".', explicacion: 'Esa es la prueba del CD.' },
+      { texto: 'Va introducido por la preposición "para".', explicacion: 'Regla firme de este proyecto: "para" nunca introduce CI. Eso es un CC de Finalidad.' },
+      { texto: 'Pregunto "¿para quién?".', explicacion: 'Ese heurístico mezcla el CI con el CC de Finalidad; no es una prueba fiable.' }
+    ]
+  },
+  'C.Rég.': {
+    correcta: 'Sustituyo el término por "eso/ello" y la preposición se queda pegada al verbo.',
+    explicacionCorrecta: '"Confían en sus hijos → Confían en ello" (no "confían ello"): la preposición es exigida por el verbo.',
+    distractores: [
+      { texto: 'Lo sustituyo por "lo/la".', explicacion: 'Esa sustitución es la del CD; aquí la preposición desaparecería, y en el C.Rég. no desaparece.' },
+      { texto: 'Se puede suprimir sin que la oración se rompa.', explicacion: 'Esa es la prueba de un CC (adjunto); el C.Rég. es exigido por el verbo y no se puede quitar sin dejarlo "cojo".' },
+      { texto: 'Responde a la pregunta "¿de qué?".', explicacion: 'Muchos CC también responden a preguntas; la prueba fiable es la sustitución por "eso/ello", no la pregunta.' }
+    ]
+  },
+  'Atr.': {
+    correcta: 'Lo sustituyo por "lo" neutro (con un verbo copulativo: ser/estar/parecer).',
+    explicacionCorrecta: '"El bloque es muy antiguo → El bloque lo es": el atributo se sustituye siempre por el "lo" invariable.',
+    distractores: [
+      { texto: 'Concuerda con el sujeto y se podría suprimir.', explicacion: 'Esa es la prueba del Complemento Predicativo (CPvo), no del Atributo, que es obligatorio con el verbo copulativo.' },
+      { texto: 'Responde a la pregunta "¿cómo?".', explicacion: 'Esa pregunta también vale para el CC de Modo o el CPvo; no distingue el Atributo.' },
+      { texto: 'Lo sustituyo por "lo/la" variable, según el género.', explicacion: 'El atributo se sustituye por el "lo" INVARIABLE ("Ellas son listas → Ellas lo son", nunca "las son"); si el pronombre concordara en género, sería CD.' }
+    ]
+  },
+  'CPvo': {
+    correcta: 'Tiene "doble cara": modifica al verbo y concuerda con un nombre (sujeto o CD); si cambio el número de ese nombre, este sintagma cambia también.',
+    explicacionCorrecta: '"El alumno salió contento → Los alumnos salieron contentos": el predicativo concuerda porque describe al nombre, no solo al verbo.',
+    distractores: [
+      { texto: 'Es invariable, no cambia aunque cambie el sujeto.', explicacion: 'Esa invariabilidad es justo lo que distingue al CC de Modo del CPvo, que sí concuerda.' },
+      { texto: 'Lo sustituyo por "lo" neutro.', explicacion: 'Esa prueba es del Atributo, y requiere un verbo copulativo; el CPvo aparece con verbos no copulativos.' },
+      { texto: 'Se introduce con la preposición "a".', explicacion: 'La preposición no es la prueba decisiva; lo que importa es la doble concordancia con el verbo y con el nombre.' }
+    ]
+  },
+  'C.Ag.': {
+    correcta: 'Transformo la oración a voz activa y este sintagma pasa a ser el sujeto.',
+    explicacionCorrecta: '"El muro fue derribado por el viento → El viento derribó el muro": esta transformación demuestra que es el Complemento Agente.',
+    distractores: [
+      { texto: 'Lleva la preposición "por", luego es un CC de Causa.', explicacion: 'Trampa clásica: "por" también introduce causa. La prueba decisiva es la transformación a voz activa, solo posible con el C.Ag. de una pasiva.' },
+      { texto: 'Se puede suprimir sin que la oración se rompa.', explicacion: 'Esa prueba no distingue: muchos adjuntos también se pueden suprimir.' },
+      { texto: 'Concuerda en número con el verbo.', explicacion: 'El Complemento Agente no concuerda con el verbo; el que concuerda es el sujeto paciente de la pasiva.' }
+    ]
+  },
+  'CC': { // genérico: Lugar/Tiempo/Modo/Causa/Compañía/Instrumento/Cantidad
+    correcta: 'Lo puedo suprimir o desplazar de sitio sin que la estructura básica de la oración se rompa; además es invariable.',
+    explicacionCorrecta: 'Los CC son adjuntos: información opcional (lugar, tiempo, modo, causa…). Se pueden sustituir por un adverbio comodín: "allí", "entonces", "así".',
+    distractores: [
+      { texto: 'No se puede suprimir sin dejar el verbo "cojo".', explicacion: 'Esa es la prueba del Complemento de Régimen, que sí es exigido por el verbo.' },
+      { texto: 'Si cambio el número del sujeto, este sintagma también cambia.', explicacion: 'Esa concordancia es la prueba del Complemento Predicativo; el CC es invariable.' },
+      { texto: 'Lo sustituyo por "lo/la".', explicacion: 'Esa sustitución es la del CD.' }
+    ]
+  },
+  'CC Finalidad': { // override: enseña "para nunca es CI"
+    correcta: 'Lo puedo desplazar de sitio ("Para el viaje, ahorra") y la prueba de "le/les" del CI falla aquí.',
+    explicacionCorrecta: 'Con "para" nunca hay CI: "Ahorra para el viaje" no admite "*Le ahorra". Por eso, con esta preposición, la función es siempre CC de Finalidad.',
+    distractores: [
+      { texto: 'Lo sustituyo por "le/les", luego es CI.', explicacion: 'Error frecuente: con "para" nunca hay CI, aunque el sintagma se refiera a un destinatario; sigue siendo CC de Finalidad.' },
+      { texto: 'No se puede suprimir sin romper la oración.', explicacion: 'Si se puede suprimir sin problema ("Ahorra"), esa es la prueba típica de un adjunto (CC), no de un argumento obligatorio.' },
+      { texto: 'Va introducido por "a", como el CI.', explicacion: 'Aquí el sintagma va introducido por "para", no por "a"; son preposiciones distintas con funciones distintas.' }
+    ]
+  },
+  'Vocat.': {
+    correcta: 'Va aislado por comas, no concuerda con el verbo, y lo puedo sustituir por "¡Oye!".',
+    explicacionCorrecta: '"Profesora, ¿qué ejercicio es? → ¡Oye!, ¿qué ejercicio es?": el vocativo llama la atención, no realiza la acción.',
+    distractores: [
+      { texto: 'Concuerda con el verbo.', explicacion: 'Esa es la prueba del sujeto; el vocativo nunca concuerda con el verbo (puede ser 3.ª persona con un verbo en 2.ª).' },
+      { texto: 'Responde a la pregunta "¿quién?".', explicacion: 'Ese heurístico no distingue el vocativo del sujeto; la prueba fiable es la sustitución por "¡Oye!" y el aislamiento con comas.' },
+      { texto: 'Se puede sustituir por "lo/la".', explicacion: 'Esa sustitución es la del Complemento Directo; el vocativo no la admite.' }
+    ]
+  }
+};
+
+// Busca la entrada del banco para una función, con fallback genérico para
+// cualquier subtipo de CC no listado explícitamente (salvo Finalidad, que
+// tiene entrada propia porque enseña la regla "para nunca es CI").
+function _reflexionEntryFor(func){
+  if(REFLEXION_BANCO[func]) return REFLEXION_BANCO[func];
+  if(func && func.startsWith('CC ') && func !== 'CC Finalidad') return REFLEXION_BANCO['CC'];
+  return null;
+}
+
+// Elige hasta `max` funciones presentes en la oración con entrada en el
+// banco, y construye sus ítems (con opciones ya barajadas). Guarda el
+// resultado en G._reflexionItems para que reflexionResponder() lo consulte.
+function _buildReflexionItems(o, max){
+  max = max || 2;
+  const candidatos = [];
+  const vistos = new Set(); // fase3.bloques a veces repite un bloque "SN | Sujeto"
+  if((o.fase2?.sujeto_indices||[]).length>0 || o.fase2?.sujeto_tacito){
+    const banco = _reflexionEntryFor('Sujeto');
+    if(banco){
+      const texto = o.fase2.sujeto_tacito ? '(sujeto tácito)' : (o.fase2.sujeto_indices||[]).map(i=>o.palabras[i]).join(' ');
+      candidatos.push({func:'Sujeto', texto, banco});
+      vistos.add('Sujeto');
+    }
+  }
+  (o.fase3?.bloques||[]).forEach(b=>{
+    const func = (b.solucion||'').split(' | ')[1];
+    if(!func || func==='—' || vistos.has(func)) return;
+    const banco = _reflexionEntryFor(func);
+    if(!banco) return;
+    const texto = (b.indices||[]).map(i=>o.palabras[i]).join(' ') || '(elemento tácito)';
+    candidatos.push({func, texto, banco});
+    vistos.add(func);
+  });
+  if(candidatos.length===0) return [];
+  const elegidos = shuffle(candidatos).slice(0, max);
+  return elegidos.map(c=>{
+    const opciones = shuffle([
+      { texto:c.banco.correcta, explicacion:c.banco.explicacionCorrecta, esCorrecta:true },
+      ...c.banco.distractores.map(d=>({ texto:d.texto, explicacion:d.explicacion, esCorrecta:false }))
+    ]);
+    return { func:c.func, texto:c.texto, opciones, respondida:false };
+  });
+}
+
+// Construye el HTML del bloque de reflexión para el succ-overlay. Actualiza
+// G._reflexionItems (estado consultado por reflexionResponder). Devuelve ''
+// si la reflexión no está activa o la oración no tiene funciones cubiertas.
+function _buildReflexionHtml(o){
+  if(!G.reflexionActiva){ G._reflexionItems = []; return ''; }
+  G._reflexionItems = _buildReflexionItems(o, 2);
+  if(G._reflexionItems.length===0) return '';
+  return G._reflexionItems.map((item,i)=>{
+    const opcionesHtml = item.opciones.map((op,j)=>
+      '<button type="button" onclick="reflexionResponder('+i+','+j+')" id="refl-btn-'+i+'-'+j+'" '+
+      'style="display:block;width:100%;text-align:left;padding:10px 14px;margin-bottom:6px;background:#fff;border:1.5px solid #DDD6FE;border-radius:10px;font-size:.83rem;cursor:pointer;color:var(--ink)">'+
+      escHtml(op.texto)+'</button>'
+    ).join('');
+    return '<div style="margin:14px 0 4px;padding:14px 16px;background:linear-gradient(135deg,#F5F3FF 0%,#EDE9FE 100%);border:1.5px solid #7C3AED;border-radius:12px;text-align:left">'
+      + '<div style="font-size:.72rem;font-weight:800;color:#5B21B6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">🧠 Reflexión: ¿por qué "'+escHtml(item.texto)+'" es '+escHtml(item.func)+'?</div>'
+      + '<div id="refl-opts-'+i+'">'+opcionesHtml+'</div>'
+      + '<div id="refl-expl-'+i+'" style="display:none;margin-top:8px;font-size:.82rem;font-weight:600;line-height:1.4"></div>'
+      + '</div>';
+  }).join('');
+}
+
+// Handler del clic en una opción de reflexión. Un único intento por ítem:
+// colorea la elegida y revela siempre la correcta, con su explicación.
+function reflexionResponder(itemIdx, optIdx){
+  const item = (G._reflexionItems||[])[itemIdx];
+  if(!item || item.respondida) return;
+  item.respondida = true;
+  const opcion = item.opciones[optIdx];
+  item.acierto = !!opcion.esCorrecta;
+  if(!G.reflexionAnswers) G.reflexionAnswers = [];
+  G.reflexionAnswers.push({func:item.func, correcta:item.acierto});
+  item.opciones.forEach((op,j)=>{
+    const btn = document.getElementById('refl-btn-'+itemIdx+'-'+j);
+    if(!btn) return;
+    btn.style.pointerEvents = 'none';
+    if(op.esCorrecta){ btn.style.background='#DCFCE7'; btn.style.borderColor='#16A34A'; }
+    else if(j===optIdx){ btn.style.background='#FEE2E2'; btn.style.borderColor='#DC2626'; }
+    else { btn.style.opacity='.5'; }
+  });
+  const expl = document.getElementById('refl-expl-'+itemIdx);
+  if(expl){
+    expl.style.display='block';
+    expl.textContent = (item.acierto?'✓ ':'✗ ') + opcion.explicacion;
+    expl.style.color = item.acierto ? '#166534' : '#991B1B';
+  }
 }
 
 // ── loadOraciones — separated from UI, always resolves ──────────────
@@ -1029,7 +1232,8 @@ async function _doHandleStart(name,email,pin,examSubfase){
       // config para permitir reutilizar el mismo examen entre grupos.
       const studentGrupo = (document.getElementById('inp-grupo')?.value||'').trim();
       _launchGame({ name, email, pin, subfase, oraciones, usingMock:false, timerDuration:timerSec,
-        examGrupo: studentGrupo || d.grupo || '', examEval:d.evaluacion||'', examName:d.nombreExamen||'' });
+        examGrupo: studentGrupo || d.grupo || '', examEval:d.evaluacion||'', examName:d.nombreExamen||'',
+        examReflexion: !!d.reflexion });
     }catch(e){
       clearTimeout(slowTimer);
       ferr('e-pin','⚠ Error de conexión: '+(e.message||'timeout')+'. Inténtalo de nuevo.');showScreen('login');
@@ -1072,10 +1276,11 @@ async function _doHandleStart(name,email,pin,examSubfase){
   }
   const praGrupo = (document.getElementById('inp-grupo')?.value||'').trim();
   _launchGame({ name, email, pin, subfase: examSubfase,
-    oraciones, usingMock, timerDuration:0, praGrupo });
+    oraciones, usingMock, timerDuration:0, praGrupo,
+    reflexionActiva: !!window._reflexionActiva });
 }
 
-function _launchGame({ name, email, pin, subfase, oraciones, usingMock, timerDuration, examGrupo, examEval, examName, praGrupo }) {
+function _launchGame({ name, email, pin, subfase, oraciones, usingMock, timerDuration, examGrupo, examEval, examName, praGrupo, reflexionActiva, examReflexion }) {
   timerDuration = timerDuration || 0;
   console.log('[_launchGame] oraciones:', oraciones.length, 'mode:', selectedMode, 'usingMock:', usingMock, 'subfase:', subfase, 'timer:', timerDuration+'s');
   // Update daily streak on practice start
@@ -1085,7 +1290,10 @@ function _launchGame({ name, email, pin, subfase, oraciones, usingMock, timerDur
   initState({ name, email, mode: selectedMode, examPin: pin,
     subfase, oraciones, usingMock, timerDuration,
     examGrupo: examGrupo||'', examEval: examEval||'', examName: examName||'',
-    praGrupo: praGrupo||'' });
+    praGrupo: praGrupo||'',
+    // Fase C: en examen la decide el profesor (casilla del PIN); en práctica
+    // la decide el alumno (checkbox del selector de misiones). Independientes.
+    reflexionActiva: selectedMode==='exam' ? !!examReflexion : !!reflexionActiva });
   G.sessionStart = Date.now(); // session timer for analytics
   _practiceAnalyticsSent = false; // reset for new session
   // Store full pool for practice filters (frontend-only filtering)
@@ -2080,6 +2288,14 @@ function showSuccessScreen(o){
     }
   }
 
+  // Fase C: preguntas de reflexión metalingüística (opt-in práctica / casilla examen)
+  const reflexBox = document.getElementById('succ-reflexion');
+  if(reflexBox){
+    const html = _buildReflexionHtml(o);
+    reflexBox.innerHTML = html;
+    reflexBox.style.display = html ? 'block' : 'none';
+  }
+
   const btn=document.getElementById('succ-btn');
   const lastLabel = G.mode==='exam' ? 'Enviar examen →' : G.mode==='projector' ? 'Volver al Panel →' : 'Ver resultados →';
   btn.textContent=isLast?lastLabel:'Siguiente oración →';
@@ -2696,7 +2912,9 @@ async function submitResult(score,totalAvail,totalEarned,totals){
     errAtr:String(errByFunc['Atr.']||0),
     errCPvo:String(errByFunc['CPvo']||0),
     errCReg:String(errByFunc['C.Rég.']||0),
-    errCC:String(Object.entries(errByFunc).filter(([k])=>k.startsWith('CC ')).reduce((a,[,v])=>a+v,0))
+    errCC:String(Object.entries(errByFunc).filter(([k])=>k.startsWith('CC ')).reduce((a,[,v])=>a+v,0)),
+    reflexionTotal:String((G.reflexionAnswers||[]).length),
+    reflexionCorrectas:String((G.reflexionAnswers||[]).filter(a=>a.correcta).length)
   };
   try{
     const params=new URLSearchParams(_pendingResult);

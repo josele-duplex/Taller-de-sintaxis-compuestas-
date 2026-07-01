@@ -1296,7 +1296,7 @@ function getResultsByGroup_(params) {
 
 const EXAM_HEADER = ['PIN','Funciones_JSON','Prohibidas_JSON','MinCoincid','Dificultad',
   'N_Oraciones','Timer_Min','Subfase','Grupo','Evaluacion','Nombre_Examen',
-  'Estado','Fecha','Oraciones_JSON'];
+  'Estado','Fecha','Oraciones_JSON','Reflexion'];
 
 const MIS_HEADER = ['ID_Mision','Nombre','Modo','Subfase','Funciones_JSON',
   'Dificultad_Max','N_Oraciones','Fecha_Limite','PIN','Estado','Creado'];
@@ -1433,7 +1433,8 @@ function createExam_(params) {
     'Evaluacion':       params.evaluacion || '',
     'Nombre_Examen':    params.nombreExamen || '',
     'Estado':           'creando',
-    'Fecha':            new Date().toISOString()
+    'Fecha':            new Date().toISOString(),
+    'Reflexion':        (params.reflexion === '1') ? 1 : 0
   });
   const newRowIdx = sheet.getLastRow();
   // Re-read column map AFTER ensureSheetHeaders_ in case it added columns
@@ -1597,7 +1598,8 @@ function getExamConfig_(params) {
       pin, 
       grupo: String(data[i][col['Grupo']] || ''),
       evaluacion: String(data[i][col['Evaluacion']] || ''),
-      nombreExamen: String(data[i][col['Nombre_Examen']] || '')
+      nombreExamen: String(data[i][col['Nombre_Examen']] || ''),
+      reflexion: col['Reflexion'] !== undefined ? !!(parseInt(data[i][col['Reflexion']])||0) : false
     };
 
     // Cache for 5 minutes
@@ -1664,7 +1666,8 @@ function saveResult_(p) {
     const RESULT_HEADER = ['Fecha','Correo','Nombre','Grupo','Evaluacion','Examen','PIN',
                            'Nota','Completadas','Total_Oraciones',
                            'Sujeto_Pts','Funciones_Pts','NP_Pts','Elem_Fallados',
-                           'Err_CD','Err_CI','Err_Atr','Err_CPvo','Err_CReg','Err_CC'];
+                           'Err_CD','Err_CI','Err_Atr','Err_CPvo','Err_CReg','Err_CC',
+                           'Reflexion_Total','Reflexion_Correctas'];
     let sheet = ss.getSheetByName(SHEET_RESULTS);
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_RESULTS);
@@ -1716,7 +1719,9 @@ function saveResult_(p) {
       'Err_Atr':    parseInt(p.errAtr)  ||0,
       'Err_CPvo':   parseInt(p.errCPvo) ||0,
       'Err_CReg':   parseInt(p.errCReg) ||0,
-      'Err_CC':     parseInt(p.errCC)   ||0
+      'Err_CC':     parseInt(p.errCC)   ||0,
+      'Reflexion_Total':     parseInt(p.reflexionTotal)     ||0,
+      'Reflexion_Correctas': parseInt(p.reflexionCorrectas) ||0
     });
     return { ok: true };
   } finally {
@@ -1732,7 +1737,8 @@ function saveSesionPractica_(p) {
     'Fecha', 'Correo', 'Nombre', 'Grupo', 'Modulo', 'Subfase',
     'Oraciones_Hechas', 'Total_Oraciones', 'Nota_Estimada', 'Errores_Totales',
     'Tiempo_Min', 'Func_Mas_Fallada', 'Func_Sin_Errores',
-    'Err_CD', 'Err_CI', 'Err_Atr', 'Err_CPvo', 'Err_CReg', 'Err_CC'
+    'Err_CD', 'Err_CI', 'Err_Atr', 'Err_CPvo', 'Err_CReg', 'Err_CC',
+    'Reflexion_Total', 'Reflexion_Correctas'
   ];
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1759,6 +1765,8 @@ function saveSesionPractica_(p) {
       'Err_CPvo':         parseInt(p.errCPvo)||0,
       'Err_CReg':         parseInt(p.errCReg)||0,
       'Err_CC':           parseInt(p.errCC)||0,
+      'Reflexion_Total':     parseInt(p.reflexionTotal)||0,
+      'Reflexion_Correctas': parseInt(p.reflexionCorrectas)||0,
     });
     return { ok: true };
   } catch(e) {

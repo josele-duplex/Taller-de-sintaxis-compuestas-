@@ -473,6 +473,10 @@ if(window.location.protocol === 'file:') {
           <input id="tp-exam-name" class="input" type="text" placeholder="Sintaxis T3" style="font-size:.9rem;padding:6px 8px">
         </div>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:.82rem;font-weight:700;color:#1D4ED8;cursor:pointer">
+        <input type="checkbox" id="tp-exam-reflexion" style="width:16px;height:16px">
+        🧠 Incluir preguntas de reflexión metalingüística
+      </label>
       <button type="button" class="btn btn-primary" style="width:100%;padding:14px;font-size:1rem" onclick="activateExam()">🚀 Activar examen en el Sheet</button>
       <button type="button" class="btn btn-ghost" style="width:100%;padding:10px;font-size:.85rem;margin-top:6px;border:1.5px dashed var(--border)" onclick="testCurrentPin()">🔍 Verificar que el PIN funciona</button>
       <p id="tp-exam-status" style="font-size:.82rem;font-weight:700;margin-top:8px;display:none" role="status"></p>
@@ -853,6 +857,8 @@ K: Sujeto_Pts · L: Funciones_Pts · M: NP_Pts · N: Elem_Fallados</pre>
         </div>
       </div>
     </div>
+    <!-- Fase C: preguntas de reflexión metalingüística (opt-in práctica / casilla examen) -->
+    <div id="succ-reflexion" style="display:none"></div>
     <button type="button" id="succ-btn" class="btn btn-success btn-lg" style="margin-top:8px;font-weight:800;padding:14px 28px;font-size:1rem;box-shadow:0 6px 16px rgba(22,163,74,.28)" onclick="doNextSentence()">Analizar la siguiente oración →</button>
   </div>
 </div>

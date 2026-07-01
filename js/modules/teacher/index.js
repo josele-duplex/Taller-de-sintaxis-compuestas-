@@ -116,13 +116,16 @@ async function activateExam(){
   const grupo=document.getElementById('tp-exam-grupo').value.trim();
   const evaluacion=document.getElementById('tp-exam-eval').value.trim();
   const nombreExamen=document.getElementById('tp-exam-name').value.trim();
+  // Fase C: la reflexión metalingüística en examen la decide el profesor (a
+  // diferencia de práctica, donde es opt-in del alumno).
+  const reflexion=document.getElementById('tp-exam-reflexion')?.checked ? '1' : '0';
   status.textContent='⏳ Enviando configuración al Sheet…';status.style.color='var(--blue)';status.style.display='block';
   try{
     const params=new URLSearchParams({
       action:'createExam',pin,funciones:JSON.stringify(checks),prohibidas:JSON.stringify(prohib),
       minCoincidencias:'1',
       dificultad:String(dif),nOraciones:String(examCount),timerMin:String(timerMin),subfase,
-      grupo,evaluacion,nombreExamen,
+      grupo,evaluacion,nombreExamen,reflexion,
       clave: (typeof getTeacherPw==='function'?getTeacherPw():'')
     });
     const r=await fetchWithRetry(apiUrl+'?'+params.toString(), {}, {
@@ -142,6 +145,7 @@ async function activateExam(){
       if(timerMin>0) parts.push(timerMin+' min');
       if(checks.length>0) parts.push('Objetivo: '+checks.join(', '));
       if(prohib.length>0) parts.push('🚫 '+prohib.join(', '));
+      if(reflexion==='1') parts.push('🧠 con reflexión');
       status.textContent='✓ Examen activado. '+parts.join(' · ');
       status.style.color='var(--green)';
     }else{
@@ -663,14 +667,36 @@ async function showMissionSelector(launchParams){
     html='<p style="text-align:center;color:var(--muted);padding:20px;font-size:.9rem">No hay misiones asignadas para este modo. Puedes practicar libremente.</p>';
   }
 
+  // Fase C: interruptor de reflexión metalingüística (opt-in del alumno).
+  // Solo en Sintaxis — el banco de pruebas está construido para sus
+  // funciones (Sujeto, CD, CI…), no para las proposiciones de Compuestas.
+  // Se antepone al resto del contenido; se recuerda con localStorage.
+  if(modo === 'sintaxis'){
+    const pref = localStorage.getItem('taller_reflexion_pref')==='1';
+    html = '<label style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:12px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:10px;cursor:pointer;font-size:.85rem;font-weight:700;color:#5B21B6">'
+      + '<input type="checkbox" id="mission-reflexion-toggle" style="width:18px;height:18px;flex-shrink:0" '+(pref?'checked':'')+'>'
+      + '🧠 Quiero preguntas de reflexión al terminar cada oración'
+      + '</label>' + html;
+  }
+
   cards.innerHTML = html;
   openOverlay('mission-overlay');
+}
+
+// Lee el interruptor de reflexión del selector (si existe, i.e. modo
+// sintaxis) y lo guarda en window._reflexionActiva + localStorage, para que
+// _doHandleStart lo aplique al lanzar la partida de práctica.
+function _capturarReflexionToggle(){
+  const cb = document.getElementById('mission-reflexion-toggle');
+  window._reflexionActiva = !!(cb && cb.checked);
+  if(cb) localStorage.setItem('taller_reflexion_pref', cb.checked ? '1' : '0');
 }
 
 function closeMissionSelector(){closeOverlay('mission-overlay');window._pendingMissionLaunch=null;}
 
 async function launchMission(misionId){
   closeOverlay('mission-overlay');
+  _capturarReflexionToggle();
   window._activeReto = null;
   const misiones = await getMisionesForMode(window._pendingMissionLaunch?.modo||'sintaxis');
   window._activeMission = misiones.find(m=>m.id===misionId)||null;
@@ -685,6 +711,7 @@ async function launchMission(misionId){
 
 function launchReinforcement(){
   closeOverlay('mission-overlay');
+  _capturarReflexionToggle();
   window._activeReto = null;
   const modo = window._pendingMissionLaunch?.modo||'sintaxis';
   const errorHist = JSON.parse(localStorage.getItem('taller_error_history')||'{}');
@@ -699,6 +726,7 @@ function launchReinforcement(){
 
 function startFreePlay(){
   closeOverlay('mission-overlay');
+  _capturarReflexionToggle();
   window._activeMission = null;
   window._activeReto = null;
   localStorage.removeItem('taller_exam_filters');
@@ -707,6 +735,7 @@ function startFreePlay(){
 
 function launchReto(retoId){
   closeOverlay('mission-overlay');
+  _capturarReflexionToggle();
   const reto = (typeof RETOS_SINTAXIS !== 'undefined' ? RETOS_SINTAXIS : []).find(r=>r.id===retoId);
   window._activeReto = reto || null;
   window._activeMission = reto ? {id:'RETO_'+reto.id, nombre:'Reto: '+reto.nombre, modo:'sintaxis', funciones:[], nOraciones:0} : null;
