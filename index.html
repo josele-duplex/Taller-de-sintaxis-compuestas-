@@ -169,7 +169,7 @@ if(window.location.protocol === 'file:') {
 </div>
 
 <!-- CHISPA — ejercicios relámpago de spot-the-function -->
-<div id="screen-chispa" class="screen" style="flex-direction:column">
+<div id="screen-chispa" class="screen" style="flex-direction:column;height:100dvh;overflow:hidden">
   <div class="topbar">
     <div class="tb-inner">
       <div class="tb-row1">
@@ -181,14 +181,21 @@ if(window.location.protocol === 'file:') {
       </div>
     </div>
   </div>
-  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px">
+  <!-- Área de contenido: la única que hace scroll si hiciera falta. El
+       botón "Siguiente" vive FUERA de aquí (franja fija más abajo) para
+       que nunca dependa de bajar la pantalla para pulsarlo. -->
+  <div style="flex:1;min-height:0;overflow-y:auto;display:flex;align-items:center;justify-content:center;padding:16px 20px">
     <div style="width:100%;max-width:640px">
       <div id="chi-oracion" style="font-family:'Fraunces',serif;font-size:1.35rem;line-height:1.5;text-align:center;color:var(--ink);margin-bottom:8px;padding:0 8px"></div>
-      <div id="chi-pregunta" style="text-align:center;font-weight:800;font-size:1rem;color:#B45309;margin-bottom:20px"></div>
+      <div id="chi-pregunta" style="text-align:center;font-weight:800;font-size:1rem;color:#B45309;margin-bottom:16px"></div>
       <div id="chi-fichas" style="display:flex;flex-direction:column;gap:10px;align-items:stretch"></div>
-      <div id="chi-explicacion" style="display:none;margin-top:16px;padding:12px 16px;border-radius:12px;font-size:.88rem;font-weight:600;line-height:1.4;text-align:center"></div>
-      <button type="button" id="chi-siguiente" onclick="chispaSiguiente()" style="display:none;width:100%;margin-top:16px;padding:14px;font-size:1rem;font-weight:800;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 12px rgba(217,119,6,.3)">Siguiente →</button>
+      <div id="chi-explicacion" style="display:none;margin-top:14px;padding:12px 16px;border-radius:12px;font-size:.88rem;font-weight:600;line-height:1.4;text-align:center"></div>
     </div>
+  </div>
+  <!-- Franja fija: el botón nunca se desplaza fuera de la vista, sin
+       importar cuánto crezca el contenido de arriba. -->
+  <div style="flex-shrink:0;padding:12px 20px calc(12px + env(safe-area-inset-bottom));box-sizing:border-box">
+    <button type="button" id="chi-siguiente" onclick="chispaSiguiente()" style="display:none;width:100%;max-width:640px;margin:0 auto;padding:14px;font-size:1rem;font-weight:800;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 12px rgba(217,119,6,.3)">Siguiente →</button>
   </div>
 </div>
 
