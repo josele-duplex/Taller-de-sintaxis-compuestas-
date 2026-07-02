@@ -187,17 +187,29 @@ function _sintChildren(parentElem, allElems){
   return allElems.filter(e=>e.id!==parentElem.id&&_containsWholeWords(parentElem.texto,e.texto));
 }
 
+// Los pasos se van ACUMULANDO en #sint-steps (nunca se borran, para que el
+// alumno pueda repasar lo ya resuelto). En un sintagma con varios niveles
+// (p.ej. un SP con un SN dentro) eso puede crecer bastante. En pantallas
+// estrechas (<480px, CSS) el contenedor tiene altura máxima con scroll
+// interno; este helper es lo que mantiene visible el paso recién añadido
+// sin que el alumno tenga que buscarlo desplazándose.
+function _sintAppendStep(html){
+  const steps=document.getElementById('sint-steps');
+  if(!steps) return;
+  steps.innerHTML+=html;
+  if(window.innerWidth<=480) steps.scrollTop=steps.scrollHeight;
+}
+
 function _sintStartLevel(){
   const level=SIN.levelStack[SIN.currentLevelIdx];
   const isSubLevel=SIN.currentLevelIdx>0;
-  const steps=document.getElementById('sint-steps');
   if(isSubLevel){
-    steps.innerHTML+=`<div style="border-left:4px solid var(--purple);padding:8px 14px;margin:14px 0 8px;
+    _sintAppendStep(`<div style="border-left:4px solid var(--purple);padding:8px 14px;margin:14px 0 8px;
       background:var(--purple-lt);border-radius:0 10px 10px 0;animation:slideUp .3s ease">
       <span style="font-size:.82rem;font-weight:800;color:var(--purple)">
         \ud83d\udd3d Analiza el interior de: \u201c${level.title}\u201d
       </span>
-    </div>`;
+    </div>`);
     const hdr=document.getElementById('sint-header-words');
     if(hdr){
       hdr.innerHTML=level.elems.map(e=>'<span class="sint-word" data-id="'+e.id+'" style="background:rgba(124,58,237,.08);border:1.5px solid rgba(124,58,237,.3);border-radius:8px;padding:4px 12px">'+e.texto+'</span>').join('');
@@ -213,8 +225,7 @@ function _sintStep1Nucleus(){
   const nuclei=level.elems.filter(e=>e.solucion==='N'||e.solucion==='N (enlace)');
   if(nuclei.length===0){_sintStep2Classify();return;}
   const lvl=SIN.currentLevelIdx;
-  const steps=document.getElementById('sint-steps');
-  steps.innerHTML+=`
+  _sintAppendStep(`
     <div class="card" style="padding:20px 22px;margin-bottom:14px;animation:slideUp .3s ease">
       <div style="font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
         color:var(--muted);margin-bottom:8px">Paso 1 \u2014 N\u00facleo y tipo</div>
@@ -226,7 +237,7 @@ function _sintStep1Nucleus(){
       </div>
       <div id="sint-nuc-msg-${lvl}" style="margin-top:10px;display:none"></div>
       <div id="sint-type-${lvl}" style="margin-top:12px;display:none"></div>
-    </div>`;
+    </div>`);
 }
 
 function _sintCheckNucleus(chosenId, lvlIdx){
@@ -315,7 +326,6 @@ function _sintStep2Classify(){
   const trapPool=['Mod/Det.','Mod/Cuant.','SAdj/CN','SPrep/CN','SN/CN','CAdj','CAdv','SN/T','SAdj/T','SAdv/T','Nexo','Aposici\u00f3n','Mod/Adj.'];
   const correctFuncs=new Set(remaining.map(e=>e.solucion));
 
-  const steps=document.getElementById('sint-steps');
   let html='<div class="card" style="padding:20px 22px;margin-bottom:14px;animation:slideUp .3s ease"><div style="font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Paso 2 \u2014 Clasifica cada elemento</div>';
 
   remaining.forEach(e=>{
@@ -332,7 +342,7 @@ function _sintStep2Classify(){
     html+='</div><div id="scm-'+e.id+'" style="margin-top:6px;display:none"></div></div>';
   });
   html+='</div>';
-  steps.innerHTML+=html;
+  _sintAppendStep(html);
 }
 
 function _sintClassifyElem(elemId, chosen){

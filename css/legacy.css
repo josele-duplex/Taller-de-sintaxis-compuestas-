@@ -533,6 +533,16 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 .streak-fire{font-size:1.1rem;animation:firePulse 1s ease infinite}
 @keyframes firePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
 
+/* Topbar de Arcade (< 480px): en Contrarreloj, el título + reloj + puntuación
+   ya ocupan casi todo el ancho y dejan la barra de tiempo (flex:1) reducida
+   a unos pocos píxeles — prácticamente invisible. En vez de comprimirla,
+   se le da su propia fila completa. */
+@media(max-width:480px){
+  .arcade-topbar{flex-wrap:wrap;row-gap:8px;padding:10px 14px}
+  .arcade-topbar .timer-bar-wrap{flex-basis:100%;height:10px;order:10}
+  .arcade-title{font-size:.85rem}
+}
+
 /* ── Lives (hearts) ─────────────────────────── */
 .arc-hearts{display:flex;align-items:center;gap:6px;background:rgba(220,38,38,.12);border:1.5px solid rgba(248,113,113,.45);border-radius:99px;padding:4px 12px}
 .arc-heart{width:18px;height:18px;display:inline-block;transition:all .35s cubic-bezier(.5,1.5,.5,1);filter:drop-shadow(0 0 4px rgba(239,68,68,.6))}
@@ -583,6 +593,20 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
   8%{transform:translate(-50%,-50%) scale(1);opacity:1}
   93%{transform:translate(-50%,-50%) scale(1);opacity:1}
   100%{transform:translate(-50%,-50%) scale(.95);opacity:0}
+}
+/* Toast de pista (< 480px): centrado en pantalla, tapa la oración que el
+   alumno necesita seguir viendo mientras lee la pista. Se ancla abajo en
+   su lugar, como una hoja que sube desde el borde inferior. */
+@media(max-width:480px){
+  .arc-hint-toast{top:auto;left:12px;right:12px;bottom:14px;transform:none;max-width:none;width:auto}
+  .arc-hint-toast.show{animation:hintToastInMobile 6s ease forwards}
+  @keyframes hintToastInMobile{
+    0%{transform:translateY(24px);opacity:0}
+    4%{transform:translateY(0);opacity:1}
+    8%{transform:translateY(0);opacity:1}
+    93%{transform:translateY(0);opacity:1}
+    100%{transform:translateY(10px);opacity:0}
+  }
 }
 @keyframes hintDismissPulse{
   0%,100%{opacity:.45}
@@ -1011,6 +1035,19 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 }
 /* Remove old conflicting paper CSS */
 
+/* Sintagmas (< 480px): los pasos se van acumulando en #sint-steps y nunca
+   se borran (para poder repasar), así que en un sintagma con varios
+   niveles (p. ej. un SP con un SN dentro) la página puede crecer mucho.
+   En vez de obligar al alumno a bajar buscando el paso activo, el
+   contenedor tiene su propio scroll interno; _sintAppendStep() (JS) hace
+   scroll automático al fondo cada vez que se añade un paso nuevo. */
+@media(max-width:480px){
+  /* scroll-behavior:smooth NO se usa a propósito: interfiere con la
+     asignación programática de scrollTop en _sintAppendStep() (JS),
+     dejándola sin efecto en algunos casos. Salto instantáneo, sin animar. */
+  #sint-steps{max-height:56vh;overflow-y:auto;padding-right:2px}
+}
+
 /* ══ MODO MAESTRO — Morphology ══ */
 #screen-maestro{flex-direction:column;min-height:100dvh;background:var(--parch-bg)}
 .maestro-topbar{background:rgba(244,240,232,.96);border-bottom:1.5px solid var(--parch-border);
@@ -1054,9 +1091,10 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
   width:18px;height:18px;border-radius:50%;display:inline-flex;
   align-items:center;justify-content:center;font-weight:900}
 .cascade-opts{display:flex;flex-wrap:wrap;gap:7px}
-.casc-btn{padding:7px 13px;border-radius:99px;border:1.5px solid var(--border);
+.casc-btn{padding:7px 13px;min-height:44px;border-radius:99px;border:1.5px solid var(--border);
   background:var(--paper);font-family:'Nunito',sans-serif;font-size:.82rem;
-  font-weight:700;cursor:pointer;color:var(--ink);transition:all .15s}
+  font-weight:700;cursor:pointer;color:var(--ink);transition:all .15s;
+  display:inline-flex;align-items:center;justify-content:center}
 .casc-btn:hover{border-color:var(--blue);background:var(--blue-lt);color:var(--blue)}
 .casc-btn.cs-sel{border-color:var(--blue);background:var(--blue);color:#fff}
 .casc-btn.cs-correct{border-color:#059669;background:#059669;color:#fff}
