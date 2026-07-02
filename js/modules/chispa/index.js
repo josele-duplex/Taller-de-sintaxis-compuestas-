@@ -175,41 +175,77 @@ function _rondasParaTema(tema, poolSimples, poolCompuestas){
   return rondas;
 }
 
-// Solo simples para pnpv: caracterizar una compuesta entera como PN/PV es
-// lingüísticamente ambiguo (cada proposición tiene su propio predicado).
-// Se calcula una sola vez al cargar los bancos (reutilizado por el
-// selector de temas para mostrar cobertura y por _construirCola).
-function _calcularPoolsPNPV(){
-  CHI.pnpvNominal = [];
-  CHI.pnpvVerbal = [];
+// ── Ronda "Atributo (semicopulativo) vs CPvo" ────────────────────────────
+// Sustituye a la antigua ronda PN/PV (julio 2026, pedido de Josele: era
+// demasiado fácil — bastaba reconocer ser/estar). Ahora se muestran DOS
+// oraciones: una con Atributo cuyo verbo es SEMICOPULATIVO (ponerse,
+// quedarse, mantenerse, encontrarse…) y otra con Complemento Predicativo.
+// La pregunta pide al azar una de las dos funciones: sin ser/estar/parecer
+// a la vista, el alumno tiene que decidir por la prueba, no por el verbo.
+//
+// Formas de los COPULATIVOS puros (ser/estar/parecer) que EXCLUYEN una
+// oración con Atr. del pool semicopulativo. Lista construida a partir de
+// los verbos reales del banco (86 oraciones con Atr. auditadas) + formas
+// de refuerzo. Comparación por token exacto salvo parec-/parezc- (prefijo).
+const CHISPA_COPULATIVOS = new Set([
+  'ser','siendo','sido','soy','eres','es','somos','sois','son',
+  'era','eras','éramos','erais','eran','fui','fuiste','fue','fuimos','fuisteis','fueron',
+  'seré','serás','será','seremos','seréis','serán','sería','serían',
+  'sea','seas','sean','seamos','fuera','fueran','fuese','fuesen',
+  'estar','estando','estado','estoy','estás','está','estamos','estáis','están',
+  'estaba','estabas','estaban','estábamos','estabais',
+  'estuve','estuviste','estuvo','estuvimos','estuvisteis','estuvieron',
+  'estaré','estará','estarán','estaría','estarían','esté','estés','estén',
+  'estuviera','estuvieran','estuviese','estuviesen'
+]);
+function _esCopulativo(palabra){
+  const w = (palabra||'').toLowerCase();
+  return CHISPA_COPULATIVOS.has(w) || w.startsWith('parec') || w.startsWith('parezc');
+}
+
+// Solo simples: los pools se construyen una vez al cargar los bancos
+// (reutilizados por el selector de temas para la cobertura y por la cola).
+function _calcularPoolsAtrCpvo(){
+  CHI.atrSemiPool = []; // oraciones con Atr. y verbo semicopulativo
+  CHI.cpvoPool = [];    // oraciones con CPvo (y sin Atr., para no ambiguar)
   const vistos = new Set();
   CHI.poolSimples.forEach(o => {
-    const tipo = o.fase3?.tipo_predicado;
-    if(!tipo || vistos.has(o.oracion_completa)) return;
+    if(vistos.has(o.oracion_completa)) return;
     vistos.add(o.oracion_completa);
-    (tipo === 'PN' ? CHI.pnpvNominal : CHI.pnpvVerbal).push(o.oracion_completa);
+    const funcs = (o.fase3?.bloques||[]).map(b=>(b.solucion||'').split(' | ')[1]);
+    const tieneAtr = funcs.includes('Atr.');
+    const tieneCpvo = funcs.includes('CPvo');
+    if(tieneAtr && !tieneCpvo){
+      const npEsCopulativo = (o.fase1?.nucleo_predicado_indices||[])
+        .some(i => _esCopulativo(o.palabras[i]));
+      if(!npEsCopulativo) CHI.atrSemiPool.push(o.oracion_completa);
+    } else if(tieneCpvo && !tieneAtr){
+      CHI.cpvoPool.push(o.oracion_completa);
+    }
   });
 }
 
-function _pnpvJugable(){
-  return CHI.pnpvNominal.length > 0 && CHI.pnpvVerbal.length >= 2;
+function _atrCpvoJugable(){
+  return CHI.atrSemiPool.length > 0 && CHI.cpvoPool.length > 0;
 }
 
 // Cola de la sesión. `temaId` filtra: undefined/'MIX' = todos los temas +
-// pnpv mezclados (comportamiento original); 'PNPV' = solo esa ronda;
-// el id de un tema concreto = solo rondas "spot" de ese tema.
+// rondas atr/cpvo mezclados (comportamiento original); 'ATRCPVO_SENT' =
+// solo esa ronda; el id de un tema concreto = solo rondas "spot" de él.
 function _construirCola(temaId){
   const rondas = [];
   const mezcla = !temaId || temaId === 'MIX';
-  if(mezcla || temaId !== 'PNPV'){
+  if(mezcla || temaId !== 'ATRCPVO_SENT'){
     CHISPA_TEMAS.forEach(tema => {
       if(!mezcla && tema.id !== temaId) return;
       _rondasParaTema(tema, CHI.poolSimples, CHI.poolCompuestas).forEach(r => rondas.push({ tipo: 'spot', ...r }));
     });
   }
-  if((mezcla || temaId === 'PNPV') && _pnpvJugable()){
-    const nPnpv = Math.min(CHI.pnpvNominal.length, 8);
-    for(let i = 0; i < nPnpv; i++) rondas.push({ tipo: 'pnpv' });
+  if((mezcla || temaId === 'ATRCPVO_SENT') && _atrCpvoJugable()){
+    // Cada ronda escoge pareja al azar en el momento de renderizar, así que
+    // el nº de rondas encoladas es solo un cupo, no una lista fija.
+    const nRondas = Math.min(CHI.atrSemiPool.length * 2, 8);
+    for(let i = 0; i < nRondas; i++) rondas.push({ tipo: 'atrcpvo' });
   }
   return shuffle(rondas);
 }
@@ -257,7 +293,7 @@ async function startChispa({ name, email, grupo }){
   ]);
   CHI.poolSimples = poolSimples;
   CHI.poolCompuestas = poolCompuestas;
-  _calcularPoolsPNPV();
+  _calcularPoolsAtrCpvo();
   mostrarSelectorTemasChispa();
 }
 
@@ -310,8 +346,8 @@ function mostrarSelectorTemasChispa(){
     const descripcion = 'objetivo: ' + tema.objetivo.join('/');
     return _temaBtn(tema.id, tema.nombre, descripcion, n, MIN_JUGABLE);
   }).join('');
-  const nPnpv = _pnpvJugable() ? Math.min(CHI.pnpvNominal.length, 8) : 0;
-  html += _temaBtn('PNPV', 'Predicado nominal / verbal', 'elige entre 3 oraciones', nPnpv, 1);
+  const nAtrCpvo = _atrCpvoJugable() ? Math.min(CHI.atrSemiPool.length * 2, 8) : 0;
+  html += _temaBtn('ATRCPVO_SENT', 'Atributo vs Predicativo (oraciones)', 'sin ser/estar a la vista: decide por la prueba, no por el verbo', nAtrCpvo, 1);
   html += '<button type="button" onclick="iniciarChispaTema(\'MIX\')" '
     + 'style="padding:14px 18px;border-radius:14px;border:2px solid #BFDBFE;background:#EFF6FF;text-align:left;cursor:pointer;font-weight:800;color:var(--ink)">'
     + '🎲 Mezcla de todo</button>';
@@ -342,7 +378,7 @@ function renderRonda(){
   }
   CHI.rondaNum++;
   const ronda = CHI.cola.shift();
-  if(ronda.tipo === 'pnpv') renderRondaPNPV();
+  if(ronda.tipo === 'atrcpvo') renderRondaAtrCpvo();
   else renderRondaSpot(ronda);
 }
 
@@ -379,17 +415,22 @@ function renderRondaSpot(ronda){
   CHI._objetivo = objetivo;
 }
 
-function renderRondaPNPV(){
-  const nominal = CHI.pnpvNominal[Math.floor(Math.random() * CHI.pnpvNominal.length)];
-  const verbalPool = shuffle(CHI.pnpvVerbal).slice(0, 2);
+function renderRondaAtrCpvo(){
+  const atrTexto  = CHI.atrSemiPool[Math.floor(Math.random() * CHI.atrSemiPool.length)];
+  const cpvoTexto = CHI.cpvoPool[Math.floor(Math.random() * CHI.cpvoPool.length)];
   const opciones = shuffle([
-    { texto: nominal, esNominal: true },
-    ...verbalPool.map(t => ({ texto: t, esNominal: false }))
+    { texto: atrTexto,  func: 'Atr.' },
+    { texto: cpvoTexto, func: 'CPvo' }
   ]);
+  // La pregunta pide al azar una de las dos funciones — el alumno no puede
+  // memorizar "la del semicopulativo siempre es la buena".
+  const pedida = Math.random() < 0.5 ? 'Atr.' : 'CPvo';
+  const nombrePedida = pedida === 'Atr.' ? 'Atributo' : 'Complemento Predicativo';
   document.getElementById('chi-oracion').textContent = '';
-  document.getElementById('chi-pregunta').textContent = '¿Cuál de estas oraciones tiene predicado nominal?';
-  document.getElementById('chi-fichas').innerHTML = opciones.map((op, i) => _fichaBtn(i, op.texto, 'chispaResponderPNPV')).join('');
-  CHI._opcionesPNPV = opciones;
+  document.getElementById('chi-pregunta').textContent = '¿Cuál de estas oraciones tiene ' + nombrePedida + '?';
+  document.getElementById('chi-fichas').innerHTML = opciones.map((op, i) => _fichaBtn(i, op.texto, 'chispaResponderAtrCpvo')).join('');
+  CHI._opcionesAtrCpvo = opciones;
+  CHI._pedidaAtrCpvo = pedida;
 }
 
 function _colorearOpciones(opciones, esCorrecta, idxElegido){
@@ -429,16 +470,25 @@ function _mostrarBotonSiguiente(){
   if(sigBtn) sigBtn.style.display = 'block';
 }
 
-function chispaResponderPNPV(idx){
-  const opciones = CHI._opcionesPNPV;
-  if(!opciones) return;
+function chispaResponderAtrCpvo(idx){
+  const opciones = CHI._opcionesAtrCpvo, pedida = CHI._pedidaAtrCpvo;
+  if(!opciones || !pedida) return;
   const elegido = opciones[idx];
-  const acierto = !!elegido.esNominal;
+  const acierto = elegido.func === pedida;
   CHI.totalRondas++;
   if(acierto){ CHI.aciertos++; CHI.racha++; try{ playSuccess(); }catch(e){} }
   else { CHI.racha = 0; try{ playError(); }catch(e){} }
-  _colorearOpciones(opciones, op => op.esNominal, idx);
+  _colorearOpciones(opciones, op => op.func === pedida, idx);
   _actualizarStreak();
+  // Reutiliza la explicación de la prueba NGLE (Fase C) de la función pedida.
+  const banco = (typeof REFLEXION_BANCO !== 'undefined') ? REFLEXION_BANCO[pedida] : null;
+  const explEl = document.getElementById('chi-explicacion');
+  if(explEl && banco){
+    explEl.style.display = 'block';
+    explEl.style.background = acierto ? '#F0FDF4' : '#FEF2F2';
+    explEl.style.color = acierto ? '#166534' : '#991B1B';
+    explEl.textContent = (acierto ? '✓ ' : '✗ ') + banco.explicacionCorrecta;
+  }
   _mostrarBotonSiguiente();
 }
 
@@ -455,14 +505,14 @@ function exitChispa(){
 export {
   startChispa, exitChispa, renderRonda, chispaSiguiente,
   mostrarSelectorTemasChispa, iniciarChispaTema,
-  chispaResponderSpot, chispaResponderPNPV
+  chispaResponderSpot, chispaResponderAtrCpvo
 };
 
 if (typeof window !== 'undefined') {
   Object.assign(window, {
     startChispa, exitChispa, renderRonda, chispaSiguiente,
     mostrarSelectorTemasChispa, iniciarChispaTema,
-    chispaResponderSpot, chispaResponderPNPV
+    chispaResponderSpot, chispaResponderAtrCpvo
   });
   Object.defineProperty(window, 'CHI', { get: () => CHI, configurable: true });
 }
