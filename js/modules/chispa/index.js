@@ -175,11 +175,11 @@ function _rondasParaTema(tema, poolSimples, poolCompuestas){
   return rondas;
 }
 
-// Cola de la sesión: mezcla las rondas "spot" de los 3 temas + unas cuantas
-// rondas "pnpv" (si hay cobertura), todo barajado. Solo simples para pnpv:
-// caracterizar una compuesta entera como PN/PV es lingüísticamente ambiguo
-// (cada proposición tiene su propio predicado).
-function _construirCola(){
+// Solo simples para pnpv: caracterizar una compuesta entera como PN/PV es
+// lingüísticamente ambiguo (cada proposición tiene su propio predicado).
+// Se calcula una sola vez al cargar los bancos (reutilizado por el
+// selector de temas para mostrar cobertura y por _construirCola).
+function _calcularPoolsPNPV(){
   CHI.pnpvNominal = [];
   CHI.pnpvVerbal = [];
   const vistos = new Set();
@@ -189,11 +189,25 @@ function _construirCola(){
     vistos.add(o.oracion_completa);
     (tipo === 'PN' ? CHI.pnpvNominal : CHI.pnpvVerbal).push(o.oracion_completa);
   });
+}
+
+function _pnpvJugable(){
+  return CHI.pnpvNominal.length > 0 && CHI.pnpvVerbal.length >= 2;
+}
+
+// Cola de la sesión. `temaId` filtra: undefined/'MIX' = todos los temas +
+// pnpv mezclados (comportamiento original); 'PNPV' = solo esa ronda;
+// el id de un tema concreto = solo rondas "spot" de ese tema.
+function _construirCola(temaId){
   const rondas = [];
-  CHISPA_TEMAS.forEach(tema => {
-    _rondasParaTema(tema, CHI.poolSimples, CHI.poolCompuestas).forEach(r => rondas.push({ tipo: 'spot', ...r }));
-  });
-  if(CHI.pnpvNominal.length > 0 && CHI.pnpvVerbal.length >= 2){
+  const mezcla = !temaId || temaId === 'MIX';
+  if(mezcla || temaId !== 'PNPV'){
+    CHISPA_TEMAS.forEach(tema => {
+      if(!mezcla && tema.id !== temaId) return;
+      _rondasParaTema(tema, CHI.poolSimples, CHI.poolCompuestas).forEach(r => rondas.push({ tipo: 'spot', ...r }));
+    });
+  }
+  if((mezcla || temaId === 'PNPV') && _pnpvJugable()){
     const nPnpv = Math.min(CHI.pnpvNominal.length, 8);
     for(let i = 0; i < nPnpv; i++) rondas.push({ tipo: 'pnpv' });
   }
@@ -243,9 +257,8 @@ async function startChispa({ name, email, grupo }){
   ]);
   CHI.poolSimples = poolSimples;
   CHI.poolCompuestas = poolCompuestas;
-  CHI.cola = _construirCola();
-  if(CHI.cola.length === 0){ _chispaSinDatos(); return; }
-  renderRonda();
+  _calcularPoolsPNPV();
+  mostrarSelectorTemasChispa();
 }
 
 function _chispaSinDatos(){
@@ -257,18 +270,86 @@ function _chispaSinDatos(){
   if(fichEl) fichEl.innerHTML = '';
 }
 
+// ── Selector de tema (qué quiere practicar el alumno) ────────────────────
+
+function _temaBtn(id, nombre, descripcion, n, minJugable){
+  const jugable = n >= minJugable;
+  if(!jugable){
+    return '<div style="padding:14px 18px;border-radius:14px;border:2px dashed var(--border);background:#F5F5F5;opacity:.65;text-align:left">'
+      + '<div style="font-weight:800;color:var(--muted)">🎯 ' + escHtml(nombre) + '</div>'
+      + '<div style="font-size:.78rem;color:var(--muted);margin-top:2px">Banco insuficiente ahora mismo (' + n + ').</div>'
+      + '</div>';
+  }
+  return '<button type="button" onclick="iniciarChispaTema(\'' + id + '\')" '
+    + 'style="padding:14px 18px;border-radius:14px;border:2px solid #FDE68A;background:#FFFBEB;text-align:left;cursor:pointer;transition:transform .1s" '
+    + 'onmouseover="this.style.transform=\'scale(1.01)\'" onmouseout="this.style.transform=\'scale(1)\'">'
+    + '<div style="font-weight:800;color:var(--ink)">🎯 ' + escHtml(nombre) + '</div>'
+    + '<div style="font-size:.78rem;color:var(--muted);margin-top:2px">' + escHtml(descripcion) + ' · ' + n + ' disponibles</div>'
+    + '</button>';
+}
+
+// Muestra las tarjetas de tema (reutiliza los mismos contenedores que las
+// rondas: chi-oracion queda vacío, chi-pregunta es el título, chi-fichas
+// aloja las tarjetas). Se llama al entrar y también desde "🔄 Cambiar tema".
+function mostrarSelectorTemasChispa(){
+  const oracEl = document.getElementById('chi-oracion');
+  const pregEl = document.getElementById('chi-pregunta');
+  const fichEl = document.getElementById('chi-fichas');
+  const explEl = document.getElementById('chi-explicacion');
+  const sigBtn = document.getElementById('chi-siguiente');
+  const cambiarBtn = document.getElementById('chi-cambiar-tema');
+  if(oracEl) oracEl.textContent = '';
+  if(pregEl) pregEl.textContent = '¿Qué quieres practicar?';
+  if(explEl){ explEl.style.display = 'none'; explEl.innerHTML = ''; }
+  if(sigBtn) sigBtn.style.display = 'none';
+  if(cambiarBtn) cambiarBtn.style.display = 'none';
+
+  const MIN_JUGABLE = 3;
+  let html = CHISPA_TEMAS.map(tema => {
+    const n = _rondasParaTema(tema, CHI.poolSimples, CHI.poolCompuestas).length;
+    const descripcion = 'objetivo: ' + tema.objetivo.join('/');
+    return _temaBtn(tema.id, tema.nombre, descripcion, n, MIN_JUGABLE);
+  }).join('');
+  const nPnpv = _pnpvJugable() ? Math.min(CHI.pnpvNominal.length, 8) : 0;
+  html += _temaBtn('PNPV', 'Predicado nominal / verbal', 'elige entre 3 oraciones', nPnpv, 1);
+  html += '<button type="button" onclick="iniciarChispaTema(\'MIX\')" '
+    + 'style="padding:14px 18px;border-radius:14px;border:2px solid #BFDBFE;background:#EFF6FF;text-align:left;cursor:pointer;font-weight:800;color:var(--ink)">'
+    + '🎲 Mezcla de todo</button>';
+  if(fichEl) fichEl.innerHTML = html;
+}
+
+// Arranca (o reinicia) la cola con el tema elegido. 'MIX' = todo mezclado.
+function iniciarChispaTema(temaId){
+  CHI.temaSeleccionado = temaId;
+  CHI.rondaNum = 0;
+  CHI.cola = _construirCola(temaId);
+  const cambiarBtn = document.getElementById('chi-cambiar-tema');
+  if(cambiarBtn) cambiarBtn.style.display = 'inline-flex';
+  if(CHI.cola.length === 0){ _chispaSinDatos(); return; }
+  renderRonda();
+}
+
 function renderRonda(){
   const explEl = document.getElementById('chi-explicacion');
   if(explEl){ explEl.style.display = 'none'; explEl.innerHTML = ''; }
+  const sigBtn = document.getElementById('chi-siguiente');
+  if(sigBtn) sigBtn.style.display = 'none';
   if(CHI.cola.length === 0){
-    // Modo infinito: se acaba el pool, se vuelve a barajar desde cero.
-    CHI.cola = _construirCola();
+    // Modo infinito: se acaba el pool, se vuelve a barajar (respetando el
+    // tema elegido, no el mix completo).
+    CHI.cola = _construirCola(CHI.temaSeleccionado);
     if(CHI.cola.length === 0){ _chispaSinDatos(); return; }
   }
   CHI.rondaNum++;
   const ronda = CHI.cola.shift();
   if(ronda.tipo === 'pnpv') renderRondaPNPV();
   else renderRondaSpot(ronda);
+}
+
+// Avanza a la siguiente ronda (llamado por el botón "Siguiente →", que
+// sustituye al auto-avance: da tiempo de leer la explicación sin prisa).
+function chispaSiguiente(){
+  renderRonda();
 }
 
 function _fichaBtn(i, texto, onclickFn){
@@ -340,7 +421,12 @@ function chispaResponderSpot(idx){
     explEl.style.color = acierto ? '#166534' : '#991B1B';
     explEl.textContent = (acierto ? '✓ ' : '✗ ') + banco.explicacionCorrecta;
   }
-  setTimeout(renderRonda, 1400);
+  _mostrarBotonSiguiente();
+}
+
+function _mostrarBotonSiguiente(){
+  const sigBtn = document.getElementById('chi-siguiente');
+  if(sigBtn) sigBtn.style.display = 'block';
 }
 
 function chispaResponderPNPV(idx){
@@ -353,7 +439,7 @@ function chispaResponderPNPV(idx){
   else { CHI.racha = 0; try{ playError(); }catch(e){} }
   _colorearOpciones(opciones, op => op.esNominal, idx);
   _actualizarStreak();
-  setTimeout(renderRonda, 1400);
+  _mostrarBotonSiguiente();
 }
 
 function _actualizarStreak(){
@@ -367,13 +453,15 @@ function exitChispa(){
 
 // Public API exports + window bindings para inline onclick
 export {
-  startChispa, exitChispa, renderRonda,
+  startChispa, exitChispa, renderRonda, chispaSiguiente,
+  mostrarSelectorTemasChispa, iniciarChispaTema,
   chispaResponderSpot, chispaResponderPNPV
 };
 
 if (typeof window !== 'undefined') {
   Object.assign(window, {
-    startChispa, exitChispa, renderRonda,
+    startChispa, exitChispa, renderRonda, chispaSiguiente,
+    mostrarSelectorTemasChispa, iniciarChispaTema,
     chispaResponderSpot, chispaResponderPNPV
   });
   Object.defineProperty(window, 'CHI', { get: () => CHI, configurable: true });

@@ -176,7 +176,8 @@ if(window.location.protocol === 'file:') {
         <span class="tb-name" id="chi-name"></span>
         <span class="tb-badge" style="background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff">⚡ Chispa</span>
         <span class="tb-counter" id="chi-streak">🔥 0</span>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="exitChispa()" style="padding:5px 12px;font-size:.75rem;margin-left:auto;font-weight:700">✕ Terminar</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="chi-cambiar-tema" onclick="mostrarSelectorTemasChispa()" style="padding:5px 12px;font-size:.75rem;margin-left:auto;font-weight:700;display:none">🔄 Cambiar tema</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="exitChispa()" style="padding:5px 12px;font-size:.75rem;font-weight:700">✕ Terminar</button>
       </div>
     </div>
   </div>
@@ -186,6 +187,7 @@ if(window.location.protocol === 'file:') {
       <div id="chi-pregunta" style="text-align:center;font-weight:800;font-size:1rem;color:#B45309;margin-bottom:20px"></div>
       <div id="chi-fichas" style="display:flex;flex-direction:column;gap:10px;align-items:stretch"></div>
       <div id="chi-explicacion" style="display:none;margin-top:16px;padding:12px 16px;border-radius:12px;font-size:.88rem;font-weight:600;line-height:1.4;text-align:center"></div>
+      <button type="button" id="chi-siguiente" onclick="chispaSiguiente()" style="display:none;width:100%;margin-top:16px;padding:14px;font-size:1rem;font-weight:800;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 12px rgba(217,119,6,.3)">Siguiente →</button>
     </div>
   </div>
 </div>
