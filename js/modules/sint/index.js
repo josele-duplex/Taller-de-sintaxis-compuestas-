@@ -455,6 +455,29 @@ function getMock() {
           {id:'m06d',indices:[5,6],     solucion:'SN | Vocat.', consejo:'"Señora López" es vocativo: el hablante se dirige a la interlocutora para llamar su atención. Va entre comas y no cumple función sintáctica dentro de la oración.'}
         ]
       },
+    },
+    {
+      id:'m07',
+      oracion_completa:'El negocio salió redondo.',
+      palabras:['El','negocio','salió','redondo','.'],
+      fase1:{
+        nucleo_predicado_indices:[2],
+        tipo_verbo_categoria:'SIMPLE',
+        consejo:'Identifica el verbo conjugado. ¿Conserva su significado de movimiento ("salir a la calle") o ha perdido ese significado pleno?'
+      },
+      fase2:{
+        sujeto_indices:[0,1],
+        sujeto_tacito:false,
+        consejo:'¿Qué SN concuerda en persona y número con el verbo?'
+      },
+      fase3:{
+        tipo_predicado:'PNS',
+        bloques:[
+          {id:'m07a',indices:[0,1],solucion:'SN | Sujeto',consejo:''},
+          {id:'m07b',indices:[2],  solucion:'SV | NP',    consejo:''},
+          {id:'m07c',indices:[3],  solucion:'SAdj | Atr.',consejo:'Prueba a suprimirlo: "el negocio salió" ya no significa lo mismo. No se sustituye por "lo" pero sí por "así": es Atributo, aunque "salir" no sea ser/estar/parecer.'}
+        ]
+      },
     }
   ];
 }
@@ -1883,7 +1906,7 @@ function renderPhase3(el,o){
       'Argumentos: exigidos por el verbo. Adjuntos: opcionales y desplazables. Marcas y Modificadores: operan sobre la enunciación o la estructura de la oración, no sobre el verbo.'
     )+
     (p3.pvpnDone
-      ? `<div class="pvpn-done-badge">✓ Predicado ${tipoPred==='PV'?'Verbal (PV)':'Nominal (PN)'} identificado</div>`
+      ? `<div class="pvpn-done-badge">✓ Predicado ${pvpnLabel(tipoPred)} identificado</div>`
       : `<div class="pvpn-grid" id="pvpn-grid">
           <button type="button" class="pvpn-card" id="pvpn-pv" onclick="selectPvPn('PV','${tipoPred}')">
             <span class="pvpn-icon">🔧</span>
@@ -1894,6 +1917,11 @@ function renderPhase3(el,o){
             <span class="pvpn-icon">🔗</span>
             <div class="pvpn-title">PN — Predicado Nominal</div>
             <div class="pvpn-desc">Verbo copulativo (ser, estar, parecer) + Atributo. El Atributo puede sustituirse por "lo".</div>
+          </button>
+          <button type="button" class="pvpn-card" id="pvpn-pns" onclick="selectPvPn('PNS','${tipoPred}')">
+            <span class="pvpn-icon">🔁</span>
+            <div class="pvpn-title">PN·SC — Nominal (semicopulativo)</div>
+            <div class="pvpn-desc">Verbo que ha perdido su significado pleno (ponerse, quedarse, resultar, salir…) + Atributo obligatorio. NO es ser/estar/parecer, pero el Atributo NO se sustituye por "lo" — sí por "así".</div>
           </button>
         </div>`
     )+
@@ -1918,6 +1946,10 @@ function renderPhase3(el,o){
   buildP3Blocks(o);buildP3Pool();
 }
 
+function pvpnLabel(code){
+  return code==='PV' ? 'Verbal (PV)' : code==='PNS' ? 'Nominal semicopulativo (PN·SC)' : 'Nominal (PN)';
+}
+
 function selectPvPn(selected, correct){
   if(selected===correct){
     G.pvpnDone=true;p3.pvpnDone=true;
@@ -1928,7 +1960,7 @@ function selectPvPn(selected, correct){
     if(grid){
       const badge=document.createElement('div');
       badge.className='pvpn-done-badge';
-      badge.textContent=`✓ Predicado ${selected==='PV'?'Verbal (PV)':'Nominal (PN)'} identificado`;
+      badge.textContent=`✓ Predicado ${pvpnLabel(selected)} identificado`;
       grid.replaceWith(badge);
     }
   }else{
@@ -1936,9 +1968,9 @@ function selectPvPn(selected, correct){
     const btn=document.getElementById('pvpn-'+selected.toLowerCase());
     if(btn){btn.classList.add('pvpn-err');setTimeout(()=>btn?.classList.remove('pvpn-err'),600);}
     if(G.mode==='practice'||G.mode==='projector'){
-      const scaffold=lookupScaffold(selected==='PV'?'PV':'PV', correct==='PN'?'PN':'PV', 'syntax');
-      trackError('sintaxis',correct==='PN'?'PN':'PV');
-      showFeedback('error','Tipo de predicado incorrecto',scaffold.fijo,scaffold.pista,correct==='PN'?'PN':'PV');
+      const scaffold=lookupScaffold(selected, correct, 'syntax');
+      trackError('sintaxis',correct);
+      showFeedback('error','Tipo de predicado incorrecto',scaffold.fijo,scaffold.pista,correct);
     }
   }
 }

@@ -460,7 +460,9 @@ function buildOracionObject(row, rowIndex) {
       consejo: 'Fíjate en la concordancia entre el verbo y el grupo nominal sujeto.'
     },
     fase3: {
-      tipo_predicado: tipo.includes('Nominal') ? 'PN' : 'PV',
+      // 'Predicado Nominal (Semicopulativo)' en Col D → PNS (verbos como
+      // ponerse/quedarse/resultar/salir con Atributo, no ser/estar/parecer).
+      tipo_predicado: tipo.includes('Semicopulativo') ? 'PNS' : (tipo.includes('Nominal') ? 'PN' : 'PV'),
       bloques: allBloques
     },
     fase4: fase4Sintagmas.length > 0 ? { sintagmas: fase4Sintagmas } : null
