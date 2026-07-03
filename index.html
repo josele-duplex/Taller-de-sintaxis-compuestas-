@@ -518,6 +518,10 @@ if(window.location.protocol === 'file:') {
         <input type="checkbox" id="tp-exam-reflexion" style="width:16px;height:16px">
         🧠 Incluir preguntas de reflexión metalingüística
       </label>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:.82rem;font-weight:700;color:#1D4ED8;cursor:pointer">
+        <input type="checkbox" id="tp-exam-autoemail" style="width:16px;height:16px">
+        📧 Enviar informe por correo a cada alumno al terminar
+      </label>
       <button type="button" class="btn btn-primary" style="width:100%;padding:14px;font-size:1rem" onclick="activateExam()">🚀 Activar examen en el Sheet</button>
       <button type="button" class="btn btn-ghost" style="width:100%;padding:10px;font-size:.85rem;margin-top:6px;border:1.5px dashed var(--border)" onclick="testCurrentPin()">🔍 Verificar que el PIN funciona</button>
       <p id="tp-exam-status" style="font-size:.82rem;font-weight:700;margin-top:8px;display:none" role="status"></p>

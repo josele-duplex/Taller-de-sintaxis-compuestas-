@@ -119,13 +119,17 @@ async function activateExam(){
   // Fase C: la reflexión metalingüística en examen la decide el profesor (a
   // diferencia de práctica, donde es opt-in del alumno).
   const reflexion=document.getElementById('tp-exam-reflexion')?.checked ? '1' : '0';
+  // Tarea del profesor (julio 2026): correo automatico de informe al
+  // terminar el examen. Si se deja sin marcar, el profesor puede enviarlos
+  // luego a mano desde el menu "📧 Enviar informes de un examen (PIN)".
+  const autoEmail=document.getElementById('tp-exam-autoemail')?.checked ? '1' : '0';
   status.textContent='⏳ Enviando configuración al Sheet…';status.style.color='var(--blue)';status.style.display='block';
   try{
     const params=new URLSearchParams({
       action:'createExam',pin,funciones:JSON.stringify(checks),prohibidas:JSON.stringify(prohib),
       minCoincidencias:'1',
       dificultad:String(dif),nOraciones:String(examCount),timerMin:String(timerMin),subfase,
-      grupo,evaluacion,nombreExamen,reflexion,
+      grupo,evaluacion,nombreExamen,reflexion,autoEmail,
       clave: (typeof getTeacherPw==='function'?getTeacherPw():'')
     });
     const r=await fetchWithRetry(apiUrl+'?'+params.toString(), {}, {

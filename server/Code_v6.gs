@@ -1307,7 +1307,7 @@ function getResultsByGroup_(params) {
 
 const EXAM_HEADER = ['PIN','Funciones_JSON','Prohibidas_JSON','MinCoincid','Dificultad',
   'N_Oraciones','Timer_Min','Subfase','Grupo','Evaluacion','Nombre_Examen',
-  'Estado','Fecha','Oraciones_JSON','Reflexion'];
+  'Estado','Fecha','Oraciones_JSON','Reflexion','Auto_Email'];
 
 const MIS_HEADER = ['ID_Mision','Nombre','Modo','Subfase','Funciones_JSON',
   'Dificultad_Max','N_Oraciones','Fecha_Limite','PIN','Estado','Creado','Calificacion'];
@@ -1445,7 +1445,8 @@ function createExam_(params) {
     'Nombre_Examen':    params.nombreExamen || '',
     'Estado':           'creando',
     'Fecha':            new Date().toISOString(),
-    'Reflexion':        (params.reflexion === '1') ? 1 : 0
+    'Reflexion':        (params.reflexion === '1') ? 1 : 0,
+    'Auto_Email':       (params.autoEmail === '1') ? 1 : 0
   });
   const newRowIdx = sheet.getLastRow();
   // Re-read column map AFTER ensureSheetHeaders_ in case it added columns
@@ -1678,7 +1679,7 @@ function saveResult_(p) {
                            'Nota','Completadas','Total_Oraciones',
                            'Sujeto_Pts','Funciones_Pts','NP_Pts','Elem_Fallados',
                            'Err_CD','Err_CI','Err_Atr','Err_CPvo','Err_CReg','Err_CC',
-                           'Reflexion_Total','Reflexion_Correctas'];
+                           'Reflexion_Total','Reflexion_Correctas','Email_Enviado'];
     let sheet = ss.getSheetByName(SHEET_RESULTS);
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_RESULTS);
@@ -1734,6 +1735,25 @@ function saveResult_(p) {
       'Reflexion_Total':     parseInt(p.reflexionTotal)     ||0,
       'Reflexion_Correctas': parseInt(p.reflexionCorrectas) ||0
     });
+
+    // ── Informe automático por correo (julio 2026) ──────────────────────
+    // Solo si el profesor marcó "Auto_Email" al crear ESTE examen (por PIN).
+    // No debe romper el guardado del resultado si falla (correo inválido,
+    // cuota de Gmail agotada, etc.) — se intenta a parte, con su propio try.
+    if (pin && email && typeof _examTieneAutoEmail_ === 'function' && _examTieneAutoEmail_(pin)) {
+      try {
+        if (typeof _enviarInformeExamenAlumno_ === 'function') {
+          _enviarInformeExamenAlumno_(p, email);
+          const col2 = getColMap_(sheet);
+          if (col2['Email_Enviado'] !== undefined) {
+            sheet.getRange(sheet.getLastRow(), col2['Email_Enviado'] + 1).setValue('auto');
+          }
+        }
+      } catch (e) {
+        logToSheet_('WARN', 'saveResult_/autoEmail', e.message, ERR.EXCEPTION, e.stack);
+      }
+    }
+
     return { ok: true };
   } finally {
     lock.releaseLock();
@@ -1995,6 +2015,7 @@ function onOpen() {
   menu.addItem('📊 Ver resumen de mi banco',        'menuResumenBanco');
   menu.addSeparator();
   menu.addItem('📧 Enviar informes a alumnos…',     'menuEnviarInformesAlumnos');
+  menu.addItem('📧 Enviar informes de un examen (PIN)…', 'menuEnviarInformesExamenPin');
   menu.addSeparator();
 
   // BLOQUE 2 — MANTENIMIENTO (colapsado en submenú)
