@@ -281,7 +281,10 @@ async function startChispa({ name, email, grupo }){
   if(oracEl) oracEl.textContent = 'Cargando oraciones…';
   if(pregEl) pregEl.textContent = '';
   if(fichEl) fichEl.innerHTML = '';
-  CHI = { name, email, grupo, racha: 0, aciertos: 0, totalRondas: 0, rondaNum: 0, cola: [], poolSimples: [], poolCompuestas: [] };
+  CHI = { name, email, grupo, racha: 0, aciertos: 0, totalRondas: 0, rondaNum: 0, cola: [], poolSimples: [], poolCompuestas: [],
+    // Analíticas (julio 2026): resumen por segmento de tema, enviado en
+    // silencio al GAS al cambiar de tema o salir. Ver _enviarSesionChispa.
+    erroresPorFunc: {}, rachaMax: 0, segmentoStart: Date.now() };
   const nameEl = document.getElementById('chi-name');
   if(nameEl) nameEl.textContent = (name || '').split(' ')[0];
   _actualizarStreak();
@@ -328,6 +331,9 @@ function _temaBtn(id, nombre, descripcion, n, minJugable){
 // rondas: chi-oracion queda vacío, chi-pregunta es el título, chi-fichas
 // aloja las tarjetas). Se llama al entrar y también desde "🔄 Cambiar tema".
 function mostrarSelectorTemasChispa(){
+  // Si venimos de jugar (botón "Cambiar tema"), el segmento anterior se
+  // envía al GAS antes de resetear — cada tema jugado es una fila propia.
+  _enviarSesionChispa();
   const oracEl = document.getElementById('chi-oracion');
   const pregEl = document.getElementById('chi-pregunta');
   const fichEl = document.getElementById('chi-fichas');
@@ -450,8 +456,8 @@ function chispaResponderSpot(idx){
   const elegido = opciones[idx];
   const acierto = elegido === objetivo;
   CHI.totalRondas++;
-  if(acierto){ CHI.aciertos++; CHI.racha++; try{ playSuccess(); }catch(e){} }
-  else { CHI.racha = 0; try{ playError(); }catch(e){} }
+  if(acierto){ CHI.aciertos++; CHI.racha++; if(CHI.racha > CHI.rachaMax) CHI.rachaMax = CHI.racha; try{ playSuccess(); }catch(e){} }
+  else { CHI.racha = 0; CHI.erroresPorFunc[objetivo.func] = (CHI.erroresPorFunc[objetivo.func]||0)+1; try{ playError(); }catch(e){} }
   _colorearOpciones(opciones, op => op === objetivo, idx);
   _actualizarStreak();
   const banco = (typeof REFLEXION_BANCO !== 'undefined') ? REFLEXION_BANCO[objetivo.func] : null;
@@ -476,8 +482,8 @@ function chispaResponderAtrCpvo(idx){
   const elegido = opciones[idx];
   const acierto = elegido.func === pedida;
   CHI.totalRondas++;
-  if(acierto){ CHI.aciertos++; CHI.racha++; try{ playSuccess(); }catch(e){} }
-  else { CHI.racha = 0; try{ playError(); }catch(e){} }
+  if(acierto){ CHI.aciertos++; CHI.racha++; if(CHI.racha > CHI.rachaMax) CHI.rachaMax = CHI.racha; try{ playSuccess(); }catch(e){} }
+  else { CHI.racha = 0; CHI.erroresPorFunc[pedida] = (CHI.erroresPorFunc[pedida]||0)+1; try{ playError(); }catch(e){} }
   _colorearOpciones(opciones, op => op.func === pedida, idx);
   _actualizarStreak();
   // Reutiliza la explicación de la prueba NGLE (Fase C) de la función pedida.
@@ -497,7 +503,56 @@ function _actualizarStreak(){
   if(el) el.textContent = '🔥 ' + CHI.racha;
 }
 
+// ── Analíticas silenciosas (julio 2026) ─────────────────────────────────
+// Un "segmento" = lo jugado en un tema desde que se eligió hasta cambiar
+// de tema o salir. Cada segmento con ≥1 ronda respondida se envía como
+// una fila a la hoja Chispa_Sesiones del GAS: alumno, tema, rondas,
+// aciertos, racha máxima, tiempo y errores por función (JSON). Silencioso:
+// sendBeacon (sobrevive al cierre de pestaña), sin UI, sin bloquear nada.
+function _nombreTemaChispa(id){
+  if(id === 'MIX') return 'Mezcla de todo';
+  if(id === 'ATRCPVO_SENT') return 'Atributo vs Predicativo (oraciones)';
+  const t = CHISPA_TEMAS.find(t => t.id === id);
+  return t ? t.nombre : (id || '');
+}
+
+function _enviarSesionChispa(){
+  try{
+    if(!CHI || !CHI.totalRondas) return;           // nada jugado en el segmento
+    const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
+    if(apiUrl && CHI.email){
+      const params = new URLSearchParams({
+        action: 'saveSesionChispa',
+        email: CHI.email, name: CHI.name || '', grupo: CHI.grupo || '',
+        tema: _nombreTemaChispa(CHI.temaSeleccionado),
+        rondas: String(CHI.totalRondas), aciertos: String(CHI.aciertos),
+        rachaMax: String(CHI.rachaMax || 0),
+        tiempoMin: String(Math.round((Date.now() - (CHI.segmentoStart || Date.now())) / 60000)),
+        errores: JSON.stringify(CHI.erroresPorFunc || {})
+      });
+      const url = apiUrl + '?' + params.toString();
+      if(navigator.sendBeacon) navigator.sendBeacon(url);
+      else fetch(url, { method: 'GET', keepalive: true }).catch(()=>{});
+    }
+  }catch(e){ console.warn('[chispa analytics]', e); }
+  // Reset del segmento pase lo que pase (también sin API: no acumular).
+  CHI.totalRondas = 0; CHI.aciertos = 0; CHI.rachaMax = 0;
+  CHI.erroresPorFunc = {}; CHI.segmentoStart = Date.now();
+}
+
+// Si el alumno cierra la pestaña en mitad de una sesión de Chispa, el
+// segmento en curso se envía igualmente (sendBeacon sobrevive al unload).
+if(typeof window !== 'undefined'){
+  window.addEventListener('beforeunload', function(){
+    try{
+      const scr = document.getElementById('screen-chispa');
+      if(scr && scr.classList.contains('active')) _enviarSesionChispa();
+    }catch(e){}
+  });
+}
+
 function exitChispa(){
+  _enviarSesionChispa();
   showScreen('portada');
 }
 

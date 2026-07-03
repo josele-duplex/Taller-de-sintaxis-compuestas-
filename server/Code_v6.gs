@@ -800,6 +800,7 @@ function doGet(e) {
     else if (action === 'saveMisionResult')     result = saveMisionResult_(params);
     else if (action === 'saveResult')            result = saveResult_(params);
     else if (action === 'saveSesionPractica')    result = saveSesionPractica_(params);
+    else if (action === 'saveSesionChispa')      result = saveSesionChispa_(params);
     else if (action === 'createExam')             { const na=requiereClaveProfesor_(params); result = na || createExam_(params); }
     else if (action === 'getExamConfig')           result = getExamConfig_(params);
     else if (action === 'getResultsByGroup')       { const na=requiereClaveProfesor_(params); result = na || getResultsByGroup_(params); }
@@ -1784,6 +1785,41 @@ function saveSesionPractica_(p) {
   }
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  SESIONES DE CHISPA — Analytics (julio 2026)
+//  Una fila por "segmento" (lo jugado en un tema hasta cambiar o salir).
+//  Errores_JSON = {"CD":2,"C.Rég.":1,…} — errores por función pedida.
+//  Las estadísticas agregadas se pintan en el Panel del Profesor
+//  (agregarStatsChispa_, en ChispaStats.gs).
+// ════════════════════════════════════════════════════════════════════════
+function saveSesionChispa_(p) {
+  const HEADER = [
+    'Fecha', 'Correo', 'Nombre', 'Grupo', 'Tema',
+    'Rondas', 'Aciertos', 'Racha_Max', 'Tiempo_Min', 'Errores_JSON'
+  ];
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('Chispa_Sesiones');
+    if (!sheet) sheet = ss.insertSheet('Chispa_Sesiones');
+    ensureSheetHeaders_(sheet, HEADER);
+    appendRowSafe_(sheet, HEADER, {
+      'Fecha':       new Date(),
+      'Correo':      String(p.email||'').trim().toLowerCase(),
+      'Nombre':      String(p.name||'').trim(),
+      'Grupo':       String(p.grupo||'').trim(),
+      'Tema':        String(p.tema||''),
+      'Rondas':      parseInt(p.rondas)||0,
+      'Aciertos':    parseInt(p.aciertos)||0,
+      'Racha_Max':   parseInt(p.rachaMax)||0,
+      'Tiempo_Min':  parseInt(p.tiempoMin)||0,
+      'Errores_JSON': String(p.errores||'{}')
+    });
+    return { ok: true };
+  } catch(e) {
+    return gasError_(e.message, ERR.EXCEPTION);
+  }
+}
+
 function saveArcadeScore_(p) {
   const paramErr = requireParams_(p, ['nickname', 'arcadeMode']);
   if (paramErr) return paramErr;
@@ -2584,6 +2620,9 @@ function crearDashboard_() {
   }
   if (typeof agregarMinigraficos_ === 'function') {
     try { agregarMinigraficos_(sheet); } catch (e) { /* no romper el panel si falla */ }
+  }
+  if (typeof agregarStatsChispa_ === 'function') {
+    try { agregarStatsChispa_(sheet); } catch (e) { /* no romper el panel si falla */ }
   }
 
   sheet.setColumnWidth(1, 280);
