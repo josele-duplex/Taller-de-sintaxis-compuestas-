@@ -260,6 +260,17 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 @keyframes pvpnErr{0%,100%{background:var(--red-lt);transform:scale(1)}40%{transform:scale(.97)}}
 .pvpn-card.pvpn-err{animation:pvpnErr .5s ease}
 
+/* Opción minoritaria (PN·SC — semicopulativo): más pequeña y discreta que
+   PV/PN a propósito, porque es una función mucho menos frecuente y no debe
+   competir visualmente con las dos categorías principales. */
+.pvpn-minor{display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border-radius:10px;border:1.5px dashed var(--border);background:transparent;cursor:pointer;transition:all .18s;text-align:left;margin-top:8px}
+.pvpn-minor:hover{border-color:#C5C0B8;background:#fff}
+.pvpn-minor.pvpn-sel{border-style:solid;border-color:var(--blue);background:var(--blue-lt)}
+.pvpn-minor.pvpn-err{animation:pvpnErr .5s ease}
+.pvpn-minor-icon{font-size:1.05rem;line-height:1;flex-shrink:0}
+.pvpn-minor-text{font-size:.74rem;color:var(--muted);line-height:1.35}
+.pvpn-minor-text b{color:var(--ink);font-weight:800}
+
 /* ══ PHASE 3: THREE-SECTION pool ══ */
 .pool-triple{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:0}
 @media(max-width:700px){.pool-triple{grid-template-columns:1fr}}

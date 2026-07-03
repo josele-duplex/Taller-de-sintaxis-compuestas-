@@ -1907,21 +1907,22 @@ function renderPhase3(el,o){
     )+
     (p3.pvpnDone
       ? `<div class="pvpn-done-badge">✓ Predicado ${pvpnLabel(tipoPred)} identificado</div>`
-      : `<div class="pvpn-grid" id="pvpn-grid">
-          <button type="button" class="pvpn-card" id="pvpn-pv" onclick="selectPvPn('PV','${tipoPred}')">
-            <span class="pvpn-icon">🔧</span>
-            <div class="pvpn-title">PV — Predicado Verbal</div>
-            <div class="pvpn-desc">Verbo con contenido léxico pleno. Puede llevar CD, CI, CC, C.Rég…</div>
-          </button>
-          <button type="button" class="pvpn-card" id="pvpn-pn" onclick="selectPvPn('PN','${tipoPred}')">
-            <span class="pvpn-icon">🔗</span>
-            <div class="pvpn-title">PN — Predicado Nominal</div>
-            <div class="pvpn-desc">Verbo copulativo (ser, estar, parecer) + Atributo. El Atributo puede sustituirse por "lo".</div>
-          </button>
-          <button type="button" class="pvpn-card" id="pvpn-pns" onclick="selectPvPn('PNS','${tipoPred}')">
-            <span class="pvpn-icon">🔁</span>
-            <div class="pvpn-title">PN·SC — Nominal (semicopulativo)</div>
-            <div class="pvpn-desc">Verbo que ha perdido su significado pleno (ponerse, quedarse, resultar, salir…) + Atributo obligatorio. NO es ser/estar/parecer, pero el Atributo NO se sustituye por "lo" — sí por "así".</div>
+      : `<div id="pvpn-grid">
+          <div class="pvpn-grid">
+            <button type="button" class="pvpn-card" id="pvpn-pv" onclick="selectPvPn('PV','${tipoPred}')">
+              <span class="pvpn-icon">🔧</span>
+              <div class="pvpn-title">PV — Predicado Verbal</div>
+              <div class="pvpn-desc">Verbo con contenido léxico pleno. Puede llevar CD, CI, CC, C.Rég…</div>
+            </button>
+            <button type="button" class="pvpn-card" id="pvpn-pn" onclick="selectPvPn('PN','${tipoPred}')">
+              <span class="pvpn-icon">🔗</span>
+              <div class="pvpn-title">PN — Predicado Nominal</div>
+              <div class="pvpn-desc">Verbo copulativo (ser, estar, parecer) + Atributo. El Atributo puede sustituirse por "lo".</div>
+            </button>
+          </div>
+          <button type="button" class="pvpn-minor" id="pvpn-pns" onclick="selectPvPn('PNS','${tipoPred}')">
+            <span class="pvpn-minor-icon">🔁</span>
+            <span class="pvpn-minor-text"><b>PN·SC</b> — ¿el verbo no es ser/estar/parecer pero tampoco admite sustituir lo que sigue por "lo" (ponerse, quedarse, resultar, salir…)? También es predicado nominal, con Atributo.</span>
           </button>
         </div>`
     )+
