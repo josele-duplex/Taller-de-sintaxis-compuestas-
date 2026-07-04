@@ -31,6 +31,7 @@ import * as audio from './core/audio.js';
 import * as api from './core/api.js';
 import * as navigation from './core/navigation.js';
 import * as profile from './core/profile.js';
+import { registerServiceWorker } from './core/pwa.js';
 
 // ─────────────────────────────────────────────────────────────
 // 2. Datos pedagógicos
@@ -95,3 +96,8 @@ import './modules/teacher/index.js';
 import './modules/chispa/index.js';
 
 console.log('[app.js] Módulos ES6 cargados y expuestos en window.');
+
+// ─────────────────────────────────────────────────────────────
+// 7. PWA — instalable + shell offline (jul-2026)
+// ─────────────────────────────────────────────────────────────
+registerServiceWorker();

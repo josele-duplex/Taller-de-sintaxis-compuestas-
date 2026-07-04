@@ -1,0 +1,16 @@
+{
+  "name": "Taller de Sintaxis",
+  "short_name": "Sintaxis",
+  "description": "Análisis sintáctico, morfológico y de oraciones compuestas — NGLE / EBAU Murcia",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F5F1E8",
+  "theme_color": "#102A43",
+  "lang": "es",
+  "icons": [
+    { "src": "assets/logo_2.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" },
+    { "src": "assets/logo.png", "sizes": "1254x1254", "type": "image/png", "purpose": "any" }
+  ]
+}
