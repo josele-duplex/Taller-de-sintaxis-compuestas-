@@ -866,14 +866,22 @@ function asignarIDsCompuestas_() {
     }
 
     const ID_REGEX = /^OC_(\d{4})$/;
+    // Rango OC_9000-OC_9999: reservado para IDs provisionales de lotes
+    // recién pegados (p.ej. los del lote de verbos semicopulativos,
+    // jul-2026). Aunque encajan con el formato OC_NNNN, se tratan SIEMPRE
+    // como "sin ID válido" para que esta función los renumere con el
+    // siguiente hueco real de la secuencia en vez de dejarlos fuera de
+    // orden o inflar el máximo hacia 9000+.
+    const PLACEHOLDER_REGEX = /^OC_9\d{3}$/;
     const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
 
-    // 1) Encontrar el máximo OC_NNNN ya asignado
+    // 1) Encontrar el máximo OC_NNNN ya asignado (ignorando provisionales)
     let maxN = 0;
     const idsVistos = {};
     const duplicados = [];
     for (let i = 0; i < data.length; i++) {
       const id = String(data[i][idCol] || '').trim();
+      if (PLACEHOLDER_REGEX.test(id)) continue;
       const m = id.match(ID_REGEX);
       if (m) {
         const n = parseInt(m[1]);
@@ -901,7 +909,7 @@ function asignarIDsCompuestas_() {
 
     for (let i = 0; i < data.length; i++) {
       const id = String(data[i][idCol] || '').trim();
-      if (id && ID_REGEX.test(id)) continue; // ya tiene ID válido, respetar
+      if (id && ID_REGEX.test(id) && !PLACEHOLDER_REGEX.test(id)) continue; // ya tiene ID válido y definitivo, respetar
 
       // Asignar siguiente ID
       maxN++;
@@ -1470,7 +1478,7 @@ function menuAsignarIDsCompuestas() {
   const resp = ui.alert(
     '🔢 Asignar IDs automáticamente',
     'Se asignarán IDs correlativos OC_NNNN a las filas que NO tengan ya un ID válido.\n\n' +
-    'Los IDs ya válidos (OC_0001, OC_0042…) NO se tocan, para preservar los enlaces con Compuestas_Resultados.\n\n' +
+    'Los IDs ya válidos (OC_0001, OC_0042…) NO se tocan, para preservar los enlaces con Compuestas_Resultados. Los IDs provisionales OC_9000-OC_9999 (de lotes recién pegados) SÍ se renumeran siempre.\n\n' +
     'Para cada fila renumerada se actualiza también el campo "id" dentro del JSON_Compuesta.\n\n' +
     '¿Continuar?',
     ui.ButtonSet.YES_NO);
