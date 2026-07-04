@@ -1,6 +1,6 @@
 # Prompt universal · Generador de oraciones compuestas para el Taller de Sintaxis
 
-Versión: **1.2** · Mayo 2026 Compatible con: `Compuestas_Banco` (esquema **v1.2**) del Taller de Sintaxis. Cómo usar: copia y pega TODO el contenido por debajo de la línea horizontal. Sustituye los parámetros marcados con `{{...}}` por tus valores reales antes de enviar a la IA.
+Versión: **1.4** · Julio 2026. Compatible con: `Compuestas_Banco` (esquema JSON **v1.2** — la versión del prompt y la del schema de datos no coinciden, son numeraciones independientes). Cómo usar: copia y pega TODO el contenido por debajo de la línea horizontal. Sustituye los parámetros marcados con `{{...}}` por tus valores reales antes de enviar a la IA.
 
 **Cambios respecto a v1.1**:
 
@@ -11,6 +11,21 @@ Versión: **1.2** · Mayo 2026 Compatible con: `Compuestas_Banco` (esquema **v1.
 Cambios anteriores (v1.0 → v1.1): `schema_version`, `verbo.indices_perifrasis`, coordinación múltiple.
 
 ---
+
+# Novedades v1.4 (julio 2026) — verbos semicopulativos
+
+## N0. `predicado.tipo: "nominal"` ya no es solo ser/estar/parecer
+
+La regla de la sección 4.1 ("`nominal` → verbo copulativo (ser, estar, parecer) seguido de atributo") se amplía: también es `nominal` cuando el verbo es **semicopulativo** (ha perdido su significado pleno y funciona como nexo Sujeto-Atributo, pero no es ser/estar/parecer). Ejemplos de verbos semicopulativos: *ponerse, quedarse, volverse, hacerse, resultar, salir, seguir, permanecer, mostrarse, verse...* — lista completa y las 3 categorías semánticas (cambio/permanencia/manifestación) en `PROMPT_Analisis_Sintactico_Simples_v1_3.md`, sección VERBOS SEMICOPULATIVOS (misma tabla maestra sirve para compuestas, no se duplica aquí).
+
+**No cambia nada más en el schema**: sigue siendo `{"tipo":"nominal","indices":[...]}` en `predicado`, y la función `atributo` en `funciones[]` — exactamente igual que con ser/estar/parecer. El motor de la app ya deriva la etiqueta "Predicado Nominal" de la sola presencia de `atributo`, sin distinguir copulativo puro de semicopulativo a nivel de código.
+
+Ejemplo: «El negocio salió redondo» → `"predicado":{"tipo":"nominal","indices":[/* salió */]}`, `"funciones":[{"tipo":"atributo","indices":[/* redondo */]}]`. Igual que con «El negocio es bueno».
+
+Casos límite (ver también la sección VERBOS SEMICOPULATIVOS del prompt de simples):
+- *andar* + adjetivo/participio → semicopulativo (atributo). *andar* + SP de lugar → verbo pleno (`cc` con `subtipo:"lugar"`).
+- *quedar(se)*: cambio (resultado de un evento puntual) vs. permanencia (estado que ya existía). Si el ejercicio no da contexto suficiente para decidir, elige uno y no lo dejes ambiguo.
+- Atributo compuesto de grado 2 (p. ej. "salió elegido gobernador"): un único `atributo` con todos los índices, sin desglosar el segundo grado — la app no analiza estructura interna del propio atributo a este nivel.
 
 # Novedades v1.3 (junio 2026) — LÉELAS: amplían y corrigen las secciones siguientes
 
@@ -224,7 +239,7 @@ Este campo describe **cómo se organiza internamente la proposición**: sujeto, 
    - `tacito` → omitido pero recuperable por la persona-número del verbo. `indices` \= `[]`.  
    - `impersonal` → no hay sujeto sintáctico (`hay tres alumnos`, `llueve`). `indices` \= `[]`.  
 2. **`predicado.tipo`**:  
-   - `nominal` → verbo copulativo (ser, estar, parecer) seguido de atributo.  
+   - `nominal` → verbo copulativo (ser, estar, parecer) **o semicopulativo** (ponerse, quedarse, volverse, resultar, salir...) seguido de atributo. Ver N0.  
    - `verbal` → cualquier otro caso.  
 3. **`predicado.indices`** lista solo el verbo (o la perífrasis entera) y, en predicado nominal, también la cópula. NO incluye los complementos.  
 4. **`funciones`** lista las funciones que dependen del predicado, con sus índices. **Etiquetas válidas (lista cerrada)**:  
