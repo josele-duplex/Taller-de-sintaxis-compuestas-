@@ -150,11 +150,27 @@ la clase `active`. Solo una pantalla está visible a la vez. La función
 
 - **Arcade**: `js/modules/arcade/index.js`. 4 modos (Supervivencia,
   Contrarreloj, Duelo Fantasma, Radar de Errores).
-- **Morfología básica (Morph)**: `js/modules/morph/index.js`.
 - **Sintagmas (Sint4)**: `js/modules/sintagmas/index.js`.
-- **Maestro**: `js/modules/maestro/index.js` (morfología avanzada con cascadas).
+- **Maestro**: `js/modules/maestro/index.js` (morfología, con cascadas por nivel).
 - **Teacher**: `js/modules/teacher/index.js` y `informe-excel.js` (panel del
   profesor, dashboard de Compuestas, export CSV/XLSX).
+- **Chispa**: `js/modules/chispa/index.js` (spot-the-function, mezcla
+  Simples+Compuestas, analíticas silenciosas).
+- *(Archivado jul-2026: el antiguo `morph/index.js` "Nexo Morfológico" vive en
+  `js/modules/_legacy/morph/` y no se carga — ver `deuda_tecnica.md` §6.)*
+
+### 4.4 Mapa del modo examen por módulo (estado real, jul-2026)
+
+| Módulo | Examen | Cómo |
+|---|---|---|
+| Simples (Sint) | ✅ completo | PIN + grupo, curva dura 100/40/10/0, sin pistas, `saveResult` con anti-duplicado, timer |
+| Compuestas (CP) | ✅ completo | Ídem (`state.modoExamen`, `Compuestas_Examenes`) |
+| Subfases Solo NP / NP+Sujeto | ⚠️ engañoso | El PIN fija la subfase, pero `SUBFASE_CONFIGS[*].phases` no lo lee nadie: se juegan SIEMPRE las 3 fases y la nota pondera NP+Sujeto+Funciones ignorando la subfase. La subfase solo filtra el pool en el GAS (columna `Subfase`) |
+| Maestro (morfología) | ⚠️ cosmético | Botón "Examen" sin PIN; la nota NO se envía al GAS; hay flash de acierto en pleno examen |
+| Sintagmas | ➖ sin examen | A propósito (mecánica reintentar-hasta-acertar); tampoco registra nada en el backend |
+| Arcade / Chispa | ➖ sin examen | A propósito (gamificación / práctica libre) |
+
+Plan de corrección por fases: `docs/Informe_examen_modos_secundarios.md`.
 
 ---
 
@@ -164,7 +180,7 @@ la clase `active`. Solo una pantalla está visible a la vez. La función
 
 - `G` — estado del módulo Sint (objeto que se reinicializa por ejercicio).
 - `_audioCtx`, `_soundOn` — contexto de audio Web Audio API y flag de silencio.
-- `selectedMode`, `selectedSubfase`, `selectedMorphLevel`, etc. — selecciones
+- `selectedMode`, `selectedSubfase`, `selectedArcadeMode`, etc. — selecciones
   del login compartido.
 
 ### 5.2 Estado encapsulado (closure)
