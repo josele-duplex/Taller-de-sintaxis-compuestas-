@@ -6,7 +6,7 @@
    estado G, fases 1-4, scoring), mas el resto de utilidades que no
    encajaban en un modulo especifico:
    - IIFE de control de expiracion (beta hasta 2026-07-01).
-   - GrammarRules, SUBFASE_CONFIGS, WEIGHTS, FUNC_WEIGHT, ScoringEngine.
+   - GrammarRules, SUBFASE_CONFIGS, FUNC_WEIGHT, ScoringEngine.
    - Funciones de utilidad: cleanAllTimers, resetSentenceState, errorCard,
      getMock, shuffle, seededShuffle, isPunct, clasificarVerbo,
      genTraps3, delay, isPreResolved, isTacitoBlock, genTraps3Split.
@@ -23,8 +23,7 @@
      fuera de su rango contiguo en el original.
    - getHintsPractice/Exam + setHints* + refreshHintsUI (config pistas).
    - Modulo selection state: selectedMode, setMode, selectedArcadeMode,
-     setModule, selectedSint4Mode, setArcadeMode, setMorphLevel/Mode,
-     handleStartAll.
+     setModule, selectedSint4Mode, setArcadeMode, handleStartAll.
 
    Dependencias temporales en globales (resolveran via window.X tras
    Paso 10): showScreen, getApiUrl, fetchWithTimeout/Retry, awardXP,
@@ -78,7 +77,6 @@ const SUBFASE_CONFIGS = {
 
 
 // ── UNIFIED SCORING ENGINE ───────────────────────────────────────────
-const WEIGHTS = { NP:2, SUJETO:4, PVPN:2, FUNCION:3 };
 // Weighted scoring by function type (pedagogically calibrated)
 const FUNC_WEIGHT = {
   'Sujeto':2,'CD':1.5,'CI':1.5,'Atr.':1.5,'Atr. Loc.':1.5,'CPvo':1.5,'C.Rég.':1.5,'C.Ag.':1.5,
@@ -3476,7 +3474,7 @@ function goLogin(){
   try { if(G && G.mode==='practice' && !_practiceAnalyticsSent) sendPracticeAnalytics({}); } catch(e){}
   G={};ARC={};MG={};SIN={};MM={sintaxis:null};MC={};
   selectedMode=null;selectedSubfase='completo';
-  selectedArcadeMode=null;selectedMorphLevel=null;selectedMorphMode=null;selectedSint4Mode=null;
+  selectedArcadeMode=null;selectedSint4Mode=null;
   currentModule=null;selectedMaestroMode=null;selectedMaestroNivel=null;selectedMorphTipo=null;selectedChallenge=null;
   // Reset all sel-card buttons
   document.querySelectorAll('.sel-card').forEach(el=>{el.classList.remove('sel-active');el.setAttribute('aria-checked','false');});
@@ -3634,7 +3632,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
 // ════════════════════════════════════════════════════════
 // MODULE SELECTOR (Login tabs — legacy, now also used by goModule)
 // ════════════════════════════════════════════════════════
-let selectedArcadeMode=null, selectedMorphLevel=null, selectedMorphMode=null;
+let selectedArcadeMode=null;
 
 function setModule(m){
   currentModule=m;
@@ -3646,11 +3644,6 @@ function setArcadeMode(m){
   // clase que contenga "sel-" con su color teal; 'amc-active' lo evita.
   ['arc-survival','arc-timer','arc-ghost','arc-radar'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.toggle('amc-active',el.id==='arc-'+m);el.setAttribute('aria-checked',String(el.id==='arc-'+m));}});
 }
-function setMorphLevel(l){
-  selectedMorphLevel=l;
-  [1,2,3].forEach(n=>{const el=document.getElementById('ml-'+n);if(el){el.classList.toggle('sel-active',n===l);el.setAttribute('aria-checked',String(n===l));}});
-}
-
 // Master start handler — routes to correct module
 async function handleStartAll(){
   const name=document.getElementById('inp-name')?.value.trim();
@@ -3691,12 +3684,6 @@ async function handleStartAll(){
     const radar = selectedArcadeMode==='radar';
     const engineMode = ghostDuel ? 'timer' : (radar ? 'survival' : selectedArcadeMode);
     await startArcade({name,email,nickname:nick,grupo,arcadeMode:engineMode,ghostDuel,radar});return;
-  }
-  if(currentModule==='morph'){
-    ferr('e-morphlevel','');ferr('e-morphmode','');
-    if(!selectedMorphLevel){ferr('e-morphlevel','Selecciona un nivel.');return;}
-    if(!selectedMorphMode){ferr('e-morphmode','Selecciona práctica o examen.');return;}
-    startMorph({name,email,level:selectedMorphLevel,morphMode:selectedMorphMode});return;
   }
   if(currentModule==='sint4'){
     startSintagmas({name,email});return;

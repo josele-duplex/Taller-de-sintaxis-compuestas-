@@ -89,7 +89,6 @@ Object.assign(window,
 // ─────────────────────────────────────────────────────────────
 import './modules/compuestas/index.js';
 import './modules/arcade/index.js';
-import './modules/morph/index.js';
 import './modules/sintagmas/index.js';
 import './modules/maestro/index.js';
 import './modules/teacher/index.js';

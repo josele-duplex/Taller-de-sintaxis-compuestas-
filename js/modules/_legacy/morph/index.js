@@ -1,3 +1,9 @@
+/* ⚠️ ARCHIVADO 2026-07-07 — CÓDIGO MUERTO, NO SE CARGA.
+   Este módulo era inalcanzable (sin panel de login ni setter de
+   selectedMorphMode). La morfología vigente es js/modules/maestro/.
+   Se conserva solo como referencia del dataset MORPH_DATA.
+   Ver deuda_tecnica.md §6. */
+
 /* morph/index.js — Modo morfologia (analisis de palabras)
    Extraido de index.html (Paso 9.3 de la migracion, mayo 2026).
    Combina dos rangos no contiguos del original:

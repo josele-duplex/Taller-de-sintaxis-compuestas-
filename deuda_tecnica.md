@@ -294,3 +294,19 @@ Para que la migración no caiga en la trampa de "reescribir lo que ya funciona":
 - **El backend GAS**: bien organizado en dos archivos (Sint y Compuestas). El despliegue es manual pero el código está bien.
 - **El schema de oraciones simples**: lleva meses en producción con cientos de oraciones. No tocar.
 - **El schema de oraciones compuestas (con `analisis_interno`)**: bien diseñado, completar solo los huecos.
+
+---
+
+## 6. Retiradas (registro)
+
+### 2026-07-07 — Módulo `morph` legacy archivado
+
+`js/modules/morph/index.js` (el "Nexo Morfológico" con dataset MORPH_DATA hardcodeado)
+llevaba tiempo inalcanzable: `handleStartAll` exigía `selectedMorphMode`, pero ningún
+botón lo asignaba y `LOGIN_PANELS` no tenía panel `'morph'`. La morfología vigente es el
+módulo `maestro`. Movido a `js/modules/_legacy/morph/` (sin importar desde `app.js`),
+retirados del código vivo: la ruta muerta de `handleStartAll`, `setMorphLevel`,
+`selectedMorphLevel/Mode`, la constante `WEIGHTS` sin usos (los pesos vigentes son `W`,
+sint/index.js) y la pantalla `#screen-morph` de index.html. El CSS `.morph-*` sigue en
+su sitio (lo comparte en parte el módulo maestro); limpiarlo requeriría auditar clases
+una a una — pendiente de baja prioridad.
