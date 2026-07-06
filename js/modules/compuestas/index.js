@@ -3790,6 +3790,12 @@
 
   // IF-AT atenuada por fase: 0 err→100%, 1→50%, 2→25%, 3+→0%
   // Cada fase tiene un peso fijo; solo se puntúa si el alumno interactuó con ella.
+  // Identificador de la versión de pesos/curva de penalización activa
+  // (rediseño 2026-06-16, coherente con VERSION_CALIFICACION de Simples).
+  // Se envía con cada resultado guardado para que un futuro cambio de
+  // ponderación no vuelva a mezclar sistemas de nota sin poder distinguirlos.
+  const VERSION_CALIFICACION = '2026-06-16';
+
   function computeCompScore(eng, ej){
     const fasesActivas = (ej.metadatos && Array.isArray(ej.metadatos.fases_activas))
       ? ej.metadatos.fases_activas : [1, 2, 3, 4, 5, 6];
@@ -4063,7 +4069,8 @@
       nota:            nota,
       fasesPts:        fasesPts,
       erroresCP:       erroresCP,
-      detalle:         detalle
+      detalle:         detalle,
+      versionCalificacion: VERSION_CALIFICACION
     };
   }
 

@@ -294,6 +294,12 @@ const PRONOUNS = [
 // que inflaba la nota. El peso liberado refuerza el análisis de funciones.
 const W = { NP: 1, SUJETO: 3, FUNCION: 3 };
 
+// Identificador de la versión de W/curva de penalización activa (propuesta
+// del informe de fin de curso 2025-2026, punto 11.2). Se envía con cada
+// resultado guardado para que un futuro cambio de ponderación no vuelva a
+// mezclar sistemas de nota sin poder distinguirlos.
+const VERSION_CALIFICACION = '2026-06-16';
+
 // ════════════════════════════════════════════════════════
 // TAG CONTENT HELPERS
 // ════════════════════════════════════════════════════════
@@ -717,7 +723,7 @@ function sendPracticeAnalytics(opts){
       oracionesHechas:String((G.sentenceCompleted||[]).filter(Boolean).length),
       totalOraciones:String(G.oraciones.length),
       nota:String(score), errores:String(G.totalErrors||0),
-      tiempoMin:String(tiempoMin),
+      tiempoMin:String(tiempoMin),versionCalificacion:VERSION_CALIFICACION,
       funcPeor:peor, funcMejor:mejor,
       errCD:String(errByFunc['CD']||0),
       errCI:String(errByFunc['CI']||0),
@@ -2998,7 +3004,7 @@ async function submitResult(score,totalAvail,totalEarned,totals){
   _pendingResult = {
     action:'saveResult',name:G.name||'',email:G.email||'',pin:G.examPin||'',
     grupo:G.examGrupo||'',evaluacion:G.examEval||'',examen:G.examName||'',
-    score:String(score||0),
+    score:String(score||0),versionCalificacion:VERSION_CALIFICACION,
     sujeto:String((pb.sujeto||{}).earned||0),funciones:String((pb.funciones||{}).earned||0),
     np:String((pb.np||{}).earned||0),elementosFallados:String(elemFallados),
     completadas:String(completadas),totalOraciones:String(totalOr),

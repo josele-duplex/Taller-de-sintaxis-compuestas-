@@ -1681,7 +1681,8 @@ function saveResult_(p) {
                            'Nota','Completadas','Total_Oraciones',
                            'Sujeto_Pts','Funciones_Pts','NP_Pts','Elem_Fallados',
                            'Err_CD','Err_CI','Err_Atr','Err_CPvo','Err_CReg','Err_CC',
-                           'Reflexion_Total','Reflexion_Correctas','Email_Enviado'];
+                           'Reflexion_Total','Reflexion_Correctas','Email_Enviado',
+                           'Version_Calificacion'];
     let sheet = ss.getSheetByName(SHEET_RESULTS);
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_RESULTS);
@@ -1735,7 +1736,8 @@ function saveResult_(p) {
       'Err_CReg':   parseInt(p.errCReg) ||0,
       'Err_CC':     parseInt(p.errCC)   ||0,
       'Reflexion_Total':     parseInt(p.reflexionTotal)     ||0,
-      'Reflexion_Correctas': parseInt(p.reflexionCorrectas) ||0
+      'Reflexion_Correctas': parseInt(p.reflexionCorrectas) ||0,
+      'Version_Calificacion': p.versionCalificacion||''
     });
 
     // ── Informe automático por correo (julio 2026) ──────────────────────
@@ -1771,7 +1773,7 @@ function saveSesionPractica_(p) {
     'Oraciones_Hechas', 'Total_Oraciones', 'Nota_Estimada', 'Errores_Totales',
     'Tiempo_Min', 'Func_Mas_Fallada', 'Func_Sin_Errores',
     'Err_CD', 'Err_CI', 'Err_Atr', 'Err_CPvo', 'Err_CReg', 'Err_CC',
-    'Reflexion_Total', 'Reflexion_Correctas'
+    'Reflexion_Total', 'Reflexion_Correctas', 'Version_Calificacion'
   ];
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1800,6 +1802,7 @@ function saveSesionPractica_(p) {
       'Err_CC':           parseInt(p.errCC)||0,
       'Reflexion_Total':     parseInt(p.reflexionTotal)||0,
       'Reflexion_Correctas': parseInt(p.reflexionCorrectas)||0,
+      'Version_Calificacion': p.versionCalificacion||''
     });
     return { ok: true };
   } catch(e) {

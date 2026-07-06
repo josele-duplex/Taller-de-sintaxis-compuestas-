@@ -15,11 +15,18 @@
 //  robusto que las fórmulas QUERY semanales (frágiles con fechas y con las
 //  letras desfasadas del documento) y se actualiza con un clic de menú.
 //
+//  Fuentes leídas: Alumnos_Resultados (examen Simples), Compuestas_Resultados
+//  (examen Compuestas), Sesiones_Practica (práctica libre Simples — arreglado
+//  jul-2026, antes no se leía), Compuestas_Practica_Log (práctica libre
+//  Compuestas) y Ranking_Arcade.
+//
 //  LIMITACIONES conocidas (honestas):
 //  - Compuestas_Practica_Log no guarda correo (es por sesión anónima): no suma
 //    alumnos únicos, pero sí sesiones, tiempo y errores de práctica.
-//  - Solo Compuestas_Practica_Log guarda duración; el tiempo es el de práctica
-//    de compuestas.
+//  - "Tiempo (min)" sale de sumar Sesiones_Practica (Tiempo_Min) y
+//    Compuestas_Practica_Log (Duracion_Segundos). Los exámenes (Alumnos_
+//    Resultados, Compuestas_Resultados) no guardan duración, así que ese
+//    tiempo no entra en el total — es solo tiempo de práctica libre.
 // ════════════════════════════════════════════════════════════════════════
 
 // Lunes (00:00) de la semana de una fecha, como objeto Date.
@@ -89,6 +96,19 @@ function actualizarAnaliticaEvolutiva() {
   procesar(hojaCompuestas, 'Fecha', (b, row, col) => {
     b.sesiones++; b.comp++;
     const c = String(row[col['Correo']] || '').trim().toLowerCase(); if (c) b.correos[c] = true;
+  });
+
+  // ── Práctica libre de Simples (Sesiones_Practica) ──
+  // Arreglo jul-2026: esta hoja existía y se guardaba correctamente, pero
+  // actualizarAnaliticaEvolutiva() nunca la leía — "Tiempo (min)" y buena
+  // parte de "Sesiones" se quedaban en 0 aunque hubiera práctica libre real.
+  procesar('Sesiones_Practica', 'Fecha', (b, row, col) => {
+    b.sesiones++; b.pract++;
+    const c = String(row[col['Correo']] || '').trim().toLowerCase(); if (c) b.correos[c] = true;
+    if (col['Tiempo_Min'] !== undefined) {
+      const t = parseFloat(row[col['Tiempo_Min']]); if (!isNaN(t)) b.tiempoSeg += t * 60;
+    }
+    b.errores += _sumaErroresFila_(row, col, ['Err_CD','Err_CI','Err_Atr','Err_CPvo','Err_CReg','Err_CC']);
   });
 
   // ── Práctica de compuestas (sin correo; sí duración y errores) ──
