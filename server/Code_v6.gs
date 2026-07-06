@@ -109,6 +109,27 @@ const ERR = {
 // ════════════════════════════════════════════════════════════════════════
 const PROP_CLAVE_PROFESOR = 'CLAVE_PROFESOR';
 
+// ════════════════════════════════════════════════════════════════════════
+//  MIS GRUPOS (jul-2026) — quién es "yo" cuando varios profesores comparten
+//  este mismo Sheet/despliegue. Alumnos_Resultados no distingue de qué
+//  profesor es cada examen (no hay ese campo), así que para vistas que
+//  viven SIEMPRE en el Sheet (Evolucion_Alumnos) hace falta saber qué
+//  nombres de Grupo son los del dueño del Sheet, para no mezclar alumnos
+//  de otro profesor que use la misma infraestructura.
+//  El informe Excel bajo demanda (getInformeProfesor_) NO usa esto: cada
+//  profesor ya filtra por su propio grupo al pedirlo, así que no hace
+//  falta tocarlo.
+// ════════════════════════════════════════════════════════════════════════
+const PROP_MIS_GRUPOS = 'MIS_GRUPOS';
+
+// Devuelve el array de grupos configurados (vacío si no se ha configurado
+// nada todavía — en ese caso, quien llame debe decidir si eso significa
+// "todos" o "ninguno" y avisar de que falta configurar).
+function getMisGruposConfigurados_() {
+  const raw = PropertiesService.getScriptProperties().getProperty(PROP_MIS_GRUPOS) || '';
+  return raw.split(',').map(g => g.trim()).filter(Boolean);
+}
+
 // Devuelve null si autorizado; un objeto de error si NO. Patrón:
 //   const noAuth = requiereClaveProfesor_(params); if (noAuth) return noAuth;
 function requiereClaveProfesor_(params) {
@@ -2048,6 +2069,7 @@ function onOpen() {
   // BLOQUE 3 — HERRAMIENTAS (solo si es necesario)
   const tecnico = ui.createMenu('⚙️ Avanzado');
   tecnico.addItem('🔐 Fijar clave de profesor', 'menuFijarClaveProfesor');
+  tecnico.addItem('🎓 Configurar mis grupos',   'menuConfigurarMisGrupos');
   tecnico.addItem('🔑 Generar PIN global',   'generarPin');
   tecnico.addItem('👁 Ver PIN actual',       'verPin');
   tecnico.addItem('🏷 Rellenar etiquetas con IA','generarEtiquetas');
@@ -2325,6 +2347,33 @@ function menuFijarClaveProfesor() {
   PropertiesService.getScriptProperties().setProperty(PROP_CLAVE_PROFESOR, nueva);
   ui.alert('✅ Clave guardada.\n\nIMPORTANTE: en la app, entra al panel del profesor y escribe esta MISMA clave. ' +
            'Si no coincide, no podrás ver resultados ni crear exámenes.');
+}
+
+// Fija (o cambia) la lista de "mis grupos": los nombres de Grupo (tal cual
+// aparecen en el desplegable de la app, p.ej. "2ºA") que pertenecen al
+// dueño de este Sheet. Solo importa si compartes tu Sheet/despliegue con
+// otros profesores — filtra la hoja Evolucion_Alumnos para que no aparezcan
+// alumnos de otro profesor que use la misma infraestructura.
+function menuConfigurarMisGrupos() {
+  const ui = SpreadsheetApp.getUi();
+  const actuales = getMisGruposConfigurados_();
+  const estado = actuales.length
+    ? 'Grupos configurados ahora mismo: ' + actuales.join(', ')
+    : 'Todavía NO has configurado tus grupos (la Evolución por Alumno mostrará a TODOS, avisando de esto).';
+  const resp = ui.prompt(
+    '🎓 Mis grupos',
+    estado + '\n\nEscribe tus grupos separados por comas, EXACTAMENTE como aparecen en el desplegable ' +
+    'de la app (ej: 2ºA, 2ºC, 3ºA).\n' +
+    'Déjalo vacío y pulsa Aceptar para borrar la configuración (volver a "mostrar todos").',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (resp.getSelectedButton() !== ui.Button.OK) return;
+  const nuevo = String(resp.getResponseText() || '').trim();
+  PropertiesService.getScriptProperties().setProperty(PROP_MIS_GRUPOS, nuevo);
+  const lista = getMisGruposConfigurados_();
+  ui.alert(lista.length
+    ? '✅ Guardado. Tus grupos: ' + lista.join(', ') + '.\n\nVuelve a pulsar "Actualizar Evolución por Alumno" para que se aplique.'
+    : '✅ Borrado. La Evolución por Alumno volverá a mostrar a todos los alumnos del Sheet.');
 }
 
 function activarTodas() {
