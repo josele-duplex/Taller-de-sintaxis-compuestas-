@@ -7,9 +7,11 @@
      1) 📋 Resumen     — header de marca + 4 tarjetones + comparativa de grupos + top alumnos
      2) 👥 [Grupo X]   — una pestaña por grupo si hay 2-6 grupos
      3) 👥 Alumnos     — todos juntos con autofiltro y colores condicionales
-     4) 🎯 Diagnóstico — top errores globales y por grupo, con barras visuales
-     5) 📝 Detalle     — fila por actividad
-     6) 📊 [Examen N]  — una pestaña por examen con su lista de alumnos
+     4) 📈 Evolución   — actividades de cada alumno en orden cronológico, con
+                         tendencia (mini-gráfico de texto + media + ↑/↓/→)
+     5) 🎯 Diagnóstico — top errores globales y por grupo, con barras visuales
+     6) 📝 Detalle     — fila por actividad
+     7) 📊 [Examen N]  — una pestaña por examen con su lista de alumnos
 */
 
 (function(){
@@ -661,6 +663,107 @@
   }
 
   // ════════════════════════════════════════════════════════════════════════
+  //  HOJA — EVOLUCIÓN POR ALUMNO (jul-2026)
+  //  Reutiliza datos.detalle (ya trae correo/nombre/grupo/fecha/nota por
+  //  actividad, sin tocar el backend) agrupado por alumno y ordenado
+  //  cronológicamente. La "tendencia" es un mini-gráfico de texto (Unicode
+  //  ▁▂▃▄▅▆▇█, no un SPARKLINE real: esa función es de Google Sheets, no
+  //  existe en Excel — un SPARKLINE de fórmula se vería como #NAME? al abrir
+  //  el .xlsx en Excel).
+  // ════════════════════════════════════════════════════════════════════════
+  const SPARK_CHARS = '▁▂▃▄▅▆▇█';
+  function sparklineTexto_(notas){
+    if (!notas.length) return '';
+    return notas.map(n => {
+      const idx = Math.max(0, Math.min(7, Math.round((n/10)*7)));
+      return SPARK_CHARS[idx];
+    }).join('');
+  }
+
+  function buildEvolucion(datos){
+    const aoa = [];
+    const merges = [];
+    const det = (datos.detalle || []).slice();
+
+    aoa.push([cell('EVOLUCIÓN POR ALUMNO', S_titulo()), cell(''),cell(''),cell(''),cell('')]);
+    merges.push(merge(0,0,0,4));
+    aoa.push([
+      cell('Todas las actividades de cada alumno en el rango, en orden cronológico, con su tendencia de nota.', S_subtitulo()),
+      cell(''),cell(''),cell(''),cell('')
+    ]);
+    merges.push(merge(1,0,1,4));
+    aoa.push([cell('')]);
+
+    // Agrupar por correo (clave estable); si falta, cae a nombre en minúsculas.
+    const porAlumno = {};
+    det.forEach(d => {
+      const key = String(d.correo || d.nombre || '').trim().toLowerCase() || '(sin identificar)';
+      if (!porAlumno[key]) porAlumno[key] = { nombre: d.nombre || '(sin nombre)', grupo: d.grupo || '', items: [] };
+      if (!porAlumno[key].nombre && d.nombre) porAlumno[key].nombre = d.nombre;
+      if (!porAlumno[key].grupo && d.grupo) porAlumno[key].grupo = d.grupo;
+      porAlumno[key].items.push(d);
+    });
+
+    const alumnos = Object.values(porAlumno).sort((a,b) => {
+      const g = (a.grupo||'').localeCompare(b.grupo||'');
+      return g !== 0 ? g : (a.nombre||'').localeCompare(b.nombre||'');
+    });
+
+    if (!alumnos.length){
+      aoa.push([cell('(sin actividades en el rango)', S_celda()), cell(''),cell(''),cell(''),cell('')]);
+    }
+
+    alumnos.forEach(al => {
+      al.items.sort((a,b) => new Date(a.fecha||0) - new Date(b.fecha||0));
+      const notas = al.items.map(i => i.nota).filter(n => n !== null && n !== undefined && !isNaN(n));
+      const media = notas.length ? notas.reduce((a,b)=>a+b,0)/notas.length : null;
+      let tendencia = '—';
+      if (notas.length >= 2){
+        const delta = notas[notas.length-1] - notas[0];
+        tendencia = delta > 0.3 ? '↑ mejora' : (delta < -0.3 ? '↓ empeora' : '→ estable');
+      }
+
+      // Cabecera del alumno: nombre·grupo | sparkline de texto | nota media | tendencia
+      const filaAlumno = aoa.length;
+      aoa.push([
+        cell(al.nombre + (al.grupo ? '  ·  ' + al.grupo : ''),
+          S_celda({ font:{bold:true, sz:12, color:{rgb:C.marcaDark}}, fill:{fgColor:{rgb:C.subheader}} })),
+        cell(sparklineTexto_(notas), S_celdaCentro({ fill:{fgColor:{rgb:C.subheader}}, font:{sz:14, color:{rgb:C.marcaDark}} })),
+        cell(media !== null ? fmtNota(media) : '—', media !== null ? S_nota(media) : S_celdaCentro({fill:{fgColor:{rgb:C.subheader}}})),
+        cell(tendencia, S_celdaCentro({ fill:{fgColor:{rgb:C.subheader}}, font:{bold:true, sz:10, color:{rgb:C.muted}} })),
+        cell('', S_celda({ fill:{fgColor:{rgb:C.subheader}} }))
+      ]);
+      merges.push(merge(filaAlumno,0,filaAlumno,0));
+
+      // Cabecera de la tabla de actividades de este alumno
+      aoa.push([
+        cell('Fecha',  S_cabeceraTabla()),
+        cell('Tipo',   S_cabeceraTabla()),
+        cell('Nota',   S_cabeceraTabla()),
+        cell('Tiempo (min)', S_cabeceraTabla()),
+        cell('Info',   S_cabeceraTabla())
+      ]);
+
+      al.items.forEach(it => {
+        aoa.push([
+          cell(it.fecha ? fechaCorta(it.fecha) : '—', S_celdaCentro()),
+          cell(it.tipo || '', S_celda({ font:{sz:9, color:{rgb:C.muted}} })),
+          cell(fmtNota(it.nota), S_nota(it.nota)),
+          cell(it.tiempo_min !== null && it.tiempo_min !== undefined ? it.tiempo_min : '—', S_celdaCentro()),
+          cell(it.info || '', S_celda({ font:{sz:9, color:{rgb:C.muted}} }))
+        ]);
+      });
+
+      aoa.push([cell('')]); // separador entre alumnos
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{wch:26}, {wch:14}, {wch:9}, {wch:13}, {wch:40}];
+    ws['!merges'] = merges;
+    return ws;
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
   //  HOJA — EXAMEN INDIVIDUAL
   // ════════════════════════════════════════════════════════════════════════
   function buildExamen(ex){
@@ -763,6 +866,10 @@
     XLSX.utils.book_append_sheet(wb,
       buildAlumnos(datos.alumnos || [], '👥 ALUMNOS (TODOS)', subAll),
       nombreHojaSeguro('👥 Alumnos'));
+
+    // 3.5 Evolución por alumno (jul-2026)
+    XLSX.utils.book_append_sheet(wb, buildEvolucion(datos),
+                                  nombreHojaSeguro('📈 Evolución'));
 
     // 4. Diagnóstico
     XLSX.utils.book_append_sheet(wb, buildDiagnostico(datos),
