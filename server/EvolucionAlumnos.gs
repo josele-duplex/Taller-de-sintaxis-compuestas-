@@ -15,7 +15,14 @@
 //
 //  Reutiliza los mismos lectores que getInformeProfesor_ (Code_v6.gs):
 //  leerSimplesExamen_, leerSimplesPractica_, leerCompuestasRes_. Se llaman
-//  sin filtro de fecha ni de grupo — todo el histórico disponible.
+//  sin filtro de fecha ni de grupo — todo el histórico disponible — y
+//  LUEGO se filtra por "Mis grupos" (ver getMisGruposConfigurados_ en
+//  Code_v6.gs, menú ⚙️ Avanzado → 🎓 Configurar mis grupos). Necesario
+//  porque, si este Sheet se comparte con otro profesor, sus alumnos SÍ
+//  deben guardarse aquí (para que él pueda pedir su propio informe Excel
+//  filtrando por su grupo), pero esta vista fija en el Sheet debe mostrar
+//  solo los del dueño del Sheet. Si no se ha configurado nada, se muestran
+//  todos con un aviso visible en la propia hoja.
 //
 //  Identidad del alumno: por correo (en minúsculas), igual que el resto
 //  del proyecto. Si el mismo alumno usa dos correos distintos a lo largo
@@ -57,9 +64,20 @@ function actualizarEvolucionAlumnos() {
     nota: r.nota, info: (r.completados || 0) + '/' + (r.totalEjercicios || 0) + ' ejercicios'
   }));
 
+  // ── Filtrar a "mis grupos" (jul-2026) ──
+  // Si compartes este Sheet con otros profesores, sus alumnos SÍ deben
+  // guardarse en Alumnos_Resultados/Compuestas_Resultados (para que ellos
+  // puedan pedir su propio informe Excel filtrando por su grupo), pero
+  // esta vista fija en el Sheet debe mostrar solo los tuyos.
+  const misGrupos = getMisGruposConfigurados_();
+  const sinConfigurar = misGrupos.length === 0;
+  const detalleFiltrado = sinConfigurar
+    ? detalle
+    : detalle.filter(d => misGrupos.indexOf(String(d.grupo || '').trim()) !== -1);
+
   // ── Agrupar por correo (clave estable); si falta, cae al nombre ──
   const porAlumno = {};
-  detalle.forEach(d => {
+  detalleFiltrado.forEach(d => {
     const key = d.correo || String(d.nombre || '').toLowerCase().trim() || '(sin identificar)';
     if (!porAlumno[key]) porAlumno[key] = { nombre: d.nombre || '(sin nombre)', grupo: d.grupo || '', items: [] };
     if (!porAlumno[key].nombre && d.nombre) porAlumno[key].nombre = d.nombre;
@@ -76,17 +94,26 @@ function actualizarEvolucionAlumnos() {
   sheet.getRange('A1').setValue('🎓 EVOLUCIÓN POR ALUMNO — historial completo del curso')
     .setFontSize(16).setFontWeight('bold').setFontColor('#1f4e78');
   sheet.getRange('A2').setValue('Actualizado: ' + new Date().toLocaleString('es-ES') +
-    '  ·  ' + alumnos.length + ' alumnos con actividad registrada')
+    '  ·  ' + alumnos.length + ' alumnos con actividad registrada' +
+    (sinConfigurar ? '' : '  ·  filtrado a: ' + misGrupos.join(', ')))
     .setFontColor('#666').setFontSize(10);
 
+  if (sinConfigurar) {
+    sheet.getRange('A3').setValue(
+      '⚠ No has configurado "Mis grupos" (menú ⚙️ Avanzado → 🎓 Configurar mis grupos). ' +
+      'Si compartes este Sheet con otro profesor, esta lista puede incluir también a SUS alumnos.'
+    ).setFontColor('#B45309').setFontWeight('bold').setFontSize(10);
+  }
+
   if (!alumnos.length) {
-    sheet.getRange('A4').setValue('Aún no hay actividad registrada.').setFontColor('#999');
+    sheet.getRange('A5').setValue('Aún no hay actividad registrada' +
+      (sinConfigurar ? '.' : ' para los grupos configurados.')).setFontColor('#999');
     sheet.setColumnWidth(1, 220);
     ss.setActiveSheet(sheet);
     return;
   }
 
-  let fila = 4;
+  let fila = 5;
   alumnos.forEach(al => {
     al.items.sort((a, b) => (a.fecha ? a.fecha.getTime() : 0) - (b.fecha ? b.fecha.getTime() : 0));
     const notas = al.items.map(i => i.nota).filter(n => typeof n === 'number' && !isNaN(n));
@@ -139,6 +166,6 @@ function actualizarEvolucionAlumnos() {
   sheet.setColumnWidth(3, 70);
   sheet.setColumnWidth(4, 280);
   sheet.setColumnWidth(5, 140);
-  sheet.setFrozenRows(3);
+  sheet.setFrozenRows(4);
   ss.setActiveSheet(sheet);
 }
