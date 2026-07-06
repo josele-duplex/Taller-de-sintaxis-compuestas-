@@ -409,6 +409,18 @@ if(window.location.protocol === 'file:') {
       <p id="tp-inf-status" role="status" aria-live="polite" style="font-size:.85rem;font-weight:700;margin-top:10px;display:none"></p>
     </div>
 
+    <!-- ── MIS GRUPOS (si compartes el Sheet con otro profesor) ─────── -->
+    <div class="s-box" style="border:2px solid #16A34A;background:#F0FDF4">
+      <div class="s-title" style="color:#15803D">🎓 Mis grupos</div>
+      <div class="s-desc">Si compartes este Sheet con otro profesor, marca aquí SOLO tus grupos. La hoja "Evolución por Alumno" del Sheet mostrará únicamente a estos alumnos — sin esto, no hace falta tocar nada.</div>
+      <div id="tp-misgrupos-checks" style="display:flex;flex-wrap:wrap;gap:6px 12px;margin:12px 0"></div>
+      <button type="button" id="tp-misgrupos-btn" onclick="guardarMisGrupos()"
+              style="padding:10px 16px;border:none;border-radius:10px;background:#16A34A;color:#fff;font-weight:800;font-size:.9rem;cursor:pointer">
+        💾 Guardar mis grupos
+      </button>
+      <p id="tp-misgrupos-status" role="status" aria-live="polite" style="font-size:.82rem;font-weight:700;margin-top:8px;display:none"></p>
+    </div>
+
     <div class="s-box" style="border-left:4px solid var(--blue)">
       <div class="s-title">🎓 Subfase del Examen</div>
       <div class="s-desc">Hasta dónde analiza el alumno en modo examen.</div>

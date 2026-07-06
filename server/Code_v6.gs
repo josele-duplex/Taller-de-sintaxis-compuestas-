@@ -130,6 +130,20 @@ function getMisGruposConfigurados_() {
   return raw.split(',').map(g => g.trim()).filter(Boolean);
 }
 
+// Endpoints para configurar "Mis grupos" DESDE el panel del profesor de la
+// app (sin tener que abrir el Sheet y usar el menú ⚙️ Avanzado). Mismo dato,
+// dos caminos para llegar a él — el del Sheet (menuConfigurarMisGrupos) se
+// mantiene por si alguna vez no hay acceso a la app.
+function getMisGrupos_() {
+  return { ok: true, grupos: getMisGruposConfigurados_() };
+}
+function setMisGrupos_(params) {
+  // params.grupos: lista separada por comas (misma convención que el menú).
+  const nuevo = String(params.grupos || '').split(',').map(g => g.trim()).filter(Boolean).join(',');
+  PropertiesService.getScriptProperties().setProperty(PROP_MIS_GRUPOS, nuevo);
+  return { ok: true, grupos: getMisGruposConfigurados_() };
+}
+
 // Devuelve null si autorizado; un objeto de error si NO. Patrón:
 //   const noAuth = requiereClaveProfesor_(params); if (noAuth) return noAuth;
 function requiereClaveProfesor_(params) {
@@ -831,6 +845,8 @@ function doGet(e) {
     else if (action === 'regenerarMorfologia')     result = regenerarMorfologia_();
     else if (action === 'saveArcadeScore')         result = saveArcadeScore_(params);
     else if (action === 'getInformeProfesor')      { const na=requiereClaveProfesor_(params); result = na || getInformeProfesor_(params); }
+    else if (action === 'getMisGrupos')            { const na=requiereClaveProfesor_(params); result = na || getMisGrupos_(); }
+    else if (action === 'setMisGrupos')            { const na=requiereClaveProfesor_(params); result = na || setMisGrupos_(params); }
     else {
       // v6.3 — Delegación al módulo de oración compuesta (Compuestas.gs).
       // Si la action no la reconoce el dispatcher, devuelve null y caemos al error original.

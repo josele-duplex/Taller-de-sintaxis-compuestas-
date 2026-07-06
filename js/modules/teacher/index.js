@@ -46,6 +46,64 @@ function loadTeacherPanel(){
     document.getElementById('tp-exam-count').value=savedFilters.examCount;
   }
   updateFilterPreview();
+  renderMisGruposChecks();
+}
+
+// ── MIS GRUPOS (jul-2026) — filtra la hoja Evolucion_Alumnos del Sheet ──
+// cuando se comparte el Sheet/despliegue con otro profesor. Config vía
+// panel (sin abrir el Sheet); mismo dato que el menú "Configurar mis
+// grupos" de Apps Script (getMisGrupos_/setMisGrupos_ en Code_v6.gs).
+async function renderMisGruposChecks(){
+  const cont = document.getElementById('tp-misgrupos-checks');
+  if(!cont || typeof GRUPOS === 'undefined') return;
+  cont.innerHTML = GRUPOS.map(g =>
+    `<label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer">`+
+    `<input type="checkbox" value="${g}" class="tp-misgrupo-cb"> ${g}</label>`
+  ).join('');
+
+  const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
+  if(!apiUrl) return;
+  try{
+    const clave = (typeof getTeacherPw === 'function') ? getTeacherPw() : '';
+    const url = apiUrl + (apiUrl.includes('?') ? '&' : '?') +
+                new URLSearchParams({ action:'getMisGrupos', clave }).toString();
+    const r = (typeof fetchWithRetry === 'function') ? await fetchWithRetry(url, {}, 2, 15000) : await fetch(url);
+    const data = await r.json();
+    if(data && data.ok && Array.isArray(data.grupos)){
+      const set = new Set(data.grupos);
+      document.querySelectorAll('.tp-misgrupo-cb').forEach(cb => { cb.checked = set.has(cb.value); });
+    }
+  } catch(e){ /* silencioso: si falla, el panel sigue usable con las casillas vacías */ }
+}
+
+async function guardarMisGrupos(){
+  const status = document.getElementById('tp-misgrupos-status');
+  const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
+  if(!apiUrl){
+    if(status){ status.style.display='block'; status.style.color='var(--red)'; status.textContent='⚠ Configura primero la URL del Apps Script.'; }
+    return;
+  }
+  const grupos = [...document.querySelectorAll('.tp-misgrupo-cb:checked')].map(cb => cb.value);
+  if(status){ status.style.display='block'; status.style.color='var(--blue)'; status.textContent='⏳ Guardando…'; }
+  try{
+    const clave = (typeof getTeacherPw === 'function') ? getTeacherPw() : '';
+    const url = apiUrl + (apiUrl.includes('?') ? '&' : '?') +
+                new URLSearchParams({ action:'setMisGrupos', clave, grupos: grupos.join(',') }).toString();
+    const r = (typeof fetchWithRetry === 'function') ? await fetchWithRetry(url, {}, 2, 15000) : await fetch(url);
+    const data = await r.json();
+    if(!data || !data.ok){
+      if(status){ status.style.color='var(--red)'; status.textContent='✕ Error: ' + (data?.error || 'no se pudo guardar'); }
+      return;
+    }
+    if(status){
+      status.style.color='var(--green)';
+      status.textContent = grupos.length
+        ? '✓ Guardado: ' + grupos.join(', ')
+        : '✓ Borrado — la Evolución por Alumno volverá a mostrar a todos.';
+    }
+  } catch(e){
+    if(status){ status.style.display='block'; status.style.color='var(--red)'; status.textContent='✕ No se pudo conectar con el servidor.'; }
+  }
 }
 function setExamSubfase(sf){
   localStorage.setItem('taller_exam_subfase',sf);
@@ -880,6 +938,8 @@ if (typeof window !== 'undefined') {
     // Fase 1.6.B — creación de exámenes de Compuestas
     genCpExamPin, createExamenCompuestaUI, testCpExamPin,
     // Informe del profesor (Excel)
-    generarInformeProfesor
+    generarInformeProfesor,
+    // Mis grupos (filtro de Evolucion_Alumnos)
+    renderMisGruposChecks, guardarMisGrupos
   });
 }
