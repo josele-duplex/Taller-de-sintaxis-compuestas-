@@ -1500,6 +1500,15 @@ function updateStickyTop(){
 window.addEventListener('resize', ()=>{ try{ updateStickyTop(); }catch(e){} });
 
 function transitionPhase(next){
+  // Recorte real de subfase (Fase 1.1, jul-2026): "Solo NP" y "NP + Sujeto"
+  // ya no atraviesan fases que no les corresponden — antes SUBFASE_CONFIGS.phases
+  // no lo leía nadie y siempre se jugaban las 3 fases. Si la fase siguiente no
+  // está en la subfase activa, la oración se da por completada aquí mismo.
+  const allowedPhases = SUBFASE_CONFIGS[G.subfase||'completo']?.phases || [1,2,3];
+  if(!allowedPhases.includes(next)){
+    showSuccessScreen(G.oraciones[G.idx]);
+    return;
+  }
   const el=document.getElementById('game-phase');
   el.classList.add('afo');
   setTimeout(()=>{G.phase=next;renderGame();},280);
@@ -2303,15 +2312,23 @@ function showSuccessScreen(o){
   const funcsBox = document.getElementById('succ-funcs');
   const funcsList = document.getElementById('succ-funcs-list');
   if(funcsBox && funcsList){
+    // Recorte de subfase (Fase 1.1): solo mostrar chips de las fases que la
+    // subfase activa incluye — si es "Solo NP", el alumno nunca ha tocado el
+    // sujeto ni las funciones, y no deben aparecer como si las hubiera practicado.
+    const allowedPhases = SUBFASE_CONFIGS[G.subfase||'completo']?.phases || [1,2,3];
     const funcs = new Set();
-    if((o.fase2?.sujeto_indices||[]).length > 0) funcs.add('Sujeto');
-    else if(o.fase2?.sujeto_tacito) funcs.add('Sujeto tácito');
-    else if(o.fase2?.sin_sujeto) funcs.add('Impersonal');
     funcs.add('NP');
-    (o.fase3?.bloques||[]).forEach(b=>{
-      const f = (b.solucion||'').split(' | ')[1];
-      if(f && f!=='—') funcs.add(f);
-    });
+    if(allowedPhases.includes(2)){
+      if((o.fase2?.sujeto_indices||[]).length > 0) funcs.add('Sujeto');
+      else if(o.fase2?.sujeto_tacito) funcs.add('Sujeto tácito');
+      else if(o.fase2?.sin_sujeto) funcs.add('Impersonal');
+    }
+    if(allowedPhases.includes(3)){
+      (o.fase3?.bloques||[]).forEach(b=>{
+        const f = (b.solucion||'').split(' | ')[1];
+        if(f && f!=='—') funcs.add(f);
+      });
+    }
     if(funcs.size > 0){
       funcsList.innerHTML = [...funcs].map(f=>'<span class="succ-func-chip">'+f+'</span>').join('');
       funcsBox.style.display = 'block';
