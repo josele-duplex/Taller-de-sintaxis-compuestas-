@@ -14,6 +14,13 @@
    playSuccess, playError, awardXP, trackError, _tone, goLogin,
    goModule. */
 
+// Identificador de la version de calificacion de morfologia (Fase 3.4,
+// jul-2026): la nota sigue siendo lineal (totalCorrect/totalAttempted),
+// sin la curva dura de examen que ya usa Simples — se deja anotado por si
+// se endurece mas adelante, para no mezclar sistemas de nota sin poder
+// distinguirlos en el Sheet.
+const VERSION_CALIFICACION_MORFO = '2026-07-07';
+
 // ── MORPH CHALLENGES ─────────────────────────────────────────────────
 const MORPH_CHALLENGES = [
   { id:'caza_sustantivos',    title:'🧱 Caza sustantivos',    desc:'Pulsa todos los sustantivos', targetCats:['Sustantivo'], duration:60, difficulty:1, timePenalty:0 },
@@ -720,7 +727,7 @@ const MAESTRO_TEXTS = [
 ];
 
 // ── MAESTRO ENGINE ────────────────────────────────────────────────────
-function startMaestro({name,email}){
+function startMaestro({name,email,grupo}){
   if(!name){document.getElementById('e-name').textContent='Escribe tu nombre.';return;}
   if(!email||!EMAIL_RE.test(email)){
     document.getElementById('e-email').textContent='Correo @murciaeduca.es, @alu.murciaeduca.es o @gmail.com requerido.';return;
@@ -751,10 +758,10 @@ function startMaestro({name,email}){
   // Streak + daily mission: trigger on morphology entry (same as syntax)
   try{ updateDailyStreak(); }catch(e){console.warn('[streak morph]',e);}
   // Try loading texts from Sheets, fall back to hardcoded
-  _loadMaestroTexts(name,email);
+  _loadMaestroTexts(name,email,grupo);
 }
 
-async function _loadMaestroTexts(name,email){
+async function _loadMaestroTexts(name,email,grupo){
   let textsToUse = [...MAESTRO_TEXTS]; // fallback
   const apiUrl = getApiUrl();
   if(apiUrl){
@@ -789,7 +796,7 @@ async function _loadMaestroTexts(name,email){
   // Shuffle texts randomly
   const shuffled = shuffle(textsToUse);
   MM={
-    name, email,
+    name, email, grupo: grupo||'', // Fase 3.2 (jul-2026): para poder enviarlo con la nota de examen
     mode: selectedMaestroMode,
     nivel: selectedMaestroNivel || 'maestro',
     sentences: shuffled,
@@ -807,7 +814,23 @@ async function _loadMaestroTexts(name,email){
     catStats:{}
   };
   showScreen('screen-maestro');
+  // Fase 3.1 (jul-2026): saltar un texto en examen regala nota (los tokens
+  // saltados no computan) — el botón solo tiene sentido en práctica.
+  const skipBtn = document.getElementById('mm-skip-text');
+  if(skipBtn) skipBtn.style.display = (MM.mode==='exam') ? 'none' : '';
   renderMaestroSentence();
+}
+
+// Fase 3.1 (jul-2026): mismo patrón que el examen de Simples (sint:3524) —
+// en examen, confirmar antes de salir para no perder la nota sin avisar.
+function exitMaestro(){
+  if(MM && MM.mode==='exam'){
+    if(confirm('¿Salir del examen? Si no has terminado, no se guardará la nota.')){
+      goLogin();
+    }
+    return;
+  }
+  goLogin();
 }
 
 function skipMaestroText(){
@@ -1185,13 +1208,18 @@ function confirmToken(){
   if(!MM._tokensErr) MM._tokensErr=0;
   if(earned===possible) MM._tokensOk++; else MM._tokensErr++;
   if(catCorrect) {
-    playClick(); // C4B: click suave al confirmar
-    // Visual feedback: pop the token + toast with category name
-    if(MM.tokenIdx !== undefined && MM.tokenIdx !== null && MM.tokenIdx >= 0){
-      popElement('mm-tk-' + MM.tokenIdx);
+    playClick(); // C4B: click suave al confirmar (mismo sonido en examen: no revela nada)
+    // Fase 3.1 (jul-2026): en examen, sin pop del token ni flash "¡categoría
+    // correcta!" — eso es justo el feedback que "Sin feedback" prometía y
+    // que antes se colaba incluso en examen.
+    if(mode!=='exam'){
+      // Visual feedback: pop the token + toast with category name
+      if(MM.tokenIdx !== undefined && MM.tokenIdx !== null && MM.tokenIdx >= 0){
+        popElement('mm-tk-' + MM.tokenIdx);
+      }
+      const allCorrect = (earned === possible);
+      showCorrectFlash(allCorrect ? '¡' + token.cat + ' correcta!' : token.cat + ' (con detalles)');
     }
-    const allCorrect = (earned === possible);
-    showCorrectFlash(allCorrect ? '¡' + token.cat + ' correcta!' : token.cat + ' (con detalles)');
   }
 
   // Re-render text flow to reflect done/active states
@@ -1258,6 +1286,62 @@ function showTokenFeedback(token, catCorrect, earned, possible){
     </div>`;
 }
 
+// Fase 3.3 (jul-2026): envío de la nota de examen al profesor. Antes el
+// botón "Examen" no enviaba nada a ningún sitio — mismo patrón anti-
+// duplicado/reintento que submitResult() en sint/index.js.
+let _morfoPendingResult = null;
+let _morfoExamSent = false;
+
+async function submitMorfologiaResult(){
+  const msg = document.getElementById('mm-exam-msg');
+  const retryBtn = document.getElementById('mm-exam-retry');
+  if(!msg) return;
+  if(_morfoExamSent){
+    msg.style.display='block';msg.textContent='✓ Resultado ya enviado.';
+    msg.style.background='var(--green-lt)';msg.style.color='#166534';
+    return;
+  }
+  msg.style.display='block';if(retryBtn) retryBtn.style.display='none';
+  msg.style.background='var(--blue-lt)';msg.style.borderColor='#93C5FD';msg.style.color='#1D4ED8';
+  msg.textContent='⏳ Enviando resultado al profesor…';
+  const apiUrl=getApiUrl();
+  if(!apiUrl){
+    msg.textContent='⚠ Sin URL de API. La nota no se ha enviado al profesor.';
+    msg.style.background='var(--red-lt)';msg.style.color='var(--red)';
+    return;
+  }
+  const nota10 = MM.totalAttempted>0?Math.round(MM.totalCorrect/MM.totalAttempted*100)/10:0;
+  // Reutiliza la acción/hoja 'saveMorphResult' → Morfologia_Resultados que
+  // ya existía en el GAS (infra preparada pero nunca conectada a ningún
+  // frontend — ni el maestro actual ni el morph legacy la llamaban).
+  _morfoPendingResult = {
+    action:'saveMorphResult',
+    name:MM.name||'',email:MM.email||'',grupo:MM.grupo||'',
+    nivel:MM.nivel||'',modo:MM.mode||'',
+    nota:String(nota10||0),
+    tokensOk:String(MM._tokensOk||0),tokensErr:String(MM._tokensErr||0),
+    tokensTotales:String(MM.doneTokens||0),
+    catStats:JSON.stringify(MM.catStats||{}),
+    versionCalificacion:VERSION_CALIFICACION_MORFO
+  };
+  try{
+    const params=new URLSearchParams(_morfoPendingResult);
+    const r=await fetchWithTimeout(apiUrl+'?'+params.toString(),{},12000);
+    const d=await r.json();
+    if(d.ok){
+      msg.textContent='✓ Resultado enviado correctamente al profesor.';
+      msg.style.background='var(--green-lt)';msg.style.borderColor='#86EFAC';msg.style.color='#166534';
+      _morfoPendingResult=null;_morfoExamSent=true;
+    }else{
+      throw new Error(d.error||'Error del servidor');
+    }
+  }catch(e){
+    msg.textContent='⚠ Error de conexión: '+(e.message||'timeout')+'. Inténtalo de nuevo.';
+    msg.style.background='var(--red-lt)';msg.style.borderColor='#FCA5A5';msg.style.color='var(--red)';
+    if(retryBtn) retryBtn.style.display='inline-flex';
+  }
+}
+
 function showMaestroResults(){
   const skipBtn=document.getElementById('mm-skip-text');
   if(skipBtn) skipBtn.style.display='none';
@@ -1319,11 +1403,19 @@ function showMaestroResults(){
         </h3>
         ${statsHtml}
       </div>
+      ${MM.mode==='exam' ? `
+      <div id="mm-exam-msg" style="display:none;padding:10px 14px;border-radius:10px;border:1.5px solid;font-size:.85rem;font-weight:700;text-align:center;margin-bottom:12px"></div>
+      <div style="text-align:center;margin-bottom:12px">
+        <button type="button" id="mm-exam-retry" class="btn btn-ghost btn-sm" style="display:none" onclick="submitMorfologiaResult()">🔄 Reintentar envío</button>
+      </div>` : ''}
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding-bottom:20px">
         <button type="button" class="btn btn-primary" onclick="goModule('maestro')">Repetir</button>
         <button type="button" class="btn btn-ghost" onclick="goLogin()">← Inicio</button>
       </div>
     </div>`;
+  if(MM.mode==='exam'){
+    submitMorfologiaResult();
+  }
 }
 
 // Public API exports + window bindings para inline onclick
@@ -1334,11 +1426,12 @@ export {
   setMorphTipoSilent, setMaestroNivel, setMorphTipo,
   selectChallenge, setMaestroMode,
   getCascadeForNivel, normalizePerifrasTokenAtrs, buildMaestroText,
-  startMaestro, skipMaestroText,
+  startMaestro, skipMaestroText, exitMaestro,
   renderMaestroSentence, renderMaestroText, updateMaestroHeader,
   selectToken, renderCascade, renderCatGroups, selectCatGroup,
   getCategoryHint, selectCategory, renderAttrSteps, selectAttr,
   checkConfirmReady, confirmToken, showTokenFeedback, showMaestroResults,
+  submitMorfologiaResult, VERSION_CALIFICACION_MORFO,
   MAESTRO_DEMO, MAESTRO_TEXTS, MORPH_CASCADES, MORPH_CASCADES_ESO34
 };
 
@@ -1346,9 +1439,9 @@ if (typeof window !== 'undefined') {
   Object.assign(window, {
     startMorphChallenge, retryChallenge, challengeTokenClick, selectChallenge,
     setMorphTipoSilent, setMaestroNivel, setMorphTipo, setMaestroMode,
-    startMaestro, skipMaestroText,
+    startMaestro, skipMaestroText, exitMaestro,
     selectToken, selectCatGroup, selectCategory, selectAttr,
-    confirmToken
+    confirmToken, submitMorfologiaResult
   });
   Object.defineProperty(window, "MC", { get: () => MC, configurable: true });
   Object.defineProperty(window, "MM", { get: () => MM, configurable: true });

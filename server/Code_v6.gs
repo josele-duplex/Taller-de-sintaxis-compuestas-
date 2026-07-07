@@ -839,6 +839,7 @@ function doGet(e) {
     else if (action === 'createMision')          { const na=requiereClaveProfesor_(params); result = na || createMision_(params); }
     else if (action === 'saveMisionResult')     result = saveMisionResult_(params);
     else if (action === 'saveResult')            result = saveResult_(params);
+    else if (action === 'saveMorphResult')       result = saveMorphResult_(params); // Fase 3.3: el frontend la llama por GET, igual que saveResult
     else if (action === 'saveSesionPractica')    result = saveSesionPractica_(params);
     else if (action === 'saveSesionChispa')      result = saveSesionChispa_(params);
     else if (action === 'createExam')             { const na=requiereClaveProfesor_(params); result = na || createExam_(params); }
@@ -2042,13 +2043,17 @@ function getRankingArcade_(params) {
   };
 }
 
+// v6.4 (jul-2026, Fase 3.3): reescrita para conectar por fin con el módulo
+// Maestro (morfología vigente) — esta acción y la hoja Morfologia_Resultados
+// existían ya en el GAS pero ningún frontend las llamaba (ni Maestro ni el
+// morph legacy archivado). Cabecera y payload alineados con MM (nivel string
+// 'aprendiz'/'eso34'/'maestro', modo 'practice'/'exam', tokens+CatStats_JSON).
 function saveMorphResult_(p) {
-  const paramErr = requireParams_(p, ['total', 'correct']);
-  if (paramErr) return paramErr;
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   let sheet   = ss.getSheetByName(SHEET_MORPH);
-  const MORPH_HEADER = ['Fecha','Correo','Nombre','Nivel','Modalidad',
-                        'Correctas','Total','Errores','Puntuacion_Pct'];
+  const MORPH_HEADER = ['Fecha','Correo','Nombre','Grupo','Nivel','Modo',
+                        'Nota','Tokens_Ok','Tokens_Err','Tokens_Totales',
+                        'CatStats_JSON','Version_Calificacion'];
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_MORPH);
     sheet.appendRow(MORPH_HEADER);
@@ -2056,17 +2061,19 @@ function saveMorphResult_(p) {
     sheet.setFrozenRows(1);
   }
   ensureSheetHeaders_(sheet, MORPH_HEADER);
-  const pct = p.total > 0 ? Math.round((p.correct / p.total) * 100) : 0;
   appendRowSafe_(sheet, MORPH_HEADER, {
-    'Fecha':          new Date(),
-    'Correo':         p.email || '',
-    'Nombre':         p.name  || '',
-    'Nivel':          p.level || 1,
-    'Modalidad':      p.morphMode || '',
-    'Correctas':      p.correct || 0,
-    'Total':          p.total   || 0,
-    'Errores':        p.errors  || 0,
-    'Puntuacion_Pct': pct
+    'Fecha':               new Date(),
+    'Correo':              String(p.email || '').trim().toLowerCase(),
+    'Nombre':              p.name  || '',
+    'Grupo':               p.grupo || '',
+    'Nivel':               p.nivel || '',
+    'Modo':                p.modo  || '',
+    'Nota':                parseFloat(p.nota) || 0,
+    'Tokens_Ok':           parseInt(p.tokensOk) || 0,
+    'Tokens_Err':          parseInt(p.tokensErr) || 0,
+    'Tokens_Totales':      parseInt(p.tokensTotales) || 0,
+    'CatStats_JSON':       p.catStats || '{}',
+    'Version_Calificacion': p.versionCalificacion || ''
   });
   return { ok: true };
 }

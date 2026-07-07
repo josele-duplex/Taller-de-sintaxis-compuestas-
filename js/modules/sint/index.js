@@ -3731,7 +3731,7 @@ async function handleStartAll(){
       window.saveProfile({ name, email, grupo: grupoCompartido || grupoArcade });
     }
   } catch (e) {}
-  if(currentModule==='maestro'){startMaestro({name,email});return;}
+  if(currentModule==='maestro'){startMaestro({name,email,grupo:grupoCompartido});return;}
   if(currentModule==='sint'){handleStart();return;}
   if(currentModule==='arcade'){
     const nick=document.getElementById('inp-nickname')?.value.trim();
