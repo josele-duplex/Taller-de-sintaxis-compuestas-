@@ -263,6 +263,66 @@ function safeParseJSON(raw) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+//  _analizarDificultadOracion_ (jul-2026, revisión pedida por Josele)
+//  Única fuente de verdad para "qué tan difícil es esta oración", calculada
+//  EN CALIENTE a partir de fase1/fase2/fase3 (nunca de una columna estática):
+//  así el criterio se aplica de inmediato a las 658 oraciones del banco, sin
+//  depender de que alguien vuelva a etiquetar cada fila.
+//
+//  Subfase mínima (Solo NP / NP+Sujeto / Completo):
+//  - NP difícil    = perífrasis verbal, O hay C.Ag. (indicio de pasiva real).
+//    (el tiempo compuesto NO cuenta como difícil: ya se presenta como una
+//    categoría propia y más sencilla en la Fase 1 del alumno).
+//  - Sujeto difícil = tácito, O impersonal (sin sujeto), O pospuesto
+//    (aparece después del NP en la oración).
+//  - Si el sujeto es difícil → mínimo 'completo' (aunque el NP sea fácil:
+//    esa dificultad solo importa si el alumno llega a la fase del sujeto).
+//  - Si no, pero el NP es difícil → mínimo 'np_sujeto'.
+//  - Si ninguno → 'solo_np' (la inmensa mayoría del banco: para encontrar
+//    el verbo vale casi cualquier oración, como pedía Josele).
+//
+//  Dificultad general (1-4, la que usa el filtro "Dificultad máxima" del
+//  profesor): suma de puntos por función presente, dando el doble de peso
+//  a CPvo, Marca.Pas.Ref., C.Ag. y a los CD/CI en forma de pronombre átono
+//  frente a un CD/CI/C.Rég./CC "normal" — antes se contaban por igual.
+// ════════════════════════════════════════════════════════════════════════
+function _analizarDificultadOracion_(o) {
+  const bloques = (o.fase3 && o.fase3.bloques) || [];
+  const funcs = bloques
+    .map(b => (b.solucion || '').split(' | ')[1] || '')
+    .filter(f => f && f !== 'NP' && f !== 'Sujeto' && f !== 'Sujeto tácito');
+
+  const tipoVerbo = (o.fase1 && o.fase1.tipo_verbo_categoria) || 'SIMPLE';
+  const tieneCAg  = funcs.includes('C.Ag.');
+  const npDificil = (tipoVerbo === 'PERIFRASIS') || tieneCAg;
+
+  const sujTacito     = !!(o.fase2 && o.fase2.sujeto_tacito);
+  const sujImpersonal = !!(o.fase2 && o.fase2.sin_sujeto);
+  const sujIndices = (o.fase2 && o.fase2.sujeto_indices) || [];
+  const npIndices  = (o.fase1 && o.fase1.nucleo_predicado_indices) || [];
+  const sujPospuesto  = sujIndices.length > 0 && npIndices.length > 0 && sujIndices[0] > npIndices[0];
+  const sujetoDificil = sujTacito || sujImpersonal || sujPospuesto;
+
+  const subfaseMinima = sujetoDificil ? 'completo' : (npDificil ? 'np_sujeto' : 'solo_np');
+
+  const FUNC_PESO_DIFICULTAD = { 'CPvo': 2, 'Marca.Pas.Ref.': 2, 'C.Ag.': 2 };
+  const PRONOMBRES_CD_CI = ['lo','la','los','las','le','les','me','te','nos','os','se'];
+  const palabras = o.palabras || [];
+  let puntos = 0;
+  bloques.forEach(b => {
+    const func = (b.solucion || '').split(' | ')[1] || '';
+    if (!func || func === 'NP' || func === 'Sujeto' || func === 'Sujeto tácito') return;
+    const idxs = b.indices || [];
+    const esPronombre = (func === 'CD' || func === 'CI') && idxs.length === 1 &&
+      PRONOMBRES_CD_CI.includes(String(palabras[idxs[0]] || '').toLowerCase());
+    puntos += esPronombre ? 2 : (FUNC_PESO_DIFICULTAD[func] || 1);
+  });
+  const dificultad = puntos <= 1 ? 1 : puntos <= 3 ? 2 : puntos <= 5 ? 3 : 4;
+
+  return { npDificil, sujetoDificil, subfaseMinima, puntosDificultad: puntos, dificultad };
+}
+
+// ════════════════════════════════════════════════════════════════════════
 //  buildOracionObject — convierte una fila del Sheets en el objeto
 //  que espera el frontend: { id, oracion_completa, palabras, fase3 }
 //  La Estructura_JSON del Sheets es el análisis de funciones del predicado.
@@ -477,14 +537,11 @@ function buildOracionObject(row, rowIndex) {
     .map((b, i) => buildSintagma(b, rowIndex, i))
     .filter(Boolean);
 
-  return {
+  const result = {
     id:               rowIndex,
     oracion_completa: texto,
     palabras:         palabras,
     funciones_presentes: tagsFuncs, // For frontend filter system
-    // v6.4 (Fase 1.5): subfase mínima de la fila (columna H), útil para
-    // depurar el filtro por subfase desde el frontend sin abrir el Sheet.
-    subfase_minima:   row[COL_SUBFASE - 1] ? String(row[COL_SUBFASE - 1]).trim() : '',
     fase1: {
       nucleo_predicado_indices: verbIndices,
       tipo_verbo_categoria: detectarTipoVerbo(verbo),
@@ -505,6 +562,14 @@ function buildOracionObject(row, rowIndex) {
     },
     fase4: fase4Sintagmas.length > 0 ? { sintagmas: fase4Sintagmas } : null
   };
+  // v6.5 (jul-2026, revisión Fase 2.3): subfase mínima y dificultad
+  // calculadas EN CALIENTE con _analizarDificultadOracion_ — ya no se lee
+  // la columna H estática, así el criterio nuevo aplica a las 658 oraciones
+  // del banco de inmediato, sin reetiquetar nada.
+  const _an = _analizarDificultadOracion_(result);
+  result.subfase_minima = _an.subfaseMinima;
+  result.dificultad_dinamica = _an.dificultad;
+  return result;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -911,8 +976,9 @@ function getOraciones_(mode, subfase) {
     oraciones.push(obj);
 
     if (selIdx >= 0) {
-      const minReq = row[COL_SUBFASE - 1] ? String(row[COL_SUBFASE - 1]).trim() : 'solo_np';
-      const reqIdx = subfaseOrder.indexOf(minReq);
+      // v6.5: subfase_minima ya viene calculada en caliente por buildOracionObject
+      // (_analizarDificultadOracion_) — no se lee la columna H estática.
+      const reqIdx = subfaseOrder.indexOf(obj.subfase_minima || 'completo');
       if (selIdx >= reqIdx) filtradas.push(obj);
     }
   }
@@ -946,43 +1012,31 @@ function getOracionesFiltradas_(params) {
   const dificultad     = parseInt(params.dificultad) || 0;
 
   // Phase 0: collect all active oraciones with their functions
+  // v6.5 (jul-2026): dificultad y subfase ya no se leen de columnas
+  // estáticas — se construye el objeto completo (buildOracionObject) y se
+  // usan sus valores dinámicos (_analizarDificultadOracion_), igual que en
+  // getOraciones_. Así el filtro cubre las 658 oraciones del banco de
+  // inmediato, sin depender de que se hayan reetiquetado.
   const candidates = [];
+  const subfaseOrder = ['solo_np','np_sujeto','completo','profundo'];
   for (let i = 0; i < data.length; i++) {
     const row    = data[i];
     const activo = String(row[COL_ACTIVO-1]).trim();
     if (activo !== 'Sí') continue;
     const rawJson  = row[COL_JSON -1] ? String(row[COL_JSON-1]) : '';
-    const rawTags  = row[COL_TAGS -1] ? String(row[COL_TAGS-1]) : '{}';
     const parsed   = safeParseJSON(rawJson);
     if (!parsed) continue;
-    let tags = {};
-    try { tags = JSON.parse(rawTags); } catch(e) { tags = {}; }
-    // Filter by dificultad
-    if (dificultad > 0 && tags.dificultad && tags.dificultad > dificultad) continue;
-    // Filter by subfase
-    const subfaseOrder = ['solo_np','np_sujeto','completo','profundo'];
+    const obj = buildOracionObject(row, i + 2);
+    if (!obj) continue;
+    // Filter by dificultad (dinámica)
+    if (dificultad > 0 && obj.dificultad_dinamica > dificultad) continue;
+    // Filter by subfase (dinámica)
     if (subfase) {
-      const minReq = row[COL_SUBFASE-1] ? String(row[COL_SUBFASE-1]).trim() : 'solo_np';
-      const reqIdx = subfaseOrder.indexOf(minReq);
+      const reqIdx = subfaseOrder.indexOf(obj.subfase_minima || 'completo');
       const selIdx = subfaseOrder.indexOf(subfase);
       if (selIdx < reqIdx) continue;
     }
-    // Defensive normalization (same as buildOracionObject)
-    let funcsList = tags.funciones_presentes || [];
-    if (funcsList.length > 0 && typeof FUNC_NORMALIZATION !== 'undefined') {
-      const seen = {};
-      const normalized = [];
-      for (let f of funcsList) {
-        let canonical = f;
-        if (FUNC_NORMALIZATION.hasOwnProperty(f)) {
-          canonical = FUNC_NORMALIZATION[f];
-          if (canonical === null) continue;
-        }
-        if (!seen[canonical]) { seen[canonical] = true; normalized.push(canonical); }
-      }
-      funcsList = normalized;
-    }
-    candidates.push({ row, idx: i+2, funciones: funcsList });
+    candidates.push({ obj, funciones: obj.funciones_presentes || [] });
   }
 
   // Phase 1: HARD EXCLUSION — remove oraciones with prohibited functions
@@ -1006,8 +1060,9 @@ function getOracionesFiltradas_(params) {
     if (result.length === 0) result = pool;
   }
 
-  // Build oracion objects
-  const oraciones = result.map(c => buildOracionObject(c.row, c.idx)).filter(Boolean);
+  // Los objetos ya están construidos (buildOracionObject se llamó una sola
+  // vez por fila en la fase 0) — no hay que reconstruirlos.
+  const oraciones = result.map(c => c.obj).filter(Boolean);
   return { oraciones, total: oraciones.length, filtered: true };
 }
 
@@ -2641,59 +2696,39 @@ function generarEtiquetas() {
 
   for (let i = 0; i < data.length; i++) {
     const row    = data[i];
-    const rawJson = row[COL_JSON -1] ? String(row[COL_JSON-1]) : '';
     const rawTags = row[COL_TAGS -1] ? String(row[COL_TAGS-1]).trim() : '';
 
     // Skip if already has tags
     if (rawTags && rawTags !== '{}') { skipped++; continue; }
 
-    const parsed = safeParseJSON(rawJson);
-    if (!parsed) continue;
+    // v6.5 (jul-2026, revisión Fase 2.3 pedida por Josele): Tags_JSON y
+    // Subfase se derivan del MISMO cálculo dinámico que usan getOraciones_/
+    // getOracionesFiltradas_ (_analizarDificultadOracion_), para que lo que
+    // el profesor ve en el Sheet coincida con lo que de verdad filtra la
+    // app — nunca dos criterios divergentes.
+    // Nota: como el filtro de subfase ya no lee esta columna (es dinámico),
+    // escribirla aquí es solo para que el profesor pueda inspeccionarla a
+    // simple vista en el Sheet; no hace falta reetiquetar el banco existente
+    // para que el filtro nuevo tenga efecto.
+    const obj = buildOracionObject(row, i + 2);
+    if (!obj) continue;
 
-    const bloques = Array.isArray(parsed) ? parsed : [parsed];
-
-    // Extract functions present
+    const bloques = (obj.fase3 && obj.fase3.bloques) || [];
     const funcs = bloques
-      .map(b => b.función || b.funcion || '')
-      .filter(f => f && f !== 'NP' && f !== 'Sujeto')
-      .map(f => f.trim());
-
-    // Determine predicado type
-    const hasAtributo = funcs.some(f => f === 'Atr.' || f === 'CPvo');
-    const predicado   = hasAtributo ? 'nominal' : 'verbal';
-
-    // Difficulty heuristic based on number of blocks
-    const dificultad = bloques.length <= 2 ? 1 : bloques.length <= 4 ? 2 : bloques.length <= 6 ? 3 : 4;
-
-    // Subfase mínima (revisado jul-2026, Fase 2.3).
-    // Heurística anterior: 'completo' si tenía CD/CI o algún CC, 'np_sujeto'
-    // si solo Atr./CPvo/C.Rég./marcas, 'solo_np' si no había ninguna función
-    // de predicado. Tenía sentido cuando la subfase SOLO filtraba el banco:
-    // "reservar" las oraciones con CD/CI/CC para el análisis completo. Pero
-    // desde el recorte real de fases (Fase 1.1), en solo_np y np_sujeto la
-    // Fase 3 nunca se juega — el alumno no llega a ver esas funciones, así
-    // que excluir una oración de "Solo NP" por tener un CD escondido no
-    // protege de nada; solo encoge el pool sin motivo real.
-    // Nuevo criterio: la dificultad (nº de bloques analizables, ya calculada
-    // arriba) es un proxy más honesto de qué tan avanzada es la oración en
-    // su conjunto, independiente de qué función concreta aparezca:
-    //   dificultad 1 (≤2 bloques) → solo_np
-    //   dificultad 2 (3-4 bloques) → np_sujeto
-    //   dificultad 3-4 (5+ bloques) → completo
-    // Solo afecta a oraciones SIN etiquetas todavía (esta función se salta
-    // las que ya tienen tags) — no reclasifica retroactivamente el banco.
-    const subfase = dificultad <= 1 ? 'solo_np' : dificultad <= 2 ? 'np_sujeto' : 'completo';
+      .map(b => (b.solucion || '').split(' | ')[1] || '')
+      .filter(f => f && f !== 'NP' && f !== 'Sujeto' && f !== 'Sujeto tácito');
+    const predicado = (funcs.includes('Atr.') || funcs.includes('CPvo')) ? 'nominal' : 'verbal';
 
     const tags = {
       tipo_oracion: 'simple',
       predicado,
       funciones_presentes: [...new Set(funcs)],
-      dificultad,
+      dificultad: obj.dificultad_dinamica,
     };
 
     const rowNum = i + 2;
     sheet.getRange(rowNum, COL_TAGS).setValue(JSON.stringify(tags));
-    sheet.getRange(rowNum, COL_SUBFASE).setValue(subfase);
+    sheet.getRange(rowNum, COL_SUBFASE).setValue(obj.subfase_minima);
     filled++;
   }
 
