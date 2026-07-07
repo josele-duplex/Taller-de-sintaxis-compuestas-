@@ -2497,10 +2497,24 @@ function generarEtiquetas() {
     // Difficulty heuristic based on number of blocks
     const dificultad = bloques.length <= 2 ? 1 : bloques.length <= 4 ? 2 : bloques.length <= 6 ? 3 : 4;
 
-    // Subfase mínima
-    const hasCDCI    = funcs.some(f => ['CD','CI'].includes(f));
-    const hasCC      = funcs.some(f => f.startsWith('CC '));
-    const subfase    = funcs.length === 0 ? 'solo_np' : (hasCDCI || hasCC) ? 'completo' : 'np_sujeto';
+    // Subfase mínima (revisado jul-2026, Fase 2.3).
+    // Heurística anterior: 'completo' si tenía CD/CI o algún CC, 'np_sujeto'
+    // si solo Atr./CPvo/C.Rég./marcas, 'solo_np' si no había ninguna función
+    // de predicado. Tenía sentido cuando la subfase SOLO filtraba el banco:
+    // "reservar" las oraciones con CD/CI/CC para el análisis completo. Pero
+    // desde el recorte real de fases (Fase 1.1), en solo_np y np_sujeto la
+    // Fase 3 nunca se juega — el alumno no llega a ver esas funciones, así
+    // que excluir una oración de "Solo NP" por tener un CD escondido no
+    // protege de nada; solo encoge el pool sin motivo real.
+    // Nuevo criterio: la dificultad (nº de bloques analizables, ya calculada
+    // arriba) es un proxy más honesto de qué tan avanzada es la oración en
+    // su conjunto, independiente de qué función concreta aparezca:
+    //   dificultad 1 (≤2 bloques) → solo_np
+    //   dificultad 2 (3-4 bloques) → np_sujeto
+    //   dificultad 3-4 (5+ bloques) → completo
+    // Solo afecta a oraciones SIN etiquetas todavía (esta función se salta
+    // las que ya tienen tags) — no reclasifica retroactivamente el banco.
+    const subfase = dificultad <= 1 ? 'solo_np' : dificultad <= 2 ? 'np_sujeto' : 'completo';
 
     const tags = {
       tipo_oracion: 'simple',
