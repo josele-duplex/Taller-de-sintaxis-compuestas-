@@ -874,6 +874,13 @@ function setMode(m){
   selectedMode=m;
   ['mc-practice','mc-exam'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.toggle('sel-active',el.id==='mc-'+m);el.setAttribute('aria-checked',String(el.id==='mc-'+m));}});
   document.getElementById('pin-block').style.display=m==='exam'?'block':'none';
+  // Fase 1.4 (jul-2026): en examen la subfase la fija el PIN del profesor
+  // (ver taller_exam_subfase), así que el selector del alumno no hace nada
+  // — ocultarlo evita que elija una profundidad que luego se ignora.
+  const sfBlock=document.getElementById('subfase-block');
+  const sfNote=document.getElementById('subfase-exam-note');
+  if(sfBlock) sfBlock.style.display=m==='exam'?'none':'block';
+  if(sfNote) sfNote.style.display=m==='exam'?'block':'none';
   // Mostrar grupo en ambos modos: opcional en práctica, obligatorio en examen
   // (mayo 2026 — permite reutilizar el mismo PIN para distintos grupos).
   const grupoField=document.getElementById('campo-grupo');
@@ -1427,9 +1434,14 @@ function updateTopBar(){
   const exitBtn=document.getElementById('tb-exit-btn');
   if(exitBtn) exitBtn.style.display=G.mode==='projector'?'none':'inline-flex';
   const maxPhase=3;
+  // Fase 1.3 (jul-2026): en "Solo NP" / "NP + Sujeto" las fases que la
+  // subfase no incluye se pintan como pp-skip (igual que la 4ª, Sintagmas,
+  // que nunca se juega aquí) — antes siempre se veían las 3 como pendientes
+  // aunque la sesión fuera a terminar mucho antes de llegar a ellas.
+  const allowedPhases=SUBFASE_CONFIGS[G.subfase||'completo']?.phases||[1,2,3];
   document.getElementById('phase-pills').innerHTML=PHASE_NAMES.map((lbl,i)=>{
     const n=i+1;
-    if(n>3)return`<span class="ppill pp-skip">${lbl}</span>`;
+    if(n>maxPhase||!allowedPhases.includes(n))return`<span class="ppill pp-skip">${lbl}</span>`;
     const cls=n<G.phase?'pp-done':n===G.phase?'pp-active':'pp-pending';
     return`<span class="ppill ${cls}">${n<G.phase?'✓ ':''}${lbl}</span>`;
   }).join('');
@@ -3161,6 +3173,7 @@ const LOGIN_PANELS = {
       <div class="subfase-grid" id="subfase-grid"></div>
       <p id="e-subfase" class="ferr" role="alert"></p>
     </div>
+    <p id="subfase-exam-note" style="display:none;font-size:.82rem;color:var(--muted);margin:-8px 0 17px">📌 La profundidad la fija el examen del profesor (PIN).</p>
     <div id="pin-block" style="display:none;margin-bottom:17px">
       <label for="inp-pin" style="display:block;font-weight:700;font-size:.85rem;margin-bottom:7px;color:var(--ink2)">PIN del examen</label>
       <input id="inp-pin" class="input input-pin" type="password" inputmode="numeric" maxlength="4" placeholder="····">
