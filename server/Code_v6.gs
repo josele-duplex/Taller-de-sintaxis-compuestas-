@@ -1749,7 +1749,7 @@ function saveResult_(p) {
                            'Sujeto_Pts','Funciones_Pts','NP_Pts','Elem_Fallados',
                            'Err_CD','Err_CI','Err_Atr','Err_CPvo','Err_CReg','Err_CC',
                            'Reflexion_Total','Reflexion_Correctas','Email_Enviado',
-                           'Version_Calificacion'];
+                           'Version_Calificacion','Subfase'];
     let sheet = ss.getSheetByName(SHEET_RESULTS);
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_RESULTS);
@@ -1804,7 +1804,8 @@ function saveResult_(p) {
       'Err_CC':     parseInt(p.errCC)   ||0,
       'Reflexion_Total':     parseInt(p.reflexionTotal)     ||0,
       'Reflexion_Correctas': parseInt(p.reflexionCorrectas) ||0,
-      'Version_Calificacion': p.versionCalificacion||''
+      'Version_Calificacion': p.versionCalificacion||'',
+      'Subfase': p.subfase||'completo' // Fase 2 (jul-2026): para no mezclar notas de distinta profundidad
     });
 
     // ── Informe automático por correo (julio 2026) ──────────────────────
@@ -3915,7 +3916,10 @@ function getInformeProfesor_(params) {
           tiempo_min_total: 0,
           ultima_actividad: null,
           simples_practica: { sesiones: 0, ejercicios: 0, notas: [] },
-          simples_examen:   { intentos: 0, notas: [] },
+          // Fase 2 (jul-2026): porSubfase agrupa las notas de examen por
+          // profundidad (solo_np/np_sujeto/completo) para no promediar
+          // notas de distinto alcance como si fueran comparables.
+          simples_examen:   { intentos: 0, notas: [], porSubfase: {} },
           compuestas:       { intentos: 0, notas: [] },
           errores: {}   // funcion → count
         };
@@ -3943,6 +3947,9 @@ function getInformeProfesor_(params) {
       a.notas.push(r.nota);
       a.simples_examen.intentos++;
       a.simples_examen.notas.push(r.nota);
+      const sf = r.subfase || 'completo';
+      if (!a.simples_examen.porSubfase[sf]) a.simples_examen.porSubfase[sf] = [];
+      a.simples_examen.porSubfase[sf].push(r.nota);
       pushUltima_(a, r.fecha);
       sumErr_(a, 'CD',     r.errCD);
       sumErr_(a, 'CI',     r.errCI);
@@ -4011,7 +4018,17 @@ function getInformeProfesor_(params) {
         simples_examen: {
           intentos:   a.simples_examen.intentos,
           nota_media: media_(a.simples_examen.notas),
-          mejor_nota: a.simples_examen.notas.length ? Math.max.apply(null, a.simples_examen.notas) : null
+          mejor_nota: a.simples_examen.notas.length ? Math.max.apply(null, a.simples_examen.notas) : null,
+          // Fase 2 (jul-2026): desglose por profundidad — solo se rellena si
+          // hay más de una subfase entre los intentos del alumno, para no
+          // añadir ruido cuando todo es 'completo' (el caso de siempre).
+          por_subfase: Object.keys(a.simples_examen.porSubfase).length > 1
+            ? Object.keys(a.simples_examen.porSubfase).map(sf => ({
+                subfase: sf,
+                intentos: a.simples_examen.porSubfase[sf].length,
+                nota_media: media_(a.simples_examen.porSubfase[sf])
+              }))
+            : []
         },
         compuestas: {
           intentos:   a.compuestas.intentos,
@@ -4298,7 +4315,8 @@ function leerSimplesExamen_(ss, from, to, grupoFilter) {
       errAtr:     parseInt(row[col['Err_Atr']])  || 0,
       errCPvo:    parseInt(row[col['Err_CPvo']]) || 0,
       errCReg:    parseInt(row[col['Err_CReg']]) || 0,
-      errCC:      parseInt(row[col['Err_CC']])   || 0
+      errCC:      parseInt(row[col['Err_CC']])   || 0,
+      subfase:    String(row[col['Subfase']] || '').trim() || 'completo' // Fase 2 (jul-2026)
     });
   });
   return out;

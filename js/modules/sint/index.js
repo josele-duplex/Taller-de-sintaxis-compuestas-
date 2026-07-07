@@ -3062,6 +3062,8 @@ async function submitResult(score,totalAvail,totalEarned,totals){
     action:'saveResult',name:G.name||'',email:G.email||'',pin:G.examPin||'',
     grupo:G.examGrupo||'',evaluacion:G.examEval||'',examen:G.examName||'',
     score:String(score||0),versionCalificacion:VERSION_CALIFICACION,
+    subfase:G.subfase||'completo', // Fase 2 (jul-2026): para no mezclar notas de distinta profundidad en el informe
+
     sujeto:String((pb.sujeto||{}).earned||0),funciones:String((pb.funciones||{}).earned||0),
     np:String((pb.np||{}).earned||0),elementosFallados:String(elemFallados),
     completadas:String(completadas),totalOraciones:String(totalOr),

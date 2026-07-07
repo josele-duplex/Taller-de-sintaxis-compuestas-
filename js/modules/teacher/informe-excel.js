@@ -324,9 +324,12 @@
     aoa.push([cell('')]);
 
     // Fila 3: cabecera de tabla
-    const headers = ['Grupo','Nombre','Correo','Sesiones','Ejercicios','Nota media','Tiempo (min)','Última actividad','Top errores'];
+    const headers = ['Grupo','Nombre','Correo','Sesiones','Ejercicios','Nota media','Tiempo (min)','Última actividad','Top errores','Examen por subfase'];
     aoa.push(headers.map(h => cell(h, S_cabeceraTabla())));
     const headerRow = aoa.length;  // 0-indexed: 3
+
+    // Fase 2 (jul-2026): etiquetas cortas para el desglose de examen por subfase
+    const SUBFASE_LABELS = { solo_np:'Solo NP', np_sujeto:'NP+Sujeto', completo:'Completo', profundo:'Profundo' };
 
     // Filas 4+: alumnos (ya vienen ordenados por grupo+nombre desde el GAS)
     alumnos.forEach(a => {
@@ -336,6 +339,11 @@
       const sesiones   = (sp.sesiones || 0);
       const ejercicios = (sp.ejercicios || 0) + (ce.intentos || 0) + (cp.intentos || 0);
       const topErr     = (a.errores_top || []).slice(0,3).map(e => e.funcion + ' (' + e.count + ')').join(', ');
+      // Solo se rellena cuando el alumno ha hecho exámenes de más de una
+      // profundidad — evita ruido en el caso normal (todo 'completo').
+      const porSubfase = (ce.por_subfase || [])
+        .map(s => (SUBFASE_LABELS[s.subfase] || s.subfase) + ': ' + fmtNota(s.nota_media) + ' (' + s.intentos + ')')
+        .join(' · ');
       aoa.push([
         cell(a.grupo || '(sin grupo)', S_celda()),
         cell(a.nombre || '(sin nombre)', S_celda()),
@@ -345,20 +353,21 @@
         cell(fmtNota(a.nota_media), S_nota(a.nota_media)),
         cell(a.tiempo_min_total || 0, S_celdaCentro()),
         cell(a.ultima_actividad ? fechaCorta(a.ultima_actividad) : '—', S_celdaCentro()),
-        cell(topErr || '—', S_celda({ font:{sz:9, color:{rgb:C.muted}} }))
+        cell(topErr || '—', S_celda({ font:{sz:9, color:{rgb:C.muted}} })),
+        cell(porSubfase || '—', S_celda({ font:{sz:9, color:{rgb:C.muted}} }))
       ]);
     });
     if (!alumnos.length){
       aoa.push([
         cell('(sin alumnos en el rango)', S_celda()),
-        cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell('')
+        cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell('')
       ]);
     }
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = [
       { wch:12 }, { wch:26 }, { wch:32 }, { wch:9 }, { wch:11 },
-      { wch:11 }, { wch:11 }, { wch:14 }, { wch:36 }
+      { wch:11 }, { wch:11 }, { wch:14 }, { wch:36 }, { wch:32 }
     ];
     ws['!rows'] = [ { hpt:28 }, { hpt:18 } ];
     ws['!merges'] = merges;
@@ -366,7 +375,7 @@
     if (alumnos.length){
       const lastRow = headerRow + alumnos.length;
       // Autofiltro sobre la cabecera + filas
-      ws['!autofilter'] = { ref: 'A' + (headerRow) + ':I' + (lastRow) };
+      ws['!autofilter'] = { ref: 'A' + (headerRow) + ':J' + (lastRow) };
     }
     return ws;
   }
