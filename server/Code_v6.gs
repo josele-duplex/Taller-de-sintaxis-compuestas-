@@ -482,6 +482,9 @@ function buildOracionObject(row, rowIndex) {
     oracion_completa: texto,
     palabras:         palabras,
     funciones_presentes: tagsFuncs, // For frontend filter system
+    // v6.4 (Fase 1.5): subfase mínima de la fila (columna H), útil para
+    // depurar el filtro por subfase desde el frontend sin abrir el Sheet.
+    subfase_minima:   row[COL_SUBFASE - 1] ? String(row[COL_SUBFASE - 1]).trim() : '',
     fase1: {
       nucleo_predicado_indices: verbIndices,
       tipo_verbo_categoria: detectarTipoVerbo(verbo),
@@ -826,7 +829,7 @@ function doGet(e) {
   try {
     let result;
     if      (action === 'ping')         result = { ok: true, t: Date.now() };
-    else if (action === 'getOraciones') result = getOraciones_(mode);
+    else if (action === 'getOraciones') result = getOraciones_(mode, params.subfase);
     else if (action === 'validatePin')  result = validatePin_(params.pin, params.email);
     else if (action === 'getResults')    { const na=requiereClaveProfesor_(params); result = na || getResults_(); }
     else if (action === 'getOracionesFiltradas') result = getOracionesFiltradas_(params);
@@ -864,7 +867,15 @@ function doGet(e) {
 }
 
 // ── getOraciones_ ───────────────────────────────────────────────────────
-function getOraciones_(mode) {
+// v6.4 (jul-2026, Fase 1.5): parámetro opcional `subfase`. Si llega
+// ('solo_np'|'np_sujeto'|'completo'), se filtra el banco por la columna
+// Subfase (H) con la misma escalera que getOracionesFiltradas_, pero SIN
+// tocar el comportamiento de Activo: en práctica siguen entrando las filas
+// no activas (borradores), que era justo lo que diferenciaba esta acción
+// de la filtrada. Mejora anti-sesión-vacía: si el filtro deja menos de
+// MIN_POOL_SUBFASE oraciones, se devuelve el banco completo con el flag
+// `subfaseRelajada: true` para que el frontend pueda avisar por consola.
+function getOraciones_(mode, subfase) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_BANCO);
   if (!sheet) return gasError_('Hoja "' + SHEET_BANCO + '" no encontrada.', ERR.NO_SHEET);
@@ -874,6 +885,10 @@ function getOraciones_(mode) {
 
   const data = sheet.getRange(2, 1, lastRow - 1, 8).getValues(); // v4.7: 8 columns
   const oraciones = [];
+  const filtradas = [];   // subconjunto que además pasa el filtro de subfase
+  const MIN_POOL_SUBFASE = 5;
+  const subfaseOrder = ['solo_np', 'np_sujeto', 'completo', 'profundo'];
+  const selIdx = subfase ? subfaseOrder.indexOf(String(subfase).trim()) : -1;
 
   for (let i = 0; i < data.length; i++) {
     const row    = data[i];
@@ -889,10 +904,25 @@ function getOraciones_(mode) {
     if (!parsed) continue;
 
     const obj = buildOracionObject(row, i + 2); // +2 because row 1 is header
-    if (obj) oraciones.push(obj);
+    if (!obj) continue;
+    oraciones.push(obj);
+
+    if (selIdx >= 0) {
+      const minReq = row[COL_SUBFASE - 1] ? String(row[COL_SUBFASE - 1]).trim() : 'solo_np';
+      const reqIdx = subfaseOrder.indexOf(minReq);
+      if (selIdx >= reqIdx) filtradas.push(obj);
+    }
   }
 
-  return { oraciones: oraciones, total: oraciones.length, mode: mode };
+  // Sin filtro pedido (o valor no reconocido): comportamiento de siempre.
+  if (selIdx < 0) return { oraciones: oraciones, total: oraciones.length, mode: mode };
+
+  if (filtradas.length >= MIN_POOL_SUBFASE) {
+    return { oraciones: filtradas, total: filtradas.length, mode: mode, subfase: subfase };
+  }
+  // Banco insuficiente para esa subfase: mejor todo el pool que una sesión vacía.
+  return { oraciones: oraciones, total: oraciones.length, mode: mode,
+           subfase: subfase, subfaseRelajada: true };
 }
 
 // ── getOracionesFiltradas_ — new in v4.7 ──────────────────────────────

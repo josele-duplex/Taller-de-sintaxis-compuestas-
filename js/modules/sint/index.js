@@ -1176,8 +1176,8 @@ function reflexionResponder(itemIdx, optIdx){
 }
 
 // ── loadOraciones — separated from UI, always resolves ──────────────
-async function loadOraciones(mode, apiUrl) {
-  console.log('[loadOraciones] mode:', mode, 'apiUrl:', apiUrl ? '(set)' : '(none)');
+async function loadOraciones(mode, apiUrl, subfase) {
+  console.log('[loadOraciones] mode:', mode, 'apiUrl:', apiUrl ? '(set)' : '(none)', 'subfase:', subfase || '(ninguna)');
   if (!apiUrl) {
     console.log('[loadOraciones] No API URL — using mock data');
     return { oraciones: getMock().map(normalizeOracion).filter(Boolean), usingMock: true, apiError: '' };
@@ -1185,6 +1185,14 @@ async function loadOraciones(mode, apiUrl) {
   try {
     // For exam mode, check if there are saved filters (column G)
     let fetchUrl = `${apiUrl}?action=getOraciones&mode=${mode}`;
+    // Fase 1.5 (jul-2026): en práctica, la subfase elegida por el alumno
+    // filtra el banco en el GAS (columna Subfase). Solo se envía para las
+    // subfases restringidas: con 'completo' NO se manda el parámetro, para
+    // conservar el comportamiento de siempre (entra todo el banco, incluidas
+    // las filas marcadas 'profundo').
+    if (mode !== 'exam' && (subfase === 'solo_np' || subfase === 'np_sujeto')) {
+      fetchUrl += `&subfase=${encodeURIComponent(subfase)}`;
+    }
     if (mode === 'exam') {
       const savedFilters = JSON.parse(localStorage.getItem('taller_exam_filters') || '{}');
       const examSubfase = localStorage.getItem('taller_exam_subfase') || '';
@@ -1213,7 +1221,8 @@ async function loadOraciones(mode, apiUrl) {
       catch(e) { console.error('[normalizeOracion] Error:', e.message, o?.id || ''); return null; }
     }).filter(Boolean);
     if (oraciones.length === 0) throw new Error('Todas las oraciones fallaron normalización');
-    console.log('[loadOraciones] OK —', oraciones.length, 'oraciones');
+    if (d.subfaseRelajada) console.warn('[loadOraciones] Banco insuficiente para la subfase "'+(d.subfase||'')+'" — el GAS devolvió el banco completo.');
+    console.log('[loadOraciones] OK —', oraciones.length, 'oraciones', d.subfase?('· subfase '+d.subfase+(d.subfaseRelajada?' (relajada)':'')):'');
     return { oraciones, usingMock: false, apiError: '' };
   } catch (e) {
     const msg = e.message?.includes('aborted') ? 'Tiempo de espera agotado.' : (e.message || 'Error desconocido');
@@ -1341,7 +1350,7 @@ async function _doHandleStart(name,email,pin,examSubfase){
       oraciones: shuffle(mock), usingMock: true, timerDuration:0 });
   }, 12000);
 
-  let { oraciones, usingMock, apiError } = await loadOraciones(selectedMode, apiUrl);
+  let { oraciones, usingMock, apiError } = await loadOraciones(selectedMode, apiUrl, examSubfase);
   if (apiError) {
     const ae = document.getElementById('api-err');
     if (ae) { ae.textContent = `⚠ Sin conexión: ${apiError}. Usando oraciones de ejemplo.`; ae.style.display = 'block'; }
