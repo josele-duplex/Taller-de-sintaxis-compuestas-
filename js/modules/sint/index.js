@@ -296,7 +296,11 @@ const W = { NP: 1, SUJETO: 3, FUNCION: 3 };
 // del informe de fin de curso 2025-2026, punto 11.2). Se envía con cada
 // resultado guardado para que un futuro cambio de ponderación no vuelva a
 // mezclar sistemas de nota sin poder distinguirlos.
-const VERSION_CALIFICACION = '2026-06-16';
+// Bump 2026-07-07 (Fase 1.2): calcDetailedScore ahora respeta la subfase —
+// un examen "Solo NP"/"NP+Sujeto" con PIN de antes de esta fecha computó
+// mal la nota (sumaba fases que ni se jugaban). Los pesos W.NP/W.SUJETO/
+// W.FUNCION no cambian; lo que cambia es cuáles se suman según G.subfase.
+const VERSION_CALIFICACION = '2026-07-07';
 
 // ════════════════════════════════════════════════════════
 // TAG CONTENT HELPERS
@@ -2500,16 +2504,29 @@ function calcDetailedScore(){
     const e = errors <= 0 ? 0 : (errors >= 3 ? 3 : errors);
     return weight * _penaltyFactor[e];
   };
+  // Fase 1.2 (jul-2026): la subfase decide qué fases cuentan para la nota.
+  // Antes se sumaban SIEMPRE NP+Sujeto+Funciones aunque la sesión fuera
+  // "Solo NP" o "NP+Sujeto" — esas fases ya no se juegan (recorte de la
+  // 1.1), pero seguían regalando puntos. Se reutilizan tal cual los mismos
+  // pesos W.NP/W.SUJETO/W.FUNCION — sin inventar una ponderación nueva —
+  // para no romper la relación NP:Sujeto (1:3) ya calibrada en el rediseño
+  // de calificación de 2026-06-16: identificar el sujeto sigue pesando el
+  // triple que identificar el verbo, exactamente igual que en el análisis
+  // completo, solo que ahora un examen "Solo NP" se puntúa sobre W.NP en
+  // vez de sobre el total de las 3 fases.
+  const allowedPhases = SUBFASE_CONFIGS[G.subfase||'completo']?.phases || [1,2,3];
+  const playsSujeto = allowedPhases.includes(2);
+  const playsFunciones = allowedPhases.includes(3);
   let completadas=0, noCompletadas=0;
   (G.oraciones||[]).forEach((o,idx)=>{
     const se=G.sentenceErrors[idx]||{};
     const completed = G.sentenceCompleted ? G.sentenceCompleted[idx] : true;
-    const interBlocks=(o.fase3?.bloques||[]).filter(b=>!isPreResolved(b.solucion));
+    const interBlocks=playsFunciones?(o.fase3?.bloques||[]).filter(b=>!isPreResolved(b.solucion)):[];
 
     // Calculate available points using weighted functions
     const npAvail=W.NP;
-    const sujAvail=W.SUJETO;
-    const pvpnAvail=W.FUNCION;
+    const sujAvail=playsSujeto?W.SUJETO:0;
+    const pvpnAvail=playsFunciones?W.FUNCION:0;
     let fnAvail=0;
     interBlocks.forEach(b=>{
       const func=(b.solucion||'').split(' | ')[1]||'';
@@ -2524,18 +2541,22 @@ function calcDetailedScore(){
       // Calculate earned points — ONLY if sentence was completed
       completadas++;
       const npErrors = se.npErrors || 0;
-      const sujErrors = se.sujetoErrors || 0;
-      const pvpnErrors = se.pvpnErrors || 0;
-      const npEarned   = atenPenalty(W.NP,     npErrors);
-      const sujEarned  = atenPenalty(W.SUJETO, sujErrors);
-      const pvpnEarned = atenPenalty(W.FUNCION, pvpnErrors);
-      let fnEarned=0;
-      interBlocks.forEach(b=>{
-        const func=(b.solucion||'').split(' | ')[1]||'';
-        const w=W.FUNCION * getFuncWeight(func);
-        const errs=(se.blockErrors||{})[b.id]||0;
-        fnEarned += atenPenalty(w, errs);
-      });
+      const npEarned   = atenPenalty(W.NP, npErrors);
+      let sujEarned=0, pvpnEarned=0, fnEarned=0;
+      if(playsSujeto){
+        const sujErrors = se.sujetoErrors || 0;
+        sujEarned = atenPenalty(W.SUJETO, sujErrors);
+      }
+      if(playsFunciones){
+        const pvpnErrors = se.pvpnErrors || 0;
+        pvpnEarned = atenPenalty(W.FUNCION, pvpnErrors);
+        interBlocks.forEach(b=>{
+          const func=(b.solucion||'').split(' | ')[1]||'';
+          const w=W.FUNCION * getFuncWeight(func);
+          const errs=(se.blockErrors||{})[b.id]||0;
+          fnEarned += atenPenalty(w, errs);
+        });
+      }
       totals.np.earned+=npEarned;
       totals.sujeto.earned+=sujEarned;
       totals.funciones.earned+=pvpnEarned+fnEarned;
