@@ -317,6 +317,15 @@ function setMaestroMode(m){
       el.setAttribute('aria-checked',String(match));
     }
   });
+  // Fase 3.4 (jul-2026): en examen, el nivel lo fija el PIN del profesor
+  // (igual que la subfase en Simples, Fase 1.4) — el selector del alumno
+  // no serviría de nada y se ocultaría un PIN que hay que rellenar.
+  const nivelBlock=document.getElementById('maestro-nivel-block');
+  const nivelNote=document.getElementById('maestro-nivel-exam-note');
+  const pinBlock=document.getElementById('pin-morfo-block');
+  if(nivelBlock) nivelBlock.style.display = m==='exam' ? 'none' : 'block';
+  if(nivelNote) nivelNote.style.display = m==='exam' ? 'block' : 'none';
+  if(pinBlock) pinBlock.style.display = m==='exam' ? 'block' : 'none';
 }
 
 // ── MORPHOLOGY CASCADE DEFINITIONS (PAU Murcia order) ───────────────
@@ -745,20 +754,100 @@ function startMaestro({name,email,grupo}){
     if(ch) startMorphChallenge({name,email,challenge:ch});
     return;
   }
-  if(!selectedMaestroNivel){
-    const errEl=document.getElementById('e-maestronivel');
-    if(errEl){errEl.textContent='Elige un nivel.';errEl.classList.add('show');}
-    return;
-  }
   if(!selectedMaestroMode){
     const errEl=document.getElementById('e-maestromode');
     if(errEl){errEl.textContent='Elige una modalidad.';errEl.classList.add('show');}
     return;
   }
+  // Fase 3.4 (jul-2026): en examen el nivel lo fija el PIN del profesor —
+  // el selector está oculto (setMaestroMode) y no hace falta validarlo.
+  // En su lugar, se valida el PIN.
+  const morfoPin = (document.getElementById('inp-morfo-pin')?.value||'').trim();
+  if(selectedMaestroMode === 'exam'){
+    if(!morfoPin || !/^\d{4,6}$/.test(morfoPin)){
+      const errEl=document.getElementById('e-morfo-pin');
+      if(errEl){errEl.textContent='El PIN debe tener entre 4 y 6 dígitos numéricos.';errEl.classList.add('show');}
+      return;
+    }
+  } else if(!selectedMaestroNivel){
+    const errEl=document.getElementById('e-maestronivel');
+    if(errEl){errEl.textContent='Elige un nivel.';errEl.classList.add('show');}
+    return;
+  }
   // Streak + daily mission: trigger on morphology entry (same as syntax)
   try{ updateDailyStreak(); }catch(e){console.warn('[streak morph]',e);}
+  if(selectedMaestroMode === 'exam'){
+    _loadMaestroExamByPin(name,email,grupo,morfoPin);
+    return;
+  }
   // Try loading texts from Sheets, fall back to hardcoded
   _loadMaestroTexts(name,email,grupo);
+}
+
+// Fase 3.4 (jul-2026): examen con PIN — el profesor pre-computó un lote fijo
+// de textos (createExamMorfologia); el alumno solo lee esa fila. Mismo
+// espíritu que _doHandleStart de Simples, con manejo de errores equivalente.
+async function _loadMaestroExamByPin(name,email,grupo,pin){
+  const errEl=document.getElementById('e-morfo-pin');
+  if(errEl){errEl.textContent='';errEl.classList.remove('show');}
+  const apiUrl = getApiUrl();
+  if(!apiUrl){
+    if(errEl){errEl.textContent='⚠ Sin conexión al servidor.';errEl.classList.add('show');}
+    return;
+  }
+  showScreen('loading');
+  const loadingTxt=document.getElementById('loading-txt');
+  if(loadingTxt) loadingTxt.textContent='Cargando examen (PIN '+pin+')…';
+  try{
+    const r = await fetchWithTimeout(apiUrl+'?action=getExamConfigMorfologia&pin='+encodeURIComponent(pin),{},12000);
+    const d = await r.json();
+    if(d.error || !d.ok){
+      showScreen('login');
+      if(errEl){errEl.textContent='⚠ '+(d.error||'PIN no válido.');errEl.classList.add('show');}
+      return;
+    }
+    if(!d.textos || d.textos.length===0){
+      showScreen('login');
+      if(errEl){errEl.textContent='⚠ El examen no tiene textos configurados.';errEl.classList.add('show');}
+      return;
+    }
+    const analyzed = [];
+    d.textos.forEach(t => {
+      try{
+        if(!t.tokens || !Array.isArray(t.tokens) || t.tokens.length===0) return;
+        const safeTokens = t.tokens
+          .filter(tk => tk && tk.cat && tk.texto)
+          .filter(tk => tk.cat !== 'Puntuación')
+          .map(tk => tk.cat==='Verbo' ? {...tk, atrs: normalizePerifrasTokenAtrs(tk.atrs)} : tk);
+        if(safeTokens.length===0) return;
+        analyzed.push({ title: t.texto.slice(0,50)+'…', tokens: safeTokens, allTokens: t.tokens });
+      }catch(tokErr){ console.warn('[examMorfologia] Texto saltado (tokens corruptos):', t.id||'?', tokErr); }
+    });
+    if(analyzed.length===0){
+      showScreen('login');
+      if(errEl){errEl.textContent='⚠ Error al procesar los textos del examen.';errEl.classList.add('show');}
+      return;
+    }
+    // El grupo del alumno (formulario) tiene prioridad sobre el del PIN
+    // config, igual que en el examen de Simples.
+    MM={
+      name, email, grupo: grupo||d.grupo||'',
+      mode:'exam', nivel: d.nivel||'maestro',
+      examPin: pin, examGrupo:d.grupo||'', examEval:d.evaluacion||'', examName:d.nombreExamen||'',
+      sentences: analyzed, idx:0, tokenIdx:-1,
+      totalCorrect:0, totalAttempted:0,
+      totalTokens: analyzed.reduce((a,s)=>a+s.tokens.length,0),
+      doneTokens:0, selections:{}, tokenSelections:{},
+      currentCat:null, currentAtrs:{}, errors:0, catStats:{}
+    };
+    showScreen('screen-maestro');
+    const skipBtn = document.getElementById('mm-skip-text');
+    if(skipBtn) skipBtn.style.display='none';
+    renderMaestroSentence();
+  }catch(e){
+    showScreen('login');
+    if(errEl){errEl.textContent='⚠ Error de conexión: '+(e.message||'timeout')+'. Inténtalo de nuevo.';errEl.classList.add('show');}
+  }
 }
 
 async function _loadMaestroTexts(name,email,grupo){
@@ -1318,6 +1407,8 @@ async function submitMorfologiaResult(){
     action:'saveMorphResult',
     name:MM.name||'',email:MM.email||'',grupo:MM.grupo||'',
     nivel:MM.nivel||'',modo:MM.mode||'',
+    // Fase 3.4: examen con PIN — vacío si el examen no vino por PIN
+    pin:MM.examPin||'',evaluacion:MM.examEval||'',examen:MM.examName||'',
     nota:String(nota10||0),
     tokensOk:String(MM._tokensOk||0),tokensErr:String(MM._tokensErr||0),
     tokensTotales:String(MM.doneTokens||0),

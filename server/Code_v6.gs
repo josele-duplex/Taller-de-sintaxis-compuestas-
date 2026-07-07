@@ -844,6 +844,8 @@ function doGet(e) {
     else if (action === 'saveSesionChispa')      result = saveSesionChispa_(params);
     else if (action === 'createExam')             { const na=requiereClaveProfesor_(params); result = na || createExam_(params); }
     else if (action === 'getExamConfig')           result = getExamConfig_(params);
+    else if (action === 'createExamMorfologia')    { const na=requiereClaveProfesor_(params); result = na || createExamMorfologia_(params); } // Fase 3.4
+    else if (action === 'getExamConfigMorfologia') result = getExamConfigMorfologia_(params); // Fase 3.4
     else if (action === 'getResultsByGroup')       { const na=requiereClaveProfesor_(params); result = na || getResultsByGroup_(params); }
     else if (action === 'getRankingArcade')        result = getRankingArcade_(params);
     else if (action === 'regenerarMorfologia')     result = regenerarMorfologia_();
@@ -1710,6 +1712,136 @@ function getExamConfig_(params) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+//  EXAMEN DE MORFOLOGÍA CON PIN (Fase 3.4, jul-2026)
+//  Mismo patrón que createExam_/getExamConfig_ de Simples: el profesor
+//  pre-computa un lote fijo de textos al crear el PIN (Estado='activo');
+//  el alumno solo lee esa fila, nunca elige textos al azar en examen.
+// ════════════════════════════════════════════════════════════════════════
+const SHEET_MORPH_EXAMS = 'Morfologia_Examenes';
+const MORPH_EXAM_HEADER = ['PIN','Grupo','Evaluacion','Nombre_Examen','Nivel',
+                           'Timer_Min','Estado','Fecha','Textos_JSON'];
+
+function ensureMorphExamSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_MORPH_EXAMS);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_MORPH_EXAMS);
+    sheet.appendRow(MORPH_EXAM_HEADER);
+    sheet.getRange(1,1,1,MORPH_EXAM_HEADER.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    return sheet;
+  }
+  ensureSheetHeaders_(sheet, MORPH_EXAM_HEADER);
+  return sheet;
+}
+
+// ── createExamMorfologia_: el profesor genera el PIN → pre-computa textos ──
+function createExamMorfologia_(params) {
+  const sheet = ensureMorphExamSheet_();
+  const col = getColMap_(sheet);
+  const pin = String(params.pin || '').trim();
+  if (!pin || pin.length < 4) return gasError_('PIN inválido (mínimo 4 dígitos)', ERR.BAD_PIN);
+
+  // Cierra exámenes previos con el mismo PIN (igual que createExam_)
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][col['PIN']]).trim() === pin && String(data[i][col['Estado']]).trim() === 'activo') {
+      sheet.getRange(i + 1, col['Estado'] + 1).setValue('cerrado');
+    }
+  }
+
+  const nivel    = String(params.nivel || 'maestro').trim();
+  const nTextos  = parseInt(params.nTextos) || 0;
+  const timerMin = parseInt(params.timerMin) || 0;
+
+  // Sin filtro de nivel al leer el banco: el "Nivel" del examen fija la
+  // profundidad de las preguntas (cascada aprendiz/eso34/maestro), no qué
+  // texto le toca a cada alumno — igual que ya hace la práctica libre.
+  let textos;
+  try {
+    const r = getTextosMorfologia_({});
+    textos = (r && r.textos) ? r.textos : [];
+  } catch (e) {
+    return gasError_('Error al leer los textos de morfología: ' + e.message, ERR.EXCEPTION);
+  }
+  if (!textos.length) {
+    return gasError_('No hay textos de morfología disponibles en el banco.', ERR.BAD_PARAM);
+  }
+
+  // Shuffle + límite
+  for (let j = textos.length - 1; j > 0; j--) {
+    const k = Math.floor(Math.random() * (j + 1));
+    [textos[j], textos[k]] = [textos[k], textos[j]];
+  }
+  if (nTextos > 0 && textos.length > nTextos) textos = textos.slice(0, nTextos);
+
+  appendRowSafe_(sheet, MORPH_EXAM_HEADER, {
+    'PIN':           pin,
+    'Grupo':         params.grupo || '',
+    'Evaluacion':    params.evaluacion || '',
+    'Nombre_Examen': params.nombreExamen || '',
+    'Nivel':         nivel,
+    'Timer_Min':     timerMin,
+    'Estado':        'activo',
+    'Fecha':         new Date().toISOString(),
+    'Textos_JSON':   JSON.stringify(textos)
+  });
+
+  try { CacheService.getScriptCache().remove('morfoexam_' + pin); } catch (e) {}
+
+  return { ok: true, pin, nTextosReales: textos.length };
+}
+
+// ── getExamConfigMorfologia_: el alumno introduce el PIN → lee la fila ──
+function getExamConfigMorfologia_(params) {
+  const pin = String(params.pin || '').trim();
+  if (!pin || pin.length < 4) return gasError_('PIN inválido', ERR.BAD_PIN);
+
+  const cacheKey = 'morfoexam_' + pin;
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) {}
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_MORPH_EXAMS);
+  if (!sheet || sheet.getLastRow() < 2) {
+    return gasError_('PIN no encontrado. Comprueba que has escrito los dígitos correctos.', ERR.PIN_NOT_FOUND);
+  }
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+
+  let pinExists = false;
+  for (let i = data.length - 1; i >= 0; i--) { // el más reciente primero
+    if (String(data[i][col['PIN']]).trim() !== pin) continue;
+    pinExists = true;
+    if (String(data[i][col['Estado']] || '').trim() !== 'activo') continue;
+    let textos = [];
+    try { textos = JSON.parse(data[i][col['Textos_JSON']] || '[]'); } catch (e) {}
+    if (!textos.length) continue;
+    const result = {
+      ok: true,
+      textos: textos,
+      nivel: String(data[i][col['Nivel']] || 'maestro').trim(),
+      timer: parseInt(data[i][col['Timer_Min']]) || 0,
+      grupo: String(data[i][col['Grupo']] || ''),
+      evaluacion: String(data[i][col['Evaluacion']] || ''),
+      nombreExamen: String(data[i][col['Nombre_Examen']] || '')
+    };
+    try {
+      const json = JSON.stringify(result);
+      if (json.length < 90000) cache.put(cacheKey, json, 300);
+    } catch (e) {}
+    return result;
+  }
+  if (pinExists) {
+    return gasError_('Este PIN existe pero el examen no está activo. Pídele al profesor que lo cree de nuevo.', ERR.EXAM_INACTIVE);
+  }
+  return gasError_('PIN no encontrado. Comprueba que has escrito los dígitos correctos.', ERR.PIN_NOT_FOUND);
+}
+
+// ════════════════════════════════════════════════════════════════════════
 //  §5 — ENDPOINTS POST  (doPost — Guardar resultados)
 // ════════════════════════════════════════════════════════════════════════
 function doPost(e) {
@@ -2048,34 +2180,63 @@ function getRankingArcade_(params) {
 // existían ya en el GAS pero ningún frontend las llamaba (ni Maestro ni el
 // morph legacy archivado). Cabecera y payload alineados con MM (nivel string
 // 'aprendiz'/'eso34'/'maestro', modo 'practice'/'exam', tokens+CatStats_JSON).
+// Fase 3.4: añadidas PIN/Evaluacion/Examen (examen con PIN) + dedup por
+// email+PIN, igual que saveResult_ de Simples.
 function saveMorphResult_(p) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet   = ss.getSheetByName(SHEET_MORPH);
-  const MORPH_HEADER = ['Fecha','Correo','Nombre','Grupo','Nivel','Modo',
-                        'Nota','Tokens_Ok','Tokens_Err','Tokens_Totales',
-                        'CatStats_JSON','Version_Calificacion'];
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_MORPH);
-    sheet.appendRow(MORPH_HEADER);
-    sheet.getRange(1,1,1,MORPH_HEADER.length).setFontWeight('bold');
-    sheet.setFrozenRows(1);
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) {
+    return gasError_('Servidor ocupado, inténtalo de nuevo.', ERR.LOCK_TIMEOUT);
   }
-  ensureSheetHeaders_(sheet, MORPH_HEADER);
-  appendRowSafe_(sheet, MORPH_HEADER, {
-    'Fecha':               new Date(),
-    'Correo':              String(p.email || '').trim().toLowerCase(),
-    'Nombre':              p.name  || '',
-    'Grupo':               p.grupo || '',
-    'Nivel':               p.nivel || '',
-    'Modo':                p.modo  || '',
-    'Nota':                parseFloat(p.nota) || 0,
-    'Tokens_Ok':           parseInt(p.tokensOk) || 0,
-    'Tokens_Err':          parseInt(p.tokensErr) || 0,
-    'Tokens_Totales':      parseInt(p.tokensTotales) || 0,
-    'CatStats_JSON':       p.catStats || '{}',
-    'Version_Calificacion': p.versionCalificacion || ''
-  });
-  return { ok: true };
+  try {
+    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet   = ss.getSheetByName(SHEET_MORPH);
+    const MORPH_HEADER = ['Fecha','Correo','Nombre','Grupo','Nivel','Modo',
+                          'PIN','Evaluacion','Examen',
+                          'Nota','Tokens_Ok','Tokens_Err','Tokens_Totales',
+                          'CatStats_JSON','Version_Calificacion'];
+    if (!sheet) {
+      sheet = ss.insertSheet(SHEET_MORPH);
+      sheet.appendRow(MORPH_HEADER);
+      sheet.getRange(1,1,1,MORPH_HEADER.length).setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+    ensureSheetHeaders_(sheet, MORPH_HEADER);
+    const col = getColMap_(sheet);
+    const email = String(p.email || '').trim().toLowerCase();
+    const pin   = String(p.pin || '').trim();
+    const emailIdx = col['Correo'], pinIdx = col['PIN'];
+    const lastRow = sheet.getLastRow();
+    if (email && pin && emailIdx !== undefined && pinIdx !== undefined && lastRow > 1) {
+      const c0 = Math.min(emailIdx, pinIdx), c1 = Math.max(emailIdx, pinIdx);
+      const data = sheet.getRange(2, c0+1, lastRow-1, c1-c0+1).getValues();
+      const eRel = emailIdx - c0, pRel = pinIdx - c0;
+      for (let i = 0; i < data.length; i++) {
+        if (String(data[i][eRel]).trim().toLowerCase() === email && String(data[i][pRel]).trim() === pin) {
+          return { ok: true, duplicate: true };
+        }
+      }
+    }
+    appendRowSafe_(sheet, MORPH_HEADER, {
+      'Fecha':               new Date(),
+      'Correo':              email,
+      'Nombre':              p.name  || '',
+      'Grupo':               p.grupo || '',
+      'Nivel':               p.nivel || '',
+      'Modo':                p.modo  || '',
+      'PIN':                 pin,
+      'Evaluacion':          p.evaluacion || '',
+      'Examen':              p.examen || '',
+      'Nota':                parseFloat(p.nota) || 0,
+      'Tokens_Ok':           parseInt(p.tokensOk) || 0,
+      'Tokens_Err':          parseInt(p.tokensErr) || 0,
+      'Tokens_Totales':      parseInt(p.tokensTotales) || 0,
+      'CatStats_JSON':       p.catStats || '{}',
+      'Version_Calificacion': p.versionCalificacion || ''
+    });
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════

@@ -419,6 +419,118 @@ async function testCpExamPin(){
 }
 
 // ════════════════════════════════════════════════════════
+// EXAMEN DE MORFOLOGÍA CON PIN — Fase 3.4 (jul-2026)
+// Mismo patrón que Compuestas/Simples: el profesor pre-computa un lote
+// fijo de textos al crear el PIN (createExamMorfologia del GAS, que deja
+// el examen en Morfologia_Examenes con Estado='activo').
+// ════════════════════════════════════════════════════════
+
+function genMorfoExamPin(){
+  const pin = String(Math.floor(1000 + Math.random() * 9000));
+  document.getElementById('tp-morfo-exam-pin').value = pin;
+}
+
+function _setMorfoExamStatus(msg, colorVar){
+  const el = document.getElementById('tp-morfo-exam-status');
+  el.style.display = 'block';
+  el.textContent = msg;
+  el.style.color = colorVar;
+  el.style.background = colorVar === 'var(--red)'   ? '#FEF2F2'
+                      : colorVar === 'var(--green)' ? '#F0FDF4'
+                      : colorVar === 'var(--amber)' ? '#FFFBEB'
+                      : '#EFF6FF';
+  el.style.borderLeft = '3px solid ' + (colorVar || 'var(--blue)');
+}
+
+async function createExamenMorfologiaUI(){
+  const pin         = document.getElementById('tp-morfo-exam-pin').value.trim();
+  const grupo       = document.getElementById('tp-morfo-exam-grupo').value.trim();
+  const evaluacion  = document.getElementById('tp-morfo-exam-eval').value.trim();
+  const nombreExamen= document.getElementById('tp-morfo-exam-name').value.trim();
+  const nivel       = document.getElementById('tp-morfo-exam-nivel').value;
+  const nTextos     = parseInt(document.getElementById('tp-morfo-exam-ntextos').value) || 0;
+  const timerMin    = parseInt(document.getElementById('tp-morfo-exam-timer').value)   || 0;
+
+  if(!pin || !/^\d{4,6}$/.test(pin)){
+    _setMorfoExamStatus('⚠ El PIN debe tener entre 4 y 6 dígitos numéricos.', 'var(--red)');
+    return;
+  }
+  const apiUrl = getApiUrl();
+  if(!apiUrl){
+    _setMorfoExamStatus('⚠ Configura la URL de la API primero.', 'var(--red)');
+    return;
+  }
+  _setMorfoExamStatus('⏳ Enviando configuración al Sheet…', 'var(--blue)');
+  try {
+    const params = new URLSearchParams({
+      action: 'createExamMorfologia',
+      pin, grupo, evaluacion, nombreExamen, nivel,
+      nTextos: String(nTextos), timerMin: String(timerMin),
+      clave: (typeof getTeacherPw==='function'?getTeacherPw():'')
+    });
+    const r = await fetchWithRetry(apiUrl + '?' + params.toString(), {}, {
+      timeoutMs: 15000, retries: 2,
+      onRetry: (n)=>{ _setMorfoExamStatus('⏳ Reintentando ('+n+'/2)…', 'var(--amber)'); }
+    });
+    const d = await r.json();
+    if(d.ok){
+      const nReal = d.nTextosReales || nTextos || '?';
+      const parts = ['PIN: ' + pin, nReal + ' textos pre-cargados', 'Nivel: ' + nivel];
+      if(timerMin > 0) parts.push(timerMin + ' min');
+      _setMorfoExamStatus('✓ Examen activado. ' + parts.join(' · '), 'var(--green)');
+    } else {
+      _setMorfoExamStatus('⚠ Error: ' + (d.error || 'desconocido'), 'var(--red)');
+    }
+  } catch(e){
+    _setMorfoExamStatus('⏳ Sin respuesta. Verificando si el examen se creó…', 'var(--amber)');
+    try {
+      await new Promise(r => setTimeout(r, 1500));
+      const verifyParams = new URLSearchParams({ action: 'getExamConfigMorfologia', pin });
+      const verify = await fetchWithTimeout(apiUrl + '?' + verifyParams.toString(), {}, 10000);
+      const vd = await verify.json();
+      if(vd.ok && Array.isArray(vd.textos) && vd.textos.length > 0){
+        _setMorfoExamStatus('✓ El examen se creó correctamente (PIN ' + pin + ', ' + vd.textos.length + ' textos). El timeout era solo de la respuesta.', 'var(--green)');
+      } else {
+        _setMorfoExamStatus('⚠ Error: ' + e.message + '. El examen no se creó. Inténtalo de nuevo.', 'var(--red)');
+      }
+    } catch(e2){
+      _setMorfoExamStatus('⚠ Error de conexión: ' + e.message, 'var(--red)');
+    }
+  }
+}
+
+async function testMorfoExamPin(){
+  const pin = document.getElementById('tp-morfo-exam-pin').value.trim();
+  if(!pin || !/^\d{4,6}$/.test(pin)){
+    _setMorfoExamStatus('⚠ Escribe primero un PIN de 4-6 dígitos.', 'var(--amber)');
+    return;
+  }
+  const apiUrl = getApiUrl();
+  if(!apiUrl){
+    _setMorfoExamStatus('⚠ Sin URL de API configurada.', 'var(--red)');
+    return;
+  }
+  _setMorfoExamStatus('⏳ Comprobando PIN ' + pin + '…', 'var(--blue)');
+  try {
+    const url = apiUrl + '?action=getExamConfigMorfologia&pin=' + encodeURIComponent(pin);
+    const r = await fetchWithRetry(url, {}, { timeoutMs: 10000, retries: 1 });
+    const d = await r.json();
+    if(d.ok){
+      const n = (d.textos && d.textos.length) || 0;
+      const parts = ['✓ PIN ' + pin + ' funciona', n + ' textos', 'Nivel: ' + (d.nivel||'—')];
+      if(d.grupo)        parts.push('Grupo ' + d.grupo);
+      if(d.evaluacion)   parts.push('Eval. ' + d.evaluacion);
+      if(d.nombreExamen) parts.push('«' + d.nombreExamen + '»');
+      _setMorfoExamStatus(parts.join(' · '), 'var(--green)');
+    } else {
+      _setMorfoExamStatus('⚠ ' + (d.error || 'PIN no válido'), 'var(--red)');
+    }
+  } catch(e){
+    _setMorfoExamStatus('⚠ Error de conexión: ' + (e && e.message || e), 'var(--red)');
+  }
+}
+
+// ════════════════════════════════════════════════════════
 // CP DASHBOARD — Fase 1.6 (mayo 2026)
 // Lee la hoja Compuestas_Resultados via el endpoint
 // getResultadosCompuestas del GAS y la pinta en una tabla
@@ -825,7 +937,9 @@ export {
   // Fase 1.6 — dashboard de Compuestas
   loadCpDashboard, exportCpCSV,
   // Fase 1.6.B — creación de exámenes de Compuestas
-  genCpExamPin, createExamenCompuestaUI, testCpExamPin
+  genCpExamPin, createExamenCompuestaUI, testCpExamPin,
+  // Fase 3.4 — creación de exámenes de Morfología con PIN
+  genMorfoExamPin, createExamenMorfologiaUI, testMorfoExamPin
 };
 
 // ════════════════════════════════════════════════════════
@@ -937,6 +1051,8 @@ if (typeof window !== 'undefined') {
     loadCpDashboard, exportCpCSV,
     // Fase 1.6.B — creación de exámenes de Compuestas
     genCpExamPin, createExamenCompuestaUI, testCpExamPin,
+    // Fase 3.4 — creación de exámenes de Morfología con PIN
+    genMorfoExamPin, createExamenMorfologiaUI, testMorfoExamPin,
     // Informe del profesor (Excel)
     generarInformeProfesor,
     // Mis grupos (filtro de Evolucion_Alumnos)

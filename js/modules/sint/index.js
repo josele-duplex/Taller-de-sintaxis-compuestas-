@@ -3193,7 +3193,7 @@ const LOGIN_PANELS = {
 
   maestro: `
     <p style="font-weight:800;font-size:.9rem;color:#059669;margin-bottom:12px">🧬 Análisis Morfológico</p>
-    <div class="field">
+    <div id="maestro-nivel-block" class="field">
       <label>Nivel de profundidad</label>
       <div class="sel-grid" style="grid-template-columns:1fr 1fr 1fr" role="radiogroup">
         <button type="button" class="sel-card" id="mm-aprendiz" onclick="setMaestroNivel('aprendiz');setMorphTipoSilent('analisis')" role="radio" aria-checked="false">
@@ -3208,6 +3208,7 @@ const LOGIN_PANELS = {
       </div>
       <p id="e-maestronivel" class="ferr" role="alert"></p>
     </div>
+    <p id="maestro-nivel-exam-note" style="display:none;font-size:.82rem;color:var(--muted);margin:-8px 0 17px">📌 El nivel lo fija el examen del profesor (PIN).</p>
     <div class="field">
       <label>Modalidad</label>
       <div class="sel-grid" role="radiogroup">
@@ -3219,6 +3220,11 @@ const LOGIN_PANELS = {
         </button>
       </div>
       <p id="e-maestromode" class="ferr" role="alert"></p>
+    </div>
+    <div id="pin-morfo-block" style="display:none;margin-bottom:17px">
+      <label for="inp-morfo-pin" style="display:block;font-weight:700;font-size:.85rem;margin-bottom:7px;color:var(--ink2)">PIN del examen</label>
+      <input id="inp-morfo-pin" class="input input-pin" type="password" inputmode="numeric" maxlength="6" placeholder="····">
+      <p id="e-morfo-pin" class="ferr" role="alert"></p>
     </div>
     <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:10px">
       <button type="button" class="sel-card" id="mm-tipo-reto" onclick="setMorphTipo('reto')" role="radio" aria-checked="false" style="width:100%">

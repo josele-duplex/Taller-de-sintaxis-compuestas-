@@ -548,6 +548,66 @@ if(window.location.protocol === 'file:') {
       <button type="button" class="btn btn-ghost" style="width:100%;padding:10px;font-size:.85rem;margin-top:6px;border:1.5px dashed var(--border)" onclick="testCurrentPin()">🔍 Verificar que el PIN funciona</button>
       <p id="tp-exam-status" style="font-size:.82rem;font-weight:700;margin-top:8px;display:none" role="status"></p>
     </div>
+    <!-- ── Fase 3.4 (jul-2026): Crear examen de Morfología ─────────────── -->
+    <div class="s-box" style="border:2px solid #059669;background:#F0FDF4">
+      <div class="s-title" style="color:#047857">🔬 Crear examen de Morfología</div>
+      <div class="s-desc">Genera un PIN y actívalo. Los alumnos lo cargarán al entrar al módulo de Morfología: en el login eligen "📝 Examen" e introducen el PIN.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 8px">
+        <div style="min-width:128px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">PIN (4 dígitos)</label>
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <input id="tp-morfo-exam-pin" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="1234"
+              style="width:88px;text-align:center;font-size:1.1rem;font-weight:900;letter-spacing:.15em;padding:6px 8px">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="genMorfoExamPin()" title="Generar PIN aleatorio">🎲</button>
+          </div>
+        </div>
+        <div style="flex:1;min-width:80px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Grupo</label>
+          <select id="tp-morfo-exam-grupo" class="input grupo-select" data-grupo-placeholder="— Elige clase —" style="font-size:.88rem;padding:6px 8px;margin-top:4px"></select>
+        </div>
+        <div style="flex:1;min-width:60px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Evaluación</label>
+          <select id="tp-morfo-exam-eval" class="input" style="font-size:.88rem;padding:6px 8px;margin-top:4px">
+            <option value="1ª">1ª</option>
+            <option value="2ª">2ª</option>
+            <option value="3ª">3ª</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nombre del examen</label>
+        <input id="tp-morfo-exam-name" class="input" type="text" placeholder="Ej: Morfología T3" style="width:100%;font-size:.88rem;padding:6px 8px;margin-top:4px">
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+        <div style="min-width:150px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nivel (profundidad de las preguntas)</label>
+          <select id="tp-morfo-exam-nivel" class="input" style="font-size:.88rem;padding:6px 8px;margin-top:4px;width:100%">
+            <option value="aprendiz">Aprendiz — solo categoría</option>
+            <option value="eso34">3.º–4.º ESO — atributos esenciales</option>
+            <option value="maestro" selected>Maestro — análisis PAU</option>
+          </select>
+        </div>
+        <div style="min-width:110px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nº de textos</label>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <input id="tp-morfo-exam-ntextos" class="input" type="number" min="0" max="30" value="0" style="width:70px;font-size:.88rem;padding:6px 8px;text-align:center">
+            <span style="font-size:.72rem;color:var(--muted)">0 = todos</span>
+          </div>
+        </div>
+        <div style="min-width:110px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Timer (minutos)</label>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <input id="tp-morfo-exam-timer" class="input" type="number" min="0" max="180" value="0" style="width:70px;font-size:.88rem;padding:6px 8px;text-align:center">
+            <span style="font-size:.72rem;color:var(--muted)">0 = sin límite</span>
+          </div>
+        </div>
+      </div>
+      <p id="tp-morfo-exam-status" style="font-size:.85rem;display:none;padding:8px 12px;border-radius:8px;margin-bottom:8px" role="status"></p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn btn-primary btn-sm" onclick="createExamenMorfologiaUI()">🚀 Activar examen</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="testMorfoExamPin()">🔎 Probar PIN actual</button>
+      </div>
+    </div>
     <div class="s-box" style="border-left:4px solid #F59E0B">
       <div class="s-title">💡 Pistas y Consejos</div>
       <div class="s-desc">Controla qué feedback recibe el alumno al cometer un error en Análisis Sintáctico.</div>
