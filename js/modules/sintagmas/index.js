@@ -39,7 +39,7 @@ function extractSintType(titulo) {
   return m ? m[1] : '';
 }
 
-async function startSintagmas({name,email}){
+async function startSintagmas({name,email,grupo}){
   document.getElementById('loading-txt').textContent='Cargando sintagmas…';
   showScreen('loading');
   await delay(150);
@@ -107,9 +107,11 @@ async function startSintagmas({name,email}){
     return;
   }
 
-  SIN={name,email,sintagmas:filtered,idx:0,correct:0,errors:0,total:filtered.length,
+  SIN={name,email,grupo:grupo||'',sintagmas:filtered,idx:0,correct:0,errors:0,total:filtered.length,
        step:0, // 0=tipo, 1=nucleo, 2=clasificar elementos
-       currentSint:null,doneElems:{}};
+       currentSint:null,doneElems:{},
+       // Fase 4 (jul-2026): analíticas silenciosas, calcadas de Chispa
+       startTime:Date.now(), erroresPorFunc:{}, _sesionEnviada:false};
   renderSintMain();
   showScreen('sintagmas');
 }
@@ -261,6 +263,7 @@ function _sintCheckNucleus(chosenId, lvlIdx){
     setTimeout(()=>_sintStep1Type(lvlIdx),500);
   }else{
     SIN.errors++;playError();
+    SIN.erroresPorFunc['N\u00facleo']=(SIN.erroresPorFunc['N\u00facleo']||0)+1;
     msg.style.display='block';
     msg.innerHTML='<span style="color:#DC2626;font-size:.85rem">\u2717 Incorrecto. El n\u00facleo es la palabra central del sintagma.</span>';
     setTimeout(()=>{msg.innerHTML='';msg.style.display='none';},2000);
@@ -302,6 +305,7 @@ function _sintCheckType(chosen, lvlIdx){
     setTimeout(()=>_sintStep2Classify(),700);
   }else{
     SIN.errors++;playError();
+    SIN.erroresPorFunc['Tipo de sintagma']=(SIN.erroresPorFunc['Tipo de sintagma']||0)+1;
     msg.style.display='block';
     msg.innerHTML='<span style="color:#DC2626;font-size:.85rem">\u2717 Incorrecto. Piensa en la categor\u00eda del n\u00facleo.</span>';
     setTimeout(()=>{msg.style.display='none';},2000);
@@ -383,6 +387,7 @@ function _sintClassifyElem(elemId, chosen){
     _sintCheckLevelComplete();
   }else{
     SIN.errors++;playError();
+    SIN.erroresPorFunc[correct]=(SIN.erroresPorFunc[correct]||0)+1;
     const scaffold=lookupScaffold(chosen,correct,'sintagma');
     trackError('sintagmas',correct);
     showFeedback('error','Función incorrecta',scaffold.fijo,scaffold.pista);
@@ -412,27 +417,76 @@ function _sintCheckLevelComplete(){
 function sintNextSintagma(){SIN.idx++;if(SIN.idx>=SIN.sintagmas.length){endSint();return;}renderSintMain();}
 function sintSkipNew(){SIN.idx++;if(SIN.idx>=SIN.sintagmas.length){endSint();return;}renderSintMain();}
 
+// Fase 4 (jul-2026): analiticas silenciosas, calcadas de _enviarSesionChispa.
+// Hasta ahora Sintagmas era el unico modo academico sin ningun registro en
+// el backend. `_sesionEnviada` evita duplicar la fila si el alumno pasa por
+// endSint() y luego pulsa "Inicio" (que tambien dispara el envio).
+function _enviarSesionSintagmas(){
+  try{
+    if(!SIN || SIN._sesionEnviada) return;
+    const total=(SIN.correct||0)+(SIN.errors||0);
+    if(total===0) return; // nada jugado en esta sesion
+    const apiUrl=(typeof getApiUrl==='function')?getApiUrl():'';
+    if(apiUrl && SIN.email){
+      const pct=Math.round((SIN.correct/total)*100);
+      const params=new URLSearchParams({
+        action:'saveSesionSintagmas',
+        email:SIN.email, name:SIN.name||'', grupo:SIN.grupo||'',
+        sintagmasCompletados:String(SIN.idx||0),
+        totalSintagmas:String(SIN.total||(SIN.sintagmas||[]).length||0),
+        aciertos:String(SIN.correct||0), errores:String(SIN.errors||0),
+        precisionPct:String(pct),
+        tiempoMin:String(Math.round((Date.now()-(SIN.startTime||Date.now()))/60000)),
+        erroresFunc:JSON.stringify(SIN.erroresPorFunc||{})
+      });
+      const url=apiUrl+'?'+params.toString();
+      if(navigator.sendBeacon) navigator.sendBeacon(url);
+      else fetch(url,{method:'GET',keepalive:true}).catch(()=>{});
+    }
+  }catch(e){ console.warn('[sintagmas analytics]', e); }
+  SIN._sesionEnviada=true;
+}
+
+// Si el alumno cierra la pestana en mitad de una sesion, el segmento en
+// curso se envia igualmente (sendBeacon sobrevive al unload) - mismo patron
+// que Chispa.
+if(typeof window !== 'undefined'){
+  window.addEventListener('beforeunload', function(){
+    try{
+      const scr=document.getElementById('screen-sintagmas');
+      if(scr && scr.classList.contains('active')) _enviarSesionSintagmas();
+    }catch(e){}
+  });
+}
+
+function exitSintagmas(){
+  _enviarSesionSintagmas();
+  goLogin();
+}
+
 function endSint(){
+  _enviarSesionSintagmas();
   const wrap=document.getElementById('sint-wrap');
   const total=SIN.correct+SIN.errors;
   const pct=total>0?Math.round(SIN.correct/total*100):0;
-  const nota=total>0?(SIN.correct/total*10).toFixed(1):'0.0';
   const color=pct>=80?'#059669':pct>=60?'#D97706':'#DC2626';
   const emoji=pct>=80?'\ud83c\udfc6':pct>=60?'\ud83c\udfaf':'\ud83d\udcda';
-  wrap.innerHTML='<div class="card" style="padding:32px;text-align:center;animation:slideUp .4s ease;max-width:480px;margin:30px auto"><div style="font-size:2.5rem;margin-bottom:12px">'+emoji+'</div><h2 style="font-size:1.8rem;font-weight:900;margin-bottom:6px">Sesi\u00f3n completada</h2><div style="font-size:3rem;font-weight:900;color:'+color+';margin:12px 0">'+nota+'<span style="font-size:1.2rem;color:var(--muted)"> / 10</span></div><p style="font-size:1rem;font-weight:700;margin-bottom:4px">'+SIN.correct+' aciertos \u00b7 '+SIN.errors+' errores</p><p style="color:var(--muted);font-size:.88rem;margin-bottom:24px">'+SIN.sintagmas.length+' sintagmas analizados</p><div style="display:flex;flex-direction:column;gap:10px"><button type="button" class="btn btn-primary btn-lg" onclick="startSintagmas({name:SIN.name,email:SIN.email})">\ud83d\udd04 Otra ronda</button><button type="button" class="btn btn-ghost" onclick="goLogin()">\u2190 Inicio</button></div></div>';
+  // Fase 4.2 (jul-2026): "Precision", no "Nota" - esto cuenta clics con
+  // reintentos hasta acertar, no una calificacion comparable a un examen.
+  wrap.innerHTML='<div class="card" style="padding:32px;text-align:center;animation:slideUp .4s ease;max-width:480px;margin:30px auto"><div style="font-size:2.5rem;margin-bottom:12px">'+emoji+'</div><h2 style="font-size:1.8rem;font-weight:900;margin-bottom:6px">Sesi\u00f3n completada</h2><div style="font-size:3rem;font-weight:900;color:'+color+';margin:12px 0">'+pct+'<span style="font-size:1.2rem;color:var(--muted)">% precisi\u00f3n</span></div><p style="font-size:1rem;font-weight:700;margin-bottom:4px">'+SIN.correct+' aciertos \u00b7 '+SIN.errors+' errores</p><p style="color:var(--muted);font-size:.88rem;margin-bottom:24px">'+SIN.sintagmas.length+' sintagmas analizados</p><div style="display:flex;flex-direction:column;gap:10px"><button type="button" class="btn btn-primary btn-lg" onclick="startSintagmas({name:SIN.name,email:SIN.email,grupo:SIN.grupo})">\ud83d\udd04 Otra ronda</button><button type="button" class="btn btn-ghost" onclick="exitSintagmas()">\u2190 Inicio</button></div></div>';
 }
 
 // Public API exports + window bindings para inline onclick
 export {
   getSintFullName, extractSintType,
   startSintagmas, renderSintMain,
-  sintNextSintagma, sintSkipNew, endSint,
+  sintNextSintagma, sintSkipNew, endSint, exitSintagmas,
   SINT_FULL_NAMES, SINT_TYPES, SINT_FUNCIONES_MOD, SINT_FUNCIONES_COMP, SINT_FUNCIONES_TERM
 };
 
 if (typeof window !== 'undefined') {
   Object.assign(window, {
-    startSintagmas, sintNextSintagma, sintSkipNew, endSint,
+    startSintagmas, sintNextSintagma, sintSkipNew, endSint, exitSintagmas,
     // Invocadas desde onclick="..." en el HTML que renderiza este módulo.
     // Sin esta exposición los botones de los pasos 1, 1b y 2 no hacen nada
     // (el modo quedaba congelado en "Haz clic en el núcleo").

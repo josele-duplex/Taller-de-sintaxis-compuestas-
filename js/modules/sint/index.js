@@ -3754,7 +3754,7 @@ async function handleStartAll(){
     await startArcade({name,email,nickname:nick,grupo,arcadeMode:engineMode,ghostDuel,radar});return;
   }
   if(currentModule==='sint4'){
-    startSintagmas({name,email});return;
+    startSintagmas({name,email,grupo:grupoCompartido});return;
   }
   if(currentModule==='chispa'){
     startChispa({name,email,grupo:grupoCompartido});return;

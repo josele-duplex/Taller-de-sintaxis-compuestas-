@@ -907,6 +907,7 @@ function doGet(e) {
     else if (action === 'saveMorphResult')       result = saveMorphResult_(params); // Fase 3.3: el frontend la llama por GET, igual que saveResult
     else if (action === 'saveSesionPractica')    result = saveSesionPractica_(params);
     else if (action === 'saveSesionChispa')      result = saveSesionChispa_(params);
+    else if (action === 'saveSesionSintagmas')   result = saveSesionSintagmas_(params); // Fase 4
     else if (action === 'createExam')             { const na=requiereClaveProfesor_(params); result = na || createExam_(params); }
     else if (action === 'getExamConfig')           result = getExamConfig_(params);
     else if (action === 'createExamMorfologia')    { const na=requiereClaveProfesor_(params); result = na || createExamMorfologia_(params); } // Fase 3.4
@@ -1904,12 +1905,30 @@ function doPost(e) {
   out.setMimeType(ContentService.MimeType.JSON);
   let action = 'unknown'; // visible en el catch si JSON.parse falla
   try {
-    const payload = JSON.parse(e.postData.contents);
+    // v6.5 (jul-2026): bug encontrado al implementar la Fase 4 (analiticas
+    // de Sintagmas) — navigator.sendBeacon(url) manda un POST SIN CUERPO
+    // (todo el payload va en la query string de la URL). Antes esto SIEMPRE
+    // lanzaba aqui ("Cannot read properties of undefined (reading
+    // 'contents')") porque e.postData es undefined sin body, y el catch de
+    // abajo tragaba el error en silencio — asi que saveSesionChispa_ (en
+    // produccion desde jul-2026) y ahora saveSesionSintagmas_ NUNCA
+    // llegaban a guardar nada. Fallback: sin postData valido, usar
+    // e.parameter (la query string), igual que hace doGet.
+    let payload;
+    if (e.postData && e.postData.contents) {
+      try { payload = JSON.parse(e.postData.contents); }
+      catch (parseErr) { payload = e.parameter || {}; }
+    } else {
+      payload = e.parameter || {};
+    }
     action  = payload.action || 'saveResult';
     let result;
     if      (action === 'saveResult')     result = saveResult_(payload);
     else if (action === 'saveArcadeScore')result = saveArcadeScore_(payload);
     else if (action === 'saveMorphResult')result = saveMorphResult_(payload);
+    else if (action === 'saveSesionChispa')    result = saveSesionChispa_(payload);
+    else if (action === 'saveSesionSintagmas') result = saveSesionSintagmas_(payload);
+    else if (action === 'saveSesionPractica')  result = saveSesionPractica_(payload); // mismo bug de sendBeacon sin body
     else {
       // v6.3 — Delegación al módulo de oración compuesta (Compuestas.gs).
       const compResult = (typeof dispatchCompuestasPost_ === 'function')
@@ -2094,6 +2113,39 @@ function saveSesionChispa_(p) {
       'Racha_Max':   parseInt(p.rachaMax)||0,
       'Tiempo_Min':  parseInt(p.tiempoMin)||0,
       'Errores_JSON': String(p.errores||'{}')
+    });
+    return { ok: true };
+  } catch(e) {
+    return gasError_(e.message, ERR.EXCEPTION);
+  }
+}
+
+// Fase 4 (jul-2026): analíticas silenciosas de Sintagmas, calcadas de
+// saveSesionChispa_ — hasta ahora Sintagmas era el único modo académico sin
+// ningún registro en el backend.
+function saveSesionSintagmas_(p) {
+  const HEADER = [
+    'Fecha', 'Correo', 'Nombre', 'Grupo',
+    'Sintagmas_Completados', 'Total_Sintagmas', 'Aciertos', 'Errores',
+    'Precision_Pct', 'Tiempo_Min', 'Errores_Func_JSON'
+  ];
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('Sintagmas_Sesiones');
+    if (!sheet) sheet = ss.insertSheet('Sintagmas_Sesiones');
+    ensureSheetHeaders_(sheet, HEADER);
+    appendRowSafe_(sheet, HEADER, {
+      'Fecha':                  new Date(),
+      'Correo':                 String(p.email||'').trim().toLowerCase(),
+      'Nombre':                 String(p.name||'').trim(),
+      'Grupo':                  String(p.grupo||'').trim(),
+      'Sintagmas_Completados':  parseInt(p.sintagmasCompletados)||0,
+      'Total_Sintagmas':        parseInt(p.totalSintagmas)||0,
+      'Aciertos':               parseInt(p.aciertos)||0,
+      'Errores':                parseInt(p.errores)||0,
+      'Precision_Pct':          parseInt(p.precisionPct)||0,
+      'Tiempo_Min':             parseInt(p.tiempoMin)||0,
+      'Errores_Func_JSON':      String(p.erroresFunc||'{}')
     });
     return { ok: true };
   } catch(e) {

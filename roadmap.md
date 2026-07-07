@@ -161,6 +161,20 @@ interno que existía (duplicado). El resultado se guarda en `Compuestas_Resultad
 
 ## 5. Prioridad BAJA · Mejoras "nice to have"
 
+### 5.-1 Sintagmas: analíticas silenciosas — ✅ HECHO (jul-2026), sin examen por decisión
+
+**Estado**: hecho (Fase 4 del informe `docs/Informe_examen_modos_secundarios.md`).
+Sintagmas registra ahora sus sesiones en `Sintagmas_Sesiones` (GAS
+`saveSesionSintagmas_`), igual que Chispa: alumno, grupo, sintagmas completados,
+aciertos, errores, precisión, tiempo y errores por categoría (Núcleo/Tipo de
+sintagma/función), enviado con `sendBeacon` al terminar o al salir.
+
+**Decisión explícita, no revisar sin motivo nuevo**: Sintagmas **no tendrá modo
+examen** mientras su motor sea "reintentar hasta acertar" (el alumno no puede fallar
+y avanzar; vuelve a intentarlo hasta dar con la respuesta). Eso hace que una nota de
+examen no sea comparable a la de Simples/Compuestas. La pantalla final ya no dice
+"Nota X.X/10" — dice "% de precisión", para no sugerir que es una calificación.
+
 ### 5.0 ~~Cambiar fuente de `.cp-prop-text`~~ — OBSOLETO
 
 El selector `.cp-prop-text` ya no existe en el CSS actual (verificado mayo
