@@ -134,9 +134,18 @@ function getMisGruposConfigurados_() {
 // app (sin tener que abrir el Sheet y usar el menú ⚙️ Avanzado). Mismo dato,
 // dos caminos para llegar a él — el del Sheet (menuConfigurarMisGrupos) se
 // mantiene por si alguna vez no hay acceso a la app.
+/**
+ * Endpoint 'getMisGrupos'. Sin parámetros.
+ * @return {{ok:true, grupos:string[]}}
+ */
 function getMisGrupos_() {
   return { ok: true, grupos: getMisGruposConfigurados_() };
 }
+/**
+ * Endpoint 'setMisGrupos'. Requiere clave de profesor (ver requiereClaveProfesor_).
+ * @param {{grupos:string}} params - grupos separados por comas.
+ * @return {{ok:true, grupos:string[]}}
+ */
 function setMisGrupos_(params) {
   // params.grupos: lista separada por comas (misma convención que el menú).
   const nuevo = String(params.grupos || '').split(',').map(g => g.trim()).filter(Boolean).join(',');
@@ -144,8 +153,12 @@ function setMisGrupos_(params) {
   return { ok: true, grupos: getMisGruposConfigurados_() };
 }
 
-// Devuelve null si autorizado; un objeto de error si NO. Patrón:
-//   const noAuth = requiereClaveProfesor_(params); if (noAuth) return noAuth;
+/**
+ * Guarda de autorización para endpoints de profesor. Patrón de uso:
+ *   const noAuth = requiereClaveProfesor_(params); if (noAuth) return noAuth;
+ * @param {{clave?:string}} params
+ * @return {?object} null si autorizado; objeto {ok:false,...} (ERR.NO_AUTORIZADO) si no.
+ */
 function requiereClaveProfesor_(params) {
   const guardada = PropertiesService.getScriptProperties().getProperty(PROP_CLAVE_PROFESOR);
   // Si el profesor aún no ha fijado clave, NO bloqueamos (evita dejar la app
@@ -883,6 +896,13 @@ function generarConsejoSint(func) {
 // ════════════════════════════════════════════════════════════════════════
 //  §2 — ENDPOINTS GET  (doGet — Endpoint principal)
 // ════════════════════════════════════════════════════════════════════════
+/**
+ * Punto de entrada único para peticiones GET del frontend. Despacha por
+ * `e.parameter.action` a los endpoints (getOraciones_, saveResult_, etc.) y,
+ * si la acción no la reconoce, delega en dispatchCompuestasGet_ (Compuestas.gs).
+ * @param {GoogleAppsScript.Events.DoGet} e - e.parameter trae action/mode/subfase/...
+ * @return {GoogleAppsScript.Content.TextOutput} JSON con forma {ok:true,...} o {ok:false,error,code}.
+ */
 function doGet(e) {
   const params  = e.parameter || {};
   const action  = params.action || 'getOraciones';
@@ -944,6 +964,14 @@ function doGet(e) {
 // de la filtrada. Mejora anti-sesión-vacía: si el filtro deja menos de
 // MIN_POOL_SUBFASE oraciones, se devuelve el banco completo con el flag
 // `subfaseRelajada: true` para que el frontend pueda avisar por consola.
+/**
+ * Endpoint 'getOraciones'. Devuelve el banco de oraciones simples completo
+ * (o filtrado por subfase, con relajación automática si el pool queda
+ * demasiado corto — ver comentario arriba).
+ * @param {string} mode - 'practice' (incluye borradores) | 'exam' (solo Activo='Sí').
+ * @param {string} [subfase] - 'solo_np'|'np_sujeto'|'completo'|'profundo'.
+ * @return {{oraciones:object[], total:number, mode:string, subfase?:string, subfaseRelajada?:boolean} | object} error (ERR.NO_SHEET) si falta la hoja del banco.
+ */
 function getOraciones_(mode, subfase) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_BANCO);
@@ -995,7 +1023,13 @@ function getOraciones_(mode, subfase) {
            subfase: subfase, subfaseRelajada: true };
 }
 
-// ── getOracionesFiltradas_ — new in v4.7 ──────────────────────────────
+/**
+ * Endpoint 'getOracionesFiltradas'. Filtra el banco (solo Activo='Sí') por
+ * funciones deseadas/prohibidas, dificultad y subfase, con relajación
+ * progresiva de minCoincidencias si el filtro estricto deja el pool vacío.
+ * @param {{funciones?:string, prohibidas?:string, minCoincidencias?:string, subfase?:string, dificultad?:string}} params - funciones/prohibidas van separadas por comas.
+ * @return {{oraciones:object[], total:number, filtered:true} | object} error (ERR.NO_SHEET) si falta la hoja.
+ */
 function getOracionesFiltradas_(params) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_BANCO);
@@ -1067,7 +1101,13 @@ function getOracionesFiltradas_(params) {
   return { oraciones, total: oraciones.length, filtered: true };
 }
 
-// ── validatePin_ ────────────────────────────────────────────────────────
+/**
+ * Endpoint 'validatePin'. Comprueba el PIN de examen contra la hoja Config
+ * y detecta si ese email+PIN ya tiene un resultado guardado (duplicado).
+ * @param {string} pin
+ * @param {string} email
+ * @return {{valid:boolean, reason?:string, message?:string}}
+ */
 function validatePin_(pin, email) {
   if (!pin) return { valid: false, reason: 'no_pin', message: 'PIN no proporcionado.' };
 
@@ -1107,7 +1147,10 @@ function validatePin_(pin, email) {
   return { valid: true };
 }
 
-// ── getResults_ ─────────────────────────────────────────────────────────
+/**
+ * Endpoint 'getResults'. Requiere clave de profesor. Sin parámetros.
+ * @return {{results:object[]}} filas de Alumnos_Resultados como objetos {cabecera: valor}.
+ */
 function getResults_() {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_RESULTS);
@@ -1199,7 +1242,11 @@ function precomputeMorfologia_() {
   return { textos, parseErrors };
 }
 
-// Manual regeneration (called after prof edits the sheet)
+/**
+ * Endpoint 'regenerarMorfologia'. Invalida cache+PropertiesService y
+ * recalcula desde la hoja Morfologia_Textos. Llamar tras editar esa hoja.
+ * @return {{ok:true, total:number, parseErrors:number}}
+ */
 function regenerarMorfologia_() {
   try { CacheService.getScriptCache().remove('morfologia_all'); } catch(e) {}
   try { PropertiesService.getScriptProperties().deleteProperty('morfologia_all'); } catch(e) {}
@@ -1207,7 +1254,13 @@ function regenerarMorfologia_() {
   return { ok: true, total: (result.textos||[]).length, parseErrors: result.parseErrors || 0 };
 }
 
-// Student-facing: reads cache → properties → fallback precompute
+/**
+ * Endpoint 'getTextosMorfologia'. Lee cache → PropertiesService → fallback
+ * precompute (con lock, evita condición de carrera si dos alumnos entran a
+ * la vez con la caché fría).
+ * @param {{nivel?:string}} params - 'basico'|'avanzado'|'arcade'; vacío = todos.
+ * @return {{textos:object[]}}
+ */
 function getTextosMorfologia_(params) {
   const nivel = String(params.nivel || '').trim();
 
@@ -1263,6 +1316,12 @@ function filterByNivel_(textos, nivel) {
 // ── getMisiones_ — v6.0 ──────────────────────────────────────────────────
 // Hoja: Misiones
 // A=ID_Mision | B=Nombre | C=Modo | D=Subfase | E=Funciones_JSON | F=Dificultad_Max | G=N_Oraciones | H=Fecha_Limite | I=PIN | J=Estado | K=Creado
+/**
+ * Endpoint 'getMisiones'. Lista misiones activas, filtrando opcionalmente
+ * por modo y PIN.
+ * @param {{modo?:string, pin?:string}} params
+ * @return {{misiones:object[]}}
+ */
 function getMisiones_(params) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_MISIONES);
@@ -1313,6 +1372,11 @@ function getMisiones_(params) {
 
 // ── createMision_ — v6.0 ─────────────────────────────────────────────────
 // Creates a new mission row in the Misiones sheet
+/**
+ * Endpoint 'createMision'. Requiere clave de profesor. Inserta una fila en Misiones.
+ * @param {{id?,nombre?,modo?,subfase?,funciones?,dificultad?,nOraciones?,pin?,estado?,calificacion?}} params
+ * @return {{ok:true}}
+ */
 function createMision_(params) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_MISIONES);
@@ -1340,7 +1404,11 @@ function createMision_(params) {
   return { ok: true };
 }
 
-// ── saveMisionResult_ — v6.0 ────────────────────────────────────────────
+/**
+ * Endpoint 'saveMisionResult'. Añade una fila a Misiones_Resultados.
+ * @param {{email?,name?,misionId?,modo?,aciertos?,errores?,nota?,detalle?}} params
+ * @return {{ok:true}}
+ */
 function saveMisionResult_(params) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_MIS_RES);
@@ -1365,7 +1433,10 @@ function saveMisionResult_(params) {
   return { ok: true };
 }
 
-// ── getStats_ ───────────────────────────────────────────────────────────
+/**
+ * Endpoint 'getStats'. Sin parámetros. Media/total de notas en Alumnos_Resultados.
+ * @return {{stats: ?{total:number, average:number, scores?:number[]}}}
+ */
 function getStats_() {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_RESULTS);
@@ -1378,7 +1449,13 @@ function getStats_() {
   return { stats: { total: scores.length, average: Math.round(avg * 10) / 10, scores } };
 }
 
-// ── getResultsByGroup_ — returns results filtered by grupo and/or evaluacion ──
+/**
+ * Endpoint 'getResultsByGroup'. Requiere clave de profesor. Filtra
+ * Alumnos_Resultados por grupo y/o evaluación (lectura por nombre de
+ * columna, tolera cabeceras antiguas vía fallback).
+ * @param {{grupo?:string, evaluacion?:string}} params
+ * @return {{resultados:object[]}}
+ */
 function getResultsByGroup_(params) {
   const grupo = params.grupo || '';
   const evaluacion = params.evaluacion || '';
@@ -1528,7 +1605,13 @@ function ensureExamSheet_() {
   return sheet;
 }
 
-// ── createExam_: Professor creates exam → PRE-COMPUTES oraciones ──
+/**
+ * Endpoint 'createExam'. Requiere clave de profesor. Fija un PIN, cierra
+ * exámenes previos con ese mismo PIN y pre-computa el pool de oraciones
+ * filtrado (para que el alumno lo lea en <1s en getExamConfig_).
+ * @param {{pin, funciones?, ...filtros}} params
+ * @return {{ok:true, pin:string, nOracionesReales:number} | object} error si PIN inválido (ERR.BAD_PIN).
+ */
 function createExam_(params) {
   const sheet = ensureExamSheet_();
   const col = getColMap_(sheet);
@@ -1639,7 +1722,12 @@ function createExam_(params) {
   return { ok: true, pin, nOracionesReales: oraciones.length };
 }
 
-// ── getExamConfig_: Student enters PIN → reads PRE-COMPUTED JSON (< 1s) ──
+/**
+ * Endpoint 'getExamConfig'. El alumno entra con el PIN; lee la config
+ * pre-computada por createExam_ (cache → hoja Examenes).
+ * @param {{pin:string}} params
+ * @return {object} config del examen (oraciones, etc.) o error (ERR.BAD_PIN/ERR.NO_SHEET).
+ */
 function getExamConfig_(params) {
   const pin = String(params.pin || '').trim();
   if (!pin || pin.length < 4) return gasError_('PIN inválido', ERR.BAD_PIN);
@@ -1791,7 +1879,13 @@ function ensureMorphExamSheet_() {
   return sheet;
 }
 
-// ── createExamMorfologia_: el profesor genera el PIN → pre-computa textos ──
+/**
+ * Endpoint 'createExamMorfologia'. Requiere clave de profesor. Análogo a
+ * createExam_ pero para el examen de morfología (Fase 3.4): fija PIN, cierra
+ * exámenes previos con el mismo PIN, pre-computa los textos.
+ * @param {{pin, ...filtros}} params
+ * @return {{ok:true, pin:string, nTextosReales:number} | object} error si PIN inválido (ERR.BAD_PIN).
+ */
 function createExamMorfologia_(params) {
   const sheet = ensureMorphExamSheet_();
   const col = getColMap_(sheet);
@@ -1848,7 +1942,12 @@ function createExamMorfologia_(params) {
   return { ok: true, pin, nTextosReales: textos.length };
 }
 
-// ── getExamConfigMorfologia_: el alumno introduce el PIN → lee la fila ──
+/**
+ * Endpoint 'getExamConfigMorfologia'. El alumno entra con el PIN; lee la
+ * config pre-computada por createExamMorfologia_ (cache → hoja).
+ * @param {{pin:string}} params
+ * @return {object} config del examen o error (ERR.BAD_PIN).
+ */
 function getExamConfigMorfologia_(params) {
   const pin = String(params.pin || '').trim();
   if (!pin || pin.length < 4) return gasError_('PIN inválido', ERR.BAD_PIN);
@@ -1900,6 +1999,14 @@ function getExamConfigMorfologia_(params) {
 // ════════════════════════════════════════════════════════════════════════
 //  §5 — ENDPOINTS POST  (doPost — Guardar resultados)
 // ════════════════════════════════════════════════════════════════════════
+/**
+ * Punto de entrada único para peticiones POST del frontend. Igual que
+ * doGet_ pero para acciones de guardado (saveResult, saveArcadeScore, ...).
+ * Tolera POST sin cuerpo (navigator.sendBeacon): si e.postData no trae
+ * contenido, usa e.parameter como fallback (ver comentario v6.5 debajo).
+ * @param {GoogleAppsScript.Events.DoPost} e
+ * @return {GoogleAppsScript.Content.TextOutput} JSON con forma {ok:true,...} o {ok:false,error,code}.
+ */
 function doPost(e) {
   const out = ContentService.createTextOutput();
   out.setMimeType(ContentService.MimeType.JSON);
@@ -1944,6 +2051,13 @@ function doPost(e) {
   return out;
 }
 
+/**
+ * Endpoint 'saveResult'. Guarda un resultado de examen de sintaxis simple en
+ * Alumnos_Resultados; dedup por email+PIN. Usa lock porque hace lectura de
+ * dedup + escritura (dos alumnos terminando a la vez no deben pisarse fila).
+ * @param {{email?,pin?,name?,grupo?,evaluacion?,examen?,nota?,completadas?,totalOraciones?,sujetoPts?,funcionesPts?,npPts?,elemFallados?,errCD?,errCI?,errAtr?,errCPvo?,errCReg?,errCC?,reflexionTotal?,reflexionCorrectas?,versionCalificacion?,subfase?}} p
+ * @return {{ok:true, duplicate?:boolean} | object} error (ERR.LOCK_TIMEOUT si el servidor está ocupado).
+ */
 function saveResult_(p) {
   const lock = LockService.getScriptLock();
   try { lock.waitLock(10000); } catch(e) {
@@ -2042,6 +2156,12 @@ function saveResult_(p) {
 // ════════════════════════════════════════════════════════════════════════
 //  SESIONES DE PRÁCTICA LIBRE — Analytics
 // ════════════════════════════════════════════════════════════════════════
+/**
+ * Endpoint 'saveSesionPractica'. Analítica silenciosa de una sesión de
+ * práctica libre (Sintaxis). Llamada por sendBeacon — tolera POST sin body.
+ * @param {{email?,name?,grupo?,modulo?,subfase?,oracionesHechas?,totalOraciones?,nota?,errores?,tiempoMin?,funcPeor?,funcMejor?,errCD?,errCI?,errAtr?,errCPvo?,errCReg?,errCC?,reflexionTotal?,reflexionCorrectas?,versionCalificacion?}} p
+ * @return {{ok:true} | object} error (ERR.EXCEPTION) si falla el guardado.
+ */
 function saveSesionPractica_(p) {
   const HEADER = [
     'Fecha', 'Correo', 'Nombre', 'Grupo', 'Modulo', 'Subfase',
@@ -2092,6 +2212,13 @@ function saveSesionPractica_(p) {
 //  Las estadísticas agregadas se pintan en el Panel del Profesor
 //  (agregarStatsChispa_, en ChispaStats.gs).
 // ════════════════════════════════════════════════════════════════════════
+/**
+ * Endpoint 'saveSesionChispa'. Analítica silenciosa de un segmento jugado
+ * en Chispa (hasta que el alumno cambia de tema o sale). Llamada por
+ * sendBeacon — tolera POST sin body.
+ * @param {{email?,name?,grupo?,tema?,rondas?,aciertos?,rachaMax?,tiempoMin?,errores?:string}} p - errores es JSON serializado {"CD":2,...}.
+ * @return {{ok:true} | object} error (ERR.EXCEPTION) si falla el guardado.
+ */
 function saveSesionChispa_(p) {
   const HEADER = [
     'Fecha', 'Correo', 'Nombre', 'Grupo', 'Tema',
@@ -2123,6 +2250,13 @@ function saveSesionChispa_(p) {
 // Fase 4 (jul-2026): analíticas silenciosas de Sintagmas, calcadas de
 // saveSesionChispa_ — hasta ahora Sintagmas era el único modo académico sin
 // ningún registro en el backend.
+/**
+ * Endpoint 'saveSesionSintagmas'. Analítica silenciosa del modo Sintagmas
+ * (Fase 4, calcada de saveSesionChispa_). Llamada por sendBeacon — tolera
+ * POST sin body.
+ * @param {{email?,name?,grupo?,sintagmasCompletados?,totalSintagmas?,aciertos?,errores?,precisionPct?,tiempoMin?,erroresFunc?:string}} p
+ * @return {{ok:true} | object} error (ERR.EXCEPTION) si falla el guardado.
+ */
 function saveSesionSintagmas_(p) {
   const HEADER = [
     'Fecha', 'Correo', 'Nombre', 'Grupo',
@@ -2153,6 +2287,12 @@ function saveSesionSintagmas_(p) {
   }
 }
 
+/**
+ * Endpoint 'saveArcadeScore'. Guarda el mejor puntaje por (apodo+modo) en
+ * el ranking arcade; usa lock porque lee-y-modifica la fila del récord.
+ * @param {{nickname, arcadeMode, grupo?, score?, streak?, questions?, name?, email?}} p
+ * @return {{ok:true, improved:boolean} | object} error (ERR.LOCK_TIMEOUT si el servidor está ocupado, o de requireParams_).
+ */
 function saveArcadeScore_(p) {
   const paramErr = requireParams_(p, ['nickname', 'arcadeMode']);
   if (paramErr) return paramErr;
@@ -2205,6 +2345,13 @@ function saveArcadeScore_(p) {
   }
 }
 
+/**
+ * Endpoint 'getRankingArcade'. Ranking global + por grupo del modo arcade
+ * indicado; también arma el "fantasma de clase" (Duelo Fantasma tipo 2:
+ * ritmo medio del grupo del alumno) en myGrupoGhost.
+ * @param {{arcadeMode?:string, grupo?:string}} params
+ * @return {{global:object[], grupos:object, myGrupoTop:object[], myGrupoGhost?:object}}
+ */
 function getRankingArcade_(params) {
   const mode = String(params.arcadeMode||'').trim();
   const myGrupo = String(params.grupo||'').trim();
@@ -2289,6 +2436,13 @@ function getRankingArcade_(params) {
 // 'aprendiz'/'eso34'/'maestro', modo 'practice'/'exam', tokens+CatStats_JSON).
 // Fase 3.4: añadidas PIN/Evaluacion/Examen (examen con PIN) + dedup por
 // email+PIN, igual que saveResult_ de Simples.
+/**
+ * Endpoint 'saveMorphResult'. Guarda un resultado de morfología (práctica o
+ * examen con PIN); dedup por email+PIN igual que saveResult_ de Simples.
+ * Usa lock porque hace lectura de dedup + escritura.
+ * @param {{email?,name?,grupo?,nivel?,modo?,pin?,evaluacion?,examen?,nota?,tokensOk?,tokensErr?,tokensTotales?,catStats?,versionCalificacion?}} p
+ * @return {{ok:true, duplicate?:boolean} | object} error (ERR.LOCK_TIMEOUT si el servidor está ocupado).
+ */
 function saveMorphResult_(p) {
   const lock = LockService.getScriptLock();
   try { lock.waitLock(10000); } catch (e) {
@@ -4137,6 +4291,14 @@ function menuPurgarLogsGAS() {
 //    • Examenes_Config         (metadatos de exámenes con PIN)
 // ════════════════════════════════════════════════════════════════════════
 
+/**
+ * Endpoint 'getInformeProfesor'. Requiere clave de profesor. Agrega datos de
+ * Alumnos_Resultados, Sesiones_Practica, Compuestas_Resultados y
+ * Examenes_Config en un único JSON que el cliente convierte a Excel
+ * (SheetJS) — ver comentario de cabecera arriba para el detalle de params.
+ * @param {{from?:string, to?:string, grupo?:string, tipo?:string}} params
+ * @return {object} informe agregado (o {ok:false,...} si algo falla).
+ */
 function getInformeProfesor_(params) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
