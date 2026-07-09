@@ -421,9 +421,31 @@ function renderRondaSpot(ronda){
   CHI._objetivo = objetivo;
 }
 
+// Saca el siguiente elemento de una "bolsa" barajada sin reposición: se
+// consume el pool entero (sin repetir) antes de rebarajar. Evita el bug
+// real detectado 2026-07-09 — con Math.random() puro en cada ronda, un
+// pool pequeño (como el de oraciones semicopulativas recién subidas)
+// repetía la misma oración varias veces en una sola sesión, justo lo
+// contrario del "aparición aleatoria sin repetir" que promete el módulo
+// (ver cabecera del archivo). Al rebarajar, evita que la primera carta
+// del nuevo ciclo sea igual a la última mostrada del ciclo anterior.
+function _sacarDeBolsa(bolsaKey, ultimoKey, pool){
+  let bolsa = CHI[bolsaKey];
+  if(!bolsa || bolsa.length === 0){
+    bolsa = shuffle(pool);
+    if(pool.length > 1 && bolsa[0] === CHI[ultimoKey]){
+      [bolsa[0], bolsa[1]] = [bolsa[1], bolsa[0]];
+    }
+  }
+  const elegido = bolsa.shift();
+  CHI[bolsaKey] = bolsa;
+  CHI[ultimoKey] = elegido;
+  return elegido;
+}
+
 function renderRondaAtrCpvo(){
-  const atrTexto  = CHI.atrSemiPool[Math.floor(Math.random() * CHI.atrSemiPool.length)];
-  const cpvoTexto = CHI.cpvoPool[Math.floor(Math.random() * CHI.cpvoPool.length)];
+  const atrTexto  = _sacarDeBolsa('_atrBolsa', '_atrUltimo', CHI.atrSemiPool);
+  const cpvoTexto = _sacarDeBolsa('_cpvoBolsa', '_cpvoUltimo', CHI.cpvoPool);
   const opciones = shuffle([
     { texto: atrTexto,  func: 'Atr.' },
     { texto: cpvoTexto, func: 'CPvo' }
