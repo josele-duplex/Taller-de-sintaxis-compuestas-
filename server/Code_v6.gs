@@ -930,6 +930,8 @@ function doGet(e) {
     else if (action === 'saveSesionSintagmas')   result = saveSesionSintagmas_(params); // Fase 4
     else if (action === 'createExam')             { const na=requiereClaveProfesor_(params); result = na || createExam_(params); }
     else if (action === 'getExamConfig')           result = getExamConfig_(params);
+    else if (action === 'crearExamenMixto')        result = crearExamenMixto_(params); // B4 — guard de clave dentro de la propia función
+    else if (action === 'getResultadosMixtos')     { const na=requiereClaveProfesor_(params); result = na || getResultadosMixtos_(params); }
     else if (action === 'createExamMorfologia')    { const na=requiereClaveProfesor_(params); result = na || createExamMorfologia_(params); } // Fase 3.4
     else if (action === 'getExamConfigMorfologia') result = getExamConfigMorfologia_(params); // Fase 3.4
     else if (action === 'getResultsByGroup')       { const na=requiereClaveProfesor_(params); result = na || getResultsByGroup_(params); }
@@ -1512,7 +1514,10 @@ function getResultsByGroup_(params) {
 
 const EXAM_HEADER = ['PIN','Funciones_JSON','Prohibidas_JSON','MinCoincid','Dificultad',
   'N_Oraciones','Timer_Min','Subfase','Grupo','Evaluacion','Nombre_Examen',
-  'Estado','Fecha','Oraciones_JSON','Reflexion','Auto_Email'];
+  'Estado','Fecha','Oraciones_JSON','Reflexion','Auto_Email',
+  // B4 (jul-2026): examen mixto simples+compuestas — ver docs/plan_B4_examen_mixto.md.
+  // Columnas nuevas, auto-migradas por ensureSheetHeaders_ (sin tocar el Sheet a mano).
+  'Mixto','Peso_Simples','Peso_Compuestas'];
 
 const MIS_HEADER = ['ID_Mision','Nombre','Modo','Subfase','Funciones_JSON',
   'Dificultad_Max','N_Oraciones','Fecha_Limite','PIN','Estado','Creado','Calificacion'];
@@ -1830,6 +1835,14 @@ function getExamConfig_(params) {
       reflexion: col['Reflexion'] !== undefined ? !!(parseInt(data[i][col['Reflexion']])||0) : false
     };
 
+    // B4: examen mixto simples+compuestas — el flag debe entrar ANTES de
+    // cachear (la respuesta cacheada de abajo es justo este objeto).
+    if (col['Mixto'] !== undefined && String(data[i][col['Mixto']] || '').trim() === 'Sí') {
+      result.mixto = true;
+      result.pesoSimples    = col['Peso_Simples']    !== undefined ? (parseInt(data[i][col['Peso_Simples']])    || 0) : 0;
+      result.pesoCompuestas = col['Peso_Compuestas'] !== undefined ? (parseInt(data[i][col['Peso_Compuestas']]) || 0) : 0;
+    }
+
     // Cache for 5 minutes
     try {
       const json = JSON.stringify(result);
@@ -1853,6 +1866,267 @@ function getExamConfig_(params) {
     return gasError_('Este PIN existe pero el examen no está activo. Pídele al profesor que lo cree de nuevo.', ERR.EXAM_INACTIVE);
   }
   return gasError_('PIN no encontrado. Comprueba que has escrito los 4 dígitos correctos.', ERR.PIN_NOT_FOUND);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  EXAMEN MIXTO (simples + compuestas) — B4, jul-2026
+//  Diseño federado: NO se fusionan los dos motores ni se crea una hoja de
+//  resultados nueva. Un examen mixto es un examen de simples + un examen
+//  de compuestas que COMPARTEN PIN (createExam_ + createExamenCompuesta_,
+//  cada uno en su hoja de siempre); la nota global ponderada se calcula al
+//  LEER (getResultadosMixtos_), nunca se escribe como dato duplicado.
+//  Especificación completa, decisiones pedagógicas y checklist:
+//  docs/plan_B4_examen_mixto.md (en el repo). NO reconstruir el diseño sin
+//  leer ese documento primero — el diseño antiguo (hoja Examenes_Mixtos +
+//  Mixtos_Resultados) fue descartado explícitamente por su riesgo.
+// ════════════════════════════════════════════════════════════════════════
+
+/**
+ * Busca la fila ACTIVA más reciente de Examenes_Config con este PIN y le
+ * aplica los campos dados (por nombre de columna, vía getColMap_). La usa
+ * crearExamenMixto_ tanto para marcar Mixto/pesos (éxito) como para el
+ * rollback Estado='cerrado' (si falla la Parte 2 de compuestas).
+ * @param {string} pin
+ * @param {object} campos - {nombreColumna: valor}
+ * @return {boolean} true si encontró y actualizó la fila; false si no existía.
+ */
+function _actualizarFilaExamenActivaPorPin_(pin, campos) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_EXAMS);
+  if (!sheet || sheet.getLastRow() < 2) return false;
+  const col = getColMap_(sheet);
+  const data = sheet.getDataRange().getValues();
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][col['PIN']]).trim() !== pin) continue;
+    if (String(data[i][col['Estado']]).trim() !== 'activo') continue;
+    Object.keys(campos).forEach(function (key) {
+      if (col[key] !== undefined) sheet.getRange(i + 1, col[key] + 1).setValue(campos[key]);
+    });
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Endpoint 'crearExamenMixto'. Requiere clave de profesor. Crea un examen
+ * de simples (Parte 1) y uno de compuestas (Parte 2) con el MISMO pin,
+ * marca la fila de Examenes_Config como Mixto con sus pesos, e invalida la
+ * caché para que getExamConfig_ sirva el flag actualizado. Si la Parte 2
+ * falla, hace ROLLBACK cerrando la Parte 1 — nunca deja medio examen
+ * mixto activo. La Parte 1 nunca lleva Auto_Email (el alumno recibiría un
+ * correo con solo la nota de la Parte 1, antes de terminar el examen).
+ * @param {{pin, grupo?, evaluacion?, nombreExamen?, pesoSimples, pesoCompuestas,
+ *   sFunciones?, sProhibidas?, sMinCoincidencias?, sDificultad?, sNOraciones?,
+ *   sTimerMin?, sSubfase?, sReflexion?,
+ *   cTipoOracion?, cSubtipo?, cNivelMax?, cNProposicionesMax?, cNEjercicios?,
+ *   cTimerMin?, cFasesActivas?}} params - pesoSimples+pesoCompuestas deben sumar 100.
+ *   sX = parámetros de createExam_ (Parte 1); cX = parámetros de createExamenCompuesta_ (Parte 2).
+ * @return {{ok:true, pin, pesoSimples, pesoCompuestas, nOracionesReales, nEjerciciosReales} | object} error si falla cualquier paso.
+ */
+function crearExamenMixto_(params) {
+  const noAuth = requiereClaveProfesor_(params); if (noAuth) return noAuth;
+
+  const pin = String(params.pin || '').trim();
+  if (!/^\d{4,6}$/.test(pin)) return gasError_('PIN inválido (debe tener 4-6 dígitos numéricos)', ERR.BAD_PIN);
+
+  const pesoSimples    = parseInt(params.pesoSimples);
+  const pesoCompuestas = parseInt(params.pesoCompuestas);
+  if (isNaN(pesoSimples) || isNaN(pesoCompuestas) || pesoSimples < 0 || pesoCompuestas < 0 ||
+      (pesoSimples + pesoCompuestas) !== 100) {
+    return gasError_('Los pesos de Simples y Compuestas deben sumar 100.', ERR.BAD_PARAM);
+  }
+
+  // 1) Parte 1 — oraciones simples. autoEmail SIEMPRE '0': con examen mixto
+  // el alumno solo debe recibir el correo (si se implementa) con las 3
+  // notas al final, nunca uno a medias tras la Parte 1.
+  const rSimples = createExam_({
+    pin: pin,
+    funciones:         params.sFunciones         || '[]',
+    prohibidas:        params.sProhibidas        || '[]',
+    minCoincidencias:  params.sMinCoincidencias   || '1',
+    dificultad:        params.sDificultad         || '0',
+    nOraciones:        params.sNOraciones         || '0',
+    timerMin:          params.sTimerMin           || '0',
+    subfase:           params.sSubfase            || 'completo',
+    grupo:             params.grupo               || '',
+    evaluacion:        params.evaluacion          || '',
+    nombreExamen:      params.nombreExamen        || '',
+    reflexion:         params.sReflexion          || '0',
+    autoEmail:         '0'
+  });
+  if (!rSimples || !rSimples.ok) {
+    return gasError_('No se pudo crear la Parte 1 (oraciones simples): ' +
+      ((rSimples && rSimples.error) || 'error desconocido'), ERR.EXCEPTION);
+  }
+
+  // 2) Parte 2 — oración compuesta, mismo PIN.
+  const rCompuestas = createExamenCompuesta_({
+    pin: pin,
+    tipoOracion:         params.cTipoOracion         || '*',
+    subtipo:             params.cSubtipo             || '*',
+    nivelMax:            params.cNivelMax            || 'avanzado',
+    nProposicionesMax:   params.cNProposicionesMax    || '0',
+    nEjercicios:         params.cNEjercicios          || '0',
+    timerMin:            params.cTimerMin             || '0',
+    fasesActivas:        params.cFasesActivas         || '',
+    grupo:               params.grupo                 || '',
+    evaluacion:          params.evaluacion             || '',
+    nombreExamen:        params.nombreExamen           || ''
+  });
+  if (!rCompuestas || !rCompuestas.ok) {
+    // ROLLBACK: la Parte 1 ya quedó activa — cerrarla para no dejar medio
+    // examen mixto expuesto a los alumnos.
+    _actualizarFilaExamenActivaPorPin_(pin, { 'Estado': 'cerrado' });
+    try { CacheService.getScriptCache().remove('exam_' + pin); } catch (e) {}
+    return gasError_('No se pudo crear la Parte 2 (oración compuesta): ' +
+      ((rCompuestas && rCompuestas.error) || 'error desconocido') +
+      '. Se ha cancelado también la Parte 1 — revisa los filtros e inténtalo de nuevo.', ERR.EXCEPTION);
+  }
+
+  // 3) Ambas partes creadas: marcar la fila de Examenes_Config como mixta.
+  const marcado = _actualizarFilaExamenActivaPorPin_(pin, {
+    'Mixto': 'Sí', 'Peso_Simples': pesoSimples, 'Peso_Compuestas': pesoCompuestas
+  });
+  if (!marcado) {
+    return gasError_('Las dos partes se crearon pero no se pudo marcar el examen como mixto. Contacta con soporte.', ERR.EXCEPTION);
+  }
+
+  // 4) Invalidar caché para que getExamConfig_ sirva el flag actualizado
+  try { CacheService.getScriptCache().remove('exam_' + pin); } catch (e) {}
+
+  return {
+    ok: true, pin: pin, pesoSimples: pesoSimples, pesoCompuestas: pesoCompuestas,
+    nOracionesReales: rSimples.nOracionesReales,
+    nEjerciciosReales: rCompuestas.nEjerciciosReales
+  };
+}
+
+/**
+ * Endpoint 'getResultadosMixtos'. Requiere clave de profesor. Vista "join":
+ * cruza Alumnos_Resultados (Parte 1, simples) y Compuestas_Resultados
+ * (Parte 2, compuestas — solo Modo='examen') por email normalizado, para
+ * cada examen marcado Mixto='Sí' en Examenes_Config. La nota global
+ * ponderada se calcula AQUÍ, al leer — nunca se guarda como dato duplicado.
+ * Un alumno con solo una de las dos partes queda en estado
+ * 'incompleto_p1'/'incompleto_p2' con notaGlobal:null — NUNCA se rellena
+ * con 0 automático (decisión pedagógica de Josele).
+ * @param {{pin?:string}} params - si se omite, agrega TODOS los exámenes marcados Mixto='Sí'.
+ * @return {{ok:true, examenes: {pin,nombreExamen,grupo,evaluacion,pesoSimples,pesoCompuestas,
+ *   resultados:{email,nombre,grupo,notaSimples,notaCompuestas,notaGlobal,estado}[]}[]}}
+ */
+function getResultadosMixtos_(params) {
+  const pinFiltro = String((params && params.pin) || '').trim();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const examSheet = ss.getSheetByName(SHEET_EXAMS);
+  if (!examSheet || examSheet.getLastRow() < 2) return { ok: true, examenes: [] };
+  const examCol = getColMap_(examSheet);
+  if (examCol['Mixto'] === undefined) return { ok: true, examenes: [] };
+  const examData = examSheet.getDataRange().getValues();
+
+  // 1) Reunir los exámenes mixtos a incluir: pin -> {metadatos, pesos}
+  const mixtos = {};
+  for (let i = 1; i < examData.length; i++) {
+    const row = examData[i];
+    if (String(row[examCol['Mixto']] || '').trim() !== 'Sí') continue;
+    const pin = String(row[examCol['PIN']] || '').trim();
+    if (!pin) continue;
+    if (pinFiltro && pin !== pinFiltro) continue;
+    // Si el PIN se recreó varias veces, se queda con la fila más reciente
+    // (el bucle avanza en orden, la última sobrescribe).
+    mixtos[pin] = {
+      pin: pin,
+      nombreExamen:   String(row[examCol['Nombre_Examen']] || ''),
+      grupo:          String(row[examCol['Grupo']] || ''),
+      evaluacion:     String(row[examCol['Evaluacion']] || ''),
+      pesoSimples:    parseInt(row[examCol['Peso_Simples']])    || 0,
+      pesoCompuestas: parseInt(row[examCol['Peso_Compuestas']]) || 0
+    };
+  }
+  const pines = Object.keys(mixtos);
+  if (pines.length === 0) return { ok: true, examenes: [] };
+
+  // 2) Leer Alumnos_Resultados (Parte 1, simples) filtrado a esos PIN
+  const notasSimples = {}; // pin -> email -> {nombre,grupo,nota}
+  const simplesSheet = ss.getSheetByName(SHEET_RESULTS);
+  if (simplesSheet && simplesSheet.getLastRow() > 1) {
+    const sCol = getColMap_(simplesSheet);
+    const sData = simplesSheet.getDataRange().getValues();
+    for (let i = 1; i < sData.length; i++) {
+      const row = sData[i];
+      const pin = String(row[sCol['PIN']] || '').trim();
+      if (!mixtos[pin]) continue;
+      const email = String(row[sCol['Correo']] || '').trim().toLowerCase();
+      if (!email) continue;
+      if (!notasSimples[pin]) notasSimples[pin] = {};
+      notasSimples[pin][email] = {
+        nombre: String(row[sCol['Nombre']] || ''),
+        grupo:  String(row[sCol['Grupo']] || ''),
+        nota:   parseFloat(row[sCol['Nota']]) || 0
+      };
+    }
+  }
+
+  // 3) Leer Compuestas_Resultados (Parte 2, solo examen) filtrado a esos PIN
+  const notasCompuestas = {};
+  const compSheet = ss.getSheetByName(SHEET_COMPUESTAS_RESULTADOS);
+  if (compSheet && compSheet.getLastRow() > 1) {
+    const cCol = getColMap_(compSheet);
+    const cData = compSheet.getDataRange().getValues();
+    for (let i = 1; i < cData.length; i++) {
+      const row = cData[i];
+      const pin = String(row[cCol['PIN']] || '').trim();
+      if (!mixtos[pin]) continue;
+      if (String(row[cCol['Modo']] || '').trim().toLowerCase() !== 'examen') continue;
+      const email = String(row[cCol['Correo']] || '').trim().toLowerCase();
+      if (!email) continue;
+      if (!notasCompuestas[pin]) notasCompuestas[pin] = {};
+      notasCompuestas[pin][email] = {
+        nombre: String(row[cCol['Nombre']] || ''),
+        grupo:  String(row[cCol['Grupo']] || ''),
+        nota:   parseFloat(row[cCol['Nota']]) || 0
+      };
+    }
+  }
+
+  // 4) Join por email normalizado, por cada examen mixto
+  const examenes = pines.map(function (pin) {
+    const meta = mixtos[pin];
+    const sMap = notasSimples[pin] || {};
+    const cMap = notasCompuestas[pin] || {};
+    const emails = {};
+    Object.keys(sMap).forEach(function (e) { emails[e] = true; });
+    Object.keys(cMap).forEach(function (e) { emails[e] = true; });
+
+    const resultados = Object.keys(emails).map(function (email) {
+      const s = sMap[email], c = cMap[email];
+      let notaGlobal = null, estado;
+      if (s && c) {
+        notaGlobal = Math.round((s.nota * meta.pesoSimples / 100 + c.nota * meta.pesoCompuestas / 100) * 10) / 10;
+        estado = 'completo';
+      } else if (s && !c) {
+        estado = 'incompleto_p2'; // hizo la Parte 1, le falta la Parte 2
+      } else {
+        estado = 'incompleto_p1'; // caso raro: Parte 2 sin Parte 1 registrada
+      }
+      return {
+        email: email,
+        nombre: (s && s.nombre) || (c && c.nombre) || '',
+        grupo:  (s && s.grupo)  || (c && c.grupo)  || '',
+        notaSimples:    s ? s.nota : null,
+        notaCompuestas: c ? c.nota : null,
+        notaGlobal: notaGlobal,
+        estado: estado
+      };
+    });
+    resultados.sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
+
+    return {
+      pin: meta.pin, nombreExamen: meta.nombreExamen, grupo: meta.grupo, evaluacion: meta.evaluacion,
+      pesoSimples: meta.pesoSimples, pesoCompuestas: meta.pesoCompuestas, resultados: resultados
+    };
+  });
+
+  return { ok: true, examenes: examenes };
 }
 
 // ════════════════════════════════════════════════════════════════════════
