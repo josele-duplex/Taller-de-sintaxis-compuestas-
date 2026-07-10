@@ -912,6 +912,85 @@ if(window.location.protocol === 'file:') {
       <p id="tp-cp-msg" style="font-size:.82rem;color:var(--muted);display:none;margin-top:8px"></p>
     </div>
 
+    <!-- ── B4: Crear examen mixto (Parte 1 simples + Parte 2 compuestas) ── -->
+    <div class="s-box" style="border:2px solid #102A43;background:#F0F4F8">
+      <div class="s-title" style="color:#102A43">🔀 Crear examen mixto (Parte 1 + Parte 2)</div>
+      <div class="s-desc">
+        Un examen en dos partes con el <strong>mismo PIN</strong>: el alumno hace primero las
+        oraciones simples y, al terminar, continúa con la oración compuesta. La nota global
+        se calcula ponderando las dos notas.
+        <strong>Usa los filtros que ya hayas puesto arriba</strong> en «Crear examen» (Simples)
+        y en «Crear examen de Compuestas» — este bloque solo añade el PIN compartido, los
+        pesos y activa las dos partes a la vez. No hace falta pulsar los botones "Activar
+        examen" de esas dos secciones.
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 8px">
+        <div style="min-width:128px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">PIN compartido (4-6 dígitos)</label>
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <input id="tp-mix-pin" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="1234"
+              style="width:88px;text-align:center;font-size:1.1rem;font-weight:900;letter-spacing:.15em;padding:6px 8px">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="genMixExamPin()" title="Generar PIN aleatorio">🎲</button>
+          </div>
+        </div>
+        <div style="flex:1;min-width:80px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Grupo</label>
+          <select id="tp-mix-grupo" class="input grupo-select" data-grupo-placeholder="— Elige clase —" style="font-size:.88rem;padding:6px 8px;margin-top:4px"></select>
+        </div>
+        <div style="flex:1;min-width:60px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Evaluación</label>
+          <select id="tp-mix-eval" class="input" style="font-size:.88rem;padding:6px 8px;margin-top:4px">
+            <option value="1ª">1ª</option>
+            <option value="2ª">2ª</option>
+            <option value="3ª">3ª</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nombre del examen</label>
+        <input id="tp-mix-name" class="input" type="text" placeholder="Ej: Examen unidad 5 — mixto" style="width:100%;font-size:.88rem;padding:6px 8px;margin-top:4px">
+      </div>
+
+      <div style="margin-bottom:10px;padding:10px 12px;background:#fff;border:1.5px solid var(--border);border-radius:8px">
+        <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Peso de cada parte en la nota global (debe sumar 100)</label>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">
+          <span style="font-size:.82rem">📗 Simples</span>
+          <input id="tp-mix-peso-s" class="input" type="number" min="0" max="100" value="40" style="width:64px;text-align:center;font-weight:800" oninput="_syncMixPesos('s')">
+          <span style="color:var(--muted)">+</span>
+          <span style="font-size:.82rem">🧩 Compuestas</span>
+          <input id="tp-mix-peso-c" class="input" type="number" min="0" max="100" value="60" style="width:64px;text-align:center;font-weight:800" oninput="_syncMixPesos('c')">
+          <span style="color:var(--muted)">=</span>
+          <span id="tp-mix-peso-total" style="font-weight:900">100</span>
+        </div>
+      </div>
+
+      <p id="tp-mix-exam-status" style="font-size:.85rem;display:none;padding:8px 12px;border-radius:8px;margin-bottom:8px" role="status"></p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn btn-primary btn-sm" onclick="crearExamenMixtoUI()">🚀 Activar examen mixto</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="testMixExamPin()">🔎 Probar PIN actual</button>
+      </div>
+    </div>
+
+    <!-- ── B4: Resultados de examen mixto ──────────────────────────── -->
+    <div class="s-box" style="border:2px solid #102A43;background:#F0F4F8">
+      <div class="s-title" style="color:#102A43">🔀 Resultados de examen mixto</div>
+      <div class="s-desc">Cruce entre <code>Alumnos_Resultados</code> y <code>Compuestas_Resultados</code> por email. Deja el PIN en blanco para ver todos los exámenes mixtos.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="min-width:110px">
+          <label style="font-size:.72rem;font-weight:700;color:var(--muted)">PIN (opcional)</label>
+          <input id="tp-mix-dash-pin" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="(todos)" style="font-size:.88rem;padding:5px 8px">
+        </div>
+        <div style="display:flex;align-items:end;gap:6px">
+          <button type="button" class="btn btn-primary btn-sm" onclick="loadMixDashboard()">Cargar</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="exportMixCSV()">📥 CSV</button>
+        </div>
+      </div>
+      <div id="tp-mix-results"></div>
+      <p id="tp-mix-msg" style="font-size:.82rem;color:var(--muted);display:none;margin-top:8px"></p>
+    </div>
+
     <div class="gas-guide">
       <h3>📋 Estructura de Alumnos_Resultados</h3>
       <pre>A: Fecha · B: Correo · C: Nombre · D: Grupo · E: Evaluación · F: Examen

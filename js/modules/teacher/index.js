@@ -679,6 +679,280 @@ function exportCpCSV(){
 }
 
 // ════════════════════════════════════════════════════════
+// EXAMEN MIXTO (simples + compuestas) — B4, jul-2026 (M3)
+// Diseño federado: NO se duplica el formulario de filtros de cada motor.
+// Este bloque reutiliza los campos YA presentes en "Crear examen" (Simples,
+// #tp-func-checks/#tp-func-prohib/#tp-dif-range/#tp-exam-count/#tp-timer/
+// #tp-exam-reflexion) y en "Crear examen de Compuestas" (#tp-cp-exam-*):
+// el profesor los rellena como siempre y este bloque solo añade el PIN
+// compartido + los pesos, y activa las dos partes con un único click.
+// Ver docs/plan_B4_examen_mixto.md (repo) para el diseño completo.
+// ════════════════════════════════════════════════════════
+
+function genMixExamPin(){
+  document.getElementById('tp-mix-pin').value = String(Math.floor(1000 + Math.random() * 9000));
+}
+
+// Los dos campos de peso se mantienen sincronizados para sumar SIEMPRE 100
+// (en vez de solo validar al enviar) — así el profesor nunca ve un estado
+// inválido en pantalla.
+function _syncMixPesos(which){
+  const sEl = document.getElementById('tp-mix-peso-s');
+  const cEl = document.getElementById('tp-mix-peso-c');
+  let s = Math.max(0, Math.min(100, parseInt(sEl.value) || 0));
+  let c = Math.max(0, Math.min(100, parseInt(cEl.value) || 0));
+  if (which === 's') { c = 100 - s; cEl.value = c; }
+  else                { s = 100 - c; sEl.value = s; }
+  document.getElementById('tp-mix-peso-total').textContent = String(s + c);
+}
+
+function _setMixExamStatus(msg, colorVar){
+  const el = document.getElementById('tp-mix-exam-status');
+  el.style.display = 'block';
+  el.textContent = msg;
+  el.style.color = colorVar;
+  el.style.background = colorVar === 'var(--red)'   ? '#FEF2F2'
+                      : colorVar === 'var(--green)' ? '#F0FDF4'
+                      : colorVar === 'var(--amber)' ? '#FFFBEB'
+                      : '#EFF6FF';
+  el.style.borderLeft = '3px solid ' + (colorVar || 'var(--blue)');
+}
+
+async function crearExamenMixtoUI(){
+  const pin = document.getElementById('tp-mix-pin').value.trim();
+  if(!pin || !/^\d{4,6}$/.test(pin)){
+    _setMixExamStatus('⚠ El PIN debe tener entre 4 y 6 dígitos numéricos.', 'var(--red)');
+    return;
+  }
+  const apiUrl = getApiUrl();
+  if(!apiUrl){
+    _setMixExamStatus('⚠ Configura la URL de la API primero.', 'var(--red)');
+    return;
+  }
+  const pesoSimples    = parseInt(document.getElementById('tp-mix-peso-s').value) || 0;
+  const pesoCompuestas = parseInt(document.getElementById('tp-mix-peso-c').value) || 0;
+  if(pesoSimples + pesoCompuestas !== 100){
+    _setMixExamStatus('⚠ Los pesos deben sumar 100 (ahora suman ' + (pesoSimples + pesoCompuestas) + ').', 'var(--red)');
+    return;
+  }
+  const grupo        = document.getElementById('tp-mix-grupo').value.trim();
+  const evaluacion   = document.getElementById('tp-mix-eval').value.trim();
+  const nombreExamen = document.getElementById('tp-mix-name').value.trim();
+
+  // Parte 1 (simples) — mismos campos que "Crear examen" arriba en el panel.
+  const sChecks    = [...document.querySelectorAll('#tp-func-checks input:checked')].map(c => c.value);
+  const sProhib    = [...document.querySelectorAll('#tp-func-prohib input:checked')].map(c => c.value);
+  const sDif       = parseInt(document.getElementById('tp-dif-range')?.value) || 0;
+  const sCount     = parseInt(document.getElementById('tp-exam-count')?.value) || 0;
+  const sTimer     = parseInt(document.getElementById('tp-timer')?.value) || 0;
+  const sSubfase   = localStorage.getItem('taller_exam_subfase') || 'completo';
+  const sReflexion = document.getElementById('tp-exam-reflexion')?.checked ? '1' : '0';
+
+  // Parte 2 (compuestas) — mismos campos que "Crear examen de Compuestas" arriba.
+  const cTipo      = document.getElementById('tp-cp-exam-tipo')?.value || '*';
+  const cNivel     = document.getElementById('tp-cp-exam-nivel')?.value || 'avanzado';
+  const cNProps    = parseInt(document.getElementById('tp-cp-exam-nprops')?.value) || 0;
+  const cN         = parseInt(document.getElementById('tp-cp-exam-n')?.value) || 0;
+  const cTimer     = parseInt(document.getElementById('tp-cp-exam-timer')?.value) || 0;
+  const cSubtipoChk= Array.from(document.querySelectorAll('#tp-cp-exam-subtipos input:checked')).map(c => c.value);
+  const cSubtipo   = cSubtipoChk.length > 0 ? cSubtipoChk.join(',') : '*';
+  const cInterna   = !!document.getElementById('tp-cp-exam-interna')?.checked;
+  const cFasesActivas = cInterna ? '[0,1,2,3,4,5,6]' : '[0,1,2,3,4,5]';
+
+  _setMixExamStatus('⏳ Creando la Parte 1 y la Parte 2 (mismo PIN)…', 'var(--blue)');
+
+  try {
+    const params = new URLSearchParams({
+      action: 'crearExamenMixto',
+      pin, grupo, evaluacion, nombreExamen,
+      pesoSimples: String(pesoSimples), pesoCompuestas: String(pesoCompuestas),
+      sFunciones: JSON.stringify(sChecks), sProhibidas: JSON.stringify(sProhib),
+      sMinCoincidencias: '1', sDificultad: String(sDif), sNOraciones: String(sCount),
+      sTimerMin: String(sTimer), sSubfase, sReflexion,
+      cTipoOracion: cTipo, cSubtipo, cNivelMax: cNivel,
+      cNProposicionesMax: String(cNProps), cNEjercicios: String(cN), cTimerMin: String(cTimer),
+      cFasesActivas,
+      clave: (typeof getTeacherPw === 'function' ? getTeacherPw() : '')
+    });
+    const r = await fetchWithRetry(apiUrl + '?' + params.toString(), {}, {
+      timeoutMs: 20000,
+      retries: 2,
+      onRetry: (n) => { _setMixExamStatus('⏳ Reintentando (' + n + '/2)…', 'var(--amber)'); }
+    });
+    const d = await r.json();
+    if(d.ok){
+      localStorage.setItem(LS_PIN, pin); // comparte el "PIN activo" del panel con Simples
+      document.getElementById('tp-pin-display').textContent = pin;
+      const parts = [
+        'PIN: ' + pin,
+        (d.nOracionesReales || sCount || '?') + ' oraciones (P1)',
+        (d.nEjerciciosReales || cN || '?') + ' ejercicio(s) compuesta (P2)',
+        'Pesos ' + pesoSimples + '/' + pesoCompuestas
+      ];
+      _setMixExamStatus('✓ Examen mixto activado. ' + parts.join(' · '), 'var(--green)');
+    } else {
+      _setMixExamStatus('⚠ Error: ' + (d.error || 'desconocido'), 'var(--red)');
+    }
+  } catch(e){
+    // Igual que activateExam/createExamenCompuestaUI: el GAS puede haber
+    // terminado pese al timeout de red — verificar antes de dar por fallido.
+    _setMixExamStatus('⏳ Sin respuesta. Verificando si se creó…', 'var(--amber)');
+    try {
+      await new Promise(res => setTimeout(res, 1500));
+      const verify = await fetchWithTimeout(apiUrl + '?action=getExamConfig&pin=' + encodeURIComponent(pin), {}, 10000);
+      const vd = await verify.json();
+      if(vd.ok && vd.mixto){
+        _setMixExamStatus('✓ El examen mixto se creó correctamente (PIN ' + pin + '). El timeout era solo de la respuesta.', 'var(--green)');
+      } else {
+        _setMixExamStatus('⚠ Error: ' + e.message + '. Revisa si quedó a medias (usa "🔎 Probar PIN") e inténtalo de nuevo, mejor con otro PIN.', 'var(--red)');
+      }
+    } catch(e2){
+      _setMixExamStatus('⚠ Error de conexión: ' + e.message, 'var(--red)');
+    }
+  }
+}
+
+// Verifica que el PIN del formulario está activo y es mixto (simula la petición de un alumno).
+async function testMixExamPin(){
+  const pin = document.getElementById('tp-mix-pin').value.trim();
+  if(!pin || !/^\d{4,6}$/.test(pin)){
+    _setMixExamStatus('⚠ Escribe primero un PIN de 4-6 dígitos.', 'var(--amber)');
+    return;
+  }
+  const apiUrl = getApiUrl();
+  if(!apiUrl){
+    _setMixExamStatus('⚠ Sin URL de API configurada.', 'var(--red)');
+    return;
+  }
+  _setMixExamStatus('⏳ Comprobando PIN ' + pin + '…', 'var(--blue)');
+  try {
+    const r = await fetchWithTimeout(apiUrl + '?action=getExamConfig&pin=' + encodeURIComponent(pin), {}, 10000);
+    const d = await r.json();
+    if(d.ok && d.mixto){
+      _setMixExamStatus('✓ PIN ' + pin + ' es un examen mixto activo · Parte 1: ' + (d.oraciones?.length || 0) + ' oraciones · pesos ' + d.pesoSimples + '/' + d.pesoCompuestas + '.', 'var(--green)');
+    } else if(d.ok && !d.mixto){
+      _setMixExamStatus('⚠ El PIN ' + pin + ' existe pero NO está marcado como examen mixto (¿PIN reutilizado de un examen normal?).', 'var(--amber)');
+    } else {
+      _setMixExamStatus('⚠ PIN ' + pin + ': ' + (d.error || 'error desconocido'), 'var(--red)');
+    }
+  } catch(e){
+    _setMixExamStatus('⚠ Error de conexión: ' + e.message, 'var(--red)');
+  }
+}
+
+let _mixDashData = []; // filas planas (con el contexto del examen) para exportar CSV
+
+async function loadMixDashboard(){
+  const apiUrl = getApiUrl();
+  const msg = document.getElementById('tp-mix-msg');
+  const box = document.getElementById('tp-mix-results');
+  if(!apiUrl){
+    msg.textContent = '⚠ Configura la URL de la API primero.';
+    msg.style.color = 'var(--red)';
+    msg.style.display = 'block';
+    return;
+  }
+  const pin = document.getElementById('tp-mix-dash-pin').value.trim();
+  msg.textContent = '⏳ Cargando resultados mixtos…';
+  msg.style.color = 'var(--blue)';
+  msg.style.display = 'block';
+  box.innerHTML = '';
+  try {
+    const params = new URLSearchParams({ action: 'getResultadosMixtos' });
+    params.set('clave', (typeof getTeacherPw === 'function' ? getTeacherPw() : ''));
+    if(pin) params.set('pin', pin);
+    const r = await fetchWithTimeout(apiUrl + '?' + params.toString(), {}, 12000);
+    const d = await r.json();
+    if(!d.ok){
+      msg.textContent = '⚠ Error: ' + (d.error || 'desconocido');
+      msg.style.color = 'var(--red)';
+      _mixDashData = [];
+      return;
+    }
+    const examenes = d.examenes || [];
+    if(examenes.length === 0){
+      msg.textContent = 'Sin exámenes mixtos' + (pin ? ' para el PIN ' + pin : '') + '.';
+      msg.style.color = 'var(--muted)';
+      _mixDashData = [];
+      return;
+    }
+    _mixDashData = [];
+    const estadoLbl = e => e === 'completo' ? '✓ completo'
+                      : e === 'incompleto_p2' ? '⚠ falta Parte 2'
+                      : '⚠ falta Parte 1';
+    box.innerHTML = examenes.map(ex => {
+      ex.resultados.forEach(row => _mixDashData.push(Object.assign({
+        PIN: ex.pin, NombreExamen: ex.nombreExamen, Grupo_Examen: ex.grupo, Evaluacion: ex.evaluacion,
+        Peso_Simples: ex.pesoSimples, Peso_Compuestas: ex.pesoCompuestas
+      }, row)));
+      const filas = ex.resultados.map(row => {
+        // NUNCA se rellena notaGlobal con 0 automático — decisión pedagógica
+        // de Josele (docs/plan_B4_examen_mixto.md §2.3): si falta una parte,
+        // se resalta como incompleto y el profesor decide caso a caso.
+        const incompleto = row.estado !== 'completo';
+        const colorGlobal = row.notaGlobal == null ? 'var(--muted)' : row.notaGlobal >= 8 ? '#059669' : row.notaGlobal >= 5 ? '#D97706' : '#DC2626';
+        return `<tr style="border-bottom:1px solid rgba(0,0,0,.06)${incompleto ? ';background:#FFFBEB' : ''}">
+          <td style="padding:5px 4px;font-weight:600">${escHtml(row.nombre || row.email || '—')}</td>
+          <td style="padding:5px 4px;text-align:center;color:var(--muted)">${escHtml(row.grupo || '')}</td>
+          <td style="padding:5px 4px;text-align:center">${row.notaSimples != null ? row.notaSimples.toFixed(1) : '—'}</td>
+          <td style="padding:5px 4px;text-align:center">${row.notaCompuestas != null ? row.notaCompuestas.toFixed(1) : '—'}</td>
+          <td style="padding:5px 4px;text-align:center;font-weight:900;color:${colorGlobal}">${row.notaGlobal != null ? row.notaGlobal.toFixed(1) : '—'}</td>
+          <td style="padding:5px 4px;text-align:center;font-size:.74rem;${incompleto ? 'color:#D97706;font-weight:700' : 'color:#059669'}">${estadoLbl(row.estado)}</td>
+        </tr>`;
+      }).join('');
+      return `<div style="margin-bottom:14px;padding:10px 12px;background:#fff;border:1.5px solid var(--border);border-radius:10px">
+        <div style="font-weight:800;font-size:.9rem;margin-bottom:2px">${escHtml(ex.nombreExamen || ('PIN ' + ex.pin))}</div>
+        <div style="font-size:.74rem;color:var(--muted);margin-bottom:8px">PIN ${escHtml(ex.pin)} · Grupo ${escHtml(ex.grupo || '—')} · Eval. ${escHtml(ex.evaluacion || '—')} · Pesos ${ex.pesoSimples}/${ex.pesoCompuestas} · ${ex.resultados.length} alumno(s)</div>
+        <div style="max-height:280px;overflow-y:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+            <thead><tr style="background:#F0F4F8;position:sticky;top:0">
+              <th style="padding:6px 4px;text-align:left;border-bottom:2px solid #CBD5E1">Alumno</th>
+              <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #CBD5E1">Grupo</th>
+              <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #CBD5E1">Nota P1</th>
+              <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #CBD5E1">Nota P2</th>
+              <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #CBD5E1">Global</th>
+              <th style="padding:6px 4px;text-align:center;border-bottom:2px solid #CBD5E1">Estado</th>
+            </tr></thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </div>
+      </div>`;
+    }).join('');
+    msg.textContent = `✓ ${examenes.length} examen(es) mixto(s), ${_mixDashData.length} resultado(s).`;
+    msg.style.color = 'var(--green)';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+  } catch(e){
+    msg.textContent = '⚠ Error: ' + (e && e.message || e);
+    msg.style.color = 'var(--red)';
+  }
+}
+
+function exportMixCSV(){
+  if(!_mixDashData || _mixDashData.length === 0){
+    flashTp('Carga resultados mixtos primero.', 'var(--amber)');
+    return;
+  }
+  const HEADERS = ['PIN', 'NombreExamen', 'Grupo_Examen', 'Evaluacion', 'Peso_Simples', 'Peso_Compuestas',
+                   'email', 'nombre', 'grupo', 'notaSimples', 'notaCompuestas', 'notaGlobal', 'estado'];
+  const escCSV = v => {
+    if(v == null) return '';
+    const s = String(v).replace(/"/g, '""');
+    return `"${s}"`;
+  };
+  let csv = HEADERS.join(',') + '\n';
+  _mixDashData.forEach(r => { csv += HEADERS.map(h => escCSV(r[h])).join(',') + '\n'; });
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const pinFiltro = document.getElementById('tp-mix-dash-pin').value.trim() || 'todos';
+  a.download = `examen_mixto_resultados_${pinFiltro}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  flashTp('✓ CSV de examen mixto descargado.', 'var(--green)');
+}
+
+// ════════════════════════════════════════════════════════
 // MISSION SYSTEM v6.0
 // ════════════════════════════════════════════════════════
 // Mission state — expuesto en window para que sint (script defer, sloppy mode)
@@ -939,7 +1213,10 @@ export {
   // Fase 1.6.B — creación de exámenes de Compuestas
   genCpExamPin, createExamenCompuestaUI, testCpExamPin,
   // Fase 3.4 — creación de exámenes de Morfología con PIN
-  genMorfoExamPin, createExamenMorfologiaUI, testMorfoExamPin
+  genMorfoExamPin, createExamenMorfologiaUI, testMorfoExamPin,
+  // B4 (M3) — examen mixto simples+compuestas
+  genMixExamPin, _syncMixPesos, crearExamenMixtoUI, testMixExamPin,
+  loadMixDashboard, exportMixCSV
 };
 
 // ════════════════════════════════════════════════════════
@@ -1053,6 +1330,9 @@ if (typeof window !== 'undefined') {
     genCpExamPin, createExamenCompuestaUI, testCpExamPin,
     // Fase 3.4 — creación de exámenes de Morfología con PIN
     genMorfoExamPin, createExamenMorfologiaUI, testMorfoExamPin,
+    // B4 (M3) — examen mixto simples+compuestas
+    genMixExamPin, _syncMixPesos, crearExamenMixtoUI, testMixExamPin,
+    loadMixDashboard, exportMixCSV,
     // Informe del profesor (Excel)
     generarInformeProfesor,
     // Mis grupos (filtro de Evolucion_Alumnos)
