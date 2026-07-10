@@ -362,6 +362,8 @@ if(window.location.protocol === 'file:') {
     </div>
     <div id="res-msg" role="status" style="display:none;padding:10px 14px;border-radius:10px;font-size:.82rem;font-weight:600;border:1.5px solid;margin-bottom:12px"></div>
     <button type="button" id="res-send-btn" class="btn btn-primary" style="width:100%;padding:14px;font-size:1.05rem;display:none;margin-bottom:10px" onclick="retrySendResult()">📤 Enviar resultado al profesor</button>
+    <!-- B4: puente a la Parte 2 del examen en dos partes (se rellena por JS solo si aplica) -->
+    <div id="res-mixto-p2" style="display:none;width:100%;margin-bottom:12px"></div>
     <div id="res-mission-info" style="display:none;padding:10px 14px;background:var(--purple-lt);border:1.5px solid #DDD6FE;border-radius:10px;font-size:.85rem;font-weight:700;color:var(--purple);margin-bottom:12px;text-align:center"></div>
     <div style="display:flex;flex-direction:column;gap:8px;width:100%">
       <button type="button" class="btn btn-primary" style="width:100%;padding:13px;font-size:1rem" onclick="goLogin()">Nueva sesión</button>
@@ -933,6 +935,7 @@ if(window.location.protocol === 'file:') {
               style="width:88px;text-align:center;font-size:1.1rem;font-weight:900;letter-spacing:.15em;padding:6px 8px">
             <button type="button" class="btn btn-ghost btn-sm" onclick="genMixExamPin()" title="Generar PIN aleatorio">🎲</button>
           </div>
+          <p style="font-size:.68rem;color:#B45309;margin:4px 0 0;line-height:1.35">⚠ Usa un PIN nuevo: si luego reutilizas este PIN para un examen normal, la parte de compuestas quedaría activa por su cuenta.</p>
         </div>
         <div style="flex:1;min-width:80px">
           <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Grupo</label>
@@ -1014,6 +1017,20 @@ K: Sujeto_Pts · L: Funciones_Pts · M: NP_Pts · N: Elem_Fallados</pre>
       <button type="button" class="btn btn-ghost" onclick="startFreePlay()" style="font-size:.88rem">🎯 Práctica libre</button>
       <button type="button" class="btn btn-ghost btn-sm" onclick="closeMissionSelector()">Cancelar</button>
     </div>
+  </div>
+</div>
+
+<!-- B4: EXAMEN EN DOS PARTES — aviso inicial y reanudación (sin cierre por
+     fondo: es un punto de decisión de examen, el alumno debe elegir botón) -->
+<div class="overlay" id="mixto-overlay" role="dialog" aria-modal="true">
+  <div class="ov-bg" aria-hidden="true"></div>
+  <div class="modal" style="max-width:520px;padding:0;overflow:hidden">
+    <div style="background:linear-gradient(135deg,#102A43,#1E3A5F);padding:20px 24px;color:#fff">
+      <h2 style="font-size:1.25rem;font-weight:900;margin:0">📝 Examen en dos partes</h2>
+      <p id="mixto-ov-sub" style="font-size:.82rem;opacity:.85;margin:4px 0 0"></p>
+    </div>
+    <div id="mixto-ov-body" style="padding:18px 22px;font-size:.92rem;line-height:1.55;color:var(--ink2)"></div>
+    <div id="mixto-ov-actions" style="padding:12px 20px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:center;flex-wrap:wrap"></div>
   </div>
 </div>
 

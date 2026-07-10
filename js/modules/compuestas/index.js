@@ -4116,6 +4116,20 @@
         state.examErrorEnvio = '';
         // Limpiar el backup de localStorage tras envío exitoso
         try { localStorage.removeItem('cp_exam_progress_' + state.examPin); } catch(e){}
+        // B4 (examen en dos partes): si este PIN venía de un examen mixto
+        // con la Parte 1 ya enviada, anotar la Parte 2 en el marcador para
+        // que la pantalla final muestre la nota global ponderada. Los
+        // helpers viven en sint/index.js (script clásico → window).
+        try {
+          if(typeof window.getMixtoMarker === 'function'){
+            const m = window.getMixtoMarker(state.examPin);
+            if(m && m.parte1 === 'ok'){
+              m.parte2 = 'ok';
+              m.notaCompuestas = payload.nota;
+              window.setMixtoMarker(state.examPin, m);
+            }
+          }
+        } catch(e){}
         console.log('[CP examen] Resultado agregado enviado', json.duplicate ? '(duplicado, ignorado por backend)' : '');
       } else {
         state.examEnviando   = false;
@@ -4410,7 +4424,37 @@
     if(!wrap) return;
     document.getElementById('cp-counter').textContent = '🎓 Resultado del examen';
 
+    // ── B4: bloque «Resultado del examen en dos partes» ────────────────
+    // Solo si este PIN venía de un examen mixto con la Parte 1 enviada.
+    // El cálculo de aquí es SOLO para mostrar al alumno: la nota oficial
+    // es la del join del servidor (getResultadosMixtos, panel profesor).
+    let mixtoHtml = '';
+    try {
+      const m = (typeof window.getMixtoMarker === 'function') ? window.getMixtoMarker(state.examPin) : null;
+      if(m && m.parte1 === 'ok' && notaGlobal !== null
+         && (parseInt(m.pesoSimples)||0) + (parseInt(m.pesoCompuestas)||0) === 100){
+        const notaP1 = Math.round((parseFloat(m.notaSimples)||0)*10)/10;
+        const global = Math.round((notaP1*m.pesoSimples/100 + notaGlobal*m.pesoCompuestas/100)*10)/10;
+        const gColor = global >= 5 ? '#15803D' : '#B91C1C';
+        mixtoHtml = `
+          <div style="margin:0 0 16px;padding:16px 18px;background:#F0F4F8;border:2px solid #102A43;border-radius:12px">
+            <div style="font-weight:800;font-size:.95rem;color:#102A43;margin-bottom:10px">📝 Resultado del examen en dos partes</div>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:.88rem">
+              <div style="text-align:center"><div style="color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Parte 1 · Simples (${m.pesoSimples}%)</div><div style="font-weight:900;font-size:1.4rem">${notaP1.toFixed(1)}</div></div>
+              <div style="text-align:center"><div style="color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Parte 2 · Compuesta (${m.pesoCompuestas}%)</div><div style="font-weight:900;font-size:1.4rem">${notaGlobal.toFixed(1)}</div></div>
+              <div style="text-align:center"><div style="color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Nota global</div><div style="font-weight:900;font-size:1.4rem;color:${gColor}">${global.toFixed(1)}</div></div>
+            </div>
+            <div style="margin-top:8px;font-size:.72rem;color:var(--muted);text-align:center">La nota oficial es la que calcula tu profesor con estos mismos pesos.</div>
+          </div>`;
+        // El examen en dos partes queda completado en este dispositivo:
+        // retirar el marcador (si se quedara, la próxima entrada con este
+        // PIN ofrecería «continuar la Parte 2» de un examen ya terminado).
+        if(typeof window.clearMixtoMarker === 'function') window.clearMixtoMarker(state.examPin);
+      }
+    } catch(e){}
+
     wrap.innerHTML = `
+      ${mixtoHtml}
       <div class="cp-summary" style="text-align:center">
         <div class="cp-summary-icon">🎓</div>
         <h2 class="cp-summary-title">Examen completado</h2>

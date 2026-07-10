@@ -168,24 +168,45 @@ la del join servidor). Luego `sessionStorage.removeItem('taller_mixto_<pin>')`.
 - **Momento de despliegue a alumnos**: igual que el rediseño de calificación — mejor
   fuera de un periodo de exámenes activo; el primer uso real con un grupo piloto.
 
-## 5. Checklist anti-cabos-sueltos (verificar TODOS antes de cerrar B4)
+## 5. Checklist anti-cabos-sueltos (estado verificado 2026-07-10, M1-M5 implementados)
 
-- [ ] `crearExamenMixto_` hace rollback si falla la mitad de compuestas.
-- [ ] `getExamConfig_` mete `mixto/pesos` ANTES de cachear (`exam_<pin>`), y
-      `crearExamenMixto_` invalida esa caché y `compexam_<pin>`.
-- [ ] **Verificar que `saveResultadoCompuesta_` (`Compuestas.gs:626`) tiene dedup
-      email+PIN como `saveResult_`; si no, añadirlo en M1.**
-- [ ] Correo automático suprimido en Parte 1 de mixtos (`Email_Enviado='mixto_pendiente'`).
-- [ ] Join por email normalizado (lowercase+trim) — mismo criterio que los dedup.
-- [ ] Estado «incompleto» visible y resaltado en el panel; NUNCA nota global auto-0.
-- [ ] Pesos validados (suma 100) en GAS Y en el formulario del profesor.
-- [ ] Marcador `taller_mixto_<pin>` en sessionStorage+localStorage, limpiado al acabar P2.
-- [ ] Texto del alumno: «Examen en dos partes», nunca «mixto»; NGLE intacta.
-- [ ] Limitación documentada al profesor (tooltip en el form): **no reutilizar el PIN de
-      un mixto para un examen normal posterior** — la mitad de compuestas quedaría
-      activa y accesible por el login de examen de CP. Usar PIN nuevo por examen.
-- [ ] Timer de cada parte funciona de forma independiente (probado E2E).
-- [ ] E2E completo + `menuAutotest` verde + memoria de Claude actualizada al cerrar.
+- [x] `crearExamenMixto_` hace rollback si falla la mitad de compuestas.
+      *Verificado con harness Node (vm + hojas mock): la fila de la Parte 1 queda
+      `Estado='cerrado'` y sin `Mixto='Sí'`.*
+- [x] `getExamConfig_` mete `mixto/pesos` ANTES de cachear (`exam_<pin>`), y
+      `crearExamenMixto_` invalida esa caché (`compexam_<pin>` la invalida el propio
+      `createExamenCompuesta_` en su paso 7). *Verificado en harness.*
+- [x] `saveResultadoCompuesta_` (`Compuestas.gs:626`) YA tenía dedup email+PIN+modo
+      (solo modo examen) — verificado leyendo el código, no hizo falta añadirlo.
+- [x] Correo automático suprimido en Parte 1 de mixtos. *Implementación más simple que
+      la prevista: `crearExamenMixto_` fuerza `autoEmail:'0'` al crear la Parte 1, así
+      `saveResult_` nunca dispara el correo (no hizo falta tocar `saveResult_` ni la
+      columna `Email_Enviado`). El envío manual posterior del profesor sigue disponible.*
+- [x] Join por email normalizado (lowercase+trim). *Verificado en harness:
+      `'Ana@Gmail.com '` cruza con `'ana@gmail.com'`.*
+- [x] Estado «incompleto» visible y resaltado (amber) en el panel; nota global «—»,
+      NUNCA auto-0. *Verificado en preview con datos simulados (M3) y en la pantalla
+      final del alumno (M5: el bloque global solo aparece si hay ambas partes).*
+- [x] Pesos validados (suma 100) en GAS (rechaza 40+50) Y en el formulario (los dos
+      campos se auto-balancean, nunca se ve un estado inválido).
+- [x] Marcador `taller_mixto_<pin>` en sessionStorage+localStorage, limpiado al
+      renderizar la pantalla final de la P2; si el envío llegó pero la pantalla final
+      no (caída), la marca `parte2:'ok'` hace que la próxima entrada lo limpie sin
+      ofrecer reanudación fantasma. *Verificado en preview.*
+- [x] Texto del alumno: «Examen en dos partes», nunca «mixto» (verificado por
+      aserción sobre el texto renderizado del overlay, puente y bloque final); NGLE intacta.
+- [x] Limitación documentada al profesor: aviso bajo el campo PIN del formulario de
+      creación («usa un PIN nuevo…») + «Probar PIN» distingue mixto de no-mixto.
+- [ ] **PENDIENTE (requiere redespliegue)**: E2E real con GAS — timer independiente por
+      parte, examen completo de un alumno real, `menuAutotest` verde. Los timers no se
+      tocaron (cada motor conserva el suyo), pero la prueba de fuego es con backend real.
+
+**Desviaciones del diseño respecto a lo escrito arriba** (ambas a favor de simplicidad):
+1. Supresión de correo por `autoEmail:'0'` en la creación, no por comprobación en
+   `saveResult_` (§3.1.f) — mismo efecto, menos código en la ruta caliente.
+2. La reanudación lee el grupo del formulario con el del marcador como respaldo —
+   `_doHandleStart` no recibe `grupo` como parámetro (descubierto en verificación:
+   el plan asumía que estaba en scope y NO lo estaba; se corrigió antes de comitear).
 
 ## 6. Mejoras futuras explícitamente FUERA de alcance de B4
 

@@ -1231,6 +1231,126 @@ async function loadOraciones(mode, apiUrl, subfase) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// B4: EXAMEN EN DOS PARTES (mixto simples+compuestas) — M4, jul-2026
+// Diseño federado (docs/plan_B4_examen_mixto.md): la Parte 1 corre en
+// este motor SIN cambios internos; lo único nuevo es el marcador de
+// progreso (sessionStorage+localStorage, clave por PIN) y el puente a
+// la Parte 2 (CP.iniciarExamenDesdeLogin) tras enviar la nota.
+// De cara al alumno SIEMPRE «examen en dos partes», nunca «mixto».
+// ═══════════════════════════════════════════════════════════════════
+
+function _mixtoKey(pin){ return 'taller_mixto_' + String(pin||'').trim(); }
+
+// El marcador vive en sessionStorage (flujo normal) Y localStorage
+// (sobrevive al cierre de pestaña — reanudación en el mismo dispositivo).
+function getMixtoMarker(pin){
+  try{
+    const raw = sessionStorage.getItem(_mixtoKey(pin)) || localStorage.getItem(_mixtoKey(pin));
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function setMixtoMarker(pin, obj){
+  try{
+    const s = JSON.stringify(obj);
+    sessionStorage.setItem(_mixtoKey(pin), s);
+    localStorage.setItem(_mixtoKey(pin), s);
+  }catch(e){}
+}
+function clearMixtoMarker(pin){
+  try{ sessionStorage.removeItem(_mixtoKey(pin)); }catch(e){}
+  try{ localStorage.removeItem(_mixtoKey(pin)); }catch(e){}
+}
+
+let _mixtoCtx = null;         // {name,email,grupo,pin,launchArgs?} para los botones del overlay
+let _mixtoSkipResume = false; // true = el alumno eligió rehacer la Parte 1
+
+// Rellena y abre #mixto-overlay. kind: 'aviso' (antes de empezar la
+// Parte 1) o 'resume' (ya tenía la Parte 1 enviada en este dispositivo).
+function _mostrarMixtoOverlay(kind, marker){
+  const sub  = document.getElementById('mixto-ov-sub');
+  const body = document.getElementById('mixto-ov-body');
+  const acts = document.getElementById('mixto-ov-actions');
+  if(!sub || !body || !acts) return;
+  if(kind === 'aviso'){
+    const m = marker || {};
+    const nOr = (_mixtoCtx?.launchArgs?.oraciones || []).length;
+    const timerTxt = m.timerP1 > 0 ? ` · ${m.timerP1} min` : '';
+    sub.textContent = m.nombreExamen || '';
+    body.innerHTML =
+      `<p style="margin:0 0 10px">Este examen tiene <strong>dos partes</strong>:</p>
+       <p style="margin:0 0 6px">📗 <strong>Parte 1 · Oraciones simples</strong> — ${nOr} ${nOr!==1?'oraciones':'oración'}${timerTxt}</p>
+       <p style="margin:0 0 10px">🧩 <strong>Parte 2 · Oración compuesta</strong> — empezará cuando termines y envíes la Parte 1</p>
+       <p style="margin:0;font-size:.82rem;color:var(--muted)">La Parte 1 cuenta un ${m.pesoSimples}% de la nota global y la Parte 2 un ${m.pesoCompuestas}%.</p>`;
+    acts.innerHTML = `<button type="button" class="btn btn-primary" style="padding:12px 22px" onclick="mixtoEmpezarParte1()">🚀 Empezar la Parte 1 →</button>`;
+  } else {
+    const m = marker || {};
+    const notaTxt = (m.notaSimples !== undefined && m.notaSimples !== null)
+      ? ` con nota <strong>${Number(m.notaSimples).toFixed(1)}</strong>` : '';
+    sub.textContent = m.nombreExamen || '';
+    body.innerHTML =
+      `<p style="margin:0 0 10px">Ya completaste la <strong>Parte 1 · Oraciones simples</strong>${notaTxt}. Tu resultado está guardado.</p>
+       <p style="margin:0">¿Continuamos con la <strong>Parte 2 · Oración compuesta</strong>?</p>`;
+    acts.innerHTML =
+      `<button type="button" class="btn btn-primary" style="padding:12px 22px" onclick="mixtoContinuarParte2()">Continuar con la Parte 2 →</button>
+       <button type="button" class="btn btn-ghost btn-sm" onclick="mixtoRehacerParte1()">Volver a hacer la Parte 1 (la nota guardada no cambia)</button>`;
+  }
+  openOverlay('mixto-overlay');
+}
+
+// Botón del aviso inicial: arranca la Parte 1 con los args ya cargados.
+function mixtoEmpezarParte1(){
+  closeOverlay('mixto-overlay');
+  if(_mixtoCtx?.launchArgs) _launchGame(_mixtoCtx.launchArgs);
+}
+
+// Puente a la Parte 2 — lo usan tanto el overlay de reanudación como el
+// botón de la pantalla de resultados tras enviar la Parte 1.
+function mixtoContinuarParte2(){
+  closeOverlay('mixto-overlay');
+  const ctx = _mixtoCtx;
+  if(!ctx || !ctx.pin) return;
+  if(typeof window.CP === 'undefined' || typeof window.CP.iniciarExamenDesdeLogin !== 'function'){
+    alert('No se ha podido cargar el módulo de Oración Compuesta. Recarga la página e inténtalo de nuevo.');
+    return;
+  }
+  window.CP.iniciarExamenDesdeLogin({ name: ctx.name, email: ctx.email, grupo: ctx.grupo, pin: ctx.pin })
+    .catch(err => {
+      alert('No se ha podido cargar la Parte 2: ' + String((err && err.message) || err || 'error desconocido')
+        + '\nAvisa a tu profesor si el problema continúa.');
+    });
+}
+
+// El alumno decide rehacer la Parte 1 (el servidor conserva SIEMPRE el
+// primer intento — saveResult_ devuelve duplicate:true y no pisa nada).
+function mixtoRehacerParte1(){
+  closeOverlay('mixto-overlay');
+  _mixtoSkipResume = true;
+  handleStart();
+}
+
+// Tras el envío OK de la Parte 1 (submitResult/retrySendResult): marca el
+// progreso en el marcador y pinta el botón puente en la pantalla de
+// resultados. NO auto-lanza la Parte 2: el alumno decide cuándo (respiro).
+function _mixtoTrasEnvioParte1(score){
+  const pin = G.examPin || '';
+  const marker = getMixtoMarker(pin);
+  if(!marker) return; // examen normal, nada que hacer
+  marker.parte1 = 'ok';
+  marker.notaSimples = Math.round((parseFloat(score)||0)*10)/10;
+  setMixtoMarker(pin, marker);
+  _mixtoCtx = { name: G.name||'', email: G.email||'', grupo: G.examGrupo||'', pin };
+  const cont = document.getElementById('res-mixto-p2');
+  if(cont){
+    cont.style.display = 'block';
+    cont.innerHTML =
+      `<div style="padding:14px 16px;background:#EFF6FF;border:1.5px solid #93C5FD;border-radius:12px;text-align:center">
+        <p style="margin:0 0 10px;font-size:.9rem;color:#1E3A8A"><strong>Parte 1 enviada.</strong> Este examen tiene una segunda parte de oración compuesta.</p>
+        <button type="button" class="btn btn-primary" style="width:100%;padding:13px;font-size:1rem" onclick="mixtoContinuarParte2()">Continuar con la Parte 2 →</button>
+      </div>`;
+  }
+}
+
 async function handleStart(){
   // ── 1. Validate form fields ────────────────────────────────────────
   ferr('e-name',''); ferr('e-email',''); ferr('e-mode',''); ferr('e-pin',''); ferr('e-grupo','');
@@ -1282,6 +1402,23 @@ async function _doHandleStart(name,email,pin,examSubfase){
     if(!apiUrl){
       ferr('e-pin','⚠ Sin conexión al servidor.');showScreen('login');return;
     }
+    // ── B4: examen en dos partes — reanudación en el mismo dispositivo ──
+    // Si este PIN ya tiene la Parte 1 enviada (marcador local), ofrecer
+    // saltar directo a la Parte 2 en vez de rehacer 30 min de examen.
+    if(!_mixtoSkipResume){
+      const prev = getMixtoMarker(pin);
+      if(prev && prev.parte2 === 'ok'){
+        clearMixtoMarker(pin); // examen ya terminado aquí: seguir flujo normal
+      } else if(prev && prev.parte1 === 'ok'){
+        // OJO: _doHandleStart no recibe `grupo` — se lee del formulario,
+        // con el del marcador como respaldo (reanudación tras recarga).
+        const grupoAlumno = (document.getElementById('inp-grupo')?.value||'').trim() || prev.grupo || '';
+        _mixtoCtx = { name, email, grupo: grupoAlumno, pin };
+        _mostrarMixtoOverlay('resume', prev);
+        return;
+      }
+    }
+    _mixtoSkipResume = false;
     try{
       document.getElementById('loading-txt').textContent = 'Cargando examen (PIN '+pin+')…';
       // Anti-spike: random delay 0-1.5s to prevent 30 students hitting at the same millisecond
@@ -1331,9 +1468,28 @@ async function _doHandleStart(name,email,pin,examSubfase){
       // El grupo del alumno (formulario) tiene prioridad sobre el del PIN
       // config para permitir reutilizar el mismo examen entre grupos.
       const studentGrupo = (document.getElementById('inp-grupo')?.value||'').trim();
-      _launchGame({ name, email, pin, subfase, oraciones, usingMock:false, timerDuration:timerSec,
+      const launchArgs = { name, email, pin, subfase, oraciones, usingMock:false, timerDuration:timerSec,
         examGrupo: studentGrupo || d.grupo || '', examEval:d.evaluacion||'', examName:d.nombreExamen||'',
-        examReflexion: !!d.reflexion });
+        examReflexion: !!d.reflexion };
+      // ── B4: examen en dos partes — el flag lo pone getExamConfig_ si el
+      // PIN se creó con crearExamenMixto. Guardamos el marcador y avisamos
+      // ANTES de arrancar (el timer de la Parte 1 no corre mientras lee).
+      if(d.mixto === true){
+        const marker = {
+          pin,
+          pesoSimples:    parseInt(d.pesoSimples)    || 0,
+          pesoCompuestas: parseInt(d.pesoCompuestas) || 0,
+          nombreExamen:   d.nombreExamen || '',
+          grupo:          launchArgs.examGrupo,
+          evaluacion:     d.evaluacion || '',
+          timerP1:        parseInt(d.timer) || 0
+        };
+        setMixtoMarker(pin, marker);
+        _mixtoCtx = { name, email, grupo: launchArgs.examGrupo, pin, launchArgs };
+        _mostrarMixtoOverlay('aviso', marker);
+        return;
+      }
+      _launchGame(launchArgs);
     }catch(e){
       clearTimeout(slowTimer);
       ferr('e-pin','⚠ Error de conexión: '+(e.message||'timeout')+'. Inténtalo de nuevo.');showScreen('login');
@@ -2724,6 +2880,10 @@ function _buildSessionCurveHtml(){
 
 async function goResults(){
   cleanAllTimers();
+  // B4: limpiar el puente a la Parte 2 de una sesión anterior (lo repinta
+  // _mixtoTrasEnvioParte1 solo si este examen es en dos partes).
+  const _mixP2 = document.getElementById('res-mixto-p2');
+  if(_mixP2){ _mixP2.style.display='none'; _mixP2.innerHTML=''; }
   const detail = calcDetailedScore();
   // In practice mode, if the student exits early, grade them on what they did
   // (not on the unfinished pool), so the gauge reflects actual performance
@@ -3085,6 +3245,7 @@ async function submitResult(score,totalAvail,totalEarned,totals){
       msg.style.background='var(--green-lt)';msg.style.borderColor='#86EFAC';msg.style.color='#166534';
       _pendingResult=null;
       _examSent=true; // block re-submission
+      _mixtoTrasEnvioParte1(score); // B4: puente a la Parte 2 si el examen es en dos partes
     }else{
       throw new Error(d.error||'Error del servidor');
     }
@@ -3106,6 +3267,7 @@ async function retrySendResult(){
   const retryBtn=document.getElementById('res-send-btn');
   msg.textContent='⏳ Reintentando…';msg.style.background='var(--blue-lt)';msg.style.color='var(--blue)';msg.style.display='block';
   try{
+    const scoreEnviado=parseFloat(_pendingResult.score)||0; // capturar ANTES de vaciar _pendingResult
     const params=new URLSearchParams(_pendingResult);
     const r=await fetchWithTimeout(apiUrl+'?'+params.toString(),{},12000);
     const d=await r.json();
@@ -3114,6 +3276,8 @@ async function retrySendResult(){
       msg.style.background='var(--green-lt)';msg.style.color='#166534';
       retryBtn.style.display='none';
       _pendingResult=null;
+      _examSent=true;
+      _mixtoTrasEnvioParte1(scoreEnviado); // B4: puente a la Parte 2 si aplica
     }else throw new Error(d.error||'');
   }catch(e){
     msg.textContent='⚠ Sigue sin conectar. Muestra esta pantalla al profesor.';
