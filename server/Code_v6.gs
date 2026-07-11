@@ -1310,9 +1310,128 @@ function getTextosMorfologia_(params) {
   }
 }
 
+// Normaliza un valor de nivel para comparar sin que rompan tildes/mayúsculas/
+// espacios accidentales (bug real detectado 2026-07-11: dos textos con Nivel
+// escrito "básico" CON TILDE nunca se servían porque filterByNivel_ comparaba
+// con === literal contra "basico"). Se usa en ambos lados de la comparación.
+function _normalizarNivel_(s) {
+  return String(s || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita diacríticos (tildes), regex con rango escapado (no caracteres combinados literales)
+    .trim().toLowerCase();
+}
+
 function filterByNivel_(textos, nivel) {
   if (!nivel) return textos;
-  return textos.filter(t => String(t.nivel).trim() === nivel);
+  const nivelNorm = _normalizarNivel_(nivel);
+  return textos.filter(t => _normalizarNivel_(t.nivel) === nivelNorm);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  MORFOLOGÍA — HOJA DE CONVERSIÓN (F1, jul-2026)
+//  Zona de trabajo ANTES de que un texto llegue a Morfologia_Textos (la que
+//  sirve a los alumnos). Aquí caen los lotes convertidos (oraciones de
+//  Simples/Compuestas reetiquetadas para morfología, o textos nuevos) para
+//  que Josele los revise en la propia hoja antes de publicarlos.
+//  Ver docs/plan_implementacion_morfologia.md §2.3 en el repo.
+// ════════════════════════════════════════════════════════════════════════
+const SHEET_MORPH_CONV = 'Morfologia_Conversion';
+const MORPH_CONV_HEADER = ['Fuente', 'Texto', 'Nivel_Destino', 'Tokens_JSON', 'Estado'];
+
+function ensureMorfConversionSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_MORPH_CONV);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_MORPH_CONV);
+    sheet.appendRow(MORPH_CONV_HEADER);
+    sheet.getRange(1, 1, 1, MORPH_CONV_HEADER.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  } else {
+    ensureSheetHeaders_(sheet, MORPH_CONV_HEADER);
+  }
+  return sheet;
+}
+
+/**
+ * Menú "Promover textos de Morfología revisados". Copia a Morfologia_Textos
+ * las filas de Morfologia_Conversion con Estado='revisado' cuyo Tokens_JSON
+ * sea válido y tenga al menos un token; marca cada fila de origen como
+ * 'promovido' (o 'error: <motivo>' si falla la validación, sin tocar nada
+ * más). Al final invalida la caché (regenerarMorfologia_) para que los
+ * alumnos vean los textos nuevos sin esperar a la purga natural.
+ */
+function menuPromoverTextosMorfologia() {
+  const ui = SpreadsheetApp.getUi();
+  const conv = ensureMorfConversionSheet_();
+  const lastRow = conv.getLastRow();
+  if (lastRow < 2) {
+    ui.alert('Morfologia_Conversion está vacía. No hay nada que promover.', '', ui.ButtonSet.OK);
+    return;
+  }
+  const col = getColMap_(conv);
+  const data = conv.getRange(2, 1, lastRow - 1, conv.getLastColumn()).getValues();
+  const dest = ensureMorfBancoSheet_();
+  ensureSheetHeaders_(dest, MORPH_HEADER);
+  const destCol = getColMap_(dest);
+  const nextId = Math.max(0, dest.getLastRow() - 1) + 1; // ID correlativo simple
+
+  let promovidos = 0, errores = 0, idCounter = nextId;
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    const estado = String(row[col['Estado']] || '').trim().toLowerCase();
+    if (estado !== 'revisado') continue;
+
+    const texto = String(row[col['Texto']] || '').trim();
+    const nivelDestino = _normalizarNivel_(row[col['Nivel_Destino']]);
+    const rawTokens = String(row[col['Tokens_JSON']] || '');
+    let tokensOk = false, motivo = '';
+    if (!texto) motivo = 'sin texto';
+    else if (!nivelDestino) motivo = 'sin Nivel_Destino';
+    else {
+      try {
+        const parsed = JSON.parse(rawTokens);
+        if (Array.isArray(parsed) && parsed.length > 0) tokensOk = true;
+        else motivo = 'Tokens_JSON vacío';
+      } catch (e) { motivo = 'Tokens_JSON inválido'; }
+    }
+
+    if (!tokensOk) {
+      conv.getRange(i + 2, col['Estado'] + 1).setValue('error: ' + motivo);
+      errores++;
+      continue;
+    }
+
+    appendRowSafe_(dest, MORPH_HEADER, {
+      'ID': String(idCounter++),
+      'Texto_Completo': texto,
+      'Nivel': nivelDestino,
+      'Tokens_JSON': rawTokens,
+      'Activo': 'Sí'
+    });
+    conv.getRange(i + 2, col['Estado'] + 1).setValue('promovido');
+    promovidos++;
+  }
+
+  if (promovidos > 0) {
+    try { regenerarMorfologia_(); } catch (e) { /* no bloquear el alert por esto */ }
+  }
+  ui.alert('🧬 Promoción de textos de Morfología',
+    'Promovidos: ' + promovidos + '\n' +
+    (errores > 0 ? '⚠ Con error (revisa la columna Estado): ' + errores : 'Sin errores ✓'),
+    ui.ButtonSet.OK);
+}
+
+// Morfologia_Textos ya existe siempre en producción (banco activo); este
+// helper solo cubre el caso de una hoja recién creada o vacía.
+function ensureMorfBancoSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_MORPH_TXT);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_MORPH_TXT);
+    sheet.appendRow(MORPH_HEADER);
+    sheet.getRange(1, 1, 1, MORPH_HEADER.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
 }
 
 // ── getMisiones_ — v6.0 ──────────────────────────────────────────────────
@@ -2798,6 +2917,7 @@ function onOpen() {
   // BLOQUE 2 — MANTENIMIENTO (colapsado en submenú)
   const mantenimiento = ui.createMenu('🔧 Mantenimiento');
   mantenimiento.addItem('🔄 Actualizar datos de alumnos',         'menuRegenerarMorfologia');
+  mantenimiento.addItem('🧬 Promover textos de Morfología revisados', 'menuPromoverTextosMorfologia');
   mantenimiento.addItem('🎨 Configurar desplegables (Activo/Nivel)','menuConfigurarValidaciones');
   mantenimiento.addItem('✨ Aplicar estilos visuales a las hojas', 'menuConfigurarTodosLosEstilos');
   mantenimiento.addItem('🎨 Colorear notas por color (resultados)', 'aplicarFormatoCondicionalNotas');
@@ -2977,14 +3097,18 @@ function menuConfigurarValidaciones() {
     done.push('✓ Oraciones_Banco → columna Activo: desplegable Sí/No');
   }
 
-  // Morfologia_Textos: column C (Nivel) → basico/arcade dropdown
+  // Morfologia_Textos: column C (Nivel) → dropdown
+  // v6.6 (jul-2026, F1): se añaden n1/n2/n3 (niveles curriculares nuevos,
+  // ver docs/propuesta_niveles_morfologia.md) SIN retirar basico/avanzado —
+  // los 51 textos existentes siguen con su valor hasta que Josele apruebe
+  // la tabla de reclasificación (plan §2.1). No es una migración de datos.
   const morph = ss.getSheetByName(SHEET_MORPH_TXT);
   if (morph && morph.getLastRow() > 1) {
     const range = morph.getRange(2, 3, morph.getLastRow()-1, 1);
     const rule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['basico','arcade'], true)
+      .requireValueInList(['n1','n2','n3','basico','avanzado','arcade'], true)
       .setAllowInvalid(false)
-      .setHelpText('Elige el nivel: basico (práctica/examen) o arcade (reto rápido)')
+      .setHelpText('Nivel curricular: n1 (1º-2º ESO) · n2 (3º-4º ESO) · n3 (PAU/Bach) · arcade (reto). "basico"/"avanzado" son valores heredados pendientes de reclasificar.')
       .build();
     range.setDataValidation(rule);
     done.push('✓ Morfologia_Textos → columna Nivel: desplegable basico/arcade');
