@@ -1448,6 +1448,70 @@ function menuPromoverTextosMorfologia() {
     ui.ButtonSet.OK);
 }
 
+/**
+ * Menú "Reclasificar textos de Morfología (F1b)". Aplica de una vez la tabla
+ * de reclasificación acordada con Josele en
+ * docs/f1b_reclasificacion_morfologia.md sobre Morfologia_Textos:
+ *  - ids 1-40 (Nivel='basico'/'básico') → 'n2', salvo las excepciones.
+ *  - Excepciones de Nivel: 22→'arcade' (texto intruso de 141 palabras);
+ *    46,47,48,50,51,52→'n3' (fragmentos de García Márquez, de paso corrige
+ *    la tilde de 51/52).
+ *  - Activo='No' en 12 y 32 (Tokens_JSON vacío — no se generan tokens
+ *    nuevos en este alcance, solo se desactivan).
+ * Idempotente: solo escribe celdas cuyo valor cambia, así que ejecutarla
+ * dos veces no duplica nada ni reporta cambios falsos la segunda vez.
+ * NO reordenar la tabla sin actualizar también el doc de arriba.
+ */
+function menuReclasificarMorfologia() {
+  const ui = SpreadsheetApp.getUi();
+  const sheet = ensureMorfBancoSheet_();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    ui.alert('Morfologia_Textos está vacía. No hay nada que reclasificar.', '', ui.ButtonSet.OK);
+    return;
+  }
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+
+  const NIVEL_EXCEPCIONES = { '22': 'arcade', '46': 'n3', '47': 'n3', '48': 'n3', '50': 'n3', '51': 'n3', '52': 'n3' };
+  const INACTIVAR_IDS = ['12', '32'];
+
+  let nivelCambios = 0, activoCambios = 0;
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    const id = String(row[col['ID']] || '').trim();
+    const nivelActual = _normalizarNivel_(row[col['Nivel']]);
+
+    let nivelNuevo = null;
+    if (Object.prototype.hasOwnProperty.call(NIVEL_EXCEPCIONES, id)) {
+      nivelNuevo = NIVEL_EXCEPCIONES[id];
+    } else if (nivelActual === 'basico') {
+      nivelNuevo = 'n2';
+    }
+    if (nivelNuevo && nivelActual !== nivelNuevo) {
+      sheet.getRange(i + 2, col['Nivel'] + 1).setValue(nivelNuevo);
+      nivelCambios++;
+    }
+
+    if (INACTIVAR_IDS.indexOf(id) !== -1) {
+      const activoActual = String(row[col['Activo']] || '').trim();
+      if (activoActual !== 'No') {
+        sheet.getRange(i + 2, col['Activo'] + 1).setValue('No');
+        activoCambios++;
+      }
+    }
+  }
+
+  if (nivelCambios > 0 || activoCambios > 0) {
+    try { regenerarMorfologia_(); } catch (e) { /* no bloquear el alert por esto */ }
+  }
+  ui.alert('🧬 Reclasificación de Morfología (F1b)',
+    'Niveles actualizados: ' + nivelCambios + '\n' +
+    'Textos desactivados: ' + activoCambios +
+    (nivelCambios === 0 && activoCambios === 0 ? '\n(Ya estaba todo aplicado — idempotente)' : ''),
+    ui.ButtonSet.OK);
+}
+
 // Morfologia_Textos ya existe siempre en producción (banco activo); este
 // helper solo cubre el caso de una hoja recién creada o vacía.
 function ensureMorfBancoSheet_() {
@@ -2946,6 +3010,7 @@ function onOpen() {
   const mantenimiento = ui.createMenu('🔧 Mantenimiento');
   mantenimiento.addItem('🔄 Actualizar datos de alumnos',         'menuRegenerarMorfologia');
   mantenimiento.addItem('🧬 Promover textos de Morfología revisados', 'menuPromoverTextosMorfologia');
+  mantenimiento.addItem('🧬 Reclasificar textos de Morfología (F1b)', 'menuReclasificarMorfologia');
   mantenimiento.addItem('🎨 Configurar desplegables (Activo/Nivel)','menuConfigurarValidaciones');
   mantenimiento.addItem('✨ Aplicar estilos visuales a las hojas', 'menuConfigurarTodosLosEstilos');
   mantenimiento.addItem('🎨 Colorear notas por color (resultados)', 'aplicarFormatoCondicionalNotas');
