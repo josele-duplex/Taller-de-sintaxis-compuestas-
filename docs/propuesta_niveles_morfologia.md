@@ -56,7 +56,8 @@ esas 9 (más Puntuación), y la app traduce internamente:
 | Etiqueta del banco | En N1 el alumno responde… |
 |---|---|
 | Artículo | Determinante |
-| Demostrativo / Posesivo / Cuantificador / Interr.-Excl. con `función: determinante` (o `adjetivo`) | Determinante |
+| Demostrativo / Posesivo / Cuantificador / Interr.-Excl. con `función: determinante` | Determinante |
+| Ídem con `función: adjetivo` (pospuestos: *el libro mío*, *el chico ese*) | **Adjetivo** *(decisión de Josele 2026-07-11: fiel a la receta PAU, que los analiza como adjetivos; evita desaprender después)* |
 | Ídem con `función: pronombre` | Pronombre |
 | Pronombre personal | Pronombre |
 | Relativo (`función: pronombre/determinante`) | Pronombre / Determinante |
@@ -156,23 +157,23 @@ Redefinición del actual `maestro` según el documento «MORFOLOGÍA PAU». Regl
 (3.º–4.º ESO)» · «PAU (Bachillerato)»**. Internamente se conservan las claves
 `aprendiz/eso34/maestro`.
 
-## 7. Preguntas abiertas para Josele (decidir antes de implementar)
+## 7. Decisiones de Josele (cerradas el 2026-07-11) ✅
 
-1. **N1, inventario reducido**: ¿de acuerdo con que el alumno de 1.º-2.º ESO responda
-   «Determinante»/«Pronombre» genéricos (la app traduce), o mantener las etiquetas finas?
-2. **Posesivo pospuesto en N1** (*el libro mío*): ¿«Determinante» (simplificación
-   asumible) o «Adjetivo» (más fiel a la receta PAU, que lo analiza como adjetivo)?
-3. **Conjunciones en N3**: no aparecen en el documento PAU. ¿Las mantenemos con la
-   pauta del libro (coordinante/subordinante + clase) o las dejamos en solo-categoría
-   como las preposiciones?
-4. **Aspecto en N3**: el doc dice «no obligatorio, no penaliza». ¿Lo preguntamos como
-   paso normal, lo marcamos como «opcional» visible, o lo omitimos? (En N2 sí entra
-   como contenido de 4.º ESO.)
-5. **Locuciones**: exigen etiquetar tokens multipalabra en el banco (hoy cada token es
-   una palabra; solo Preposición tiene «locución prepositiva»). ¿Confirmas que merece
-   el trabajo de banco? Es página propia del doc PAU, así que parece que sí.
-6. **Formación de palabras**: ¿confirmas el enfoque de atributo opcional (`formacion`)
-   con etiquetado progresivo del banco?
+Las seis cuestiones abiertas quedaron decididas — la propuesta está **validada y lista
+para el plan de implementación**:
+
+1. **N1, inventario reducido** → ✅ **9 clases genéricas** (Determinante/Pronombre;
+   la app traduce las etiquetas finas por dentro).
+2. **Posesivo pospuesto en N1** (*el libro mío*) → ✅ **Adjetivo**, fiel a la receta
+   PAU (aplica igual al demostrativo pospuesto *el chico ese*; ver tabla del §2).
+3. **Conjunciones en N3** → ✅ **Pauta del libro: coordinante/subordinante + clase**
+   (mantiene el puente con el módulo de Compuestas y la pregunta 4a).
+4. **Aspecto en N3** → ✅ **Paso marcado «opcional en PAU»**: se pregunta, pero
+   enseñando la estrategia del documento («si dudas, no lo pongas, no penalizará»).
+5. **Locuciones** → ✅ **Sí, con etiquetado progresivo** (las 8 clases; se empieza
+   por los textos nuevos de N3 y crece texto a texto).
+6. **Formación de palabras** → ✅ **Sí, atributo opcional `formacion`** con etiquetado
+   progresivo empezando por las palabras jugosas de cada texto de N3.
 
 ## 8. Encaje técnico (nota breve, sin evaluación)
 
