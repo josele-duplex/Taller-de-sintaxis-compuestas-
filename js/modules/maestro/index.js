@@ -677,10 +677,53 @@ const MORPH_CASCADES_ESO34 = {
   ]},
 };
 
+// ── PAU (N3/maestro) overrides — F6a (jul-2026) ─────────────────────────
+// Solo las categorías que la receta PAU recorta o amplía respecto al nivel
+// maestro compartido (MORPH_CASCADES); el resto de categorías caen al
+// fallback MORPH_CASCADES[cat] vía getCascadeForNivel. Ver
+// docs/propuesta_niveles_morfologia.md §4. Deja fuera a propósito la
+// taxonomía definido/cuantificador de determinantes y el tratamiento de
+// demostrativo/posesivo/cuantificador pospuestos como Adjetivo — ambos
+// exigen que la cascada conozca los atributos del token, no solo cat+nivel
+// (cambio de arquitectura aparcado, ver conversación 2026-07-12).
+const MORPH_CASCADES_MAESTRO = {
+  // Sustantivo propio: "hay que indicar EXCLUSIVAMENTE la categoría
+  // gramatical y el tipo" — género/número solo se preguntan si es común,
+  // y sin subclases semánticas (contable/colectivo/abstracto: eso es N2).
+  'Sustantivo':{steps:[
+    {id:'subtipo', label:'Clase', opts:[
+      {val:'común',label:'Común'},{val:'propio',label:'Propio'}]},
+    {id:'género', label:'Género', dependsOn:{step:'subtipo',val:'común'}, opts:[
+      {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'},{val:'ambiguo',label:'Ambiguo'}]},
+    {id:'número', label:'Número', dependsOn:{step:'subtipo',val:'común'}, opts:[
+      {val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]},
+  ]},
+  // + terminación (una/dos/invariable) — dato nuevo, se aplica a calificativos y relacionales por igual.
+  'Adjetivo':{steps:[
+    ...MORPH_CASCADES['Adjetivo'].steps,
+    {id:'terminación', label:'Terminación', opts:[
+      {val:'una terminación',label:'Una terminación (cambia en plural: feliz/felices)'},
+      {val:'dos terminaciones',label:'Dos terminaciones (masc./fem.: alto/alta)'},
+      {val:'invariable',label:'Invariable (no cambia en plural: gratis)'}]},
+  ]},
+  // Aspecto pasa a opcional ("si dudas, no lo pongas, no penalizará" — el
+  // doc PAU) + simple/compuesto para formas no personales (dato nuevo,
+  // dependsOn persona='no personal' para no repetir la pregunta de tiempo).
+  'Verbo':{steps:[
+    ...MORPH_CASCADES['Verbo'].steps.map(s => s.id==='aspecto'
+      ? {...s, label:'Aspecto (opcional en PAU — si dudas, no lo marques)', optional:true}
+      : s),
+    {id:'np_forma', label:'Simple / compuesto (forma no personal)', dependsOn:{step:'persona',val:'no personal'}, opts:[
+      {val:'simple',label:'Simple (lograr, estudiando, vistas)'},
+      {val:'compuesto',label:'Compuesto (haber logrado, habiendo llegado, habiendo sido visto)'}]},
+  ]},
+};
+
 /** Helper: returns the correct cascade for the active level */
 function getCascadeForNivel(cat, nivel){
   if(nivel === 'aprendiz') return {steps:[]};
   if(nivel === 'eso34') return MORPH_CASCADES_ESO34[cat] || {steps:[]};
+  if(nivel === 'maestro') return MORPH_CASCADES_MAESTRO[cat] || MORPH_CASCADES[cat] || {steps:[]};
   return MORPH_CASCADES[cat] || {steps:[]};
 }
 
@@ -1302,12 +1345,15 @@ function checkConfirmReady(){
   if(!cat){btn.disabled=true;return;}
   const cascade = getCascadeForNivel(cat, MM.nivel);
   if(!cascade||cascade.steps.length===0){btn.disabled=false;return;}
-  // All required steps (those whose dependsOn is met) must have a value
+  // All required steps (those whose dependsOn is met) must have a value.
+  // F6a: step.optional (p.ej. aspecto en PAU) nunca bloquea el confirmar —
+  // "si dudas, no lo pongas, no penalizará" (doc PAU).
   const allMet = cascade.steps.every(step=>{
     if(step.dependsOn){
       const depVal = MM.currentAtrs[step.dependsOn.step];
       if(depVal !== step.dependsOn.val) return true; // not required
     }
+    if(step.optional) return true;
     return !!MM.currentAtrs[step.id];
   });
   btn.disabled = !allMet;
@@ -1335,8 +1381,11 @@ function confirmToken(){
           const depVal = MM.currentAtrs[step.dependsOn.step];
           if(depVal !== step.dependsOn.val) return;
         }
-        possible++;
         const chosen = MM.currentAtrs[step.id];
+        // F6a: step.optional (aspecto en PAU) solo puntúa si el alumno lo
+        // respondió — dejarlo en blanco no resta ni suma "possible".
+        if(step.optional && !chosen) return;
+        possible++;
         const correct = correctAtrs[step.id];
         const norm = v => v==='contracción'?'contracta':v;
         if(chosen && correct && norm(chosen) === norm(correct)) earned++;
