@@ -546,7 +546,12 @@ const MORPH_CASCADES = {
         {val:'imperfectivo',label:'Imperfectivo (acción incompleta)'},
         {val:'—',label:'No procede (forma no personal)'}]},
       {id:'voz', label:'Voz', opts:[
-        {val:'activa',label:'Activa'}]},
+        // F5 (jul-2026): antes solo ofrecía "Activa" (no discriminaba nada).
+        // La pasiva perifrástica ser+participio se analiza como VOZ PASIVA
+        // del verbo, no como clase de perífrasis — coherencia con C.Ag. de
+        // Sintaxis. Ver docs/propuesta_niveles_morfologia.md §3 (➑).
+        {val:'activa',label:'Activa'},
+        {val:'pasiva',label:'Pasiva (ser + participio)'}]},
     ]},
   'Preposición':{
     steps:[
@@ -621,32 +626,32 @@ const MORPH_CASCADES = {
 };
 
 // ── ESO 3.º–4.º Cascades — atributos esenciales (subset de Maestro) ──
+// F5 (jul-2026): correcciones y adiciones del §3 de
+// docs/propuesta_niveles_morfologia.md. Se reutilizan los steps de
+// MORPH_CASCADES (maestro) donde coinciden en contenido, para no duplicar
+// listas de opciones que puedan desincronizarse.
 const MORPH_CASCADES_ESO34 = {
   'Sustantivo':MORPH_CASCADES['Sustantivo'], // todos los atributos
-  'Adjetivo':{steps:[
-    {id:'género',label:'Género',opts:[{val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'},{val:'invariable',label:'Invariable'}]},
-    {id:'número',label:'Número',opts:[{val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]},
-    {id:'grado',label:'Grado (solo calificativo)',opts:[{val:'positivo',label:'Positivo'},{val:'comparativo',label:'Comparativo'},{val:'superlativo relativo',label:'Superlativo relativo'},{val:'superlativo absoluto',label:'Superlativo absoluto'}]},
-  ]},
-  'Artículo':{steps:[
-    {id:'género',label:'Género',opts:[{val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'}]},
-    {id:'número',label:'Número',opts:[{val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]},
-  ]},
-  'Demostrativo':{steps:[
-    {id:'función',label:'Función',opts:[{val:'determinante',label:'Determinante (ante sust.)'},{val:'pronombre',label:'Pronombre (sin sust.)'}]},
-    {id:'género',label:'Género',opts:[{val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'},{val:'neutro',label:'Neutro'}]},
-    {id:'número',label:'Número',opts:[{val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]},
-  ]},
-  'Posesivo':{steps:[
-    {id:'función',label:'Función',opts:[{val:'determinante',label:'Determinante (antepuesto)'},{val:'adjetivo',label:'Adjetivo (pospuesto)'}]},
-    {id:'persona',label:'Persona',opts:[{val:'primera persona',label:'1ª persona'},{val:'segunda persona',label:'2ª persona'},{val:'tercera persona',label:'3ª persona'}]},
-    {id:'número',label:'Número',opts:[{val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]},
-  ]},
+  // ➊ clase (calificativo/relacional) + grado dependiente de clase — idéntico a maestro
+  'Adjetivo':MORPH_CASCADES['Adjetivo'],
+  // ➋ neutro (lo) + forma contracta (al/del); sin el paso "tipo" (determinado/indeterminado), que N2 no pregunta
+  'Artículo':{steps:MORPH_CASCADES['Artículo'].steps.filter(s=>s.id!=='tipo')},
+  // ➌ cercanía (este/ese/aquel) — idéntico a maestro
+  'Demostrativo':MORPH_CASCADES['Demostrativo'],
+  // ➍ un/varios poseedores; sin género (N2 no lo pregunta en posesivos)
+  'Posesivo':{steps:MORPH_CASCADES['Posesivo'].steps.filter(s=>s.id!=='género')},
   'Cuantificador':{steps:[
     {id:'función_sint',label:'Función sintáctica',opts:[{val:'determinante',label:'Determinante'},{val:'pronombre',label:'Pronombre'},{val:'adjetivo',label:'Adjetivo'}]},
     {id:'tipo',label:'Tipo',opts:[{val:'numeral',label:'Numeral'},{val:'indefinido',label:'Indefinido'}]},
     {id:'subtipo_num',label:'Clase de numeral',dependsOn:{step:'tipo',val:'numeral'},opts:[{val:'cardinal',label:'Cardinal'},{val:'ordinal',label:'Ordinal'},{val:'fraccionario',label:'Fraccionario'},{val:'multiplicativo',label:'Multiplicativo'}]},
     {id:'subtipo_ind',label:'Clase de indefinido',dependsOn:{step:'tipo',val:'indefinido'},opts:[{val:'universal',label:'Universal (todo, cada)'},{val:'indefinido débil',label:'Indefinido débil (mucho, poco, bastante)'},{val:'existencial',label:'Existencial (algún, ningún)'}]},
+  ]},
+  // ➎ Relativo (hoy sin cascada): solo función — se enseña en 4.º ESO y prepara Compuestas
+  'Relativo':{steps:MORPH_CASCADES['Relativo'].steps.filter(s=>s.id==='función')},
+  // ➏ Interr./Exclamativo (hoy sin cascada): tipo → función, sin género/número (eso ya es N3)
+  'Interrogativo/Exclamativo':{steps:[
+    {id:'tipo',label:'Tipo',opts:[{val:'interrogativo',label:'Interrogativo'},{val:'exclamativo',label:'Exclamativo'}]},
+    {id:'función',label:'Función',opts:[{val:'pronombre',label:'Pronombre (qué, quién, cuál)'},{val:'determinante',label:'Determinante (qué, cuánto)'},{val:'adverbio',label:'Adverbio (cuándo, cómo, dónde)'}]},
   ]},
   'Verbo':{steps:[
     {id:'conjugación',label:'Conjugación',opts:[{val:'primera',label:'1ª (-ar)'},{val:'segunda',label:'2ª (-er)'},{val:'tercera',label:'3ª (-ir)'}]},
@@ -655,6 +660,8 @@ const MORPH_CASCADES_ESO34 = {
     {id:'tiempo',label:'Tiempo',opts:[{val:'presente',label:'Presente'},{val:'pretérito imperfecto',label:'Pret. imperfecto'},{val:'pretérito perfecto simple',label:'Pret. perfecto simple'},{val:'pretérito perfecto compuesto',label:'Pret. perfecto compuesto'},{val:'pretérito pluscuamperfecto',label:'Pret. pluscuamperfecto'},{val:'futuro simple',label:'Futuro simple'},{val:'futuro compuesto',label:'Futuro compuesto'},{val:'condicional simple',label:'Condicional simple'},{val:'condicional compuesto',label:'Condicional compuesto'},{val:'infinitivo',label:'Infinitivo'},{val:'gerundio',label:'Gerundio'},{val:'participio',label:'Participio'}]},
     {id:'modo',label:'Modo',opts:[{val:'indicativo',label:'Indicativo'},{val:'subjuntivo',label:'Subjuntivo'},{val:'imperativo',label:'Imperativo'},{val:'no personal',label:'No personal'}]},
     ...MORPH_CASCADES['Verbo'].steps.filter(s=>s.id==='perífrasis'||s.id?.startsWith('perif_')),
+    // ➐➑ aspecto (4.º ESO) + voz activa/pasiva (antes solo "activa") — mismos steps que maestro
+    ...MORPH_CASCADES['Verbo'].steps.filter(s=>s.id==='aspecto'||s.id==='voz'),
   ]},
   'Adverbio':{steps:[
     {id:'tipo',label:'Tipo',opts:[{val:'lugar',label:'Lugar'},{val:'tiempo',label:'Tiempo'},{val:'modo',label:'Modo'},{val:'cantidad',label:'Cantidad'},{val:'negación',label:'Negación'},{val:'afirmación',label:'Afirmación'},{val:'duda',label:'Duda'}]},
