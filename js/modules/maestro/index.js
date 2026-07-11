@@ -679,6 +679,38 @@ function getCascadeForNivel(cat, nivel){
 
 const CATEGORIES = Object.keys(MORPH_CASCADES);
 
+// F4 (jul-2026): N1 (aprendiz) reduce el inventario visible a las 9 clases
+// clásicas de 1.º-2.º ESO (Sustantivo/Adjetivo/Determinante/Pronombre/Verbo/
+// Adverbio/Preposición/Conjunción/Interjección). El banco conserva sus
+// etiquetas finas (Artículo, Demostrativo, Posesivo, Cuantificador,
+// Relativo, Interr./Excl., Pronombre personal); esta función traduce
+// cat+atrs.función a la clase genérica que el alumno debe reconocer.
+// Ver docs/propuesta_niveles_morfologia.md §2 (tabla + decisión 2 de Josele:
+// demostrativo/posesivo pospuestos = Adjetivo, fiel a la receta PAU).
+const N1_DET_PRON_CATS = ['Demostrativo', 'Posesivo', 'Cuantificador', 'Interrogativo/Exclamativo'];
+
+function mapCategoriaN1_(cat, atrs) {
+  if (cat === 'Artículo') return 'Determinante';
+  if (cat === 'Pronombre personal') return 'Pronombre';
+  if (N1_DET_PRON_CATS.includes(cat)) {
+    const funcion = (atrs && atrs['función']) || '';
+    if (funcion === 'adjetivo') return 'Adjetivo';
+    if (funcion === 'pronombre') return 'Pronombre';
+    return 'Determinante'; // función 'determinante' (o sin marcar, caso más frecuente)
+  }
+  if (cat === 'Relativo') {
+    const funcion = (atrs && atrs['función']) || '';
+    if (funcion === 'adverbio') return 'Adverbio';
+    if (funcion === 'determinante') return 'Determinante';
+    return 'Pronombre'; // función 'pronombre' (caso más frecuente: que, quien…)
+  }
+  return cat; // Sustantivo/Adjetivo/Verbo/Adverbio/Preposición/Conjunción/Interjección
+              // y los fenómenos que N1 no debería encontrar (Conector discursivo,
+              // Marca.Imp., Marca.Pas.Ref.) se muestran tal cual — no aparecen en
+              // los textos N1 curados, pero si la relajación de nivel (F2) sirve
+              // contenido N2 de refuerzo, el alumno sigue viendo el botón real.
+}
+
 // ── Mock morphological data for the 5 example sentences ──────────────
 // ── García Márquez token banks ────────────────────────────────────
 const MAESTRO_DEMO = [{"id": "m1_01", "texto": "¡", "cat": "Puntuación", "atrs": {}}, {"id": "m1_02", "texto": "Hala", "cat": "Interjección", "atrs": {"tipo": "propia", "función": "expresiva"}}, {"id": "m1_03", "texto": "!", "cat": "Puntuación", "atrs": {}}, {"id": "m1_04", "texto": "Encontré", "cat": "Verbo", "atrs": {"conjugación": "primera", "persona": "primera persona", "número": "singular", "tiempo": "pretérito perfecto simple", "modo": "indicativo", "aspecto": "perfectivo", "voz": "activa", "perífrasis": "no"}}, {"id": "m1_05", "texto": "este", "cat": "Demostrativo", "atrs": {"función": "determinante", "cercanía": "proximidad", "género": "masculino", "número": "singular"}}, {"id": "m1_06", "texto": "cofre", "cat": "Sustantivo", "atrs": {"subtipo": "común", "comun_sub": "contable", "ind_col": "individual", "conc_abs": "concreto", "género": "masculino", "número": "singular"}}, {"id": "m1_07", "texto": "pequeño", "cat": "Adjetivo", "atrs": {"subtipo": "calificativo", "género": "masculino", "número": "singular", "grado": "positivo"}}, {"id": "m1_08", "texto": "bajo", "cat": "Preposición", "atrs": {"tipo": "simple"}}, {"id": "m1_09", "texto": "la", "cat": "Artículo", "atrs": {"tipo": "determinado", "género": "femenino", "número": "singular", "forma": "ninguna"}}, {"id": "m1_10", "texto": "cama", "cat": "Sustantivo", "atrs": {"subtipo": "común", "comun_sub": "contable", "ind_col": "individual", "conc_abs": "concreto", "género": "femenino", "número": "singular"}}, {"id": "m1_11", "texto": "de", "cat": "Preposición", "atrs": {"tipo": "simple"}}, {"id": "m1_12", "texto": "mi", "cat": "Posesivo", "atrs": {"función": "determinante", "persona": "primera persona", "poseedores": "un poseedor", "género": "invariable", "número": "singular"}}, {"id": "m1_13", "texto": "abuelo", "cat": "Sustantivo", "atrs": {"subtipo": "común", "comun_sub": "contable", "ind_col": "individual", "conc_abs": "concreto", "género": "masculino", "número": "singular"}}, {"id": "m1_14", "texto": ".", "cat": "Puntuación", "atrs": {}}, {"id": "m1_15", "texto": "Dentro", "cat": "Adverbio", "atrs": {"tipo": "lugar"}}, {"id": "m1_16", "texto": "había", "cat": "Verbo", "atrs": {"conjugación": "segunda", "persona": "tercera persona", "número": "singular", "tiempo": "pretérito imperfecto", "modo": "indicativo", "aspecto": "imperfectivo", "voz": "activa", "perífrasis": "no"}}, {"id": "m1_17", "texto": "muchas", "cat": "Cuantificador", "atrs": {"tipo": "indefinido", "subtipo_ind": "indefinido débil", "función_sint": "determinante", "género": "femenino", "número": "plural"}}, {"id": "m1_18", "texto": "cartas", "cat": "Sustantivo", "atrs": {"subtipo": "común", "comun_sub": "contable", "ind_col": "individual", "conc_abs": "concreto", "género": "femenino", "número": "plural"}}, {"id": "m1_19", "texto": "amarillas", "cat": "Adjetivo", "atrs": {"subtipo": "calificativo", "género": "femenino", "número": "plural", "grado": "positivo"}}, {"id": "m1_20", "texto": "y", "cat": "Conjunción", "atrs": {"tipo": "coordinante", "subtipo_coord": "copulativa"}}, {"id": "m1_21", "texto": "un", "cat": "Artículo", "atrs": {"tipo": "indeterminado", "género": "masculino", "número": "singular", "forma": "ninguna"}}, {"id": "m1_22", "texto": "reloj", "cat": "Sustantivo", "atrs": {"subtipo": "común", "comun_sub": "contable", "ind_col": "individual", "conc_abs": "concreto", "género": "masculino", "número": "singular"}}, {"id": "m1_23", "texto": "antiguo", "cat": "Adjetivo", "atrs": {"subtipo": "calificativo", "género": "masculino", "número": "singular", "grado": "positivo"}}, {"id": "m1_24", "texto": ".", "cat": "Puntuación", "atrs": {}}, {"id": "m1_25", "texto": "Nosotros", "cat": "Pronombre personal", "atrs": {"persona": "primera persona", "número": "plural", "género": "masculino", "acent": "tónico"}}, {"id": "m1_26", "texto": "las", "cat": "Pronombre personal", "atrs": {"persona": "tercera persona", "número": "plural", "género": "femenino", "acent": "átono"}}, {"id": "m1_27", "texto": "leeremos", "cat": "Verbo", "atrs": {"conjugación": "segunda", "persona": "primera persona", "número": "plural", "tiempo": "futuro simple", "modo": "indicativo", "aspecto": "imperfectivo", "voz": "activa", "perífrasis": "no"}}, {"id": "m1_28", "texto": "pronto", "cat": "Adverbio", "atrs": {"tipo": "tiempo"}}, {"id": "m1_29", "texto": "porque", "cat": "Conjunción", "atrs": {"tipo": "subordinante", "subtipo_sub": "causal"}}, {"id": "m1_30", "texto": "guardan", "cat": "Verbo", "atrs": {"conjugación": "primera", "persona": "tercera persona", "número": "plural", "tiempo": "presente", "modo": "indicativo", "aspecto": "imperfectivo", "voz": "activa", "perífrasis": "no"}}, {"id": "m1_31", "texto": "secretos", "cat": "Sustantivo", "atrs": {"subtipo": "común", "comun_sub": "contable", "ind_col": "individual", "conc_abs": "abstracto", "género": "masculino", "número": "plural"}}, {"id": "m1_32", "texto": "familiares", "cat": "Adjetivo", "atrs": {"subtipo": "relacional", "género": "invariable", "número": "plural"}}, {"id": "m1_33", "texto": ".", "cat": "Puntuación", "atrs": {}}];
@@ -1112,8 +1144,22 @@ const CAT_GROUPS = [
   },
 ];
 
+// F4 (jul-2026): en N1 los grupos ② y ③ colapsan a un único botón genérico
+// (Determinante / Pronombre) — el resto de grupos no fragmentan nada que la
+// propuesta pida simplificar, así que se reutilizan tal cual (ver
+// mapCategoriaN1_ para la traducción de la respuesta correcta).
+const CAT_GROUPS_N1 = CAT_GROUPS.map(g => {
+  if (g.id === 'determ') return { ...g, cats: ['Determinante'] };
+  if (g.id === 'pronom') return { ...g, cats: ['Pronombre'] };
+  return g;
+});
+
+function getCatGroupsForNivel(nivel) {
+  return nivel === 'aprendiz' ? CAT_GROUPS_N1 : CAT_GROUPS;
+}
+
 function renderCatGroups(){
-  return CAT_GROUPS.map(g => `
+  return getCatGroupsForNivel(MM.nivel).map(g => `
     <div class="casc-group-row" 
       style="display:flex;align-items:center;gap:10px;padding:10px 14px;
         border:2px solid ${g.border};border-radius:12px;background:${g.bg};cursor:pointer;
@@ -1130,7 +1176,7 @@ function renderCatGroups(){
 }
 
 function selectCatGroup(groupId){
-  const group = CAT_GROUPS.find(g=>g.id===groupId);
+  const group = getCatGroupsForNivel(MM.nivel).find(g=>g.id===groupId);
   if(!group) return;
   MM.pendingGroup = groupId;
   const subStep = document.getElementById('casc-sub-step');
@@ -1264,7 +1310,10 @@ function confirmToken(){
   const sent = MM.sentences[MM.idx];
   const token = sent.tokens[MM.tokenIdx];
   const mode = MM.mode;
-  const catCorrect = MM.currentCat === token.cat;
+  // F4 (jul-2026): en N1 se compara contra la clase genérica traducida
+  // (mapCategoriaN1_), no contra la etiqueta fina del banco.
+  const displayCat = MM.nivel === 'aprendiz' ? mapCategoriaN1_(token.cat, token.atrs) : token.cat;
+  const catCorrect = MM.currentCat === displayCat;
 
   // Score: category = 2pts. Attributes only counted if category is correct (Bug A fix)
   let earned = 0, possible = 2;
@@ -1313,7 +1362,7 @@ function confirmToken(){
         popElement('mm-tk-' + MM.tokenIdx);
       }
       const allCorrect = (earned === possible);
-      showCorrectFlash(allCorrect ? '¡' + token.cat + ' correcta!' : token.cat + ' (con detalles)');
+      showCorrectFlash(allCorrect ? '¡' + displayCat + ' correcta!' : displayCat + ' (con detalles)');
     }
   }
 
@@ -1322,7 +1371,7 @@ function confirmToken(){
 
   // Practice mode: show feedback panel
   if(mode==='practice'){
-    showTokenFeedback(token, catCorrect, earned, possible);
+    showTokenFeedback(token, catCorrect, earned, possible, displayCat);
   } else {
     document.getElementById('mm-cascade-wrap').innerHTML='';
   }
@@ -1345,7 +1394,8 @@ function confirmToken(){
   updateMaestroHeader();
 }
 
-function showTokenFeedback(token, catCorrect, earned, possible){
+function showTokenFeedback(token, catCorrect, earned, possible, displayCat){
+  displayCat = displayCat || token.cat;
   const pct = possible>0?Math.round(earned/possible*100):0;
   const color = pct>=80?'#059669':pct>=50?'#D97706':'#DC2626';
   const bg    = pct>=80?'#F0FDF4':pct>=50?'#FFFBEB':'#FEF2F2';
@@ -1372,7 +1422,7 @@ function showTokenFeedback(token, catCorrect, earned, possible){
         <span style="font-size:1.6rem">${pct>=80?'✅':pct>=50?'⚠️':'❌'}</span>
         <div>
           <div style="font-weight:800;color:${color};font-size:.95rem">
-            ${catCorrect?token.cat:'<s>'+MM.currentCat+'</s> → '+token.cat}
+            ${catCorrect?displayCat:'<s>'+MM.currentCat+'</s> → '+displayCat}
           </div>
           <div style="font-size:.75rem;color:var(--muted)">${earned}/${possible} puntos</div>
         </div>
