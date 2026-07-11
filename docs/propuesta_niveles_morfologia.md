@@ -1,56 +1,47 @@
 # Propuesta · Los tres niveles del modo Morfología
 
-**Fecha:** 2026-07-11 · **Estado:** propuesta pedagógica para revisión de Josele — SIN
-evaluación ni ponderación (eso viene después, en el plan de implementación).
+**Fecha:** 2026-07-11 (rev. 2, tras estudiar el documento oficial PAU) · **Estado:**
+propuesta pedagógica para revisión de Josele — SIN evaluación ni ponderación (eso viene
+después, en el plan de implementación).
 **Encargo:** reestructurar el modo Morfología en tres niveles de profundidad coherentes
 con el currículo real de ESO y Bachillerato y con lo que la PAU pide de verdad, al nivel
 de madurez que ya tienen los módulos de sintaxis.
 
 ## 0. Fuentes utilizadas
 
-1. **Modelo PAU** («Nos preparamos (modelo PAU)», tema *La reflexión morfológica* del
-   libro de 1.º Bach, `proyecto_plan_de_trabajo_lengua/.../1ºBACH_La_reflexion_morfologica.md`).
-   La pregunta de morfología de la PAU (4b) es: *«Analiza cómo están formadas las
-   siguientes palabras, indicando para cada una sus constituyentes y procedimiento
-   empleado»* — es decir, **formación de palabras**, no análisis exhaustivo de atributos.
-   En el análisis sintáctico (4a) las categorías se nombran con economía («sustantivo»,
-   sin género ni número).
-2. **Tema completo de 1.º Bach** (mismo archivo): clases de palabras con sus
-   *límites entre categorías* (nombre/adjetivo, determinante/pronombre,
-   relacional/calificativo, perífrasis, locuciones) — el corazón de lo que se
-   discrimina en Bachillerato.
-3. **Referencia de Morfología y Sintaxis** del proyecto de aula (síntesis 1.º ESO–1.º Bach).
-4. **Índices del libro por curso**: 1.º ESO recorre todas las categorías con atributos
-   básicos (sustantivo/adjetivo → determinantes/pronombres → verbo → invariables);
-   3.º ESO consolida con *clases de palabras + locuciones + sintagmas*.
-5. **Estado actual de la app** (`js/modules/maestro/index.js`): tres niveles
+1. **⭐ «MORFOLOGÍA PAU» (IES Europa, 1.º Bach)** — el documento imprescindible aportado
+   por Josele: la *receta oficial de análisis PAU* categoría a categoría («de cada
+   palabra hay que decir, en este orden…»), con cuadros de tipos, perífrasis,
+   pronombres y locuciones. **Es la fuente normativa del Nivel 3.**
+2. **Modelo PAU** (sección «Nos preparamos (modelo PAU)» del tema *La reflexión
+   morfológica*, libro 1.º Bach): la pregunta 4b alternativa es *formación de palabras*
+   (constituyentes + procedimiento). Complementa a la fuente 1 (que cubre el análisis
+   categorial, no la formación).
+3. **Tema completo de 1.º Bach** (mismo archivo): límites entre categorías, locuciones,
+   perífrasis, formación.
+4. **Referencia de Morfología y Sintaxis** del proyecto de aula (síntesis 1.º ESO–1.º Bach).
+5. **Índices del libro por curso**: 1.º ESO recorre todas las categorías con atributos
+   básicos; 3.º ESO consolida con *clases de palabras + locuciones + sintagmas*.
+6. **Estado actual de la app** (`js/modules/maestro/index.js`): tres niveles
    `aprendiz` (solo categoría), `eso34` (subconjunto), `maestro` (cascada completa).
 
-> **Nota de honestidad:** Josele mencionó un «documento PAU» específico. No se ha
-> encontrado como archivo aparte; la propuesta se basa en el modelo PAU del libro (fuente 1)
-> y en su directriz explícita («la PAU solo pide identificar el sustantivo, sin más
-> atributos»). Si existe ese documento oficial, conviene contrastarlo antes de implementar
-> el Nivel 3.
-
 ## 1. Principio rector: tres verbos, tres momentos del currículo
-
-Cada nivel responde a una operación cognitiva distinta, alineada con un tramo del currículo:
 
 | Nivel | Operación | Tramo | Pregunta típica |
 |---|---|---|---|
 | **N1 · Categorías** | **Identificar** | 1.º–2.º ESO | «¿Qué clase de palabra es?» |
 | **N2 · Análisis** | **Analizar** | 3.º–4.º ESO | «Di todo lo que sabes de esta palabra» |
-| **N3 · PAU** | **Discriminar** | Bachillerato | «¿*Que* es conjunción o relativo? ¿Cómo está formada *geolocalización*?» |
+| **N3 · PAU** | **Aplicar la receta PAU** | Bachillerato | «la: determinante, definido, artículo, determinado, femenino, singular» |
 
-La clave del N3 (donde había más dudas… en realidad el N2, ver §3) es que **no es un
-N2 con más pasos, sino un nivel con MENOS pasos y mejor elegidos**: la PAU da por
-sabida la flexión (género, número, persona) y pregunta justo lo que distingue a un
-alumno maduro — los casos frontera, las perífrasis y la formación de palabras.
+El N3 no es «el N2 con más pasos» ni tampoco un nivel minimalista: es **la receta
+exacta que el corrector de la PAU espera, en su orden**, con sus inclusiones (género y
+número casi siempre; terminación del adjetivo; voz del verbo) y sus exclusiones
+(subclases semánticas del sustantivo, cercanía del demostrativo…). La cascada de la app
+reproduce de forma natural ese formato de respuesta enumerada.
 
-**El banco no cambia.** Los tokens ya llevan todos los atributos (nivel maestro actual);
-cada nivel es una *vista* que pregunta un subconjunto. Las únicas adiciones son atributos
-opcionales nuevos (formación de palabras, perífrasis pasiva) que se etiquetan
-progresivamente sin romper nada.
+**El banco no cambia.** Los tokens ya llevan todos los atributos; cada nivel es una
+*vista* que pregunta un subconjunto. Las adiciones nuevas (terminación, voz pasiva,
+locuciones, formación) son atributos opcionales que se etiquetan progresivamente.
 
 ## 2. Nivel 1 · Categorías (1.º–2.º ESO) — se mantiene, con un ajuste de inventario
 
@@ -74,121 +65,127 @@ esas 9 (más Puntuación), y la app traduce internamente:
 
 Ventaja pedagógica: un alumno de 1.º ESO no debe distinguir «cuantificador» de
 «artículo» — debe consolidar la muralla determinante/pronombre, que es exactamente lo
-que su libro le pide. La distinción fina llega en N2 de forma natural.
+que su libro le pide.
 
 ## 3. Nivel 2 · Análisis (3.º–4.º ESO) — el puente, categoría a categoría
 
-Es el nivel del «análisis completo de toda la vida»: el que se pide en los ejercicios de
-la ESO y el que en 2.º Bach «se da por sabido». Parte del `eso34` actual con estas
-correcciones y adiciones (cada una justificada):
+El nivel del «análisis completo de la ESO»: incluye lo que en 2.º Bach «se da por
+sabido» **y también lo que la PAU ya no pregunta** (subclases semánticas del sustantivo,
+cercanía del demostrativo…). Parte del `eso34` actual con estas correcciones:
 
 | Categoría | Pasos del N2 | Cambios vs. `eso34` actual |
 |---|---|---|
-| **Sustantivo** | común/propio → contable/no contable → individual/colectivo → concreto/abstracto → género → número | Ninguno (ya estaba completo, y es correcto: es EL contenido de la ESO) |
-| **Adjetivo** | **clase (calificativo/relacional)** → género → número → grado *(solo si calificativo)* | ➊ AÑADIR clase: hoy `eso34` no la pregunta, pero pide *grado* a todos los adjetivos — **incoherencia actual**: los relacionales no tienen grado (NGLE; el propio libro lo subraya). La clase se enseña en 3.º-4.º ESO y arregla la cascada |
-| **Artículo** | determinado/indeterminado → género (con **neutro *lo***) → número → **contracta (al/del)** | ➋ AÑADIR neutro y contracta: contenido de la ESO, y el banco ya lo etiqueta (`forma: contracta`) |
+| **Sustantivo** | común/propio → contable/no contable → individual/colectivo → concreto/abstracto → género → número | Ninguno (correcto: es EL contenido de la ESO; la PAU luego lo recorta, ver N3) |
+| **Adjetivo** | **clase (calificativo/relacional)** → género → número → grado *(solo si calificativo)* | ➊ AÑADIR clase: hoy `eso34` no la pregunta pero pide *grado* a todos — **incoherencia**: los relacionales no tienen grado (NGLE y cuadro PAU) |
+| **Artículo** | determinado/indeterminado → género (con **neutro *lo***) → número → **contracta (al/del)** | ➋ AÑADIR neutro y contracta (contenido ESO; el «contracto» es además dato PAU) |
 | **Pronombre personal** | persona → número → tónico/átono | Ninguno |
-| **Demostrativo** | función (det./pron.) → **cercanía (este/ese/aquel)** → género (con neutro) → número | ➌ AÑADIR cercanía: contenido de 1.º-3.º ESO, coste bajísimo (se lee en la palabra) y refuerza la deixis |
-| **Posesivo** | función (det./adj.) → persona → **un/varios poseedores** → número | ➍ AÑADIR poseedores: distinción clásica de la ESO (*mi/nuestro*) que hoy solo pregunta el nivel maestro |
-| **Cuantificador** | tipo (numeral/indefinido) → subclase → función sintáctica | Ninguno (género/número se omiten a propósito: poco informativos aquí) |
-| **Relativo** | función (pronombre/determinante/adverbio) | ➎ AÑADIR: hoy `eso34` no tiene cascada (cae a solo-categoría). La función del relativo se enseña en 4.º ESO y prepara las compuestas |
-| **Interr./Exclamativo** | tipo (interr./excl.) → función (det./pron./adv.) | ➏ AÑADIR (hoy sin cascada): mismo argumento |
-| **Verbo** | perífrasis (¿sí/no? → tipo) → conjugación → persona → número → tiempo → modo → **aspecto** | ➐ AÑADIR aspecto (contenido de 4.º ESO, presente en la Referencia del proyecto de aula). ➑ ELIMINAR el paso *voz* tal como existe en maestro (solo tiene la opción «activa»: no discrimina nada). La pasiva se trata como perífrasis, ver ➒ |
+| **Demostrativo** | función (det./pron.) → **cercanía (este/ese/aquel)** → género (con neutro) → número | ➌ AÑADIR cercanía: contenido de 1.º-3.º ESO, coste bajísimo |
+| **Posesivo** | función (det./adj.) → persona → **un/varios poseedores** → número | ➍ AÑADIR poseedores (distinción clásica ESO y dato exigido en PAU) |
+| **Cuantificador** | tipo (numeral/indefinido) → subclase → función sintáctica | Ninguno |
+| **Relativo** | función (pronombre/determinante/adverbio) | ➎ AÑADIR (hoy sin cascada): se enseña en 4.º ESO y prepara las compuestas |
+| **Interr./Exclamativo** | tipo (interr./excl.) → función (det./pron./adv.) | ➏ AÑADIR (hoy sin cascada) |
+| **Verbo** | perífrasis (¿sí/no? → tipo) → conjugación → persona → número → tiempo → modo → **aspecto** → **voz (activa/pasiva)** | ➐ AÑADIR aspecto (4.º ESO). ➑ **CORREGIR el paso voz**: hoy solo ofrece «activa» (no discrimina nada); debe ofrecer activa/**pasiva** — la pasiva perifrástica *ser + participio* se analiza como **voz pasiva del verbo**, NO como clase de perífrasis (así lo hace el documento PAU: *«haya sido agredido … voz pasiva»*). Coherencia directa con el módulo de Sintaxis (C. Agente) |
 | **Adverbio** | tipo semántico | Ninguno |
 | **Preposición** | simple / locución prepositiva | Ninguno |
 | **Conjunción** | coordinante/subordinante → clase | Ninguno |
-| **Conector discursivo** | tipo (aditivo, contraste, consecutivo…) | Ninguno (es contenido de cohesión de 4.º ESO) |
+| **Conector discursivo** | tipo (aditivo, contraste, consecutivo…) | Ninguno |
 | **Interjección** | propia/impropia → expresiva/apelativa | Ninguno |
-| **Marca.Imp. / Marca.Pas.Ref.** | reconocimiento de la marca | Ninguno — coherencia directa con el módulo de Sintaxis |
+| **Marca.Imp. / Marca.Pas.Ref.** | reconocimiento de la marca | Ninguno |
 
-➒ **Adición transversal (N2 y N3): perífrasis pasiva.** La cascada actual de perífrasis
-no contempla *ser + participio* (pasiva perifrástica). Es una laguna de coherencia con
-el módulo de Sintaxis, donde la pasiva y el C. Agente son centrales. Se añade como
-opción del tipo de perífrasis. *(Requiere revisar el etiquetado de los textos del banco
-que contengan pasivas.)*
+## 4. Nivel 3 · PAU (Bachillerato) — la receta oficial, categoría a categoría
 
-## 4. Nivel 3 · PAU (Bachillerato) — economía y discriminación
+Redefinición del actual `maestro` según el documento «MORFOLOGÍA PAU». Regla de oro:
+**se pregunta exactamente lo que la receta PAU enumera, en su orden — ni más ni menos.**
 
-Redefinición completa del actual `maestro`. Regla de oro (directriz de Josele +
-modelo PAU): **si la PAU lo da por sabido, no se pregunta**. Fuera género, número,
-persona, conjugación, aspecto. Se pregunta solo lo que un corrector de PAU espera que
-el alumno sepa *distinguir*:
-
-| Categoría | Pasos del N3 | Por qué esto y no más |
+| Categoría | Receta PAU (pasos del N3) | Notas del documento oficial |
 |---|---|---|
-| **Sustantivo** | *(solo categoría)* | Ejemplo literal de Josele: la PAU pide «sustantivo» y punto |
-| **Adjetivo** | clase (calificativo/relacional) | Distinción viva en Bachillerato: alimenta la pregunta de *marcas de subjetividad* (los valorativos) del comentario PAU |
-| **Artículo** | *(solo categoría)* | Nada que discriminar a este nivel |
-| **Pronombre personal** | *(solo categoría)* | Su función sintáctica (CD/CI) pertenece al módulo de Sintaxis — no duplicar |
-| **Demostrativo / Posesivo / Cuantificador** | función (det./pron./adj.) | LA confusión clásica que la PAU sí penaliza; el resto (cercanía, poseedores…) se da por sabido |
-| **Relativo** | función (pron./det./adv.) | El caso estrella *que* relativo vs. *que* conjunción se juega ya al elegir la categoría; la función completa el cuadro |
-| **Interr./Exclamativo** | función (det./pron./adv.) | Ídem (cómo/como, qué/que) |
-| **Verbo** | perífrasis (¿sí/no? → clase completa, **incluida pasiva**) → forma (personal / infinitivo / gerundio / participio) → tiempo y modo | Las perífrasis son EL contenido verbal de Bachillerato (un solo núcleo → afecta al análisis sintáctico de 4a). Tiempo y modo se mantienen porque el comentario PAU los usa (subjuntivo/condicional como marcas de subjetividad) |
-| **Adverbio** | tipo semántico | Barato y útil (los -mente enlazan con formación y subjetividad) |
-| **Preposición** | simple / locución prepositiva | Las locuciones son contenido explícito de 3.º ESO a PAU |
-| **Conjunción** | coordinante/subordinante → clase | Núcleo de la pregunta 4a-opción 2 (relaciones entre oraciones) — coherencia total con el módulo de Compuestas |
-| **Conector discursivo** | tipo | Alimenta la pregunta 2 de la PAU (mecanismos de cohesión) |
+| **Sustantivo común** | tipo (común) → género → número | Sin subclases semánticas (contable/colectivo/abstracto NO se piden) |
+| **Sustantivo propio** | tipo (propio) — **y nada más** | «hay que indicar exclusivamente la categoría gramatical y el tipo» |
+| **Adjetivo calificativo** | clase → género → número → **grado** → **terminación (una/dos/invariable)** | Terminación = atributo NUEVO del banco. Truco del doc: los de una terminación cambian en plural (*feliz/felices*); los invariables no (*gratis*) |
+| **Adjetivo relacional** | clase → género → número → terminación | Sin grado (los relacionales no se gradúan) |
+| **Demostrativo/Posesivo/ Cuantificador pospuestos** | «adjetivo, demostrativo/posesivo/cuantificador…» + género → número (+ poseedores y persona si posesivo) | El doc los analiza como **adjetivos** con receta propia; ordinales, fraccionarios y multiplicativos son SIEMPRE adjetivos |
+| **Determinantes** (artículo, dem., pos., cuant., interr./excl. antepuestos) | **definido / cuantificador** → tipo → género → número → *(+ «contracto» si al/del; + poseedores y persona si posesivo; «posesivo relativo» para cuyo)* | Taxonomía PAU: DEFINIDOS = artículo (det./indet.), demostrativos, posesivos (incl. *cuyo*); CUANTIFICADORES = universales, indefinidos, numerales cardinales, interrogativos/exclamativos |
+| **Pronombre personal** | tipo (personal) → persona → género (m/f/**neutro**) → número → tónico/átono | «SEIS aspectos, en este orden». Los átonos funcionan como CD/CI; los tónicos como sujeto/término |
+| **Demás pronombres** (dem., cuant., relativos, interr./excl.) | tipo (si cuantificador, subtipo) → género → número | «CUATRO aspectos». Neutros *esto/eso/aquello*; *alguien/nadie* masculinos, *algo/nada* neutros; como pronombres numerales SOLO los cardinales (ordinales etc. = adj. sustantivados) |
+| **Verbo en forma personal** | *(lema: «verbo X», ver nota a)* → forma personal → conjugación → persona → número → tiempo → modo → **aspecto (opcional)** → **voz (activa/pasiva)** | El doc: aspecto «*no es obligatorio en PAU; si tienes dudas, mejor no lo pongas, no penalizará*». Voz pasiva = *ser + participio* (*haya sido agredido… voz pasiva*) |
+| **Verbo en forma NO personal** | forma no personal → infinitivo/gerundio/participio → **simple/compuesto** | Simple/compuesto = dato NUEVO (*lograr* vs. *haber logrado*; *estudiando* vs. *habiendo llegado*) |
+| **Perífrasis verbal** | perífrasis de infinitivo/gerundio/participio → clase (modal: obligación/probabilidad/capacidad; tempoaspectual: incoativa/terminativa/reiterativa…) → **análisis completo del auxiliar** (receta de forma personal) | El cuadro del doc coincide casi al 100 % con la cascada actual de la app (buena noticia). Gerundio y participio son siempre tempoaspectuales |
+| **Adverbio** | solo la clase (cantidad, lugar, tiempo, aspecto, modo, afirmación, negación, duda) | «De un adverbio hay que decir: SOLO la clase» — coincide con la app |
+| **Preposición** | solo la categoría | «basta con indicar» que lo es |
+| **Conjunción** | coordinante/subordinante → clase | ⚠ **No aparece en el documento PAU** — se mantiene la pauta del libro de 1.º Bach (ver pregunta abierta 3) |
+| **Interjección** | propia/impropia → apelativa-directiva / expresiva-sintomática | Coincide con la app |
+| **Conector discursivo** | tipo | Alimenta la pregunta de cohesión del comentario |
 | **Marcas (se)** | reconocimiento | Coherencia con Sintaxis (pasiva refleja / impersonal) |
-| **⭐ Formación de palabras** *(transversal, nuevo)* | procedimiento: simple / derivada / compuesta / parasintética *(extensible: sigla, acrónimo, préstamo)* | **Es la pregunta de morfología real de la PAU (4b)**. Se propone como paso adicional SOLO en tokens etiquetados con el atributo nuevo `formacion` (etiquetado progresivo del banco: se empieza por las palabras jugosas de cada texto — *hiperconsumismo, geolocalización…*) |
+| **⭐ Locuciones** *(transversal, nuevo)* | clase: nominal/sustantiva · adjetival · verbal · adverbial · pronominal · preposicional · conjuntiva · interjectiva | Página propia en el doc PAU (8 clases con ejemplos). Requiere tokens multipalabra etiquetados como locución en el banco |
+| **⭐ Formación de palabras** *(transversal, nuevo)* | procedimiento: simple / derivada / compuesta / parasintética *(extensible: sigla, acrónimo, préstamo)* | No está en este doc (que cubre el análisis categorial) pero SÍ en el modelo PAU (pregunta 4b: constituyentes + procedimiento). Atributo opcional `formacion`, etiquetado progresivo |
 
-**Fase futura (fuera de este alcance):** la segmentación completa en constituyentes
-(raíz, prefijos, sufijos, morfemas flexivos) que pide la PAU exige otro tipo de
-ejercicio (marcar segmentos dentro de la palabra), no una cascada de opciones. Se
-propone como módulo/ejercicio aparte más adelante; el paso «procedimiento» del N3 ya
-cubre la mitad de la pregunta 4b con la mecánica actual.
+**Notas de implementación (solo contenido, sin evaluación):**
+
+- **(a) El lema del verbo** («verbo *arrancar*»): la receta PAU empieza nombrando el
+  infinitivo. Una cascada de opciones no puede «preguntar» un lema en abierto; se
+  propone **mostrarlo** en el enunciado del paso («Analiza el verbo *arrancar*: …»)
+  o como opción múltiple sencilla. Decisión de diseño para la fase de implementación.
+- **(b) Terminación del adjetivo** y **simple/compuesto de las formas no personales**:
+  dos atributos nuevos del banco, deducibles casi siempre de la propia palabra —
+  etiquetado barato, incluso automatizable con revisión.
+- **(c) La respuesta PAU es una enumeración ordenada**: la cascada ya la reproduce; al
+  final del análisis de cada palabra puede mostrarse la «respuesta PAU» completa en una
+  línea (*«tu: determinante, definido, posesivo, un poseedor, femenino, singular,
+  segunda persona»*) como modelo de lo que escribirían en el examen. Refuerzo gratuito.
 
 ## 5. Los textos también escalan
 
-Los tres niveles no se distinguen solo por las preguntas, sino por los textos:
-
 - **N1**: oraciones/textos sin relativos, sin conectores discursivos, sin *se* pasivo o
-  impersonal, sin perífrasis rebuscadas. (Los textos actuales de nivel básico sirven.)
+  impersonal, sin perífrasis rebuscadas.
 - **N2**: textos con el repertorio ESO completo (perífrasis modales y aspectuales,
   relativos, conectores).
-- **N3**: textos tipo PAU (editoriales, ensayo divulgativo) **ricos en casos frontera**:
-  *que* conjunción vs. relativo, *como/cómo*, *se* en sus valores, perífrasis pasivas y
-  de probabilidad, adjetivos relacionales vs. calificativos, y palabras derivadas o
-  compuestas jugosas etiquetadas con `formacion`.
+- **N3**: textos tipo PAU (editoriales, ensayo divulgativo) ricos en: pasivas
+  (voz pasiva), perífrasis de probabilidad, *que* conjunción vs. relativo, *como/cómo*,
+  *se* en sus valores, adjetivos relacionales vs. calificativos, **locuciones** de
+  varias clases, y palabras derivadas/compuestas jugosas etiquetadas con `formacion`.
 
 ## 6. Resumen de cambios respecto al código actual
 
-| | Se mantiene | Se corrige | Se añade | Se elimina |
+| | Se mantiene | Se corrige | Se añade | Se quita |
 |---|---|---|---|---|
 | **N1** (`aprendiz`) | Mecánica solo-categoría | — | Inventario reducido a las 9 clases + traducción interna | Etiquetas finas visibles |
-| **N2** (`eso34`) | La mayoría de cascadas | Grado solo a calificativos (➊) | Clase del adjetivo, neutro/contracta, cercanía, poseedores, Relativo, Interr./Excl., aspecto, perífrasis pasiva | — |
-| **N3** (`maestro` → **PAU**) | Perífrasis (ampliada), tiempo/modo, conjunciones, conectores | Filosofía: de «todo» a «lo que discrimina» | Paso de formación de palabras (atributo opcional del banco) | Género/número/persona/ conjugación/aspecto/voz, subclases del sustantivo, grados, cercanía, poseedores… |
+| **N2** (`eso34`) | La mayoría de cascadas | Grado solo a calificativos (➊); paso voz con activa/**pasiva** (➑) | Clase del adjetivo, neutro/contracta, cercanía, poseedores, Relativo, Interr./Excl., aspecto | — |
+| **N3** (`maestro` → **PAU**) | Perífrasis (cuadro casi idéntico al doc), tiempo/modo, pronombre personal completo, adverbio-solo-clase, interjección | Voz activa/pasiva; sustantivo propio se queda en el tipo; determinantes con taxonomía definido/cuantificador | Terminación del adjetivo, simple/compuesto de formas no personales, locuciones (8 clases), formación de palabras, «respuesta PAU» en una línea | Subclases semánticas del sustantivo, cercanía, aspecto pasa a opcional |
 
-**Nombres propuestos en la interfaz** (los actuales Aprendiz/ESO34/Maestro dejan de
-describir bien el N3): **«Categorías (1.º–2.º ESO)» · «Análisis (3.º–4.º ESO)» ·
-«PAU (Bachillerato)»**. Internamente pueden conservarse las claves `aprendiz/eso34/maestro`
-para no tocar el backend.
+**Nombres propuestos en la interfaz**: **«Categorías (1.º–2.º ESO)» · «Análisis
+(3.º–4.º ESO)» · «PAU (Bachillerato)»**. Internamente se conservan las claves
+`aprendiz/eso34/maestro`.
 
 ## 7. Preguntas abiertas para Josele (decidir antes de implementar)
 
 1. **N1, inventario reducido**: ¿de acuerdo con que el alumno de 1.º-2.º ESO responda
-   «Determinante»/«Pronombre» genéricos (la app traduce), o prefieres mantener las
-   etiquetas finas actuales también en N1?
-2. **Posesivo pospuesto en N1** (*el libro mío*): con el inventario reducido, ¿lo
-   mapeamos a «Determinante» (simplificación asumible) o a «Adjetivo» (más NGLE pero
-   más confuso en 1.º ESO)?
-3. **N2, aspecto verbal**: ¿lo incluimos (contenido de 4.º ESO) o lo dejamos fuera
-   para no alargar la cascada del verbo, ya de por sí la más larga?
-4. **N3, formación de palabras**: ¿confirmas el enfoque de atributo opcional
-   (`formacion`) con etiquetado progresivo del banco? Implica que al principio pocos
-   tokens tendrán la pregunta, e irá creciendo texto a texto.
-5. **¿Un cuarto uso, «repaso 2.º Bach»?** No se propone un nivel 4: el N3 ya ES el de
-   2.º Bach. Pero si algún grupo tuyo necesitara re-practicar flexión en Bachillerato,
-   siempre puede bajarse a N2 — conviene decirlo en el manual del profesor.
+   «Determinante»/«Pronombre» genéricos (la app traduce), o mantener las etiquetas finas?
+2. **Posesivo pospuesto en N1** (*el libro mío*): ¿«Determinante» (simplificación
+   asumible) o «Adjetivo» (más fiel a la receta PAU, que lo analiza como adjetivo)?
+3. **Conjunciones en N3**: no aparecen en el documento PAU. ¿Las mantenemos con la
+   pauta del libro (coordinante/subordinante + clase) o las dejamos en solo-categoría
+   como las preposiciones?
+4. **Aspecto en N3**: el doc dice «no obligatorio, no penaliza». ¿Lo preguntamos como
+   paso normal, lo marcamos como «opcional» visible, o lo omitimos? (En N2 sí entra
+   como contenido de 4.º ESO.)
+5. **Locuciones**: exigen etiquetar tokens multipalabra en el banco (hoy cada token es
+   una palabra; solo Preposición tiene «locución prepositiva»). ¿Confirmas que merece
+   el trabajo de banco? Es página propia del doc PAU, así que parece que sí.
+6. **Formación de palabras**: ¿confirmas el enfoque de atributo opcional (`formacion`)
+   con etiquetado progresivo del banco?
 
 ## 8. Encaje técnico (nota breve, sin evaluación)
 
-- Los tres niveles son **vistas sobre el mismo banco**: `getCascadeForNivel(cat, nivel)`
-  ya existe y solo cambia qué subconjunto de pasos devuelve. Sin migración de datos.
-- Adiciones al banco: atributo opcional `formacion` en tokens seleccionados; opción
-  `pasiva` en perífrasis (revisar textos con pasivas); los textos nuevos de N3 se
-  añaden por la vía normal (`Morfologia_Textos`).
+- Los tres niveles siguen siendo **vistas sobre el mismo banco**
+  (`getCascadeForNivel(cat, nivel)` ya existe). Sin migración de lo existente.
+- Atributos nuevos del banco (aditivos, opcionales): `terminacion` (adjetivos),
+  `np_forma` simple/compuesta (formas no personales), `voz` pasa a tener valor
+  «pasiva» real, `formacion`, y el etiquetado de locuciones multipalabra (el
+  tokenizador del banco ya admite tokens multipalabra en otros módulos).
 - El mapeo N1 (etiqueta fina → clase genérica) es una función pura de
-  `(cat, atrs.función)` — pequeña y sin efectos sobre N2/N3.
-- **Todo lo relativo a puntuación/ponderación queda explícitamente fuera** de este
-  documento; se abordará cuando Josele valide los contenidos (siguiente fase, con el
-  plan de implementación para Sonnet).
+  `(cat, atrs.función)`.
+- La «respuesta PAU» en una línea (nota c del §4) se genera sola a partir de los pasos
+  respondidos — no exige datos nuevos.
+- **Todo lo relativo a puntuación/ponderación queda explícitamente fuera**; se
+  abordará cuando Josele valide los contenidos (siguiente fase, plan de implementación
+  para Sonnet).
