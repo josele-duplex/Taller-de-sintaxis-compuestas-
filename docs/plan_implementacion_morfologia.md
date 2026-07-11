@@ -99,7 +99,8 @@ de curso) y dejar las cascadas después:
 
 | Fase | Contenido | Toca | Modelo | Notas |
 |---|---|---|---|---|
-| **F1 · Saneado del banco** | Normalización de nivel en `filterByNivel_` (tildes/trim); reclasificar los 51 textos (basico→n2, id22→arcade, GM→n3, tildes); arreglar/desactivar ids 12 y 32; crear hoja `Morfologia_Conversion` + menú «Promover» | GAS + Sheet | **Sonnet** | Requiere redespliegue **Nueva versión** |
+| **F1a · Infraestructura** ✅ HECHO (commit b72a315) | Normalización de nivel en `filterByNivel_` (tildes/trim); hoja `Morfologia_Conversion` + `menuPromoverTextosMorfologia`; desplegable Nivel ampliado a n1/n2/n3 | GAS | **Sonnet** | Verificado con harness Node (4 bloques). **Pendiente: pegar en Apps Script y redesplegar Nueva versión** |
+| **F1b · Reclasificación de datos** | Reclasificar los 51 textos existentes (basico→n2, id22→arcade, GM→n3, corregir tildes de nivel); arreglar/desactivar ids 12 y 32 (tokens vacíos) | Sheet (datos) | **Sonnet, con la tabla presentada a Josele antes de tocar el Sheet** | No bloquea F2/F3 |
 | **F2 · Selección por nivel** | `_loadMaestroTexts` con nivel real + relajación; alinear examen | `maestro/index.js` | **Sonnet** | Verificable en preview con mocks |
 | **F3 · Primera tanda N1** | Prompt maestro de lote morfología (nuevo doc en el skill/docs) + validador en `scripts/` + conversión de ~15-20 oraciones de Simples + **los ejemplos de Josele** | contenido + script | **Claude (lote) + revisión Josele** | El validador lo escribe Sonnet; el etiquetado lo genera Claude con el prompt y lo revisa Josele en staging |
 | **F4 · Cascadas N1** | Inventario 9 clases + mapeo interno (decisiones 1-2 del §7 de la propuesta) | `maestro/index.js` | **Sonnet** | Las cascadas son config declarativa, no motor |
