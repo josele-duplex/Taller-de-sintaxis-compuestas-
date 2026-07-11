@@ -72,7 +72,59 @@ marcados ⚠ abajo, con sustitución propuesta pendiente de decisión de Josele.
 | 14 | El guardián del museo vigilaba las salas principales durante toda la noche. | ✅ |
 | 15 | Los vecinos del barrio celebraron una fiesta popular en las calles adornadas. | ✅ |
 
-## Notas para la fase F3 (conversión)
+## Decisión de Josele (2026-07-11)
+
+**Se descartan los 4 casos frontera** (T2#9, T2#12, T3#2, T3#8) — no se sustituyen,
+se eliminan directamente del corpus. Quedan **41 oraciones limpias** listas para
+convertir en la fase F3.
+
+## F3 · Tokenizado HECHO (2026-07-12)
+
+Las 41 oraciones (los 4 casos frontera ya descartados) están etiquetadas al
+detalle completo (nivel maestro: subtipo, género, número y demás atributos
+de cada cascada) en **`docs/f3_corpus_n1_tokens.tsv`** — listo para pegar en
+la hoja `Morfologia_Conversion` (columnas Fuente/Texto/Nivel_Destino/
+Tokens_JSON/Estado, la columna Estado se deja en blanco a propósito).
+
+**Validado automáticamente antes de entregarlo** (script de scratchpad, mismo
+espíritu que el "validador" del plan §2.3): las 41 filas tienen JSON válido,
+el número de tokens coincide con las palabras del texto, ninguna usa una
+categoría prohibida en N1 (conjunción, relativo, interr./exclamativo,
+conector, marcas), `Nivel_Destino` es siempre `n1`, y todas están en el
+rango de longitud 5-15 palabras. **0 problemas en 41/41 filas.**
+
+Cobertura de categorías resultante: Sustantivo (128) · Artículo (90) ·
+Adjetivo (51) · Preposición (44) · Verbo (41) · Adverbio (12) ·
+Cuantificador (10) · Posesivo (8) · Demostrativo (6). Ausentes a propósito
+(coherente con el diseño de Josele): Pronombre personal, Relativo,
+Conjunción, Interjección, Interrogativo/Exclamativo, Marcas.
+
+### Cómo lo usas tú (pasos exactos)
+
+1. **Antes de nada**: pega `server/Code_v6.gs` en Apps Script y redespliega
+   como **Nueva versión** (F1a ya está en el repo, commit `b72a315`, pero
+   aún no está en producción — sin esto no existe la hoja ni el menú).
+2. Abre la hoja `Morfologia_Conversion` (el redespliegue la crea sola si no
+   existe, o usa el menú «🔧 Mantenimiento» si prefieres crearla a mano antes).
+3. Abre `docs/f3_corpus_n1_tokens.tsv` con un editor de texto, copia todo su
+   contenido (incluida la cabecera) y pégalo empezando en la celda A1 —
+   Google Sheets reconoce los tabuladores solo. Verifica que quedan 42 filas
+   (1 cabecera + 41 oraciones).
+4. **Revisa las oraciones** (columna B, `Texto`) — es tu paso de control de
+   calidad. Si alguna te parece mal etiquetada, dímelo con el número de fila
+   y el error concreto que ves y lo corrijo antes de promoverla.
+5. Cuando una fila esté aprobada, escribe `revisado` en su columna `Estado`
+   (puedes seleccionar todas a la vez y escribirlo de golpe si las apruebas
+   en bloque).
+6. Menú **«🔧 Mantenimiento → 🧬 Promover textos de Morfología revisados»**.
+   Copia las filas `revisado` a `Morfologia_Textos` con Nivel=`n1` y las deja
+   `promovido`; si alguna tuviera un problema técnico, quedaría marcada
+   `error: <motivo>` sin bloquear las demás.
+7. Los alumnos verán los textos nuevos **solo si además está hecha la fase
+   F2** (que la app pida el nivel real en vez de siempre "basico"). F2 aún
+   no está implementada — es el siguiente paso lógico tras esto.
+
+## Notas para la fase F3 (conversión) — ya aplicadas arriba, se conservan como referencia
 
 - **Agrupación**: cada oración puede ser un mini-texto por sí sola (T1) o agruparse
   de 2 en 2 por afinidad temática (T2-T3) — decidir al convertir.
