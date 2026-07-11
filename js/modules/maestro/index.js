@@ -225,6 +225,10 @@ let MM = {}; // module state
 let selectedMaestroMode = null;
 
 let selectedMaestroNivel = null;
+// F2 (jul-2026): nivel de análisis (aprendiz/eso34/maestro) → nivel de
+// contenido del banco de textos (n1/n2/n3); el GAS relaja automáticamente
+// si el nivel pedido tiene pocos textos (ver resolveNivelMorfologia_).
+const MORPH_NIVEL_CONTENIDO = { aprendiz: 'n1', eso34: 'n2', maestro: 'n3' };
 let selectedMorphTipo   = null; // 'analisis' | 'reto'
 let selectedChallenge   = null; // challenge id
 
@@ -855,8 +859,10 @@ async function _loadMaestroTexts(name,email,grupo){
   const apiUrl = getApiUrl();
   if(apiUrl){
     try{
-      const r = await fetchWithTimeout(apiUrl+'?action=getTextosMorfologia&nivel=basico',{},6000);
+      const nivelContenido = MORPH_NIVEL_CONTENIDO[selectedMaestroNivel] || 'n3';
+      const r = await fetchWithTimeout(apiUrl+'?action=getTextosMorfologia&nivel='+nivelContenido,{},6000);
       const d = await r.json();
+      if(d.nivelRelajado) console.warn('[loadMaestroTexts] Banco insuficiente para el nivel "'+d.nivelSolicitado+'" — servido nivel "'+d.nivelServido+'".');
       if(d.textos && d.textos.length>0){
         // Accept each text, skip silently the ones with corrupt tokens
         const analyzed = [];

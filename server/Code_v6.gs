@@ -1273,7 +1273,7 @@ function getTextosMorfologia_(params) {
     try {
       const textos = JSON.parse(cached);
       console.log('[getTextosMorfologia] Cache hit,', textos.length, 'textos');
-      return { textos: filterByNivel_(textos, nivel) };
+      return resolveNivelMorfologia_(textos, nivel);
     } catch(e) { console.warn('[getTextosMorfologia] Cache corrupto, recargando'); }
   }
 
@@ -1285,7 +1285,7 @@ function getTextosMorfologia_(params) {
       console.log('[getTextosMorfologia] PropertiesService hit,', textos.length, 'textos');
       // Re-seed cache
       try { if (stored.length < 90000) cache.put('morfologia_all', stored, 300); } catch(e) {}
-      return { textos: filterByNivel_(textos, nivel) };
+      return resolveNivelMorfologia_(textos, nivel);
     }
   } catch(e) { console.warn('[getTextosMorfologia] Properties corrupto, regenerando'); }
 
@@ -1297,11 +1297,11 @@ function getTextosMorfologia_(params) {
     const reStored = PropertiesService.getScriptProperties().getProperty('morfologia_all');
     if (reStored) {
       const textos = JSON.parse(reStored);
-      return { textos: filterByNivel_(textos, nivel) };
+      return resolveNivelMorfologia_(textos, nivel);
     }
     console.log('[getTextosMorfologia] Fallback: precomputando…');
     const result = precomputeMorfologia_();
-    return { textos: filterByNivel_(result.textos || [], nivel) };
+    return resolveNivelMorfologia_(result.textos || [], nivel);
   } catch(e) {
     console.error('[getTextosMorfologia] Error fatal:', e);
     return { textos: [], error: 'Error cargando textos: ' + e.message };
@@ -1324,6 +1324,34 @@ function filterByNivel_(textos, nivel) {
   if (!nivel) return textos;
   const nivelNorm = _normalizarNivel_(nivel);
   return textos.filter(t => _normalizarNivel_(t.nivel) === nivelNorm);
+}
+
+// F2 (jul-2026): selección por nivel real (n1/n2/n3) con relajación
+// automática — mismo patrón que subfaseRelajada en getOraciones_ (Sintaxis).
+// Si el nivel pedido tiene pocos textos, sube la cascada n1→n2→n3 hasta
+// encontrar un pool suficiente; si ninguno lo tiene, sirve el banco completo
+// antes que dejar al alumno sin sesión. Los niveles legado (basico/avanzado/
+// arcade) u otros valores no reconocidos no relajan: se sirven tal cual,
+// igual que antes de F2.
+const MORPH_NIVEL_ORDER = ['n1', 'n2', 'n3'];
+const MORPH_MIN_POOL_NIVEL = 3;
+
+function resolveNivelMorfologia_(textos, nivel) {
+  if (!nivel) return { textos: textos };
+  const nivelNorm = _normalizarNivel_(nivel);
+  const filtrados = filterByNivel_(textos, nivelNorm);
+  const startIdx = MORPH_NIVEL_ORDER.indexOf(nivelNorm);
+  if (filtrados.length >= MORPH_MIN_POOL_NIVEL || startIdx === -1) {
+    return { textos: filtrados };
+  }
+  for (let i = startIdx + 1; i < MORPH_NIVEL_ORDER.length; i++) {
+    const siguienteNivel = MORPH_NIVEL_ORDER[i];
+    const siguientes = filterByNivel_(textos, siguienteNivel);
+    if (siguientes.length >= MORPH_MIN_POOL_NIVEL) {
+      return { textos: siguientes, nivelSolicitado: nivelNorm, nivelServido: siguienteNivel, nivelRelajado: true };
+    }
+  }
+  return { textos: textos, nivelSolicitado: nivelNorm, nivelServido: 'todos', nivelRelajado: true };
 }
 
 // ════════════════════════════════════════════════════════════════════════
