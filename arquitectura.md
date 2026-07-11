@@ -166,7 +166,7 @@ la clase `active`. Solo una pantalla está visible a la vez. La función
 | Simples (Sint) | ✅ completo | PIN + grupo, curva dura 100/40/10/0, sin pistas, `saveResult` con anti-duplicado, timer |
 | Compuestas (CP) | ✅ completo | Ídem (`state.modoExamen`, `Compuestas_Examenes`) |
 | Subfases Solo NP / NP+Sujeto | ⚠️ engañoso | El PIN fija la subfase, pero `SUBFASE_CONFIGS[*].phases` no lo lee nadie: se juegan SIEMPRE las 3 fases y la nota pondera NP+Sujeto+Funciones ignorando la subfase. La subfase solo filtra el pool en el GAS (columna `Subfase`) |
-| Maestro (morfología) | ⚠️ cosmético | Botón "Examen" sin PIN; la nota NO se envía al GAS; hay flash de acierto en pleno examen |
+| Maestro (morfología) | ⚠️ parcial | Examen con PIN real (`createExamMorfologia_`/`getExamConfigMorfologia_`, Fase 3.4) y la nota SÍ se envía al GAS (`saveMorphResult_`, Fase 3.3); sin flash de acierto en examen (Fase 3.1). Nota lineal (sin ponderar por categoría, a diferencia de Sint) y **sin panel de resultados para el profesor** — los datos se guardan en `Morfologia_Resultados` pero no hay tabla/CSV/hoja de informe que los lea (ver informe de auditoría 2026-07-11) |
 | Sintagmas | ➖ sin examen | A propósito (mecánica reintentar-hasta-acertar); tampoco registra nada en el backend |
 | Arcade / Chispa | ➖ sin examen | A propósito (gamificación / práctica libre) |
 
