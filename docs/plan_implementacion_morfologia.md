@@ -123,6 +123,36 @@ apropiados ya resuelve tu urgencia de principio de curso.
    los 51 textos existentes se hará con una tabla propuesta que revisarás antes de tocar
    el Sheet).
 
+## 10. Ideas para después (aparcadas, 2026-07-12 — NO implementar sin retomar antes)
+
+Surgidas al revisar los textos largos existentes (los "básico"/arcade actuales
+de 20-35+ palabras, y las tandas 2-3 del corpus N1 si se reutilizan más
+adelante en niveles superiores). Dos modos de juego nuevos para Morfología,
+aprovechando motores YA construidos:
+
+**F10a · "Morfo-Chispa"** — encuentra la categoría pedida entre varias fichas.
+Encaje casi directo: Chispa (`js/modules/chispa/index.js`) ya hace exactamente
+este mecanismo para Simples/Compuestas (fichas resaltadas, el alumno toca la
+correcta). La morfología encaja MEJOR que la sintaxis porque cada token del
+banco ya es una palabra con categoría propia — no hay que derivar tramos como
+en Sintaxis. Coste estimado: bajo (nueva fuente de datos para un motor que ya
+existe, sin tocar su UI).
+
+**F10b · "Morfo-Arcade"** — encuentra TODAS las palabras de una categoría en
+un texto corrido, contrarreloj (p. ej. "todos los sustantivos"). Pedagógicamente
+más potente (barrido visual completo, no solo reconocer 1 de 4), pero es un
+**mecanismo de interacción nuevo**: no es "elige 1 ficha" sino "toca varias
+palabras dentro de un texto", con su propio feedback de acierto/fallo por
+click. Se apoyaría en el motor de Contrarreloj de Arcade (vidas/tiempo/
+ranking) pero la interacción en sí no existe todavía — coste medio-alto.
+
+Los textos largos ya existentes (o las tandas 2-3 del corpus N1, con 9-15
+palabras) son el tamaño natural para ambos; los textos de la tanda 1 (5-7
+palabras) se quedarían cortos para "buscar todas las apariciones".
+
+**Retomar cuando F1-F7 estén cerradas** — ninguna de las dos bloquea nada del
+resto del plan; son mejoras de engagement, no de evaluación.
+
 ## 5. Vinculación
 
 - `docs/propuesta_niveles_morfologia.md` — el QUÉ de los niveles (validado).
