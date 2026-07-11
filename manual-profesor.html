@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual del Profesor · Taller de Sintaxis</title>
+<meta name="description" content="Guía completa del Taller de Sintaxis para docentes: panel del profesor, creación de exámenes con PIN, informes, terminología NGLE y mantenimiento del backend.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TALLER DE SINTAXIS · MANUALES — mismo sistema de diseño que
+   el manual del alumno. Paleta armonizada con la app:
+   navy #102A43 + azul #2563EB + teal #0F766E sobre papel cálido.
+   ============================================================ */
+:root{
+  --primary:#102A43; --primary-2:#1E3A5F; --primary-soft:#2C4A6E;
+  --secondary:#2563EB; --secondary-dk:#1D4ED8;
+  --accent:#0F766E; --accent-lt:#0d9488;
+  --info:#2563EB;--info-bg:#EFF6FF;--info-bd:#BFDBFE;
+  --ok:#16A34A;--ok-bg:#F0FDF4;--ok-bd:#86EFAC;
+  --best:#15803D;--best-bg:#ECFDF5;--best-bd:#6EE7B7;
+  --warn:#D97706;--warn-bg:#FFFBEB;--warn-bd:#FDE68A;
+  --err:#DC2626;--err-bg:#FEF2F2;--err-bd:#FCA5A5;
+  --bg:#F6F4EF;--surface:#FFFFFF;--surface-2:#FBFAF6;
+  --text:#1C2530;--text-2:#3B4859;--muted:#6B7686;
+  --border:#E6E2D8;--border-cool:#E2E8F0;
+  --radius:14px;--radius-sm:9px;
+  --shadow-sm:0 1px 2px rgba(16,42,67,.05),0 4px 14px rgba(16,42,67,.06);
+  --shadow-md:0 2px 6px rgba(16,42,67,.07),0 14px 34px rgba(16,42,67,.10);
+  --sidebar-w:300px;--topbar-h:62px;
+  --font-display:'Fraunces',Georgia,'Times New Roman',serif;
+  --font-body:'DM Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-mono:ui-monospace,'SF Mono','Cascadia Code',Consolas,'Courier New',monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--topbar-h) + 18px)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:16.5px;line-height:1.62;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--secondary-dk);text-decoration:none}
+a:hover{text-decoration:underline}
+.skip{position:absolute;left:-999px;top:0;background:var(--primary);color:#fff;padding:10px 16px;border-radius:0 0 8px 0;z-index:100}
+.skip:focus{left:0}
+.topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);z-index:40;display:flex;align-items:center;gap:14px;padding:0 18px;background:rgba(246,244,239,.86);backdrop-filter:blur(14px) saturate(1.2);border-bottom:1px solid var(--border)}
+.tb-brand{display:flex;align-items:center;gap:11px;min-width:0}
+.tb-mark{width:38px;height:38px;flex:none;border-radius:11px;background:var(--primary);display:grid;place-items:center;font-size:20px;box-shadow:var(--shadow-sm)}
+.tb-titles{display:flex;flex-direction:column;line-height:1.12;min-width:0}
+.tb-titles b{font-family:var(--font-display);font-weight:700;font-size:1.02rem;color:var(--primary);letter-spacing:-.01em}
+.tb-titles span{font-size:.72rem;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.tb-badge{margin-left:2px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:var(--primary);color:#fff;padding:3px 9px;border-radius:99px}
+.tb-spacer{flex:1}
+.tb-search{position:relative;width:min(300px,40vw)}
+.tb-search input{width:100%;height:40px;padding:0 14px 0 38px;border-radius:99px;border:1.5px solid var(--border-cool);background:var(--surface);color:var(--text);font-family:inherit;font-size:.9rem;outline:none;transition:border-color .15s,box-shadow .15s}
+.tb-search input:focus{border-color:var(--secondary);box-shadow:0 0 0 3px rgba(37,99,235,.14)}
+.tb-search .ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.tb-btn{width:40px;height:40px;flex:none;border-radius:10px;border:1.5px solid var(--border-cool);background:var(--surface);color:var(--primary);font-size:1rem;cursor:pointer;display:grid;place-items:center;transition:transform .12s,background .15s}
+.tb-btn:hover{background:var(--info-bg);transform:translateY(-1px)}
+.menu-toggle{display:none}
+.shell{display:flex;padding-top:var(--topbar-h)}
+.sidebar{position:fixed;top:var(--topbar-h);bottom:0;left:0;width:var(--sidebar-w);overflow-y:auto;padding:20px 14px 60px;border-right:1px solid var(--border);background:linear-gradient(180deg,var(--surface-2),var(--bg))}
+.side-progress{margin:2px 12px 16px;height:5px;border-radius:99px;background:var(--border-cool);overflow:hidden}
+.side-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--secondary));transition:width .2s}
+.side-group{margin-bottom:4px}
+.side-head{display:block;width:100%;text-align:left;background:none;border:none;font-family:inherit;color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:12px 12px 5px}
+.side-group ul{list-style:none;margin:0 0 4px;padding:0}
+.side-group a{display:block;padding:6px 12px 6px 14px;margin:1px 4px;border-radius:9px;color:var(--text-2);font-size:.875rem;font-weight:500;line-height:1.35;border-left:2.5px solid transparent;transition:background .13s,color .13s}
+.side-group a:hover{background:var(--info-bg);text-decoration:none;color:var(--primary)}
+.side-group a.active{background:#EAF1FB;color:var(--secondary-dk);font-weight:700;border-left-color:var(--secondary)}
+main{flex:1;min-width:0;margin-left:var(--sidebar-w)}
+.wrap{max-width:880px;margin:0 auto;padding:38px 30px 120px}
+.hero{position:relative;overflow:hidden;border-radius:22px;padding:44px 40px;background:linear-gradient(135deg,var(--primary) 0%,var(--primary-2) 62%,var(--accent) 145%);color:#fff;box-shadow:var(--shadow-md);margin-bottom:14px}
+.hero::after{content:'✒';position:absolute;right:-6px;bottom:-30px;font-size:190px;opacity:.10;transform:rotate(-12deg)}
+.hero .kicker{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;opacity:.85}
+.hero h1{font-family:var(--font-display);font-weight:900;font-size:2.5rem;line-height:1.06;margin:.35em 0 .28em;letter-spacing:-.02em}
+.hero p{font-size:1.06rem;max-width:62ch;margin:0;opacity:.94}
+.hero .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.hero .pill{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:6px 14px;border-radius:99px;font-size:.82rem;font-weight:600;backdrop-filter:blur(4px)}
+section{scroll-margin-top:calc(var(--topbar-h) + 18px);padding-top:26px}
+h2{font-family:var(--font-display);font-weight:700;font-size:1.72rem;color:var(--primary);letter-spacing:-.015em;margin:.4em 0 .5em;padding-bottom:.32em;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:12px}
+h2 .n{font-size:.9rem;font-weight:700;color:#fff;background:var(--primary);min-width:34px;height:34px;flex:none;padding:0 7px;border-radius:9px;display:grid;place-items:center;font-family:var(--font-body)}
+h3{font-family:var(--font-display);font-weight:600;font-size:1.24rem;color:var(--primary-2);margin:1.5em 0 .4em}
+h4{font-size:1rem;font-weight:700;color:var(--text);margin:1.3em 0 .3em}
+p{margin:.55em 0}
+strong{font-weight:700;color:var(--text)}
+code{font-family:var(--font-mono);font-size:.86em;background:#EEF2F7;color:var(--primary-2);padding:2px 7px;border-radius:6px;border:1px solid var(--border-cool);font-weight:500}
+kbd{font-family:var(--font-mono);font-size:.8em;background:var(--surface);border:1.5px solid var(--border-cool);border-bottom-width:3px;border-radius:7px;padding:2px 8px;font-weight:600;color:var(--primary)}
+.lead{font-size:1.12rem;color:var(--text-2);line-height:1.6}
+ul.clean{list-style:none;padding:0;margin:.6em 0}
+ul.clean li{position:relative;padding:5px 0 5px 30px}
+ul.clean li::before{content:'▸';position:absolute;left:6px;top:5px;color:var(--accent);font-weight:700}
+.box{border:1px solid var(--border);border-left:5px solid var(--muted);border-radius:12px;padding:15px 18px 15px 16px;margin:18px 0;background:var(--surface);box-shadow:var(--shadow-sm)}
+.box .bx-h{display:flex;align-items:center;gap:9px;font-weight:700;margin-bottom:3px;font-size:.95rem}
+.box .bx-h .em{font-size:1.15rem}
+.box p{margin:.3em 0}
+.box.info{border-left-color:var(--info);background:var(--info-bg)}.box.info .bx-h{color:var(--secondary-dk)}
+.box.tip{border-left-color:var(--ok);background:var(--ok-bg)}.box.tip .bx-h{color:#15803D}
+.box.warn{border-left-color:var(--warn);background:var(--warn-bg)}.box.warn .bx-h{color:#B45309}
+.box.err{border-left-color:var(--err);background:var(--err-bg)}.box.err .bx-h{color:#B91C1C}
+.box.best{border-left-color:var(--best);background:var(--best-bg)}.box.best .bx-h{color:#166534}
+.grid{display:grid;gap:14px;margin:18px 0}
+.grid.g2{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.grid.g3{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm);transition:transform .16s,box-shadow .16s}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.card .c-ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;margin-bottom:10px;background:var(--info-bg);border:1px solid var(--border-cool)}
+.card h4{margin:.1em 0 .3em;font-family:var(--font-display);font-size:1.08rem;color:var(--primary)}
+.card p{font-size:.9rem;color:var(--text-2);margin:.2em 0}
+.card .tag{display:inline-block;margin-top:9px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:99px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted)}
+ol.steps{list-style:none;counter-reset:s;padding:0;margin:16px 0}
+ol.steps li{position:relative;counter-increment:s;padding:4px 0 16px 52px}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;font-weight:700;display:grid;place-items:center;font-size:.95rem;box-shadow:var(--shadow-sm)}
+ol.steps li::after{content:'';position:absolute;left:16.5px;top:34px;bottom:2px;width:2px;background:var(--border-cool)}
+ol.steps li:last-child::after{display:none}
+ol.steps li b{color:var(--primary-2)}
+.tbl-wrap{overflow-x:auto;margin:18px 0;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
+table{width:100%;border-collapse:collapse;background:var(--surface);font-size:.92rem;min-width:460px}
+th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--border)}
+thead th{background:var(--primary);color:#fff;font-weight:600;font-family:var(--font-display);letter-spacing:.01em;font-size:.9rem}
+tbody tr:nth-child(even){background:var(--surface-2)}
+tbody tr:hover{background:var(--info-bg)}
+td code{font-size:.82em}
+.tabs{margin:20px 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+.tab-btns{display:flex;gap:2px;background:var(--surface-2);border-bottom:1px solid var(--border);padding:6px 6px 0;overflow-x:auto}
+.tab-btns button{border:none;background:none;font-family:inherit;font-size:.9rem;font-weight:600;color:var(--muted);padding:11px 18px;cursor:pointer;border-radius:9px 9px 0 0;white-space:nowrap;transition:background .13s,color .13s;border-bottom:3px solid transparent;margin-bottom:-1px}
+.tab-btns button:hover{color:var(--primary);background:var(--info-bg)}
+.tab-btns button[aria-selected="true"]{color:var(--secondary-dk);background:var(--surface);border-bottom-color:var(--secondary)}
+.tab-panel{padding:20px 22px;display:none}
+.tab-panel[data-active="true"]{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.capture{border-radius:16px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow-md);margin:20px 0;background:#fff}
+.cap-bar{display:flex;align-items:center;gap:7px;padding:9px 14px;background:#EDEAE2;border-bottom:1px solid var(--border)}
+.cap-bar i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.cap-dot1{background:#F87171}.cap-dot2{background:#FBBF24}.cap-dot3{background:#34D399}
+.cap-url{margin-left:8px;font-size:.74rem;color:var(--muted);font-family:var(--font-mono);background:#fff;padding:3px 12px;border-radius:99px;border:1px solid var(--border)}
+.cap-body{padding:22px;background:linear-gradient(160deg,#FBFAF6,#F2EFE7)}
+.cap-caption{font-size:.8rem;color:var(--muted);text-align:center;padding:9px 14px;background:var(--surface-2);border-top:1px solid var(--border);font-style:italic}
+/* Mock panel del profesor */
+.mock-panel{background:#fff;border:1.5px solid #E4E7EC;border-radius:12px;overflow:hidden;max-width:520px;margin:0 auto}
+.mp-row{padding:12px 15px;border-bottom:1px solid #EEF0F3;display:flex;align-items:center;gap:10px;font-size:.82rem}
+.mp-row:last-child{border-bottom:none}
+.mp-ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:15px;flex:none;background:var(--info-bg)}
+.mp-t{font-weight:700;color:var(--primary)}
+.mp-d{color:var(--muted);font-size:.72rem}
+.mock-form{background:#F8FAFC;border:1.5px solid #E4E7EC;border-radius:12px;padding:16px;max-width:520px;margin:0 auto}
+.mf-field{margin-bottom:11px}
+.mf-field label{display:block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px}
+.mf-field .inp{background:#fff;border:1.5px solid #D6DBE2;border-radius:8px;padding:8px 11px;font-size:.82rem;color:var(--text-2)}
+.mf-pin{font-family:var(--font-mono);font-weight:800;letter-spacing:.2em;font-size:1rem;color:var(--primary)}
+.mf-btn{display:inline-block;background:var(--primary);color:#fff;font-weight:700;font-size:.8rem;padding:9px 16px;border-radius:8px;margin-top:4px}
+.faq details{background:var(--surface);border:1px solid var(--border);border-radius:11px;margin:9px 0;box-shadow:var(--shadow-sm);overflow:hidden}
+.faq summary{cursor:pointer;list-style:none;padding:15px 48px 15px 18px;font-weight:600;position:relative;color:var(--primary);font-size:.98rem}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:1.4rem;font-weight:400;color:var(--secondary);transition:transform .2s}
+.faq details[open] summary{background:var(--info-bg);border-bottom:1px solid var(--border)}
+.faq details[open] summary::after{transform:translateY(-50%) rotate(45deg)}
+.faq .a{padding:14px 18px 17px;color:var(--text-2);font-size:.94rem}
+.faq .a p:first-child{margin-top:0}
+.faq mark{background:#FDE68A;border-radius:3px;padding:0 2px}
+.foot{border-top:1px solid var(--border);margin-top:60px;padding-top:26px;color:var(--muted);font-size:.86rem}
+.foot b{color:var(--primary)}
+.no-result{display:none;text-align:center;color:var(--muted);padding:40px;font-style:italic}
+body.searching .no-result.show{display:block}
+@media(max-width:940px){
+  :root{--sidebar-w:0px}
+  .menu-toggle{display:grid}
+  .sidebar{transform:translateX(-100%);transition:transform .25s;width:290px;z-index:45;box-shadow:var(--shadow-md)}
+  body.nav-open .sidebar{transform:translateX(0)}
+  main{margin-left:0}
+  .scrim{position:fixed;inset:var(--topbar-h) 0 0;background:rgba(16,42,67,.35);opacity:0;pointer-events:none;transition:opacity .25s;z-index:44}
+  body.nav-open .scrim{opacity:1;pointer-events:auto}
+}
+@media(max-width:640px){
+  .tb-titles span{display:none}.tb-search{width:auto;flex:1}
+  .hero{padding:32px 24px}.hero h1{font-size:1.9rem}
+  .wrap{padding:26px 18px 90px}h2{font-size:1.42rem}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#inicio">Saltar al contenido</a>
+
+<header class="topbar">
+  <button class="tb-btn menu-toggle" id="menuToggle" aria-label="Abrir menú" aria-expanded="false">☰</button>
+  <div class="tb-brand">
+    <span class="tb-mark" aria-hidden="true">✒️</span>
+    <span class="tb-titles"><b>Taller de Sintaxis</b><span>Manual del profesor</span></span>
+    <span class="tb-badge">Docentes</span>
+  </div>
+  <div class="tb-spacer"></div>
+  <div class="tb-search" role="search">
+    <span class="ico" aria-hidden="true">🔍</span>
+    <input type="search" id="search" placeholder="Buscar… (pulsa /)" aria-label="Buscar en el manual" autocomplete="off">
+  </div>
+  <button class="tb-btn" id="toTop" aria-label="Volver arriba" title="Volver arriba">↑</button>
+</header>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Índice del manual">
+    <div class="side-progress" aria-hidden="true"><i id="progressBar"></i></div>
+    <div class="side-group"><div class="side-head">Introducción</div><ul>
+      <li><a href="#inicio">Bienvenida</a></li>
+      <li><a href="#filosofia">Filosofía de la app</a></li>
+      <li><a href="#requisitos">Requisitos y acceso</a></li>
+      <li><a href="#pruebala">Pruébala como alumno</a></li>
+    </ul></div>
+    <div class="side-group"><div class="side-head">Los módulos</div><ul>
+      <li><a href="#modulos">Visión general</a></li>
+      <li><a href="#terminologia">Terminología NGLE</a></li>
+    </ul></div>
+    <div class="side-group"><div class="side-head">Panel del profesor</div><ul>
+      <li><a href="#panel">Acceder al panel</a></li>
+      <li><a href="#backend">Configurar el servidor</a></li>
+      <li><a href="#grupos">Mis grupos</a></li>
+    </ul></div>
+    <div class="side-group"><div class="side-head">Exámenes</div><ul>
+      <li><a href="#examen-simple">Examen de simples</a></li>
+      <li><a href="#examen-compuesta">Examen de compuestas</a></li>
+      <li><a href="#examen-morfo">Examen de morfología</a></li>
+      <li><a href="#como-entran">Cómo entran los alumnos</a></li>
+    </ul></div>
+    <div class="side-group"><div class="side-head">Evaluación</div><ul>
+      <li><a href="#puntuacion">Sistema de puntuación</a></li>
+      <li><a href="#resultados">Ver resultados</a></li>
+      <li><a href="#informe">Informe en Excel</a></li>
+      <li><a href="#correos">Envío de informes</a></li>
+      <li><a href="#misiones">Misiones</a></li>
+    </ul></div>
+    <div class="side-group"><div class="side-head">Mantenimiento</div><ul>
+      <li><a href="#datos">Datos y Google Sheets</a></li>
+      <li><a href="#redespliegue">Actualizar el backend</a></li>
+      <li><a href="#problemas">Resolución de problemas</a></li>
+      <li><a href="#buenas">Buenas prácticas</a></li>
+      <li><a href="#faq">Preguntas frecuentes</a></li>
+    </ul></div>
+  </nav>
+  <div class="scrim" id="scrim" aria-hidden="true"></div>
+
+  <main>
+    <div class="wrap">
+      <p class="no-result" id="noResult">No se han encontrado secciones para tu búsqueda. Prueba con otra palabra.</p>
+
+      <section id="inicio" style="padding-top:0">
+        <div class="hero">
+          <div class="kicker">Documentación para el profesorado</div>
+          <h1>Todo lo que puedes hacer con la app</h1>
+          <p>El Taller de Sintaxis es una aplicación web para enseñar análisis sintáctico, morfológico y de oraciones compuestas del español según la NGLE (nivel PAU). Este manual cubre desde el primer contacto hasta la gestión de exámenes, informes y el mantenimiento del backend.</p>
+          <div class="meta">
+            <span class="pill">🎓 Exámenes con PIN</span>
+            <span class="pill">📊 Informes en Excel</span>
+            <span class="pill">☁️ Backend en Google Sheets</span>
+          </div>
+        </div>
+
+        <h2><span class="n">1</span> Bienvenida</h2>
+        <p class="lead">Esta guía está pensada para que, en una tarde, pases de no conocer la app a montar tu primer examen con nota automática para toda una clase.</p>
+        <p>La aplicación tiene <strong>dos caras</strong>: la del alumno (los seis modos de la portada) y la del profesor (un panel oculto donde creas exámenes, consultas resultados y generas informes). Empezaremos por entender la del alumno, porque es lo que vivirán tus estudiantes, y luego entraremos en el panel.</p>
+        <div class="box info">
+          <div class="bx-h"><span class="em">🧭</span> El camino más corto</div>
+          <p>Trastea la app como alumno (5–10 min) → desbloquea el panel del profesor (3 toques en el icono <strong>✒️</strong> del pie, contraseña <code>profe123</code>) → crea un examen y dáselo a probar a un alumno. El resto son matices.</p>
+        </div>
+      </section>
+
+      <section id="filosofia">
+        <h2><span class="n">2</span> Filosofía de la app</h2>
+        <p>No es un test de opción múltiple disfrazado. La app <strong>acompaña el razonamiento sintáctico</strong>: guía por fases, corrige al instante, ofrece pistas y explica el porqué con las «pruebas» de cada función (la del «lo» para el CD, la sustitución por «le/les» para el CI, etc.).</p>
+        <div class="grid g3">
+          <div class="card"><div class="c-ico">🎯</div><h4>Rigor NGLE</h4><p>Terminología y criterios de la gramática académica, nivel PAU.</p></div>
+          <div class="card"><div class="c-ico">🪜</div><h4>Por niveles</h4><p>De 1.º de ESO a 2.º de Bachillerato, con subfases graduables.</p></div>
+          <div class="card"><div class="c-ico">⚙️</div><h4>Sin instalación</h4><p>Web pura: funciona en cualquier navegador y dispositivo.</p></div>
+        </div>
+      </section>
+
+      <section id="requisitos">
+        <h2><span class="n">3</span> Requisitos y acceso</h2>
+        <p>No hay que instalar nada ni crear cuentas. Basta con el enlace de la aplicación.</p>
+        <ul class="clean">
+          <li><strong>Navegador moderno:</strong> Chrome, Firefox, Edge o Safari actualizados.</li>
+          <li><strong>Conexión a internet</strong> para cargar y para guardar las notas de examen.</li>
+          <li><strong>Cualquier dispositivo:</strong> ordenador, tablet o móvil. Ideal para proyectar en el aula.</li>
+        </ul>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">✅</span> Consejo</div>
+          <p>Guarda el enlace en favoritos y compártelo con tus alumnos por el canal habitual (aula virtual, tablón, QR proyectado). Como no hay login, ese enlace es todo lo que necesitan.</p>
+        </div>
+      </section>
+
+      <section id="pruebala">
+        <h2><span class="n">4</span> Pruébala como alumno</h2>
+        <p>Antes de montar nada, dedica unos minutos a vivir la experiencia del alumno. Es la mejor inversión.</p>
+        <ol class="steps">
+          <li>Abre el enlace y pulsa <b>«Análisis Sintáctico»</b>.</li>
+          <li>Elige <b>Práctica</b>, escribe un nombre cualquiera y un grupo, y empieza.</li>
+          <li>Resuelve una oración: marca el verbo, el sujeto y las funciones. Falla a propósito para ver las pistas.</li>
+          <li>Al terminar, observa el resumen: nota, funciones dominadas y funciones a repasar.</li>
+          <li>Repite con <b>«Oración Compuesta»</b> para ver el flujo de varias proposiciones.</li>
+        </ol>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">✅</span> Truco para ir rápido</div>
+          <p>Mientras exploras, puedes saltar ejercicios sin completarlos: la nota se calcula solo sobre lo que se responde, así que no falsea nada.</p>
+        </div>
+      </section>
+
+      <section id="modulos">
+        <h2><span class="n">5</span> Los módulos · visión general</h2>
+        <p>La portada ofrece seis modos. Los cuatro primeros son de análisis (con práctica y examen); los dos últimos son de juego.</p>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Módulo</th><th>Qué trabaja</th><th>Examen con PIN</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Análisis Sintáctico</strong></td><td>Oración simple: verbo, sujeto y funciones del predicado. El módulo principal.</td><td>✅ Sí</td></tr>
+            <tr><td><strong>Análisis Morfológico</strong></td><td>Categoría gramatical de cada palabra, en tres niveles.</td><td>✅ Sí</td></tr>
+            <tr><td><strong>Análisis de Sintagmas</strong></td><td>Estructura interna del sintagma: núcleo, modificadores, término.</td><td>➖ No (práctica)</td></tr>
+            <tr><td><strong>Oración Compuesta</strong></td><td>Coordinadas, subordinadas y yuxtapuestas; nexos y proposiciones.</td><td>✅ Sí</td></tr>
+            <tr><td><strong>Arcade</strong></td><td>Juego: Supervivencia, Contrarreloj, Duelo Fantasma, Radar. Con ranking.</td><td>➖ No</td></tr>
+            <tr><td><strong>Chispa</strong></td><td>Preguntas relámpago de «encuentra la función». Mezcla simples y compuestas.</td><td>➖ No</td></tr>
+          </tbody>
+        </table></div>
+        <div class="box info">
+          <div class="bx-h"><span class="em">💡</span> Cuándo usar cada uno</div>
+          <p>Para <strong>evaluar</strong>, usa Sintáctico, Compuesta o Morfología (tienen examen con PIN). Para <strong>motivar y repasar</strong>, Arcade y Chispa son ideales como cierre de clase o deberes voluntarios.</p>
+        </div>
+      </section>
+
+      <section id="terminologia">
+        <h2><span class="n">6</span> Terminología NGLE</h2>
+        <p>La app respeta la terminología académica que se enseña en Secundaria y Bachillerato. Conviene conocer estas convenciones porque las verás en los ejercicios y los informes:</p>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Convención</th><th>Detalle</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Sintagma</strong>, no «grupo»</td><td>Se usa siempre «sintagma» (SN, SV, SP…).</td></tr>
+            <tr><td><strong>P1 / P2 / P3</strong></td><td>Las proposiciones se numeran; no se muestran «proposición principal / subordinada» como etiqueta al alumno.</td></tr>
+            <tr><td><strong>Relaciones</strong></td><td>Subordinación <code>P1 → P2</code>, coordinación <code>P1 ↔ P2</code>, yuxtaposición <code>P1 ∥ P2</code>.</td></tr>
+            <tr><td><strong>«para» nunca es CI</strong></td><td>Introduce Complemento Circunstancial de Finalidad, no Complemento Indirecto.</td></tr>
+            <tr><td><strong>Preposición = núcleo del SP</strong></td><td>No se etiqueta como «enlace» ni «nexo» dentro del sintagma preposicional.</td></tr>
+            <tr><td><strong>Construcciones</strong></td><td>Las antiguas «subordinadas adverbiales» se presentan como «construcciones» (causal, final, condicional…).</td></tr>
+          </tbody>
+        </table></div>
+        <div class="box best">
+          <div class="bx-h"><span class="em">🌟</span> Buenas prácticas</div>
+          <p>Si tu criterio de aula difiere en algún punto (siempre hay matices en sintaxis), coméntalo en clase: la app es una herramienta de entrenamiento, y la última palabra la tienes tú.</p>
+        </div>
+      </section>
+
+      <section id="panel">
+        <h2><span class="n">7</span> Acceder al panel del profesor</h2>
+        <p>El panel está oculto a los alumnos. Para entrar:</p>
+        <ol class="steps">
+          <li>Baja hasta el <b>pie de página</b>. Verás un texto pequeño con el icono <b>✒️</b> (una plumilla).</li>
+          <li>Toca o haz clic <b>tres veces seguidas</b> sobre la plumilla.</li>
+          <li>Aparece un cuadro de contraseña. Escribe <code>profe123</code> (la contraseña por defecto) y pulsa «Acceder».</li>
+        </ol>
+        <div class="capture" role="img" aria-label="Representación del panel del profesor con sus secciones">
+          <div class="cap-bar"><i class="cap-dot1"></i><i class="cap-dot2"></i><i class="cap-dot3"></i><span class="cap-url">taller-de-sintaxis · panel</span></div>
+          <div class="cap-body">
+            <div class="mock-panel">
+              <div class="mp-row"><span class="mp-ico">🔗</span><span><span class="mp-t">URL del servidor</span><br><span class="mp-d">Conexión con Google Apps Script</span></span></div>
+              <div class="mp-row"><span class="mp-ico">📝</span><span><span class="mp-t">Crear examen</span><br><span class="mp-d">Oraciones simples · PIN</span></span></div>
+              <div class="mp-row"><span class="mp-ico">🧩</span><span><span class="mp-t">Crear examen de Compuestas</span><br><span class="mp-d">Filtros por tipo y subtipo</span></span></div>
+              <div class="mp-row"><span class="mp-ico">📊</span><span><span class="mp-t">Resultados</span><br><span class="mp-d">Media, aprobados, CSV</span></span></div>
+              <div class="mp-row"><span class="mp-ico">📈</span><span><span class="mp-t">Informe del profesor</span><br><span class="mp-d">Excel multi-hoja</span></span></div>
+            </div>
+          </div>
+          <div class="cap-caption">El panel reúne configuración, creación de exámenes, resultados e informes.</div>
+        </div>
+        <div class="box warn">
+          <div class="bx-h"><span class="em">⚠️</span> Cambia la contraseña</div>
+          <p>Una vez dentro, cambia <code>profe123</code> por otra propia desde el propio panel. Así evitas que un alumno curioso adivine la entrada.</p>
+        </div>
+      </section>
+
+      <section id="backend">
+        <h2><span class="n">8</span> Configurar el servidor (API)</h2>
+        <p>La app guarda los datos en una hoja de Google Sheets a través de un pequeño servidor (Google Apps Script). Para que funcione, el panel necesita conocer su dirección.</p>
+        <ol class="steps">
+          <li>En el panel, ve a la sección <b>«URL del servidor»</b> (o «API URL»).</li>
+          <li>Pega la dirección que termina en <code>/exec</code> que te haya proporcionado quien montó la hoja.</li>
+          <li>Pulsa <b>«Probar»</b>: si responde correctamente, ya está lista.</li>
+        </ol>
+        <div class="box info">
+          <div class="bx-h"><span class="em">💡</span> Solo una vez</div>
+          <p>La URL se guarda en el navegador de ese dispositivo. Solo tendrás que configurarla la primera vez (o si cambias de ordenador).</p>
+        </div>
+        <div class="box err">
+          <div class="bx-h"><span class="em">⛔</span> Error frecuente</div>
+          <p>Si al probar la URL falla, casi siempre es porque está pegada una <strong>URL antigua</strong> o incompleta. Debe acabar en <code>/exec</code>. Vuelve a copiarla entera desde la fuente original.</p>
+        </div>
+      </section>
+
+      <section id="grupos">
+        <h2><span class="n">9</span> Mis grupos</h2>
+        <p>Puedes indicar qué clases son «las tuyas» para que los listados y estadísticas se centren en ellas. Es opcional, pero ordena mucho el trabajo si compartís la misma hoja varios profesores.</p>
+        <ul class="clean">
+          <li>En el panel, marca los grupos con los que trabajas.</li>
+          <li>Los resultados y analíticas priorizarán esos grupos.</li>
+          <li>Puedes cambiarlo cuando quieras (cambio de trimestre, nuevos grupos…).</li>
+        </ul>
+      </section>
+
+      <section id="examen-simple">
+        <h2><span class="n">10</span> Crear un examen de oraciones simples</h2>
+        <p>Desde el panel, busca la sección <b>«Crear examen»</b>. Rellena los campos y pulsa activar.</p>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Campo</th><th>Qué pones</th></tr></thead>
+          <tbody>
+            <tr><td><strong>PIN</strong></td><td>4 dígitos que darás a los alumnos. Pulsa 🎲 para uno al azar.</td></tr>
+            <tr><td><strong>Grupo</strong></td><td>Ej. <code>2ºA</code>. Se guarda en cada resultado para filtrar después.</td></tr>
+            <tr><td><strong>Evaluación</strong></td><td>Ej. <code>1ª</code>, <code>2ª</code>. Organiza los resultados.</td></tr>
+            <tr><td><strong>Nombre</strong></td><td>Texto libre. Ej. «Examen unidad 3 — funciones».</td></tr>
+            <tr><td><strong>Funciones</strong></td><td>Marca las funciones que evaluará; excluye las que aún no hayas dado.</td></tr>
+            <tr><td><strong>Subfase</strong></td><td>«Solo NP» / «NP + Sujeto» / «Análisis completo».</td></tr>
+            <tr><td><strong>Nº oraciones</strong></td><td>Cuántas recibe cada alumno. <code>0</code> = todas las que cumplan los filtros.</td></tr>
+            <tr><td><strong>Timer</strong></td><td>Tiempo máximo en minutos. <code>0</code> = sin límite.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Al pulsar <b>«🚀 Activar examen»</b>, la app pre-computa las oraciones y deja el PIN listo. Con <b>«🔎 Probar PIN actual»</b> compruebas que se creó bien.</p>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">✅</span> Consejo pedagógico</div>
+          <p>Para grupos que aún no dominan las funciones del predicado, usa la subfase «Solo NP» o «NP + Sujeto». Sube a «Análisis completo» cuando estén listos: la nota se ajusta a la subfase, sin mezclar niveles.</p>
+        </div>
+      </section>
+
+      <section id="examen-compuesta">
+        <h2><span class="n">11</span> Crear un examen de oraciones compuestas</h2>
+        <p>Misma idea, en <b>«🧩 Crear examen de Compuestas»</b>. Además de PIN, grupo, evaluación y nombre, ajustas el contenido:</p>
+        <ul class="clean">
+          <li><strong>Tipo de oración:</strong> todas / coordinada / subordinada / yuxtapuesta / mixta.</li>
+          <li><strong>Subtipos concretos:</strong> despliega para elegir coordinadas, sustantivas, relativas, construcciones y adverbiales propias.</li>
+          <li><strong>Nivel máximo:</strong> básico / medio / avanzado.</li>
+          <li><strong>Nº máximo de proposiciones</strong> por oración y <strong>nº de ejercicios</strong> + <strong>timer</strong>.</li>
+        </ul>
+        <div class="box warn">
+          <div class="bx-h"><span class="em">⚠️</span> Chip «Pedir análisis interno»</div>
+          <p>Desmarcado por defecto. Si lo dejas <strong>desmarcado</strong>, los alumnos analizan en cinco fases (verbos, nexos, delimitar, clasificar, relacionar) y reciben la nota. Si lo <strong>marcas</strong>, además analizan el interior de cada proposición: más completo pero más largo. Para exámenes tipo PAU, normalmente desmárcalo.</p>
+        </div>
+        <p>Pulsa <b>«🚀 Activar examen»</b> y luego <b>«🔎 Probar PIN actual»</b>.</p>
+      </section>
+
+      <section id="examen-morfo">
+        <h2><span class="n">12</span> Examen de morfología</h2>
+        <p>El módulo de Morfología también admite examen con PIN, con su propia sección en el panel. Fijas un PIN, el grupo, el nivel (Aprendiz / ESO34 / Maestro) y el tiempo, y los alumnos etiquetan las palabras del texto asignado. La nota se calcula sobre el porcentaje de tokens acertados.</p>
+      </section>
+
+      <section id="como-entran">
+        <h2><span class="n">13</span> Cómo entran los alumnos al examen</h2>
+        <div class="tabs" data-tabs>
+          <div class="tab-btns" role="tablist" aria-label="Entrada al examen por módulo">
+            <button role="tab" aria-selected="true" aria-controls="ce1" id="ceb1">Simples</button>
+            <button role="tab" aria-selected="false" aria-controls="ce2" id="ceb2">Compuestas</button>
+            <button role="tab" aria-selected="false" aria-controls="ce3" id="ceb3">En dos partes</button>
+          </div>
+          <div class="tab-panel" data-active="true" id="ce1" role="tabpanel" aria-labelledby="ceb1">
+            <ol class="steps">
+              <li>Abren la app y entran en <b>«Análisis Sintáctico»</b>.</li>
+              <li>Eligen <b>🎓 Examen</b> y escriben nombre, correo, grupo y el PIN.</li>
+              <li>Resuelven; al final pulsan <b>«Enviar»</b>. Su nota queda registrada.</li>
+            </ol>
+          </div>
+          <div class="tab-panel" id="ce2" role="tabpanel" aria-labelledby="ceb2">
+            <ol class="steps">
+              <li>Entran en <b>«Oración Compuesta»</b>.</li>
+              <li>En la pantalla de filtros eligen <b>🎓 Modo examen</b> e introducen el PIN.</li>
+              <li>Verán un aviso arriba con el nombre del examen y el timer. Al terminar, <b>«Enviar examen y terminar»</b>.</li>
+            </ol>
+          </div>
+          <div class="tab-panel" id="ce3" role="tabpanel" aria-labelledby="ceb3">
+            <p>Si creas un <strong>examen en dos partes</strong> (simples + compuesta con el mismo PIN), el alumno entra por «Análisis Sintáctico» con el PIN, hace la Parte 1, y al enviarla la app le ofrece continuar con la Parte 2 (compuesta). La nota final combina ambas con los pesos que fijaste.</p>
+            <div class="box info"><div class="bx-h"><span class="em">📝</span> Nota</div><p>Esta función combina las dos máquinas en un solo examen. Requiere tener el backend actualizado (ver «Actualizar el backend»).</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="puntuacion">
+        <h2><span class="n">14</span> Sistema de puntuación</h2>
+        <p>Tanto en práctica como en examen, la nota (0–10) se calcula con un modelo <strong>IF-AT atenuado por bloque</strong> (inspirado en las tarjetas rasca de exámenes universitarios):</p>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Errores en un bloque</th><th>Crédito que cuenta</th></tr></thead>
+          <tbody>
+            <tr><td>0 errores</td><td><strong style="color:#15803D">100 %</strong></td></tr>
+            <tr><td>1 error</td><td>50 %</td></tr>
+            <tr><td>2 errores</td><td>25 %</td></tr>
+            <tr><td>3 o más</td><td><strong style="color:#B91C1C">0 %</strong></td></tr>
+          </tbody>
+        </table></div>
+        <p>Cada función tiene un <strong>peso pedagógico</strong>: el verbo (NP) y el sujeto pesan más; los argumentos del verbo (CD, CI, Atributo, C. de Régimen, C. Agente, C. Predicativo) pesan más que los adjuntos (circunstanciales). En compuestas, las fases tienen pesos propios (verbos, nexos, delimitar, clasificar/relacionar, análisis interno) y la nota se renormaliza si desactivas el análisis interno.</p>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">✅</span> Calibración</div>
+          <p>La curva está pensada para que un alumno que sigue las clases saque ≥6, uno excelente ≥9, y quien solo adivina ronde el 3. Para aprobar hay que acertar bien en torno al 60–70 % de los bloques.</p>
+        </div>
+      </section>
+
+      <section id="resultados">
+        <h2><span class="n">15</span> Ver resultados</h2>
+        <p>En el panel tienes secciones de resultados para simples y para compuestas. En la de <b>«🧩 Resultados de Compuestas»</b>:</p>
+        <ul class="clean">
+          <li>Filtra por <strong>grupo</strong>, <strong>evaluación</strong> o <strong>modo</strong> (examen / práctica).</li>
+          <li>Consulta el <strong>dashboard</strong>: media, aprobados y suspendidos de un vistazo.</li>
+          <li>Descarga la tabla con <strong>«📥 CSV»</strong> para tu registro o iDoceo.</li>
+        </ul>
+        <div class="box info">
+          <div class="bx-h"><span class="em">💡</span> Nota importante</div>
+          <p>Las notas de examen se guardan en el momento en que el alumno pulsa «Enviar». La práctica libre no cuenta para la nota; sirve solo para el alumno y para las analíticas de aula.</p>
+        </div>
+      </section>
+
+      <section id="informe">
+        <h2><span class="n">16</span> Informe del profesor (Excel)</h2>
+        <p>Desde el panel puedes generar un <strong>informe en Excel multi-hoja</strong> con el conjunto de la actividad: resumen por grupo, listado de alumnos, diagnóstico de errores por función y detalle por examen.</p>
+        <ul class="clean">
+          <li>Filtra por rango de fechas, grupo y tipo (simples / compuestas / examen).</li>
+          <li>Las notas se colorean con una escala de cuatro tramos didácticos (rojo, amarillo, verde, azul).</li>
+          <li>Incluye estadísticas (media, mediana, histograma) y el «Top de errores» ponderado por función.</li>
+        </ul>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">✅</span> Para qué sirve</div>
+          <p>Es la vista ideal para preparar la evaluación: de un archivo sacas la foto de toda la clase, ves qué funciones se atragantan al grupo y justificas la nota con datos.</p>
+        </div>
+      </section>
+
+      <section id="correos">
+        <h2><span class="n">17</span> Envío de informes al alumnado</h2>
+        <p>La app puede <strong>enviar a cada alumno su resultado por correo</strong> tras un examen: su nota y las funciones que más falló, con una pequeña explicación de cada una.</p>
+        <ul class="clean">
+          <li><strong>Automático:</strong> al crear el examen, marca la casilla de envío de informe. Cada alumno recibe su correo al terminar.</li>
+          <li><strong>Manual:</strong> desde el menú de la hoja de cálculo, envías los informes de un examen (por PIN) a quien no lo tenga ya.</li>
+        </ul>
+        <div class="box warn">
+          <div class="bx-h"><span class="em">⚠️</span> Requiere permisos de correo</div>
+          <p>El envío usa la cuenta de Google propietaria de la hoja. La primera vez, Google pedirá autorización para enviar correos en tu nombre.</p>
+        </div>
+      </section>
+
+      <section id="misiones">
+        <h2><span class="n">18</span> Misiones</h2>
+        <p>Las misiones son retos breves que asignas a un grupo (por ejemplo, «analiza 5 oraciones con Complemento de Régimen»). Aparecen a los alumnos al entrar en práctica y puedes marcarlas para que <strong>califiquen como examen</strong> si quieres que cuenten.</p>
+      </section>
+
+      <section id="datos">
+        <h2><span class="n">19</span> Datos y Google Sheets</h2>
+        <p>Todo lo que generan los alumnos vive en una hoja de <strong>Google Sheets</strong>, organizada en varias pestañas (banco de oraciones, resultados de simples, de compuestas, configuración de exámenes, etc.). La app habla con esa hoja mediante un pequeño programa (Google Apps Script).</p>
+        <div class="box info">
+          <div class="bx-h"><span class="em">💾</span> Copia de seguridad</div>
+          <p>Antes de tocar la hoja (importar oraciones, reorganizar columnas…), haz una copia: <em>Archivo → Hacer una copia</em>. El código de la app ya está versionado aparte; lo delicado son los datos de la hoja.</p>
+        </div>
+      </section>
+
+      <section id="redespliegue">
+        <h2><span class="n">20</span> Actualizar el backend</h2>
+        <p>Cuando se añaden funciones nuevas al servidor (por ejemplo, el examen en dos partes), hay que <strong>volver a publicar</strong> el Google Apps Script. Esto es lo más delicado de todo el manual, así que sigue el paso exacto:</p>
+        <ol class="steps">
+          <li>Abre el proyecto de <b>Apps Script</b> de la hoja.</li>
+          <li>Pega el código nuevo del archivo correspondiente (por ejemplo, <code>Code_v6.gs</code>).</li>
+          <li>Ve a <b>Implementar → Gestionar implementaciones</b>.</li>
+          <li>Pulsa el <b>lápiz</b> (editar) de la implementación existente.</li>
+          <li>En «Versión», elige <b>«Versión nueva»</b> y pulsa <b>Implementar</b>.</li>
+        </ol>
+        <div class="box err">
+          <div class="bx-h"><span class="em">⛔</span> Error crítico que debes evitar</div>
+          <p><strong>Nunca elijas «Nueva implementación».</strong> Eso genera una URL distinta y rompe la app para todos los alumnos (seguirían apuntando a la URL antigua). Siempre <strong>«Versión nueva»</strong> de la implementación que ya existe, para conservar la misma dirección <code>/exec</code>.</p>
+        </div>
+        <div class="box info">
+          <div class="bx-h"><span class="em">⏳</span> Propagación</div>
+          <p>Tras publicar, los cambios pueden tardar unos minutos en verse. Si algo «empieza a funcionar solo» al rato, era esto.</p>
+        </div>
+      </section>
+
+      <section id="problemas">
+        <h2><span class="n">21</span> Resolución de problemas</h2>
+        <div class="box warn"><div class="bx-h"><span class="em">⚠️</span> Los alumnos no cargan oraciones o falla el examen</div><p>Comprueba en el panel que la <strong>URL del servidor</strong> es correcta y acaba en <code>/exec</code>. Pulsa «Probar». Si va desde tu equipo pero no desde el del alumno, es que su navegador tiene una URL antigua guardada: que borre la caché o reintroduzca el enlace.</p></div>
+        <div class="box warn"><div class="bx-h"><span class="em">⚠️</span> «PIN no encontrado» aunque acabo de crearlo</div><p>Puede ser propagación (espera 1–2 min) o que el alumno esté en el módulo equivocado. Usa «Probar PIN actual» en el panel para confirmar que está activo.</p></div>
+        <div class="box warn"><div class="bx-h"><span class="em">⚠️</span> Veo columnas raras o resultados descuadrados en la hoja</div><p>Suele ser una cabecera duplicada o desplazada tras una edición manual. La app lee por nombre de columna; evita renombrar cabeceras a mano. Si dudas, restaura desde tu copia de seguridad.</p></div>
+        <div class="box err"><div class="bx-h"><span class="em">⛔</span> Tras actualizar, la app dejó de funcionar</div><p>Casi seguro se eligió «Nueva implementación» en vez de «Versión nueva». Vuelve a Apps Script y publica correctamente sobre la implementación existente (ver sección 20).</p></div>
+      </section>
+
+      <section id="buenas">
+        <h2><span class="n">22</span> Buenas prácticas</h2>
+        <div class="grid g2">
+          <div class="card"><div class="c-ico">🧪</div><h4>Prueba el PIN antes</h4><p>Crea el examen y hazlo tú como alumno una vez antes de dárselo a la clase. Cazarás cualquier filtro demasiado restrictivo.</p></div>
+          <div class="card"><div class="c-ico">🗓️</div><h4>Despliega fuera de clase</h4><p>Si hay que actualizar el backend, hazlo fuera del horario de examen y avisa: los cambios afectan a todos a la vez.</p></div>
+          <div class="card"><div class="c-ico">🎚️</div><h4>Gradúa la dificultad</h4><p>Empieza con subfases sencillas y funciones limitadas; amplía a medida que el grupo avanza.</p></div>
+          <div class="card"><div class="c-ico">💾</div><h4>Descarga las notas</h4><p>Al cerrar cada evaluación, exporta el CSV o el informe Excel: tu registro no depende de que la hoja siga intacta.</p></div>
+        </div>
+      </section>
+
+      <section id="faq">
+        <h2><span class="n">23</span> Preguntas frecuentes</h2>
+        <div class="faq">
+          <details><summary>¿Necesito instalar algo o crear cuentas para mis alumnos?</summary><div class="a"><p>No. Ni instalación ni cuentas. Los alumnos solo necesitan el enlace y escribir su nombre, correo y grupo al entrar.</p></div></details>
+          <details><summary>¿Cuál es la contraseña del panel del profesor?</summary><div class="a"><p>Por defecto <code>profe123</code>, tras tocar tres veces el icono ✒️ del pie. Cámbiala desde el propio panel en cuanto entres.</p></div></details>
+          <details><summary>¿Dónde se guardan las notas?</summary><div class="a"><p>En una hoja de Google Sheets a través del servidor (Apps Script). Puedes descargarlas en CSV o generar el informe en Excel.</p></div></details>
+          <details><summary>¿Qué módulos permiten examen con nota?</summary><div class="a"><p>Análisis Sintáctico, Oración Compuesta y Morfología. Sintagmas, Arcade y Chispa son de práctica/juego (sin examen con PIN).</p></div></details>
+          <details><summary>¿Cómo doy un examen a mi clase?</summary><div class="a"><p>En el panel, crea el examen (PIN, grupo, filtros, timer), pulsa «Activar», y reparte el PIN. Los alumnos entran en el módulo, eligen «Examen» e introducen el PIN.</p></div></details>
+          <details><summary>¿Puedo excluir funciones que aún no he dado?</summary><div class="a"><p>Sí. Al crear el examen marcas solo las funciones a evaluar y puedes excluir otras (por ejemplo, C. Agente o C. de Régimen en cursos bajos).</p></div></details>
+          <details><summary>¿Qué son las subfases (Solo NP, NP + Sujeto, Completo)?</summary><div class="a"><p>Definen hasta dónde llega el análisis. Útil para adaptar el examen al momento del curso. La nota se calcula según la subfase elegida.</p></div></details>
+          <details><summary>¿Cómo funciona la nota?</summary><div class="a"><p>De 0 a 10, con modelo IF-AT atenuado: 0 errores en un bloque = 100 % del peso, 1 error = 50 %, 2 = 25 %, 3+ = 0 %. El verbo y el sujeto pesan más.</p></div></details>
+          <details><summary>¿Puedo poner límite de tiempo?</summary><div class="a"><p>Sí, con el campo «Timer» (en minutos). Ponlo a 0 para que no haya límite.</p></div></details>
+          <details><summary>¿Cuántas oraciones recibe cada alumno?</summary><div class="a"><p>Las que indiques en «Nº de oraciones/ejercicios». Con 0, recibe todas las que cumplan los filtros. Se barajan para que no salgan en el mismo orden.</p></div></details>
+          <details><summary>¿Todos los alumnos hacen las mismas oraciones?</summary><div class="a"><p>El examen usa un conjunto pre-computado; el orden se baraja por alumno. Si quieres variedad total, sube el número de oraciones disponibles con los filtros.</p></div></details>
+          <details><summary>¿Qué es el «análisis interno» en compuestas?</summary><div class="a"><p>La fase en la que el alumno analiza el interior de cada proposición (sujeto, predicado, funciones). Va desmarcada por defecto; márcala solo si quieres ese nivel de detalle.</p></div></details>
+          <details><summary>¿Puedo ver quién ha suspendido de un vistazo?</summary><div class="a"><p>Sí. El dashboard de resultados muestra media, aprobados y suspendidos, y el informe Excel colorea las notas por tramos.</p></div></details>
+          <details><summary>¿Puedo exportar las notas a iDoceo u otro cuaderno?</summary><div class="a"><p>Sí, descargando el CSV de resultados. La integración directa con iDoceo está prevista para más adelante.</p></div></details>
+          <details><summary>Un alumno cerró la pestaña en pleno examen. ¿Perdió todo?</summary><div class="a"><p>No. Al volver a entrar con el mismo PIN, la app recupera lo que llevaba en ese dispositivo y le deja continuar.</p></div></details>
+          <details><summary>¿Un alumno puede repetir el examen para subir nota?</summary><div class="a"><p>No por su cuenta: el sistema conserva el primer intento con ese PIN. Si quieres permitir un reintento, crea un examen nuevo con otro PIN.</p></div></details>
+          <details><summary>¿Puedo reutilizar el mismo PIN para varios grupos?</summary><div class="a"><p>Sí. El grupo del alumno prevalece sobre el del PIN, así que puedes usar el mismo examen en clases distintas. Para exámenes en dos partes, mejor un PIN nuevo por examen.</p></div></details>
+          <details><summary>¿Qué es un examen «en dos partes»?</summary><div class="a"><p>Un examen que combina, con el mismo PIN, una parte de oraciones simples y otra de oración compuesta. La nota global pondera ambas con los pesos que fijes. Requiere el backend actualizado.</p></div></details>
+          <details><summary>¿Cómo cambio la contraseña del profesor?</summary><div class="a"><p>Desde el panel, una vez dentro, hay una opción para fijar una contraseña propia distinta de <code>profe123</code>.</p></div></details>
+          <details><summary>¿Puedo enviar a cada alumno su resultado por correo?</summary><div class="a"><p>Sí, de forma automática (marcando la casilla al crear el examen) o manual (desde el menú de la hoja). Requiere autorizar el envío con la cuenta de Google de la hoja.</p></div></details>
+          <details><summary>¿Necesito saber programar?</summary><div class="a"><p>No para el uso diario. Solo para tareas puntuales de mantenimiento (actualizar el backend), y para eso están las secciones 19 y 20 con los pasos exactos.</p></div></details>
+          <details><summary>¿Qué diferencia hay entre práctica y examen?</summary><div class="a"><p>La práctica no guarda nota, permite pistas y reintentos. El examen (con PIN) guarda la nota, limita pistas y no deja reintentar.</p></div></details>
+          <details><summary>¿Puedo usar la app proyectada en clase?</summary><div class="a"><p>Sí, hay un modo pensado para proyector. Es ideal para resolver oraciones en grupo antes de mandar práctica individual.</p></div></details>
+          <details><summary>¿La app corrige exactamente como yo?</summary><div class="a"><p>Sigue la NGLE (nivel PAU) con criterios estables. Siempre puede haber matices; la última palabra es tuya. Si detectas un caso discutible, avísalo y se revisa.</p></div></details>
+          <details><summary>¿Puedo añadir mis propias oraciones al banco?</summary><div class="a"><p>Sí, se añaden a la hoja de Google Sheets en el formato correspondiente. Si tienes oraciones concretas, pásalas y se convierten al formato del banco.</p></div></details>
+          <details><summary>¿Qué hago antes de tocar la hoja de cálculo?</summary><div class="a"><p>Una copia de seguridad (<em>Archivo → Hacer una copia</em>). Y edita siempre respetando los nombres de las columnas: la app lee por nombre, no por posición.</p></div></details>
+          <details><summary>Actualicé el backend y dejó de funcionar. ¿Qué pasó?</summary><div class="a"><p>Casi seguro se eligió «Nueva implementación» en vez de «Versión nueva». Publica de nuevo sobre la implementación existente para conservar la misma URL (sección 20).</p></div></details>
+          <details><summary>¿Por qué un cambio «empieza a funcionar solo» al rato?</summary><div class="a"><p>Es la propagación de Google Apps Script tras publicar. Puede tardar unos minutos. No es un fallo.</p></div></details>
+          <details><summary>¿Los alumnos ven las notas de los demás?</summary><div class="a"><p>No. Cada alumno ve solo su resultado. En Arcade aparecen apodos en el ranking, nunca nombres reales.</p></div></details>
+          <details><summary>¿Cuántos alumnos aguanta a la vez?</summary><div class="a"><p>Está pensado para clases completas. La app añade pequeñas esperas aleatorias para que 30 alumnos entrando al mismo segundo no saturen el servidor.</p></div></details>
+          <details><summary>¿Funciona sin conexión?</summary><div class="a"><p>Necesita internet para cargar y guardar notas. La práctica puntual puede continuar si se corta un momento, pero conviene tener conexión estable en los exámenes.</p></div></details>
+          <details><summary>¿Puedo borrar resultados de prueba?</summary><div class="a"><p>Sí, directamente en la hoja de Google Sheets (borrando las filas correspondientes). Hazlo con cuidado y con copia de seguridad hecha.</p></div></details>
+          <details><summary>¿Cómo organizo los resultados por trimestre?</summary><div class="a"><p>Usa el campo «Evaluación» al crear cada examen (1ª, 2ª, 3ª). Luego filtra por él en los resultados y en el informe.</p></div></details>
+          <details><summary>¿Qué navegador recomiendas para el aula?</summary><div class="a"><p>Cualquiera moderno. Chrome y Edge suelen ir muy fluidos en los equipos de centro; en tablets, Safari y Chrome funcionan bien.</p></div></details>
+          <details><summary>¿Puedo tener varios profesores sobre la misma hoja?</summary><div class="a"><p>Sí. Usa «Mis grupos» para que cada uno vea lo suyo, y el campo Grupo/Evaluación para no mezclar datos.</p></div></details>
+          <details><summary>¿La app guarda datos personales sensibles?</summary><div class="a"><p>Guarda nombre, correo y grupo asociados a los resultados, en tu hoja de Google. Trátalo según la política de datos de tu centro; no compartas la hoja con terceros.</p></div></details>
+          <details><summary>¿Cada cuánto se actualiza la app?</summary><div class="a"><p>Se desarrolla de forma activa. Las mejoras del frontend se ven al recargar; las del backend requieren el redespliegue de la sección 20.</p></div></details>
+          <details><summary>¿La app tiene algún coste para el centro o el alumnado?</summary><div class="a"><p>No. Es una aplicación educativa gratuita. La infraestructura se apoya en Google Sheets y Apps Script, dentro de las cuotas gratuitas de una cuenta de Google normal.</p></div></details>
+          <details><summary>¿Puedo imprimir estos manuales o compartirlos con otros profes?</summary><div class="a"><p>Sí. Son archivos HTML autónomos; puedes imprimirlos desde el navegador (Ctrl/Cmd+P) o compartir el archivo. No dependen de conexión para leerse.</p></div></details>
+          <details><summary>¿Es accesible para alumnado con necesidades específicas?</summary><div class="a"><p>La app cuida el contraste y el tamaño de los botones, y funciona con el zoom del navegador. Para casos concretos (lectores de pantalla, ampliación fuerte), pruébalo antes con el alumno y adapta el modo de trabajo si hace falta.</p></div></details>
+          <details><summary>Tengo una sugerencia o he encontrado un fallo. ¿Qué hago?</summary><div class="a"><p>Comunícalo por el canal habitual. Los avisos de fallos y las ideas se incorporan en pocas semanas.</p></div></details>
+        </div>
+      </section>
+
+      <footer class="foot">
+        <p><b>Taller de Sintaxis</b> · Manual del profesor. Aplicación educativa para el análisis sintáctico, morfológico y de oraciones compuestas del español (NGLE / PAU). Backend en Google Sheets + Apps Script.</p>
+        <p>Recuerda: para actualizar el servidor, siempre <b>«Versión nueva»</b>, nunca «Nueva implementación».</p>
+      </footer>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var body=document.body;
+  var toggle=document.getElementById('menuToggle'), scrim=document.getElementById('scrim');
+  function closeNav(){body.classList.remove('nav-open');toggle.setAttribute('aria-expanded','false');}
+  toggle&&toggle.addEventListener('click',function(){var o=body.classList.toggle('nav-open');toggle.setAttribute('aria-expanded',o?'true':'false');});
+  scrim&&scrim.addEventListener('click',closeNav);
+  var navLinks=Array.prototype.slice.call(document.querySelectorAll('.sidebar a'));
+  navLinks.forEach(function(a){a.addEventListener('click',function(){if(window.innerWidth<=940)closeNav();});});
+  var sections=Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+  var progress=document.getElementById('progressBar');
+  var byId={};navLinks.forEach(function(a){byId[a.getAttribute('href').slice(1)]=a;});
+  function onScroll(){
+    var top=window.scrollY+parseInt(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h'))+40;
+    var cur=sections[0];
+    for(var i=0;i<sections.length;i++){if(sections[i].offsetTop<=top)cur=sections[i];}
+    navLinks.forEach(function(a){a.classList.remove('active');});
+    if(cur&&byId[cur.id])byId[cur.id].classList.add('active');
+    var docH=document.documentElement.scrollHeight-window.innerHeight;
+    if(progress)progress.style.width=Math.min(100,Math.max(0,(window.scrollY/docH)*100))+'%';
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});window.addEventListener('resize',onScroll);onScroll();
+  document.getElementById('toTop').addEventListener('click',function(){window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});});
+  Array.prototype.slice.call(document.querySelectorAll('[data-tabs]')).forEach(function(tabs){
+    var btns=Array.prototype.slice.call(tabs.querySelectorAll('[role=tab]'));
+    var panels=Array.prototype.slice.call(tabs.querySelectorAll('.tab-panel'));
+    function select(idx){btns.forEach(function(b,i){b.setAttribute('aria-selected',i===idx?'true':'false');b.tabIndex=i===idx?0:-1;});panels.forEach(function(p,i){p.setAttribute('data-active',i===idx?'true':'false');});}
+    btns.forEach(function(b,i){
+      b.addEventListener('click',function(){select(i);});
+      b.addEventListener('keydown',function(e){
+        if(e.key==='ArrowRight'){e.preventDefault();var n=(i+1)%btns.length;btns[n].focus();select(n);}
+        if(e.key==='ArrowLeft'){e.preventDefault();var p=(i-1+btns.length)%btns.length;btns[p].focus();select(p);}
+      });
+    });
+  });
+  var search=document.getElementById('search'), noResult=document.getElementById('noResult'), debounce;
+  function clearMarks(root){Array.prototype.slice.call(root.querySelectorAll('mark[data-s]')).forEach(function(m){var t=document.createTextNode(m.textContent);m.parentNode.replaceChild(t,m);});}
+  search&&search.addEventListener('input',function(){clearTimeout(debounce);debounce=setTimeout(runSearch,130);});
+  function runSearch(){
+    var q=search.value.trim().toLowerCase();
+    sections.forEach(function(s){clearMarks(s);});
+    if(!q){body.classList.remove('searching');sections.forEach(function(s){s.style.display='';});noResult.classList.remove('show');onScroll();return;}
+    body.classList.add('searching');var any=false;
+    sections.forEach(function(s){var hit=s.textContent.toLowerCase().indexOf(q)!==-1;s.style.display=hit?'':'none';if(hit){any=true;highlight(s,q);}});
+    noResult.classList.toggle('show',!any);
+  }
+  function highlight(node,q){
+    var walker=document.createTreeWalker(node,NodeFilter.SHOW_TEXT,null),texts=[],n;
+    while((n=walker.nextNode())){if(n.nodeValue.toLowerCase().indexOf(q)!==-1&&n.parentNode&&!/SCRIPT|STYLE/.test(n.parentNode.tagName))texts.push(n);}
+    texts.slice(0,80).forEach(function(t){
+      var lower=t.nodeValue.toLowerCase(),idx=lower.indexOf(q);if(idx<0)return;
+      var span=document.createElement('span');
+      span.appendChild(document.createTextNode(t.nodeValue.slice(0,idx)));
+      var mk=document.createElement('mark');mk.setAttribute('data-s','1');mk.textContent=t.nodeValue.substr(idx,q.length);
+      span.appendChild(mk);span.appendChild(document.createTextNode(t.nodeValue.slice(idx+q.length)));
+      t.parentNode.replaceChild(span,t);
+    });
+  }
+  document.addEventListener('keydown',function(e){
+    if(e.key==='/'&&document.activeElement!==search&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();search.focus();}
+    if(e.key==='Escape'&&document.activeElement===search){search.value='';runSearch();search.blur();}
+  });
+})();
+</script>
+</body>
+</html>

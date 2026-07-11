@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual del Alumno · Taller de Sintaxis</title>
+<meta name="description" content="Guía de uso del Taller de Sintaxis para estudiantes: cómo entrar, los modos de práctica, los exámenes con PIN y cómo se calcula tu nota.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TALLER DE SINTAXIS · SISTEMA DE DISEÑO DE MANUALES
+   Paleta armonizada: navy #102A43 (app theme_color) + azul app
+   #2563EB + teal #0F766E, sobre papel cálido. Titulares en
+   Fraunces (fuente insignia de la app), texto en DM Sans.
+   ============================================================ */
+:root{
+  --primary:#102A43; --primary-2:#1E3A5F; --primary-soft:#2C4A6E;
+  --secondary:#2563EB; --secondary-dk:#1D4ED8;
+  --accent:#0F766E; --accent-lt:#0d9488;
+
+  --info:#2563EB;      --info-bg:#EFF6FF;  --info-bd:#BFDBFE;
+  --ok:#16A34A;        --ok-bg:#F0FDF4;    --ok-bd:#86EFAC;
+  --best:#15803D;      --best-bg:#ECFDF5;  --best-bd:#6EE7B7;
+  --warn:#D97706;      --warn-bg:#FFFBEB;  --warn-bd:#FDE68A;
+  --err:#DC2626;       --err-bg:#FEF2F2;   --err-bd:#FCA5A5;
+
+  --bg:#F6F4EF; --surface:#FFFFFF; --surface-2:#FBFAF6;
+  --text:#1C2530; --text-2:#3B4859; --muted:#6B7686;
+  --border:#E6E2D8; --border-cool:#E2E8F0;
+
+  --radius:14px; --radius-sm:9px;
+  --shadow-sm:0 1px 2px rgba(16,42,67,.05), 0 4px 14px rgba(16,42,67,.06);
+  --shadow-md:0 2px 6px rgba(16,42,67,.07), 0 14px 34px rgba(16,42,67,.10);
+  --sidebar-w:288px; --topbar-h:62px;
+  --font-display:'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body:'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, 'Courier New', monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:calc(var(--topbar-h) + 18px)}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--font-body); font-size:16.5px; line-height:1.62;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+a{color:var(--secondary-dk); text-decoration:none}
+a:hover{text-decoration:underline}
+.skip{position:absolute; left:-999px; top:0; background:var(--primary); color:#fff; padding:10px 16px; border-radius:0 0 8px 0; z-index:100}
+.skip:focus{left:0}
+
+/* ── TOPBAR ─────────────────────────────────────────────── */
+.topbar{
+  position:fixed; top:0; left:0; right:0; height:var(--topbar-h); z-index:40;
+  display:flex; align-items:center; gap:14px; padding:0 18px;
+  background:rgba(246,244,239,.86); backdrop-filter:blur(14px) saturate(1.2);
+  border-bottom:1px solid var(--border);
+}
+.tb-brand{display:flex; align-items:center; gap:11px; min-width:0}
+.tb-mark{
+  width:38px; height:38px; flex:none; border-radius:11px; background:var(--primary);
+  display:grid; place-items:center; font-size:20px; box-shadow:var(--shadow-sm);
+}
+.tb-titles{display:flex; flex-direction:column; line-height:1.12; min-width:0}
+.tb-titles b{font-family:var(--font-display); font-weight:700; font-size:1.02rem; color:var(--primary); letter-spacing:-.01em}
+.tb-titles span{font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.02em}
+.tb-badge{margin-left:2px; font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+  background:var(--accent); color:#fff; padding:3px 9px; border-radius:99px}
+.tb-spacer{flex:1}
+.tb-search{position:relative; width:min(300px, 40vw)}
+.tb-search input{
+  width:100%; height:40px; padding:0 14px 0 38px; border-radius:99px;
+  border:1.5px solid var(--border-cool); background:var(--surface); color:var(--text);
+  font-family:inherit; font-size:.9rem; outline:none; transition:border-color .15s, box-shadow .15s;
+}
+.tb-search input:focus{border-color:var(--secondary); box-shadow:0 0 0 3px rgba(37,99,235,.14)}
+.tb-search .ico{position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none}
+.tb-btn{
+  width:40px; height:40px; flex:none; border-radius:10px; border:1.5px solid var(--border-cool);
+  background:var(--surface); color:var(--primary); font-size:1rem; cursor:pointer; display:grid; place-items:center;
+  transition:transform .12s, background .15s;
+}
+.tb-btn:hover{background:var(--info-bg); transform:translateY(-1px)}
+.menu-toggle{display:none}
+
+/* ── LAYOUT ─────────────────────────────────────────────── */
+.shell{display:flex; padding-top:var(--topbar-h)}
+.sidebar{
+  position:fixed; top:var(--topbar-h); bottom:0; left:0; width:var(--sidebar-w);
+  overflow-y:auto; padding:22px 14px 60px; border-right:1px solid var(--border);
+  background:linear-gradient(180deg, var(--surface-2), var(--bg));
+}
+.side-group{margin-bottom:6px}
+.side-group > .side-head{
+  display:flex; align-items:center; gap:8px; width:100%; text-align:left; cursor:pointer;
+  background:none; border:none; font-family:inherit; color:var(--muted);
+  font-size:.71rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+  padding:12px 12px 6px; }
+.side-group ul{list-style:none; margin:0 0 4px; padding:0}
+.side-group a{
+  display:block; padding:7px 12px 7px 14px; margin:1px 4px; border-radius:9px;
+  color:var(--text-2); font-size:.9rem; font-weight:500; line-height:1.35;
+  border-left:2.5px solid transparent; transition:background .13s, color .13s;
+}
+.side-group a:hover{background:var(--info-bg); text-decoration:none; color:var(--primary)}
+.side-group a.active{background:#EAF1FB; color:var(--secondary-dk); font-weight:700; border-left-color:var(--secondary)}
+.side-progress{margin:0 12px 18px; height:5px; border-radius:99px; background:var(--border-cool); overflow:hidden}
+.side-progress i{display:block; height:100%; width:0; background:linear-gradient(90deg, var(--accent), var(--secondary)); transition:width .2s}
+
+main{flex:1; min-width:0; margin-left:var(--sidebar-w); padding:0}
+.wrap{max-width:860px; margin:0 auto; padding:38px 30px 120px}
+
+/* ── HERO ───────────────────────────────────────────────── */
+.hero{
+  position:relative; overflow:hidden; border-radius:22px; padding:44px 40px;
+  background:linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 62%, var(--accent) 140%);
+  color:#fff; box-shadow:var(--shadow-md); margin-bottom:14px;
+}
+.hero::after{content:'✒'; position:absolute; right:-6px; bottom:-30px; font-size:190px; opacity:.10; transform:rotate(-12deg)}
+.hero .kicker{font-size:.74rem; font-weight:700; text-transform:uppercase; letter-spacing:.14em; opacity:.85}
+.hero h1{font-family:var(--font-display); font-weight:900; font-size:2.5rem; line-height:1.06; margin:.35em 0 .28em; letter-spacing:-.02em}
+.hero p{font-size:1.06rem; max-width:60ch; margin:0; opacity:.94}
+.hero .meta{display:flex; gap:10px; flex-wrap:wrap; margin-top:22px}
+.hero .pill{background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); padding:6px 14px; border-radius:99px; font-size:.82rem; font-weight:600; backdrop-filter:blur(4px)}
+
+/* ── SECTIONS & TYPO ────────────────────────────────────── */
+section{scroll-margin-top:calc(var(--topbar-h) + 18px); padding-top:26px}
+h2{font-family:var(--font-display); font-weight:700; font-size:1.72rem; color:var(--primary); letter-spacing:-.015em;
+   margin:.4em 0 .5em; padding-bottom:.32em; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:12px}
+h2 .n{font-size:.98rem; font-weight:700; color:#fff; background:var(--primary); width:34px; height:34px; flex:none;
+      border-radius:9px; display:grid; place-items:center; font-family:var(--font-body)}
+h3{font-family:var(--font-display); font-weight:600; font-size:1.24rem; color:var(--primary-2); margin:1.5em 0 .4em}
+h4{font-size:1rem; font-weight:700; color:var(--text); margin:1.3em 0 .3em}
+p{margin:.55em 0}
+strong{font-weight:700; color:var(--text)}
+code{font-family:var(--font-mono); font-size:.86em; background:#EEF2F7; color:var(--primary-2);
+     padding:2px 7px; border-radius:6px; border:1px solid var(--border-cool); font-weight:500}
+kbd{font-family:var(--font-mono); font-size:.8em; background:var(--surface); border:1.5px solid var(--border-cool);
+    border-bottom-width:3px; border-radius:7px; padding:2px 8px; font-weight:600; color:var(--primary)}
+.lead{font-size:1.12rem; color:var(--text-2); line-height:1.6}
+ul.clean{list-style:none; padding:0; margin:.6em 0}
+ul.clean li{position:relative; padding:5px 0 5px 30px}
+ul.clean li::before{content:'▸'; position:absolute; left:6px; top:5px; color:var(--accent); font-weight:700}
+
+/* ── CALLOUTS ───────────────────────────────────────────── */
+.box{border:1px solid var(--border); border-left:5px solid var(--muted); border-radius:12px;
+     padding:15px 18px 15px 16px; margin:18px 0; background:var(--surface); box-shadow:var(--shadow-sm)}
+.box .bx-h{display:flex; align-items:center; gap:9px; font-weight:700; margin-bottom:3px; font-size:.95rem}
+.box .bx-h .em{font-size:1.15rem}
+.box p{margin:.3em 0}
+.box.info{border-left-color:var(--info); background:var(--info-bg)}      .box.info .bx-h{color:var(--secondary-dk)}
+.box.tip{border-left-color:var(--ok); background:var(--ok-bg)}           .box.tip .bx-h{color:#15803D}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)}      .box.warn .bx-h{color:#B45309}
+.box.err{border-left-color:var(--err); background:var(--err-bg)}         .box.err .bx-h{color:#B91C1C}
+.box.best{border-left-color:var(--best); background:var(--best-bg)}      .box.best .bx-h{color:#166534}
+
+/* ── CARDS ──────────────────────────────────────────────── */
+.grid{display:grid; gap:14px; margin:18px 0}
+.grid.g2{grid-template-columns:repeat(auto-fit, minmax(230px,1fr))}
+.grid.g3{grid-template-columns:repeat(auto-fit, minmax(190px,1fr))}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow-sm);
+      transition:transform .16s, box-shadow .16s}
+.card:hover{transform:translateY(-3px); box-shadow:var(--shadow-md)}
+.card .c-ico{width:46px; height:46px; border-radius:12px; display:grid; place-items:center; font-size:22px; margin-bottom:10px;
+             background:var(--info-bg); border:1px solid var(--border-cool)}
+.card h4{margin:.1em 0 .3em; font-family:var(--font-display); font-size:1.08rem; color:var(--primary)}
+.card p{font-size:.9rem; color:var(--text-2); margin:.2em 0}
+.card .tag{display:inline-block; margin-top:9px; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+           padding:3px 9px; border-radius:99px; background:var(--surface-2); border:1px solid var(--border); color:var(--muted)}
+
+/* ── STEPS ──────────────────────────────────────────────── */
+ol.steps{list-style:none; counter-reset:s; padding:0; margin:16px 0}
+ol.steps li{position:relative; counter-increment:s; padding:4px 0 16px 52px; }
+ol.steps li::before{content:counter(s); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%;
+  background:var(--primary); color:#fff; font-weight:700; display:grid; place-items:center; font-size:.95rem; box-shadow:var(--shadow-sm)}
+ol.steps li::after{content:''; position:absolute; left:16.5px; top:34px; bottom:2px; width:2px; background:var(--border-cool)}
+ol.steps li:last-child::after{display:none}
+ol.steps li b{color:var(--primary-2)}
+
+/* ── TABLES ─────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto; margin:18px 0; border-radius:var(--radius); border:1px solid var(--border); box-shadow:var(--shadow-sm)}
+table{width:100%; border-collapse:collapse; background:var(--surface); font-size:.92rem; min-width:440px}
+th,td{text-align:left; padding:11px 15px; border-bottom:1px solid var(--border)}
+thead th{background:var(--primary); color:#fff; font-weight:600; font-family:var(--font-display); letter-spacing:.01em; font-size:.9rem}
+tbody tr:nth-child(even){background:var(--surface-2)}
+tbody tr:hover{background:var(--info-bg)}
+td code{font-size:.82em}
+
+/* ── TABS ───────────────────────────────────────────────── */
+.tabs{margin:20px 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow-sm)}
+.tab-btns{display:flex; gap:2px; background:var(--surface-2); border-bottom:1px solid var(--border); padding:6px 6px 0; overflow-x:auto}
+.tab-btns button{
+  border:none; background:none; font-family:inherit; font-size:.9rem; font-weight:600; color:var(--muted);
+  padding:11px 18px; cursor:pointer; border-radius:9px 9px 0 0; white-space:nowrap; transition:background .13s, color .13s;
+  border-bottom:3px solid transparent; margin-bottom:-1px;
+}
+.tab-btns button:hover{color:var(--primary); background:var(--info-bg)}
+.tab-btns button[aria-selected="true"]{color:var(--secondary-dk); background:var(--surface); border-bottom-color:var(--secondary)}
+.tab-panel{padding:20px 22px; display:none}
+.tab-panel[data-active="true"]{display:block; animation:fade .25s ease}
+@keyframes fade{from{opacity:0; transform:translateY(4px)}to{opacity:1; transform:none}}
+
+/* ── SIMULATED APP CAPTURE ──────────────────────────────── */
+.capture{border-radius:16px; overflow:hidden; border:1px solid var(--border); box-shadow:var(--shadow-md); margin:20px 0; background:#fff}
+.cap-bar{display:flex; align-items:center; gap:7px; padding:9px 14px; background:#EDEAE2; border-bottom:1px solid var(--border)}
+.cap-bar i{width:11px; height:11px; border-radius:50%; display:inline-block}
+.cap-dot1{background:#F87171}.cap-dot2{background:#FBBF24}.cap-dot3{background:#34D399}
+.cap-url{margin-left:8px; font-size:.74rem; color:var(--muted); font-family:var(--font-mono); background:#fff; padding:3px 12px; border-radius:99px; border:1px solid var(--border)}
+.cap-body{padding:22px; background:linear-gradient(160deg,#FBFAF6,#F2EFE7)}
+.cap-caption{font-size:.8rem; color:var(--muted); text-align:center; padding:9px 14px; background:var(--surface-2); border-top:1px solid var(--border); font-style:italic}
+.mock-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:11px}
+@media(max-width:560px){.mock-grid{grid-template-columns:repeat(2,1fr)}}
+.mock-card{background:#fff; border:1.5px solid #E4E7EC; border-radius:12px; padding:14px 13px; position:relative; overflow:hidden}
+.mock-card::before{content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--bar,#93C5FD)}
+.mock-card .mc-i{font-size:20px}
+.mock-card .mc-t{font-family:var(--font-display); font-weight:700; font-size:.86rem; color:var(--primary); margin:7px 0 2px}
+.mock-card .mc-d{font-size:.68rem; color:var(--muted); line-height:1.35}
+.mock-card .mc-cta{display:inline-block; margin-top:9px; font-size:.66rem; font-weight:700; background:var(--primary); color:#fff; padding:4px 11px; border-radius:99px}
+.mock-badge{position:absolute; top:9px; right:9px; font-size:.55rem; font-weight:700; text-transform:uppercase; background:var(--accent); color:#fff; padding:2px 7px; border-radius:99px}
+
+/* ── FAQ ────────────────────────────────────────────────── */
+.faq details{background:var(--surface); border:1px solid var(--border); border-radius:11px; margin:9px 0; box-shadow:var(--shadow-sm); overflow:hidden}
+.faq summary{cursor:pointer; list-style:none; padding:15px 48px 15px 18px; font-weight:600; position:relative; color:var(--primary); font-size:.98rem}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+'; position:absolute; right:18px; top:50%; transform:translateY(-50%); font-size:1.4rem; font-weight:400; color:var(--secondary); transition:transform .2s}
+.faq details[open] summary{background:var(--info-bg); border-bottom:1px solid var(--border)}
+.faq details[open] summary::after{transform:translateY(-50%) rotate(45deg)}
+.faq .a{padding:14px 18px 17px; color:var(--text-2); font-size:.94rem}
+.faq .a p:first-child{margin-top:0}
+.faq mark{background:#FDE68A; border-radius:3px; padding:0 2px}
+
+/* ── FOOTER ─────────────────────────────────────────────── */
+.foot{border-top:1px solid var(--border); margin-top:60px; padding-top:26px; color:var(--muted); font-size:.86rem}
+.foot b{color:var(--primary)}
+
+.no-result{display:none; text-align:center; color:var(--muted); padding:40px; font-style:italic}
+body.searching .no-result.show{display:block}
+
+/* ── RESPONSIVE ─────────────────────────────────────────── */
+@media(max-width:940px){
+  :root{--sidebar-w:0px}
+  .menu-toggle{display:grid}
+  .sidebar{transform:translateX(-100%); transition:transform .25s; width:280px; z-index:45; box-shadow:var(--shadow-md)}
+  body.nav-open .sidebar{transform:translateX(0)}
+  main{margin-left:0}
+  .scrim{position:fixed; inset:var(--topbar-h) 0 0; background:rgba(16,42,67,.35); opacity:0; pointer-events:none; transition:opacity .25s; z-index:44}
+  body.nav-open .scrim{opacity:1; pointer-events:auto}
+}
+@media(max-width:640px){
+  .tb-titles span{display:none}
+  .tb-search{width:auto; flex:1}
+  .hero{padding:32px 24px}.hero h1{font-size:1.9rem}
+  .wrap{padding:26px 18px 90px}
+  h2{font-size:1.42rem}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important; scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#inicio">Saltar al contenido</a>
+
+<header class="topbar">
+  <button class="tb-btn menu-toggle" id="menuToggle" aria-label="Abrir menú" aria-expanded="false">☰</button>
+  <div class="tb-brand">
+    <span class="tb-mark" aria-hidden="true">✒️</span>
+    <span class="tb-titles"><b>Taller de Sintaxis</b><span>Manual del alumno</span></span>
+    <span class="tb-badge">Alumnos</span>
+  </div>
+  <div class="tb-spacer"></div>
+  <div class="tb-search" role="search">
+    <span class="ico" aria-hidden="true">🔍</span>
+    <input type="search" id="search" placeholder="Buscar en el manual…" aria-label="Buscar en el manual" autocomplete="off">
+  </div>
+  <button class="tb-btn" id="toTop" aria-label="Volver arriba" title="Volver arriba">↑</button>
+</header>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Índice del manual">
+    <div class="side-progress" aria-hidden="true"><i id="progressBar"></i></div>
+    <div class="side-group">
+      <div class="side-head">Primeros pasos</div>
+      <ul>
+        <li><a href="#inicio">Bienvenida</a></li>
+        <li><a href="#acceso">Cómo entrar</a></li>
+        <li><a href="#portada">La portada y los modos</a></li>
+        <li><a href="#identidad">Tu nombre y tu grupo</a></li>
+      </ul>
+    </div>
+    <div class="side-group">
+      <div class="side-head">Los modos de estudio</div>
+      <ul>
+        <li><a href="#sintactico">Análisis Sintáctico</a></li>
+        <li><a href="#morfologico">Análisis Morfológico</a></li>
+        <li><a href="#sintagmas">Análisis de Sintagmas</a></li>
+        <li><a href="#compuesta">Oración Compuesta</a></li>
+        <li><a href="#arcade">Arcade</a></li>
+        <li><a href="#chispa">Chispa</a></li>
+      </ul>
+    </div>
+    <div class="side-group">
+      <div class="side-head">Práctica y exámenes</div>
+      <ul>
+        <li><a href="#practica-examen">Práctica vs. Examen</a></li>
+        <li><a href="#pin">Hacer un examen con PIN</a></li>
+        <li><a href="#nota">Cómo se calcula tu nota</a></li>
+        <li><a href="#pistas">Pistas y reflexión</a></li>
+      </ul>
+    </div>
+    <div class="side-group">
+      <div class="side-head">Ayuda</div>
+      <ul>
+        <li><a href="#movil">En el móvil</a></li>
+        <li><a href="#consejos">Consejos para estudiar</a></li>
+        <li><a href="#problemas">Problemas frecuentes</a></li>
+        <li><a href="#faq">Preguntas frecuentes</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="scrim" id="scrim" aria-hidden="true"></div>
+
+  <main>
+    <div class="wrap">
+      <p class="no-result" id="noResult">No se han encontrado secciones para tu búsqueda. Prueba con otra palabra.</p>
+
+      <!-- HERO -->
+      <section id="inicio" style="padding-top:0">
+        <div class="hero">
+          <div class="kicker">Aplicación educativa · Lengua Castellana</div>
+          <h1>Aprende a analizar oraciones, paso a paso</h1>
+          <p>El Taller de Sintaxis es una app para practicar el análisis sintáctico, morfológico y de oraciones compuestas del español. Este manual te explica, con palabras claras, cómo usarla.</p>
+          <div class="meta">
+            <span class="pill">✏️ Sin instalar nada</span>
+            <span class="pill">📱 Móvil, tablet y ordenador</span>
+            <span class="pill">🎓 Práctica y exámenes</span>
+          </div>
+        </div>
+
+        <h2><span class="n">1</span> Bienvenida</h2>
+        <p class="lead">El Taller de Sintaxis es una aplicación web para <strong>entrenar el análisis de oraciones</strong> de la forma en que se pide en clase y en la PAU. No es un juego de adivinar: te acompaña razonando, te avisa cuando fallas y te explica por qué.</p>
+        <p>Funciona con la terminología oficial que usáis en clase (la de la NGLE): Sujeto, Complemento Directo, Complemento Indirecto, Atributo, Complemento de Régimen, sintagmas, proposiciones… Está pensada para toda la etapa: desde 1.º de ESO hasta 2.º de Bachillerato.</p>
+        <div class="box info">
+          <div class="bx-h"><span class="em">💡</span> Lo esencial en una frase</div>
+          <p>Abres la app, eliges un modo, escribes tu nombre y tu grupo, y practicas. Si el profesor te da un <strong>PIN</strong>, eso es un examen: se guarda tu nota. Sin PIN, es práctica libre para aprender sin presión.</p>
+        </div>
+      </section>
+
+      <!-- ACCESO -->
+      <section id="acceso">
+        <h2><span class="n">2</span> Cómo entrar</h2>
+        <p>Entrar es muy sencillo, porque <strong>no hay cuentas ni contraseñas</strong>. No tienes que registrarte ni recordar ningún usuario.</p>
+        <ol class="steps">
+          <li><b>Abre el enlace</b> que te dé tu profesor en cualquier navegador moderno (Chrome, Firefox, Edge o Safari). Puedes guardarlo en favoritos para volver rápido.</li>
+          <li><b>Espera unos segundos</b> a que cargue la portada con los distintos modos.</li>
+          <li><b>Elige un modo</b> tocando su tarjeta. ¡Ya estás dentro!</li>
+        </ol>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">✅</span> Consejo</div>
+          <p>La app se puede «instalar» como si fuera una aplicación del móvil: en el menú del navegador, busca <em>«Añadir a la pantalla de inicio»</em>. Así tendrás un icono directo, sin abrir el navegador cada vez.</p>
+        </div>
+        <div class="box warn">
+          <div class="bx-h"><span class="em">⚠️</span> Ten en cuenta</div>
+          <p>Como no hay cuenta, tu progreso de práctica se guarda solo <strong>en el navegador de ese dispositivo</strong>. Si cambias de móvil u ordenador, empiezas de cero en cuanto a rachas y misiones. Las notas de <em>examen</em>, en cambio, sí se guardan en el servidor del profesor.</p>
+        </div>
+      </section>
+
+      <!-- PORTADA -->
+      <section id="portada">
+        <h2><span class="n">3</span> La portada y los modos</h2>
+        <p>Nada más entrar verás la portada con seis tarjetas. Cada una es un modo distinto de trabajar. Puedes entrar y salir de cualquiera con el botón <kbd>← Volver</kbd> de arriba.</p>
+
+        <div class="capture" role="img" aria-label="Representación de la pantalla de inicio con las seis tarjetas de modos">
+          <div class="cap-bar"><i class="cap-dot1"></i><i class="cap-dot2"></i><i class="cap-dot3"></i><span class="cap-url">taller-de-sintaxis</span></div>
+          <div class="cap-body">
+            <div class="mock-grid">
+              <div class="mock-card" style="--bar:#102A43"><div class="mc-i">🔗</div><div class="mc-t">Análisis Sintáctico</div><div class="mc-d">Sujeto, núcleo y funciones del predicado</div><span class="mc-cta">Empezar</span></div>
+              <div class="mock-card" style="--bar:#0F766E"><span class="mock-badge">Nuevo</span><div class="mc-i">🔤</div><div class="mc-t">Análisis Morfológico</div><div class="mc-d">Categoría de cada palabra, en 3 niveles</div><span class="mc-cta">Empezar</span></div>
+              <div class="mock-card" style="--bar:#7C3AED"><div class="mc-i">🧱</div><div class="mc-t">Análisis de Sintagmas</div><div class="mc-d">Núcleo, modificadores y término</div><span class="mc-cta">Empezar</span></div>
+              <div class="mock-card" style="--bar:#9F1239"><span class="mock-badge">Nuevo</span><div class="mc-i">🔀</div><div class="mc-t">Oración Compuesta</div><div class="mc-d">Coordinadas, subordinadas, yuxtapuestas</div><span class="mc-cta">Explorar</span></div>
+              <div class="mock-card" style="--bar:#B45309"><div class="mc-i">🕹️</div><div class="mc-t">Arcade</div><div class="mc-d">Juega, compite y sube en el ranking</div><span class="mc-cta">Jugar</span></div>
+              <div class="mock-card" style="--bar:#0F766E"><span class="mock-badge">Nuevo</span><div class="mc-i">⚡</div><div class="mc-t">Chispa</div><div class="mc-d">¿Cuál es la función? Rápido</div><span class="mc-cta">Jugar</span></div>
+            </div>
+          </div>
+          <div class="cap-caption">La portada: seis modos. Los cuatro primeros son de análisis; los dos últimos, de juego.</div>
+        </div>
+
+        <div class="grid g2">
+          <div class="card"><div class="c-ico">🔗</div><h4>Análisis Sintáctico</h4><p>El modo principal: analizar oraciones simples (verbo, sujeto y funciones).</p><span class="tag">Análisis</span></div>
+          <div class="card"><div class="c-ico">🔤</div><h4>Análisis Morfológico</h4><p>Clasificar cada palabra por su categoría gramatical.</p><span class="tag">Análisis</span></div>
+          <div class="card"><div class="c-ico">🧱</div><h4>Análisis de Sintagmas</h4><p>Mirar dentro de un sintagma: núcleo y complementos.</p><span class="tag">Análisis</span></div>
+          <div class="card"><div class="c-ico">🔀</div><h4>Oración Compuesta</h4><p>Oraciones con varias proposiciones y sus nexos.</p><span class="tag">Análisis</span></div>
+          <div class="card"><div class="c-ico">🕹️</div><h4>Arcade</h4><p>Modos con presión de tiempo y ranking de clase.</p><span class="tag">Juego</span></div>
+          <div class="card"><div class="c-ico">⚡</div><h4>Chispa</h4><p>Preguntas relámpago para identificar funciones.</p><span class="tag">Juego</span></div>
+        </div>
+      </section>
+
+      <!-- IDENTIDAD -->
+      <section id="identidad">
+        <h2><span class="n">4</span> Tu nombre y tu grupo</h2>
+        <p>Al entrar en un modo, la app te pedirá algunos datos. Es importante ponerlos <strong>bien</strong> para que tu profesor pueda reconocerte, sobre todo en los exámenes.</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Campo</th><th>Qué escribir</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Nombre completo</strong></td><td>Tu nombre y apellidos reales, como en la lista de clase. Nada de apodos en los exámenes.</td></tr>
+              <tr><td><strong>Correo</strong></td><td>Tu correo del centro (<code>@alu.murciaeduca.es</code>) o el que te indique el profesor. Sirve para identificar tu resultado.</td></tr>
+              <tr><td><strong>Grupo</strong></td><td>Se elige de una lista (por ejemplo <code>3ºA</code> o <code>1ºBachB</code>). No lo escribas a mano: elígelo del desplegable.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">✅</span> Consejo</div>
+          <p>La app recuerda tus datos para la próxima vez, así que solo tendrás que escribirlos una vez. En el <strong>Arcade</strong> usarás además un «apodo» para el ranking: ahí sí puedes ser creativo.</p>
+        </div>
+      </section>
+
+      <!-- SINTÁCTICO -->
+      <section id="sintactico">
+        <h2><span class="n">5</span> Análisis Sintáctico</h2>
+        <p class="lead">Es el modo estrella. Analizas oraciones simples por fases, y la app te va guiando y corrigiendo.</p>
+        <h3>Cómo funciona una oración</h3>
+        <ol class="steps">
+          <li><b>El verbo (núcleo del predicado).</b> Toca la palabra o palabras que forman el verbo conjugado. La app te dice al instante si has acertado.</li>
+          <li><b>El sujeto.</b> Señalas quién realiza la acción (o si el sujeto es tácito, la app te lo indica).</li>
+          <li><b>Las funciones del predicado.</b> Colocas las etiquetas (CD, CI, Atributo, C. Circunstancial, C. de Régimen…) sobre cada parte de la oración.</li>
+          <li><b>Resultado.</b> Al terminar ves tu nota, qué funciones dominas y cuáles conviene repasar.</li>
+        </ol>
+        <div class="box info">
+          <div class="bx-h"><span class="em">🎚️</span> Los niveles (subfases)</div>
+          <p>A veces solo tendrás que llegar hasta cierto punto: <strong>Solo el verbo</strong>, <strong>Verbo + Sujeto</strong> o <strong>Análisis completo</strong>. Lo decide el profesor o tú mismo en la práctica, según lo que hayáis dado en clase.</p>
+        </div>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">✅</span> Si te equivocas, no pasa nada</div>
+          <p>Cada error es una oportunidad: la app te ofrece una pista y una pequeña explicación. En práctica puedes intentarlo tantas veces como quieras.</p>
+        </div>
+      </section>
+
+      <!-- MORFOLÓGICO -->
+      <section id="morfologico">
+        <h2><span class="n">6</span> Análisis Morfológico</h2>
+        <p>Aquí no analizas la oración, sino <strong>cada palabra por separado</strong>: ¿es un sustantivo, un verbo, un determinante, una preposición…? Se trabaja con textos breves (a veces fragmentos literarios) y vas etiquetando palabra a palabra.</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Nivel</th><th>Para quién</th><th>Qué se pide</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Aprendiz</strong></td><td>1.º–2.º ESO</td><td>Categorías básicas: sustantivo, verbo, adjetivo, determinante…</td></tr>
+              <tr><td><strong>ESO 3-4</strong></td><td>3.º–4.º ESO</td><td>Añade preposiciones, conjunciones, pronombres por tipo…</td></tr>
+              <tr><td><strong>Maestro</strong></td><td>Bachillerato</td><td>Análisis completo: género, número, persona, tiempo, modo…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Elige tu nivel al entrar. Puedes empezar por «Aprendiz» y subir cuando te sientas cómodo.</p>
+      </section>
+
+      <!-- SINTAGMAS -->
+      <section id="sintagmas">
+        <h2><span class="n">7</span> Análisis de Sintagmas</h2>
+        <p>Un sintagma es un grupo de palabras que funciona como una unidad (por ejemplo, «la casa de mi abuela»). En este modo <strong>desmontas el sintagma por dentro</strong>: identificas el núcleo (la palabra principal), los determinantes, los modificadores y los complementos.</p>
+        <div class="box info">
+          <div class="bx-h"><span class="em">🧠</span> ¿Cuándo te viene bien?</div>
+          <p>Si en «Análisis Sintáctico» aciertas la función pero no entiendes por qué un grupo de palabras es un sintagma preposicional y no uno nominal, pásate por aquí: entenderás la estructura interna y todo encajará mejor.</p>
+        </div>
+      </section>
+
+      <!-- COMPUESTA -->
+      <section id="compuesta">
+        <h2><span class="n">8</span> Oración Compuesta</h2>
+        <p class="lead">Las oraciones compuestas tienen varias proposiciones (varios verbos). Este modo te lleva paso a paso para que no te pierdas.</p>
+        <div class="tabs" data-tabs>
+          <div class="tab-btns" role="tablist" aria-label="Fases de la oración compuesta">
+            <button role="tab" aria-selected="true" aria-controls="cp1" id="cpb1">1 · Verbos</button>
+            <button role="tab" aria-selected="false" aria-controls="cp2" id="cpb2">2 · Nexos</button>
+            <button role="tab" aria-selected="false" aria-controls="cp3" id="cpb3">3 · Delimitar</button>
+            <button role="tab" aria-selected="false" aria-controls="cp4" id="cpb4">4 · Clasificar</button>
+          </div>
+          <div class="tab-panel" data-active="true" id="cp1" role="tabpanel" aria-labelledby="cpb1">
+            <h4>Identificar los verbos</h4>
+            <p>Primero marcas todos los verbos. Tantos verbos (o perífrasis) como marques, tantas proposiciones habrá. Es la base de todo el análisis.</p>
+          </div>
+          <div class="tab-panel" id="cp2" role="tabpanel" aria-labelledby="cpb2">
+            <h4>Identificar los nexos</h4>
+            <p>Señalas las palabras que unen las proposiciones: conjunciones («y», «pero», «porque»), pronombres relativos («que», «quien»), etc. El nexo es la pista del tipo de relación.</p>
+          </div>
+          <div class="tab-panel" id="cp3" role="tabpanel" aria-labelledby="cpb3">
+            <h4>Delimitar las proposiciones</h4>
+            <p>Marcas dónde empieza y dónde acaba cada proposición. La app las llama <strong>P1, P2, P3…</strong> para que sea claro.</p>
+          </div>
+          <div class="tab-panel" id="cp4" role="tabpanel" aria-labelledby="cpb4">
+            <h4>Clasificar y relacionar</h4>
+            <p>Dices qué tipo de relación hay: coordinación (P1 ↔ P2), subordinación (P1 → P2) o yuxtaposición (P1 ∥ P2), y qué función cumple cada proposición subordinada. Si el ejercicio lo pide, también analizas el interior de cada proposición.</p>
+          </div>
+        </div>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">✅</span> Al final: análisis modelo</div>
+          <p>Cuando terminas, la app te muestra el análisis completo bien hecho, al estilo de la PAU. Compáralo con lo que tú hiciste: es la mejor forma de aprender.</p>
+        </div>
+      </section>
+
+      <!-- ARCADE -->
+      <section id="arcade">
+        <h2><span class="n">9</span> Arcade</h2>
+        <p>El modo de juego. Aquí la sintaxis se convierte en un reto con presión de tiempo y ranking de clase. Tiene varios modos:</p>
+        <div class="grid g2">
+          <div class="card"><div class="c-ico">❤️</div><h4>Supervivencia</h4><p>Tienes vidas. Cada error resta; los aciertos seguidos te dan escudos. ¿Cuánto aguantas?</p></div>
+          <div class="card"><div class="c-ico">⏱️</div><h4>Contrarreloj</h4><p>Corre contra el reloj. Aciertos rápidos suman tiempo; errores graves lo restan.</p></div>
+          <div class="card"><div class="c-ico">👻</div><h4>Duelo Fantasma</h4><p>Compites contra tu propio récord o contra la media de tu clase, como un «fantasma».</p></div>
+          <div class="card"><div class="c-ico">🎯</div><h4>Radar de Errores</h4><p>Detectas errores escondidos en un análisis casi correcto. Te conviertes en corrector.</p></div>
+        </div>
+        <div class="box info">
+          <div class="bx-h"><span class="em">🏆</span> El ranking</div>
+          <p>En Arcade eliges un <strong>apodo</strong> para aparecer en la clasificación de tu grupo. Es competición sana: nadie ve tu nombre real, solo tu apodo.</p>
+        </div>
+      </section>
+
+      <!-- CHISPA -->
+      <section id="chispa">
+        <h2><span class="n">10</span> Chispa</h2>
+        <p>Ejercicios relámpago para afinar el ojo. Aparece una oración y varias «fichas» resaltadas; tú tocas la que cumple la función que se te pide (por ejemplo, «¿cuál es el Complemento de Régimen?»). Rápido, directo, sin cronómetro obligatorio.</p>
+        <ul class="clean">
+          <li>Elige un tema (Complemento de Régimen, Atributo/Predicativo, CD/CI en forma de pronombre…) o «Mezcla de todo».</li>
+          <li>La dificultad sube sola: en las rondas avanzadas los señuelos son más difíciles.</li>
+          <li>Tras cada respuesta, una explicación breve te recuerda la «prueba» para distinguir esa función.</li>
+        </ul>
+      </section>
+
+      <!-- PRÁCTICA VS EXAMEN -->
+      <section id="practica-examen">
+        <h2><span class="n">11</span> Práctica vs. Examen</h2>
+        <p>Hay dos formas de trabajar en los modos de análisis, y conviene tener clara la diferencia:</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th></th><th>🟢 Práctica libre</th><th>🎓 Examen (con PIN)</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Para qué</strong></td><td>Aprender sin presión</td><td>Que el profesor te ponga nota</td></tr>
+              <tr><td><strong>Pistas</strong></td><td>Sí, todas las que quieras</td><td>Limitadas o ninguna</td></tr>
+              <tr><td><strong>Reintentar</strong></td><td>Sí</td><td>No: cada respuesta cuenta</td></tr>
+              <tr><td><strong>Se guarda la nota</strong></td><td>No (solo para ti)</td><td>Sí, en el servidor del profesor</td></tr>
+              <tr><td><strong>Necesita PIN</strong></td><td>No</td><td>Sí, te lo da el profesor</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PIN -->
+      <section id="pin">
+        <h2><span class="n">12</span> Hacer un examen con PIN</h2>
+        <p>Cuando tu profesor prepara un examen, te da un <strong>PIN</strong> (un número de 4 dígitos). Así se hace:</p>
+        <ol class="steps">
+          <li>Entra en el modo que te indique el profesor (por ejemplo, «Análisis Sintáctico»).</li>
+          <li>Elige la opción <b>🎓 Examen</b> (en lugar de Práctica).</li>
+          <li>Escribe tu <b>nombre completo</b>, tu <b>correo</b>, tu <b>grupo</b> y el <b>PIN</b>.</li>
+          <li>Resuelve los ejercicios. Verás arriba un aviso con el nombre del examen y, si lo hay, el tiempo restante.</li>
+          <li>Al terminar, pulsa <b>«Enviar»</b>. Verás tu nota y tu resultado quedará guardado para el profesor.</li>
+        </ol>
+        <div class="box info">
+          <div class="bx-h"><span class="em">📝</span> Exámenes en dos partes</div>
+          <p>Algunos exámenes tienen <strong>dos partes</strong>: primero oraciones simples y después una oración compuesta, con el mismo PIN. La app te avisa al empezar y, al terminar la primera parte, te ofrece un botón para continuar con la segunda. Tu nota final combina las dos.</p>
+        </div>
+        <div class="box err">
+          <div class="bx-h"><span class="em">⛔</span> Error frecuente</div>
+          <p>Si ves «PIN no encontrado», comprueba que lo has escrito bien y que estás en el <strong>modo correcto</strong> (un PIN de compuestas no funciona en simples). Si sigue fallando, avisa a tu profesor: quizá el examen aún no está activo.</p>
+        </div>
+      </section>
+
+      <!-- NOTA -->
+      <section id="nota">
+        <h2><span class="n">13</span> Cómo se calcula tu nota</h2>
+        <p>La nota va de <strong>0 a 10</strong>. No todos los elementos valen igual: el verbo y el sujeto pesan más, y los errores repetidos en el mismo punto penalizan más. El sistema es parecido al de las tarjetas «rasca» de algunos exámenes:</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Errores en un mismo bloque</th><th>Puntos que cuentan</th></tr></thead>
+            <tbody>
+              <tr><td>0 errores</td><td><strong style="color:#15803D">100 %</strong> — perfecto</td></tr>
+              <tr><td>1 error</td><td>50 %</td></tr>
+              <tr><td>2 errores</td><td>25 %</td></tr>
+              <tr><td>3 o más</td><td><strong style="color:#B91C1C">0 %</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">✅</span> Qué significa para ti</div>
+          <p>Merece la pena <strong>pensar antes de tocar</strong>. Es mejor acertar a la primera que ir probando: cada intento fallido en el mismo bloque te resta. Para aprobar necesitas acertar bien la mayoría de los bloques (en torno al 60-70 %).</p>
+        </div>
+      </section>
+
+      <!-- PISTAS -->
+      <section id="pistas">
+        <h2><span class="n">14</span> Pistas y reflexión</h2>
+        <p>En práctica, la app es tu tutora particular:</p>
+        <ul class="clean">
+          <li><strong>Pistas.</strong> Si dudas, pide una pista: te da un empujón sin darte la respuesta.</li>
+          <li><strong>Explicaciones.</strong> Tras cada error verás la «prueba» para distinguir esa función (por ejemplo, cómo saber si algo es CD o CI).</li>
+          <li><strong>Reflexión.</strong> En algunos ejercicios te preguntan «por qué» tu respuesta es correcta: eso fija lo aprendido.</li>
+        </ul>
+        <div class="box best">
+          <div class="bx-h"><span class="em">🌟</span> Buenas prácticas</div>
+          <p>No corras a pedir la pista a la primera. Intenta razonar tú; si no sale, entonces pídela y lee la explicación con calma. Aprenderás mucho más.</p>
+        </div>
+      </section>
+
+      <!-- MÓVIL -->
+      <section id="movil">
+        <h2><span class="n">15</span> En el móvil</h2>
+        <p>La app funciona perfectamente en el teléfono. Algunos consejos:</p>
+        <ul class="clean">
+          <li>Gira el móvil o usa el navegador a pantalla completa si un ejercicio se ve apretado.</li>
+          <li>Los botones están pensados para el dedo; si algo no responde, toca con calma en el centro del botón.</li>
+          <li>Si el texto se ve pequeño, usa el zoom del navegador: no rompe la app.</li>
+        </ul>
+      </section>
+
+      <!-- CONSEJOS -->
+      <section id="consejos">
+        <h2><span class="n">16</span> Consejos para estudiar</h2>
+        <div class="grid g2">
+          <div class="card"><div class="c-ico">🧭</div><h4>Empieza por lo básico</h4><p>Si acabas de empezar, usa el nivel «Solo el verbo» o «Verbo + Sujeto» y sube cuando lo tengas dominado.</p></div>
+          <div class="card"><div class="c-ico">🔁</div><h4>Poco y a menudo</h4><p>Cinco oraciones al día valen más que treinta el día antes del examen.</p></div>
+          <div class="card"><div class="c-ico">🎯</div><h4>Practica tus fallos</h4><p>Al terminar, la app te dice qué funciones se te resisten. Úsalo: practica justo esas.</p></div>
+          <div class="card"><div class="c-ico">⚡</div><h4>Cambia de modo</h4><p>Si te aburres del análisis, juega a Chispa o Arcade: también se aprende, pero jugando.</p></div>
+        </div>
+      </section>
+
+      <!-- PROBLEMAS -->
+      <section id="problemas">
+        <h2><span class="n">17</span> Problemas frecuentes</h2>
+        <div class="box warn">
+          <div class="bx-h"><span class="em">⚠️</span> La app no carga o se queda «pensando»</div>
+          <p>Recarga la página (desliza hacia abajo en el móvil o pulsa <kbd>F5</kbd> en el ordenador). El servidor a veces tarda unos segundos la primera vez.</p>
+        </div>
+        <div class="box warn">
+          <div class="bx-h"><span class="em">⚠️</span> Se me cerró la pestaña en pleno examen</div>
+          <p>Tranquilo: vuelve a entrar con el mismo PIN. La app recuerda lo que llevabas hecho en ese dispositivo y te deja continuar.</p>
+        </div>
+        <div class="box err">
+          <div class="bx-h"><span class="em">⛔</span> «PIN no encontrado» o «examen no activo»</div>
+          <p>Revisa el número y el modo. Si es correcto y sigue fallando, avisa al profesor: puede que el examen todavía no esté abierto.</p>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq">
+        <h2><span class="n">18</span> Preguntas frecuentes</h2>
+        <div class="faq">
+          <details><summary>¿Necesito crear una cuenta o contraseña?</summary><div class="a"><p>No. Solo escribes tu nombre, tu correo y tu grupo al entrar en un modo. No hay registro ni contraseñas.</p></div></details>
+          <details><summary>¿Es gratis?</summary><div class="a"><p>Sí. Es una aplicación educativa; solo necesitas el enlace que te dé tu profesor.</p></div></details>
+          <details><summary>¿Funciona en el móvil?</summary><div class="a"><p>Sí, en móvil, tablet y ordenador. Puedes incluso añadirla a la pantalla de inicio del móvil como si fuera una app.</p></div></details>
+          <details><summary>¿Tengo que instalar algo?</summary><div class="a"><p>No. Se abre en el navegador. Nada de descargas.</p></div></details>
+          <details><summary>¿Se guarda mi progreso?</summary><div class="a"><p>La práctica se guarda en el navegador de tu dispositivo (rachas, misiones). Las notas de examen se guardan en el servidor del profesor.</p></div></details>
+          <details><summary>Si cambio de dispositivo, ¿pierdo mi progreso?</summary><div class="a"><p>Pierdes las rachas y misiones de práctica de ese dispositivo, pero no tus notas de examen, que quedan en el servidor.</p></div></details>
+          <details><summary>¿Qué es un PIN?</summary><div class="a"><p>Un número de 4 dígitos que te da el profesor para hacer un examen concreto. Sin PIN, todo es práctica libre.</p></div></details>
+          <details><summary>¿Puedo repetir un examen?</summary><div class="a"><p>No por tu cuenta: el sistema guarda tu primer intento con ese PIN. Si necesitas repetirlo, tiene que decidirlo el profesor.</p></div></details>
+          <details><summary>¿Puedo usar pistas en el examen?</summary><div class="a"><p>Depende de cómo lo configure el profesor. Normalmente en examen hay menos pistas o ninguna, para que la nota sea justa.</p></div></details>
+          <details><summary>¿Cómo se calcula la nota?</summary><div class="a"><p>De 0 a 10. Los aciertos a la primera valen el máximo; los errores repetidos en el mismo punto restan crédito. El verbo y el sujeto pesan más que otros elementos.</p></div></details>
+          <details><summary>Fallé una función. ¿Baja mucho la nota?</summary><div class="a"><p>Un fallo aislado apenas baja. Lo que penaliza es equivocarse varias veces en el mismo bloque. Por eso conviene pensar antes de responder.</p></div></details>
+          <details><summary>¿Qué diferencia hay entre Arcade y Chispa?</summary><div class="a"><p>Arcade tiene vidas, tiempo y ranking (más de juego); Chispa son preguntas relámpago de «encuentra la función», sin cronómetro obligatorio.</p></div></details>
+          <details><summary>¿Qué significan P1, P2, P3 en la oración compuesta?</summary><div class="a"><p>Son las proposiciones: P1 la primera, P2 la segunda, etc. La app las nombra así para que sea fácil referirse a cada una.</p></div></details>
+          <details><summary>¿Qué hago si no entiendo por qué he fallado?</summary><div class="a"><p>Lee la explicación que aparece tras el error y, si sigues con dudas, apúntalo y pregúntale a tu profesor. También puedes ir al modo Sintagmas para entender la estructura.</p></div></details>
+          <details><summary>La oración no tiene sujeto visible. ¿Está mal?</summary><div class="a"><p>No. Hay oraciones con sujeto tácito (por ejemplo, «Llegamos tarde»). La app lo reconoce; no tienes que marcar ninguna palabra como sujeto en esos casos.</p></div></details>
+          <details><summary>¿Puedo salir de un ejercicio a la mitad?</summary><div class="a"><p>En práctica sí, cuando quieras. En examen puedes salir, pero lo que no hayas contestado contará como no hecho.</p></div></details>
+          <details><summary>¿La app corrige como mi profesor?</summary><div class="a"><p>Usa la terminología oficial (NGLE) que se enseña en clase. Aun así, ante cualquier duda, la última palabra siempre la tiene tu profesor.</p></div></details>
+          <details><summary>¿Puedo elegir qué practicar?</summary><div class="a"><p>Sí. En cada modo hay filtros para centrarte en ciertas funciones o tipos de oración. En Chispa eliges directamente el tema.</p></div></details>
+          <details><summary>¿Se puede usar sin internet?</summary><div class="a"><p>Necesita conexión para cargar y para guardar las notas de examen. La práctica básica puede seguir si se corta un momento, pero lo normal es tener internet.</p></div></details>
+          <details><summary>Tengo una idea o he visto un fallo. ¿A quién se lo digo?</summary><div class="a"><p>Díselo a tu profesor. La app se mejora continuamente y las sugerencias se tienen en cuenta.</p></div></details>
+        </div>
+      </section>
+
+      <footer class="foot">
+        <p><b>Taller de Sintaxis</b> · Manual del alumno. Aplicación educativa para el análisis sintáctico, morfológico y de oraciones compuestas del español (NGLE / PAU).</p>
+        <p>¿Dudas que este manual no resuelve? Pregúntale a tu profesor. 🙂</p>
+      </footer>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var body = document.body;
+
+  /* ── Menú móvil ── */
+  var toggle = document.getElementById('menuToggle');
+  var scrim = document.getElementById('scrim');
+  function closeNav(){ body.classList.remove('nav-open'); toggle.setAttribute('aria-expanded','false'); }
+  toggle && toggle.addEventListener('click', function(){
+    var open = body.classList.toggle('nav-open');
+    toggle.setAttribute('aria-expanded', open ? 'true':'false');
+  });
+  scrim && scrim.addEventListener('click', closeNav);
+
+  /* ── Enlaces del índice: cerrar menú en móvil al navegar ── */
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('.sidebar a'));
+  navLinks.forEach(function(a){ a.addEventListener('click', function(){ if(window.innerWidth<=940) closeNav(); }); });
+
+  /* ── Scrollspy + barra de progreso ── */
+  var sections = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+  var progress = document.getElementById('progressBar');
+  var byId = {};
+  navLinks.forEach(function(a){ var id=a.getAttribute('href').slice(1); byId[id]=a; });
+  function onScroll(){
+    var top = window.scrollY + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) + 40;
+    var current = sections[0];
+    for(var i=0;i<sections.length;i++){ if(sections[i].offsetTop <= top) current = sections[i]; }
+    navLinks.forEach(function(a){ a.classList.remove('active'); });
+    if(current && byId[current.id]) byId[current.id].classList.add('active');
+    var docH = document.documentElement.scrollHeight - window.innerHeight;
+    if(progress) progress.style.width = Math.min(100, Math.max(0, (window.scrollY/docH)*100)) + '%';
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  /* ── Volver arriba ── */
+  document.getElementById('toTop').addEventListener('click', function(){
+    window.scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto':'smooth'});
+  });
+
+  /* ── Pestañas ── */
+  Array.prototype.slice.call(document.querySelectorAll('[data-tabs]')).forEach(function(tabs){
+    var btns = Array.prototype.slice.call(tabs.querySelectorAll('[role=tab]'));
+    var panels = Array.prototype.slice.call(tabs.querySelectorAll('.tab-panel'));
+    function select(idx){
+      btns.forEach(function(b,i){ b.setAttribute('aria-selected', i===idx?'true':'false'); b.tabIndex = i===idx?0:-1; });
+      panels.forEach(function(p,i){ p.setAttribute('data-active', i===idx?'true':'false'); });
+    }
+    btns.forEach(function(b,i){
+      b.addEventListener('click', function(){ select(i); });
+      b.addEventListener('keydown', function(e){
+        if(e.key==='ArrowRight'){ e.preventDefault(); var n=(i+1)%btns.length; btns[n].focus(); select(n); }
+        if(e.key==='ArrowLeft'){ e.preventDefault(); var p=(i-1+btns.length)%btns.length; btns[p].focus(); select(p); }
+      });
+    });
+  });
+
+  /* ── Buscador: filtra secciones por texto ── */
+  var search = document.getElementById('search');
+  var noResult = document.getElementById('noResult');
+  function clearMarks(root){
+    Array.prototype.slice.call(root.querySelectorAll('mark[data-s]')).forEach(function(m){
+      var t=document.createTextNode(m.textContent); m.parentNode.replaceChild(t, m); m.parentNode && m.parentNode.normalize && m.parentNode.normalize();
+    });
+  }
+  var debounce;
+  search && search.addEventListener('input', function(){
+    clearTimeout(debounce);
+    debounce = setTimeout(runSearch, 130);
+  });
+  function runSearch(){
+    var q = search.value.trim().toLowerCase();
+    sections.forEach(function(s){ clearMarks(s); });
+    if(!q){ body.classList.remove('searching'); sections.forEach(function(s){ s.style.display=''; }); noResult.classList.remove('show'); onScroll(); return; }
+    body.classList.add('searching');
+    var any=false;
+    sections.forEach(function(s){
+      var hit = s.textContent.toLowerCase().indexOf(q) !== -1;
+      s.style.display = hit ? '' : 'none';
+      if(hit){ any=true; highlight(s, q); }
+    });
+    noResult.classList.toggle('show', !any);
+  }
+  function highlight(node, q){
+    // Resalta coincidencias en nodos de texto de encabezados y párrafos
+    var walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
+    var texts=[], n;
+    while((n=walker.nextNode())){ if(n.nodeValue.toLowerCase().indexOf(q)!==-1 && n.parentNode && !/SCRIPT|STYLE/.test(n.parentNode.tagName)) texts.push(n); }
+    texts.slice(0,60).forEach(function(t){
+      var lower=t.nodeValue.toLowerCase(), idx=lower.indexOf(q); if(idx<0) return;
+      var span=document.createElement('span');
+      span.appendChild(document.createTextNode(t.nodeValue.slice(0,idx)));
+      var mk=document.createElement('mark'); mk.setAttribute('data-s','1'); mk.textContent=t.nodeValue.substr(idx,q.length);
+      span.appendChild(mk);
+      span.appendChild(document.createTextNode(t.nodeValue.slice(idx+q.length)));
+      t.parentNode.replaceChild(span, t);
+    });
+  }
+  /* Atajo: "/" enfoca el buscador */
+  document.addEventListener('keydown', function(e){
+    if(e.key==='/' && document.activeElement!==search && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ e.preventDefault(); search.focus(); }
+    if(e.key==='Escape' && document.activeElement===search){ search.value=''; runSearch(); search.blur(); }
+  });
+})();
+</script>
+</body>
+</html>
