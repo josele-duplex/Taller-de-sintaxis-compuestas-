@@ -1512,6 +1512,79 @@ function menuReclasificarMorfologia() {
     ui.ButtonSet.OK);
 }
 
+/**
+ * Menú "Etiquetar formación de palabras (F7)". Añade/actualiza el atributo
+ * NUEVO y opcional 'formación' (simple/derivada/compuesta/parasintética,
+ * decisión 6 de Josele, §7 de la propuesta) en tokens concretos de
+ * Morfologia_Textos, buscándolos por su ID de token dentro de Tokens_JSON
+ * (no por texto, para no depender de que el texto no cambie ni un carácter).
+ * Tabla acordada con Josele en el chat (2026-07-12): 9 palabras "jugosas"
+ * derivadas de los 6 textos n3 de García Márquez. Idempotente: solo escribe
+ * la fila si algún token de esa fila cambia de verdad.
+ */
+function menuEtiquetarFormacionN3() {
+  const ui = SpreadsheetApp.getUi();
+  const sheet = ensureMorfBancoSheet_();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    ui.alert('Morfologia_Textos está vacía. No hay nada que etiquetar.', '', ui.ButtonSet.OK);
+    return;
+  }
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+
+  const FORMACION_POR_TOKEN = {
+    'm46_15': 'derivada', // dormitorio (dormir + -torio)
+    'm46_17': 'derivada', // casualidad (casual + -idad)
+    'm47_27': 'derivada', // convencida (convencer + -ido/a)
+    'm49_06': 'derivada', // vejez (viejo + -ez)
+    'm49_14': 'derivada', // honrado (honrar + -ado)
+    'm49_17': 'derivada', // soledad (solo + -edad)
+    'm50_08': 'derivada', // fusilamiento (fusilar + -miento)
+    'm51_19': 'derivada', // silencioso (silencio + -oso)
+    'm51_21': 'derivada', // retraído (retraer + -ído)
+  };
+  const idsPendientes = new Set(Object.keys(FORMACION_POR_TOKEN));
+
+  let textosActualizados = 0, tokensActualizados = 0;
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    const rawTokens = String(row[col['Tokens_JSON']] || '');
+    if (!rawTokens) continue;
+    let tokens;
+    try { tokens = JSON.parse(rawTokens); } catch (e) { continue; }
+    if (!Array.isArray(tokens)) continue;
+
+    let cambiadoEnEstaFila = false;
+    tokens.forEach(tk => {
+      if (!tk || !tk.id || !Object.prototype.hasOwnProperty.call(FORMACION_POR_TOKEN, tk.id)) return;
+      idsPendientes.delete(tk.id);
+      const nuevoValor = FORMACION_POR_TOKEN[tk.id];
+      tk.atrs = tk.atrs || {};
+      if (tk.atrs['formación'] !== nuevoValor) {
+        tk.atrs['formación'] = nuevoValor;
+        cambiadoEnEstaFila = true;
+        tokensActualizados++;
+      }
+    });
+
+    if (cambiadoEnEstaFila) {
+      sheet.getRange(i + 2, col['Tokens_JSON'] + 1).setValue(JSON.stringify(tokens));
+      textosActualizados++;
+    }
+  }
+
+  if (tokensActualizados > 0) {
+    try { regenerarMorfologia_(); } catch (e) { /* no bloquear el alert por esto */ }
+  }
+  ui.alert('🧬 Etiquetado de formación (F7)',
+    'Textos actualizados: ' + textosActualizados + '\n' +
+    'Tokens etiquetados: ' + tokensActualizados + '/' + Object.keys(FORMACION_POR_TOKEN).length +
+    (idsPendientes.size > 0 ? '\n⚠ No encontrados (revisa si el ID cambió): ' + Array.from(idsPendientes).join(', ') : '') +
+    (tokensActualizados === 0 && idsPendientes.size === 0 ? '\n(Ya estaba todo aplicado — idempotente)' : ''),
+    ui.ButtonSet.OK);
+}
+
 // Morfologia_Textos ya existe siempre en producción (banco activo); este
 // helper solo cubre el caso de una hoja recién creada o vacía.
 function ensureMorfBancoSheet_() {
@@ -3011,6 +3084,7 @@ function onOpen() {
   mantenimiento.addItem('🔄 Actualizar datos de alumnos',         'menuRegenerarMorfologia');
   mantenimiento.addItem('🧬 Promover textos de Morfología revisados', 'menuPromoverTextosMorfologia');
   mantenimiento.addItem('🧬 Reclasificar textos de Morfología (F1b)', 'menuReclasificarMorfologia');
+  mantenimiento.addItem('🧬 Etiquetar formación de palabras (F7)', 'menuEtiquetarFormacionN3');
   mantenimiento.addItem('🎨 Configurar desplegables (Activo/Nivel)','menuConfigurarValidaciones');
   mantenimiento.addItem('✨ Aplicar estilos visuales a las hojas', 'menuConfigurarTodosLosEstilos');
   mantenimiento.addItem('🎨 Colorear notas por color (resultados)', 'aplicarFormatoCondicionalNotas');
