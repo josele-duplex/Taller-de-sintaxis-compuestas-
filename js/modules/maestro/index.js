@@ -677,19 +677,30 @@ const MORPH_CASCADES_ESO34 = {
   ]},
 };
 
-// ── PAU (N3/maestro) overrides — F6a (jul-2026) ─────────────────────────
+// ── PAU (N3/maestro) overrides — F6a+F6b (jul-2026) ─────────────────────
 // Solo las categorías que la receta PAU recorta o amplía respecto al nivel
 // maestro compartido (MORPH_CASCADES); el resto de categorías caen al
 // fallback MORPH_CASCADES[cat] vía getCascadeForNivel. Ver
-// docs/propuesta_niveles_morfologia.md §4. Deja fuera a propósito la
-// taxonomía definido/cuantificador de determinantes y el tratamiento de
-// demostrativo/posesivo/cuantificador pospuestos como Adjetivo — ambos
-// exigen que la cascada conozca los atributos del token, no solo cat+nivel
-// (cambio de arquitectura aparcado, ver conversación 2026-07-12).
+// docs/propuesta_niveles_morfologia.md §4. Los determinantes con función
+// pospuesta/pronominal se resuelven aparte, en MAESTRO_DISPATCH_CATS más
+// abajo (necesitan conocer atrs.función del token, no solo cat+nivel).
+
+// F6b: formación de palabras — atributo NUEVO y opcional (decisión 6 de
+// Josele, §7): "simple/derivada/compuesta/parasintética", etiquetado
+// progresivo desde las palabras jugosas de cada texto n3. step.optional
+// (mecanismo de F6a) hace que nunca bloquee el confirmar ni penalice si no
+// hay dato en el banco todavía.
+const FORMACION_STEP = {id:'formación', label:'Formación (opcional)', optional:true, opts:[
+  {val:'simple',label:'Simple (una sola raíz, sin afijos: casa, azul)'},
+  {val:'derivada',label:'Derivada (raíz + afijo: casita, inmoral)'},
+  {val:'compuesta',label:'Compuesta (dos o más raíces: sacacorchos)'},
+  {val:'parasintética',label:'Parasintética (prefijo + sufijo a la vez, sin base intermedia: entristecer)'}]};
+
 const MORPH_CASCADES_MAESTRO = {
   // Sustantivo propio: "hay que indicar EXCLUSIVAMENTE la categoría
   // gramatical y el tipo" — género/número solo se preguntan si es común,
   // y sin subclases semánticas (contable/colectivo/abstracto: eso es N2).
+  // Formación solo tiene sentido si es común (los propios no se derivan/componen igual).
   'Sustantivo':{steps:[
     {id:'subtipo', label:'Clase', opts:[
       {val:'común',label:'Común'},{val:'propio',label:'Propio'}]},
@@ -697,6 +708,7 @@ const MORPH_CASCADES_MAESTRO = {
       {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'},{val:'ambiguo',label:'Ambiguo'}]},
     {id:'número', label:'Número', dependsOn:{step:'subtipo',val:'común'}, opts:[
       {val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]},
+    {...FORMACION_STEP, dependsOn:{step:'subtipo',val:'común'}},
   ]},
   // + terminación (una/dos/invariable) — dato nuevo, se aplica a calificativos y relacionales por igual.
   'Adjetivo':{steps:[
@@ -705,6 +717,7 @@ const MORPH_CASCADES_MAESTRO = {
       {val:'una terminación',label:'Una terminación (cambia en plural: feliz/felices)'},
       {val:'dos terminaciones',label:'Dos terminaciones (masc./fem.: alto/alta)'},
       {val:'invariable',label:'Invariable (no cambia en plural: gratis)'}]},
+    FORMACION_STEP,
   ]},
   // Aspecto pasa a opcional ("si dudas, no lo pongas, no penalizará" — el
   // doc PAU) + simple/compuesto para formas no personales (dato nuevo,
@@ -716,14 +729,177 @@ const MORPH_CASCADES_MAESTRO = {
     {id:'np_forma', label:'Simple / compuesto (forma no personal)', dependsOn:{step:'persona',val:'no personal'}, opts:[
       {val:'simple',label:'Simple (lograr, estudiando, vistas)'},
       {val:'compuesto',label:'Compuesto (haber logrado, habiendo llegado, habiendo sido visto)'}]},
+    FORMACION_STEP,
+  ]},
+  // Artículo es SIEMPRE determinante (no tiene atrs.función alternativo) —
+  // se le añade directamente aquí la taxonomía definido/cuantificador sin
+  // necesitar el dispatcher por atrs de más abajo.
+  'Artículo':{steps:[
+    {id:'tipo_det', label:'Tipo de determinante', opts:[
+      {val:'definido',label:'Definido'},{val:'cuantificador',label:'Cuantificador'}]},
+    ...MORPH_CASCADES['Artículo'].steps,
   ]},
 };
 
+// F6b (jul-2026): taxonomía PAU de determinantes (definido/cuantificador),
+// pospuestos tratados como Adjetivo (decisión 2 de Josele, §7 de la
+// propuesta) y "demás pronombres" con receta unificada. A diferencia del
+// resto de overrides de arriba, esto exige conocer atrs.función del TOKEN
+// real, no solo cat+nivel — de ahí que getCascadeForNivel reciba un tercer
+// parámetro `atrs` opcional. tipo_det no es un atributo real del banco: se
+// deriva de la categoría (ver TIPO_DET_POR_CATEGORIA / getEffectiveCorrectAtrs_).
+const MAESTRO_DISPATCH_CATS = ['Demostrativo','Posesivo','Cuantificador','Interrogativo/Exclamativo','Relativo'];
+
+const TIPO_DET_POR_CATEGORIA = {
+  'Artículo':'definido', 'Demostrativo':'definido', 'Posesivo':'definido',
+  'Cuantificador':'cuantificador', 'Interrogativo/Exclamativo':'cuantificador',
+  'Relativo':'definido', // "cuyo" = posesivo relativo, dentro de los DEFINIDOS (nota del doc PAU)
+};
+
+// El token real es la fuente de verdad para saber si es determinante,
+// aunque el alumno todavía no haya contestado nada.
+// Cuantificador guarda su función sintáctica en 'función_sint', no en
+// 'función' como el resto (Demostrativo/Posesivo/Interr.Excl./Relativo) —
+// bug real de nombre de campo detectado 2026-07-12 al implementar F6b.
+function getFuncionToken_(cat, atrs){
+  if(!atrs) return '';
+  return (cat === 'Cuantificador' ? atrs['función_sint'] : atrs['función']) || '';
+}
+
+function getEffectiveCorrectAtrs_(token){
+  const atrs = (token && token.atrs) || {};
+  const funcion = getFuncionToken_(token && token.cat, atrs);
+  const esDeterminante = token && (token.cat === 'Artículo' || funcion === 'determinante');
+  if(esDeterminante && TIPO_DET_POR_CATEGORIA[token.cat]){
+    return {...atrs, tipo_det: TIPO_DET_POR_CATEGORIA[token.cat]};
+  }
+  return atrs;
+}
+
+const TIPO_DET_STEP_ = {id:'tipo_det', label:'Tipo de determinante', opts:[
+  {val:'definido',label:'Definido'},{val:'cuantificador',label:'Cuantificador'}]};
+
+function buildMaestroDispatchCascade_(cat, atrs){
+  const funcion = getFuncionToken_(cat, atrs);
+
+  if(funcion === 'determinante'){
+    if(cat==='Demostrativo') return {steps:[TIPO_DET_STEP_,
+      {id:'cercanía',label:'Referencia espacial',opts:[
+        {val:'cercanía al hablante',label:'Cercanía al hablante (este/a)'},
+        {val:'distancia media',label:'Distancia media (ese/a)'},
+        {val:'lejanía',label:'Lejanía (aquel/la)'}]},
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]}]};
+    if(cat==='Posesivo') return {steps:[TIPO_DET_STEP_,
+      {id:'persona',label:'Persona del poseedor',opts:[
+        {val:'primera persona',label:'1ª persona'},{val:'segunda persona',label:'2ª persona'},{val:'tercera persona',label:'3ª persona'}]},
+      {id:'poseedores',label:'Nº de poseedores',opts:[
+        {val:'un poseedor',label:'Un poseedor'},{val:'varios poseedores',label:'Varios poseedores'}]},
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]}]};
+    if(cat==='Cuantificador') return {steps:[TIPO_DET_STEP_,
+      {id:'tipo',label:'Tipo',opts:[
+        {val:'numeral',label:'Numeral (cantidad precisa)'},{val:'indefinido',label:'Indefinido (cantidad imprecisa)'}]},
+      {id:'subtipo_num',label:'Clase de numeral',dependsOn:{step:'tipo',val:'numeral'},opts:[
+        {val:'cardinal',label:'Cardinal'},{val:'ordinal',label:'Ordinal'},{val:'fraccionario',label:'Fraccionario'},{val:'multiplicativo',label:'Multiplicativo'}]},
+      {id:'subtipo_ind',label:'Clase de indefinido',dependsOn:{step:'tipo',val:'indefinido'},opts:[
+        {val:'universal',label:'Universal (todo, cada, ambos, sendos)'},{val:'indefinido débil',label:'Indefinido débil (alguno, mucho, poco…)'}]},
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'},{val:'neutro',label:'Neutro'},{val:'invariable',label:'Invariable'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]}]};
+    if(cat==='Interrogativo/Exclamativo') return {steps:[TIPO_DET_STEP_,
+      {id:'tipo',label:'Tipo',opts:[
+        {val:'interrogativo',label:'Interrogativo'},{val:'exclamativo',label:'Exclamativo'}]},
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'},{val:'invariable',label:'Invariable'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'},{val:'invariable',label:'Invariable'}]}]};
+    if(cat==='Relativo') return {steps:[TIPO_DET_STEP_,
+      // "cuyo" — un solo caso real, sin tipo específico propio que preguntar
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]}]};
+  }
+
+  if(funcion === 'adjetivo'){
+    // Pospuesto: "el doc los analiza como adjetivos con receta propia"
+    // (decisión 2 de Josele, §7): demostrativo/posesivo pospuestos = Adjetivo.
+    if(cat==='Demostrativo') return {steps:[
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]}]};
+    if(cat==='Posesivo') return {steps:[
+      {id:'persona',label:'Persona del poseedor',opts:[
+        {val:'primera persona',label:'1ª persona'},{val:'segunda persona',label:'2ª persona'},{val:'tercera persona',label:'3ª persona'}]},
+      {id:'poseedores',label:'Nº de poseedores',opts:[
+        {val:'un poseedor',label:'Un poseedor'},{val:'varios poseedores',label:'Varios poseedores'}]},
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]}]};
+    if(cat==='Cuantificador') return {steps:[
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'},{val:'neutro',label:'Neutro'},{val:'invariable',label:'Invariable'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]}]};
+  }
+
+  if(funcion === 'pronombre'){
+    // "Demás pronombres": tipo (si cuantificador, subtipo) → género →
+    // número — CUATRO aspectos en el cuantificador (el caso más completo
+    // del doc PAU); los demás se quedan en género+número (o tipo+género+
+    // número en interr./excl., que sí distingue interrogativo/exclamativo).
+    if(cat==='Cuantificador') return {steps:[
+      {id:'tipo',label:'Tipo',opts:[
+        {val:'numeral',label:'Numeral (cantidad precisa)'},{val:'indefinido',label:'Indefinido (cantidad imprecisa)'}]},
+      {id:'subtipo_num',label:'Clase de numeral',dependsOn:{step:'tipo',val:'numeral'},opts:[
+        {val:'cardinal',label:'Cardinal'},{val:'ordinal',label:'Ordinal'},{val:'fraccionario',label:'Fraccionario'},{val:'multiplicativo',label:'Multiplicativo'}]},
+      {id:'subtipo_ind',label:'Clase de indefinido',dependsOn:{step:'tipo',val:'indefinido'},opts:[
+        {val:'universal',label:'Universal (todo, cada, ambos, sendos)'},{val:'indefinido débil',label:'Indefinido débil (alguno, mucho, poco…)'}]},
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'},{val:'neutro',label:'Neutro'},{val:'invariable',label:'Invariable'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]}]};
+    if(cat==='Demostrativo') return {steps:[
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'},{val:'neutro',label:'Neutro (esto, eso, aquello)'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'}]}]};
+    if(cat==='Relativo') return {steps:[
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'},{val:'invariable',label:'Invariable (que)'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'},{val:'invariable',label:'Invariable (que)'}]}]};
+    if(cat==='Interrogativo/Exclamativo') return {steps:[
+      {id:'tipo',label:'Tipo',opts:[
+        {val:'interrogativo',label:'Interrogativo'},{val:'exclamativo',label:'Exclamativo'}]},
+      {id:'género',label:'Género',opts:[
+        {val:'masculino',label:'Masculino'},{val:'femenino',label:'Femenino'},{val:'invariable',label:'Invariable'}]},
+      {id:'número',label:'Número',opts:[
+        {val:'singular',label:'Singular'},{val:'plural',label:'Plural'},{val:'invariable',label:'Invariable'}]}]};
+  }
+
+  return null; // p.ej. Relativo con función='adverbio' — cae al cascade normal (MORPH_CASCADES)
+}
+
 /** Helper: returns the correct cascade for the active level */
-function getCascadeForNivel(cat, nivel){
+function getCascadeForNivel(cat, nivel, atrs){
   if(nivel === 'aprendiz') return {steps:[]};
   if(nivel === 'eso34') return MORPH_CASCADES_ESO34[cat] || {steps:[]};
-  if(nivel === 'maestro') return MORPH_CASCADES_MAESTRO[cat] || MORPH_CASCADES[cat] || {steps:[]};
+  if(nivel === 'maestro'){
+    if(MAESTRO_DISPATCH_CATS.includes(cat)){
+      const dispatched = buildMaestroDispatchCascade_(cat, atrs);
+      if(dispatched) return dispatched;
+    }
+    return MORPH_CASCADES_MAESTRO[cat] || MORPH_CASCADES[cat] || {steps:[]};
+  }
   return MORPH_CASCADES[cat] || {steps:[]};
 }
 
@@ -743,13 +919,15 @@ function mapCategoriaN1_(cat, atrs) {
   if (cat === 'Artículo') return 'Determinante';
   if (cat === 'Pronombre personal') return 'Pronombre';
   if (N1_DET_PRON_CATS.includes(cat)) {
-    const funcion = (atrs && atrs['función']) || '';
+    // Cuantificador guarda la función en 'función_sint', no en 'función'
+    // como el resto — bug real corregido 2026-07-12 (getFuncionToken_, F6b).
+    const funcion = getFuncionToken_(cat, atrs);
     if (funcion === 'adjetivo') return 'Adjetivo';
     if (funcion === 'pronombre') return 'Pronombre';
     return 'Determinante'; // función 'determinante' (o sin marcar, caso más frecuente)
   }
   if (cat === 'Relativo') {
-    const funcion = (atrs && atrs['función']) || '';
+    const funcion = getFuncionToken_(cat, atrs);
     if (funcion === 'adverbio') return 'Adverbio';
     if (funcion === 'determinante') return 'Determinante';
     return 'Pronombre'; // función 'pronombre' (caso más frecuente: que, quien…)
@@ -1274,6 +1452,16 @@ function getCategoryHint(cat){
   return hints[cat] || 'Identifica la categoría gramatical de esta palabra.';
 }
 
+// F6b: atrs del token que se está analizando ahora mismo — lo necesita
+// getCascadeForNivel para el dispatch por atrs.función en N3 (determinantes/
+// pospuestos/demás pronombres). El propio `token` no siempre está a mano en
+// estas funciones (solo cat+nivel), así que se recupera de MM.
+function getActiveTokenAtrs_(){
+  const sent = MM.sentences && MM.sentences[MM.idx];
+  const token = sent && sent.tokens && sent.tokens[MM.tokenIdx];
+  return token ? token.atrs : undefined;
+}
+
 function selectCategory(chosen, correct){
   MM.currentCat = chosen;
   MM.currentAtrs = {};
@@ -1281,7 +1469,7 @@ function selectCategory(chosen, correct){
   document.querySelectorAll('#casc-cat-opts .casc-btn').forEach(b=>{
     b.classList.toggle('cs-sel', b.textContent.trim()===chosen);
   });
-  const levelCascade = getCascadeForNivel(chosen, MM.nivel);
+  const levelCascade = getCascadeForNivel(chosen, MM.nivel, getActiveTokenAtrs_());
   if(levelCascade.steps.length === 0){
     // Aprendiz or no cascade: category only — enable confirm immediately
     const btn=document.getElementById('casc-confirm');
@@ -1293,7 +1481,7 @@ function selectCategory(chosen, correct){
 }
 
 function renderAttrSteps(cat){
-  const cascade = getCascadeForNivel(cat, MM.nivel);
+  const cascade = getCascadeForNivel(cat, MM.nivel, getActiveTokenAtrs_());
   if(!cascade){// C5 autoscroll attrs
     setTimeout(()=>document.getElementById('casc-attrs-area')?.scrollIntoView({behavior:'smooth',block:'nearest'}),120);
     document.getElementById('casc-attrs-area').innerHTML='';return;}
@@ -1328,7 +1516,7 @@ function selectAttr(stepId, val){
   document.getElementById(safeId)?.classList.add('cs-sel');
   // Re-render steps in case dependsOn are now resolved
   const cat = MM.currentCat;
-  const activeCascade = getCascadeForNivel(cat, MM.nivel);
+  const activeCascade = getCascadeForNivel(cat, MM.nivel, getActiveTokenAtrs_());
   if(cat && activeCascade.steps.length>0){
     const hasDeps = activeCascade.steps.some(s=>s.dependsOn?.step===stepId);
     if(hasDeps) renderAttrSteps(cat);
@@ -1343,7 +1531,7 @@ function checkConfirmReady(){
   if(!btn) return;
   const cat = MM.currentCat;
   if(!cat){btn.disabled=true;return;}
-  const cascade = getCascadeForNivel(cat, MM.nivel);
+  const cascade = getCascadeForNivel(cat, MM.nivel, getActiveTokenAtrs_());
   if(!cascade||cascade.steps.length===0){btn.disabled=false;return;}
   // All required steps (those whose dependsOn is met) must have a value.
   // F6a: step.optional (p.ej. aspecto en PAU) nunca bloquea el confirmar —
@@ -1373,8 +1561,10 @@ function confirmToken(){
   if(catCorrect){
     earned += 2;
     if(MM.nivel !== 'aprendiz'){
-      const correctAtrs = token.atrs || {};
-      const cascade = getCascadeForNivel(token.cat, MM.nivel);
+      // F6b: getEffectiveCorrectAtrs_ añade tipo_det (derivado de la
+      // categoría, no es un atributo real del banco) cuando el token es determinante.
+      const correctAtrs = getEffectiveCorrectAtrs_(token);
+      const cascade = getCascadeForNivel(token.cat, MM.nivel, token.atrs);
       cascade.steps.forEach(step=>{
         if(step.dependsOn){
           // Bug B fix: check what the STUDENT chose, not what's correct
@@ -1450,14 +1640,33 @@ function confirmToken(){
   updateMaestroHeader();
 }
 
+// F6b (jul-2026): «respuesta PAU» en una línea — nota (c) del §4 de la
+// propuesta. Modela lo que el alumno escribiría en el examen («tu:
+// determinante, definido, posesivo, un poseedor, femenino, singular,
+// segunda persona»): categoría + valor CORRECTO (no el elegido por el
+// alumno) de cada paso aplicable de la cascada, en el orden de la cascada.
+// Solo tiene sentido en N3 — se llama solo desde ese nivel.
+function buildRespuestaPAU_(token, cascade, correctAtrs){
+  const parts = [token.cat.toLowerCase()];
+  cascade.steps.forEach(step=>{
+    if(step.dependsOn){
+      const depVal = correctAtrs[step.dependsOn.step];
+      if(depVal !== step.dependsOn.val) return;
+    }
+    const val = correctAtrs[step.id];
+    if(val) parts.push(val);
+  });
+  return parts.join(', ');
+}
+
 function showTokenFeedback(token, catCorrect, earned, possible, displayCat){
   displayCat = displayCat || token.cat;
   const pct = possible>0?Math.round(earned/possible*100):0;
   const color = pct>=80?'#059669':pct>=50?'#D97706':'#DC2626';
   const bg    = pct>=80?'#F0FDF4':pct>=50?'#FFFBEB':'#FEF2F2';
   const bdr   = pct>=80?'#A7F3D0':pct>=50?'#FCD34D':'#FCA5A5';
-  const cascade = getCascadeForNivel(token.cat, MM.nivel);
-  const correctAtrs = token.atrs||{};
+  const cascade = getCascadeForNivel(token.cat, MM.nivel, token.atrs);
+  const correctAtrs = getEffectiveCorrectAtrs_(token);
   let attrRows = cascade.steps
     .filter(s=>!s.dependsOn||(MM.currentAtrs[s.dependsOn.step]===s.dependsOn.val))
     .map(s=>{
@@ -1466,11 +1675,16 @@ function showTokenFeedback(token, catCorrect, earned, possible, displayCat){
       const normV = v => v==='contracción'?'contracta':v;
       const ok = normV(chosen)===normV(correct);
       return `<div style="font-size:.8rem;padding:3px 0;border-bottom:1px solid rgba(0,0,0,.05)">
-        <strong>${s.label}:</strong> 
+        <strong>${s.label}:</strong>
         <span style="color:${ok?'#059669':'#DC2626'}">${chosen}</span>
         ${ok?'':'<span style="color:var(--muted)"> (correcto: '+correct+')</span>'}
       </div>`;
     }).join('');
+  const respuestaPAU = (MM.nivel==='maestro' && catCorrect)
+    ? `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(0,0,0,.12);font-size:.78rem;color:var(--ink2)">
+        📝 <strong>Respuesta PAU:</strong> ${buildRespuestaPAU_(token, cascade, correctAtrs)}
+      </div>`
+    : '';
 
   document.getElementById('mm-cascade-wrap').innerHTML=`
     <div class="cascade-panel" style="border-color:${bdr};background:${bg}">
@@ -1484,6 +1698,7 @@ function showTokenFeedback(token, catCorrect, earned, possible, displayCat){
         </div>
       </div>
       ${attrRows}
+      ${respuestaPAU}
     </div>`;
 }
 
