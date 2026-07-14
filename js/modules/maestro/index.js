@@ -14,12 +14,17 @@
    playSuccess, playError, awardXP, trackError, _tone, goLogin,
    goModule. */
 
-// Identificador de la version de calificacion de morfologia (Fase 3.4,
-// jul-2026): la nota sigue siendo lineal (totalCorrect/totalAttempted),
-// sin la curva dura de examen que ya usa Simples — se deja anotado por si
-// se endurece mas adelante, para no mezclar sistemas de nota sin poder
-// distinguirlos en el Sheet.
-const VERSION_CALIFICACION_MORFO = '2026-07-07';
+// Identificador de la version de calificacion de morfologia. Se bumpea
+// cada vez que cambia el sistema de nota para poder distinguir resultados
+// en el Sheet (no mezclar escalas).
+//  - '2026-07-07': nota lineal (totalCorrect/totalAttempted), categoria 2 +
+//    1pt/rasgo, sin curva de examen.
+//  - '2026-07-14': F9 ponderacion. Rasgos discriminantes x2, categorias
+//    frontera 3, curva dura por palabra en examen. Ver getCategoryWeight_/
+//    getStepWeight_/examAttrCurve_ y confirmToken. DESPLEGAR AL CIERRE DE
+//    EVALUACION + avisar a los alumnos de la escala (requisito del
+//    documento Investigacion_evaluacion.md, igual que B1/B2 de Simples).
+const VERSION_CALIFICACION_MORFO = '2026-07-14';
 
 // ── MORPH CHALLENGES ─────────────────────────────────────────────────
 const MORPH_CHALLENGES = [
@@ -903,6 +908,60 @@ function getCascadeForNivel(cat, nivel, atrs){
   return MORPH_CASCADES[cat] || {steps:[]};
 }
 
+// ── F9 (jul-2026): ponderación de la nota ───────────────────────────────
+// Decisiones de Josele (2026-07-14), coherentes con el rediseño de
+// calificación de Simples/Compuestas ([[project-rediseno-calificacion]]):
+//  1. Rasgos DISCRIMINANTES (los que deciden la clase o su comportamiento:
+//     subtipo/clase, función/función_sint, tipo_det, voz, perífrasis y sus
+//     sub-pasos) pesan ×2; los AUTOMÁTICOS (género, número, persona,
+//     conjugación, tiempo, modo, grado, terminación, aspecto, cercanía,
+//     poseedores, formación, np_forma, acent, tipo…) pesan ×1.
+//  2. Categorías FRONTERA (obligan a decidir determinante/pronombre/adjetivo)
+//     pesan 3; el resto 2. En N1 (aprendiz) la categoría es plana: el alumno
+//     solo ve las 9 clases genéricas, no distingue las frontera.
+//  3. Curva DURA solo en examen, por palabra, sobre el bloque de rasgos (no
+//     la categoría, que es la puerta): 0 fallos→100%, 1→40%, 2→10%, 3+→0%.
+//     Práctica = lineal ponderada. Los rasgos opcionales (aspecto en PAU) no
+//     penalizan ni entran en la curva.
+// Afecta SOLO al cálculo de nota (MM.totalCorrect/totalAttempted). El
+// diagnóstico del profesor (catStats, tokens ok/err) sigue en puntos RAW
+// sin ponderar, para que "en qué categorías falla el alumno" no se distorsione.
+const MORPH_CATS_FRONTERA = new Set(['Demostrativo','Posesivo','Cuantificador','Relativo','Interrogativo/Exclamativo']);
+const MORPH_STEPS_DISCRIMINANTES = new Set(['subtipo','función','función_sint','tipo_det','voz','perífrasis','perif_tipo','perif_inf_clase','perif_modal','perif_tempo','perif_ger_info','perif_par_info']);
+const MORPH_PESO_CAT_FRONTERA = 3;
+const MORPH_PESO_CAT_BASE = 2;
+// Curva de examen por palabra (mismo espíritu que Simples 100/40/10/0). Un
+// único punto de ajuste si Josele quiere suavizarla (p.ej. [1,0.5,0.25,0]).
+const MORPH_EXAM_ATTR_CURVE = [1, 0.4, 0.1, 0]; // índice = nº de rasgos fallados; 3+ → 0
+
+function getCategoryWeight_(cat, nivel){
+  if(nivel === 'aprendiz') return MORPH_PESO_CAT_BASE; // plano: solo clase genérica
+  return MORPH_CATS_FRONTERA.has(cat) ? MORPH_PESO_CAT_FRONTERA : MORPH_PESO_CAT_BASE;
+}
+function getStepWeight_(stepId){
+  return MORPH_STEPS_DISCRIMINANTES.has(stepId) ? 2 : 1;
+}
+function examAttrCurve_(wrongCount){
+  return MORPH_EXAM_ATTR_CURVE[Math.min(wrongCount, MORPH_EXAM_ATTR_CURVE.length - 1)];
+}
+
+// F9 (jul-2026): valor CORRECTO de un paso según el banco, con el default
+// implícito de perífrasis. Devuelve undefined si el banco no tiene respuesta
+// para ese rasgo (p.ej. `terminación`/`formación` en tokens etiquetados
+// antes de F6a/F6b/F7). Un paso sin respuesta en el banco NO se pregunta ni
+// se puntúa — no es justo exigir algo que el banco aún no sabe, y el
+// etiquetado progresivo (F7) va activando esos pasos a medida que se rellenan.
+function morphCorrectVal_(stepId, correctAtrs){
+  const v = correctAtrs[stepId];
+  if(v !== undefined && v !== '') return v;
+  if(stepId === 'perífrasis') return 'no'; // default implícito histórico del banco
+  return undefined;
+}
+// ¿El banco tiene respuesta para este paso (aplicable ya por dependsOn)?
+function morphStepAnswerable_(step, correctAtrs){
+  return morphCorrectVal_(step.id, correctAtrs) !== undefined;
+}
+
 const CATEGORIES = Object.keys(MORPH_CASCADES);
 
 // F4 (jul-2026): N1 (aprendiz) reduce el inventario visible a las 9 clases
@@ -1261,7 +1320,12 @@ function renderMaestroText(){
           const sel = MM.selections[ei];
           const isActive = MM.tokenIdx === ei;
           if(sel){
-            const pct=sel.possible>0?Math.round(sel.earned/sel.possible*100):0;
+            // Coloreado por acierto RAW (rasgos bien / total), no por la nota
+            // ponderada — coherente con el panel de feedback. Fallback a
+            // earned/possible por si viniera de una sesión pre-F9.
+            const _p = sel.rawPossible!=null?sel.rawPossible:sel.possible;
+            const _e = sel.rawEarned!=null?sel.rawEarned:sel.earned;
+            const pct=_p>0?Math.round(_e/_p*100):0;
             const col=pct>=80?'#059669':pct>=50?'#D97706':'#DC2626';
             return '<span class="mm-token mm-done" style="color:'+col+';border-bottom:2px solid '+col+';cursor:default" title="'+t.cat+' — '+pct+'%">'+t.texto+'</span>';
           }
@@ -1461,6 +1525,13 @@ function getActiveTokenAtrs_(){
   const token = sent && sent.tokens && sent.tokens[MM.tokenIdx];
   return token ? token.atrs : undefined;
 }
+// F9: atrs correctos EFECTIVOS del token activo (con tipo_det derivado) —
+// para saber, al pintar la cascada, qué pasos tiene respuesta en el banco.
+function getActiveTokenEffectiveAtrs_(){
+  const sent = MM.sentences && MM.sentences[MM.idx];
+  const token = sent && sent.tokens && sent.tokens[MM.tokenIdx];
+  return token ? getEffectiveCorrectAtrs_(token) : {};
+}
 
 function selectCategory(chosen, correct){
   MM.currentCat = chosen;
@@ -1486,13 +1557,18 @@ function renderAttrSteps(cat){
     setTimeout(()=>document.getElementById('casc-attrs-area')?.scrollIntoView({behavior:'smooth',block:'nearest'}),120);
     document.getElementById('casc-attrs-area').innerHTML='';return;}
   const area = document.getElementById('casc-attrs-area');
-  let html='';
-  cascade.steps.forEach((step,si)=>{
+  const correctAtrs = getActiveTokenEffectiveAtrs_(); // F9: para no preguntar rasgos sin respuesta en el banco
+  let html='', shown=0;
+  cascade.steps.forEach((step)=>{
     // dependsOn check — show if dependency met
     if(step.dependsOn){
       const depVal = MM.currentAtrs[step.dependsOn.step];
       if(depVal !== step.dependsOn.val) return;
     }
+    // F9: no preguntar un rasgo que el banco no sabe (terminación/formación
+    // en tokens aún sin etiquetar) — se activa solo cuando se rellena.
+    if(!morphStepAnswerable_(step, correctAtrs)) return;
+    const si = shown++;
     html+=`<div class="cascade-step" id="cstep-${step.id}">
       <div class="cascade-label"><span>${si+2}</span>${step.label}</div>
       <div class="cascade-opts">
@@ -1533,15 +1609,18 @@ function checkConfirmReady(){
   if(!cat){btn.disabled=true;return;}
   const cascade = getCascadeForNivel(cat, MM.nivel, getActiveTokenAtrs_());
   if(!cascade||cascade.steps.length===0){btn.disabled=false;return;}
+  const correctAtrs = getActiveTokenEffectiveAtrs_();
   // All required steps (those whose dependsOn is met) must have a value.
   // F6a: step.optional (p.ej. aspecto en PAU) nunca bloquea el confirmar —
   // "si dudas, no lo pongas, no penalizará" (doc PAU).
+  // F9: los pasos sin respuesta en el banco no se muestran → tampoco se exigen.
   const allMet = cascade.steps.every(step=>{
     if(step.dependsOn){
       const depVal = MM.currentAtrs[step.dependsOn.step];
       if(depVal !== step.dependsOn.val) return true; // not required
     }
     if(step.optional) return true;
+    if(!morphStepAnswerable_(step, correctAtrs)) return true; // no preguntado
     return !!MM.currentAtrs[step.id];
   });
   btn.disabled = !allMet;
@@ -1556,47 +1635,77 @@ function confirmToken(){
   const displayCat = MM.nivel === 'aprendiz' ? mapCategoriaN1_(token.cat, token.atrs) : token.cat;
   const catCorrect = MM.currentCat === displayCat;
 
-  // Score: category = 2pts. Attributes only counted if category is correct (Bug A fix)
-  let earned = 0, possible = 2;
+  // Score — F9 (jul-2026): dos cómputos en paralelo.
+  //  · RAW (categoría 2 + 1pt/rasgo): diagnóstico del profesor y feedback al
+  //    alumno; NO cambia de significado respecto a antes de F9.
+  //  · WEIGHTED (categoría frontera 3 + rasgos discriminantes ×2 + curva de
+  //    examen): la nota real. Ver getCategoryWeight_/getStepWeight_/examAttrCurve_.
+  // Como antes, si la categoría es incorrecta el token vale 0 (la categoría
+  // es la puerta): raw = 0/2, weighted = 0/catW.
+  const catW = getCategoryWeight_(token.cat, MM.nivel);
+  let rawEarned = 0, rawPossible = 2;
+  let wEarned = 0, wPossible = catW;
   if(catCorrect){
-    earned += 2;
+    rawEarned += 2;
+    wEarned += catW;
     if(MM.nivel !== 'aprendiz'){
       // F6b: getEffectiveCorrectAtrs_ añade tipo_det (derivado de la
       // categoría, no es un atributo real del banco) cuando el token es determinante.
       const correctAtrs = getEffectiveCorrectAtrs_(token);
       const cascade = getCascadeForNivel(token.cat, MM.nivel, token.atrs);
+      const norm = v => v==='contracción'?'contracta':v;
+      let attrPossibleW = 0, attrEarnedW = 0, wrongCount = 0; // rasgos normales (entran en la curva)
+      let optEarnedW = 0, optPossibleW = 0;                    // rasgos opcionales (lineales, no penalizan)
       cascade.steps.forEach(step=>{
         if(step.dependsOn){
           // Bug B fix: check what the STUDENT chose, not what's correct
           const depVal = MM.currentAtrs[step.dependsOn.step];
           if(depVal !== step.dependsOn.val) return;
         }
+        // F9: rasgo sin respuesta en el banco → ni se pregunta ni se puntúa.
+        const correctVal = morphCorrectVal_(step.id, correctAtrs);
+        if(correctVal === undefined) return;
         const chosen = MM.currentAtrs[step.id];
-        // F6a: step.optional (aspecto en PAU) solo puntúa si el alumno lo
-        // respondió — dejarlo en blanco no resta ni suma "possible".
+        // F6a: step.optional (aspecto en PAU) en blanco no cuenta (ni raw ni ponderado).
         if(step.optional && !chosen) return;
-        possible++;
-        const correct = correctAtrs[step.id];
-        const norm = v => v==='contracción'?'contracta':v;
-        if(chosen && correct && norm(chosen) === norm(correct)) earned++;
+        const isCorrect = chosen && norm(chosen) === norm(correctVal);
+        // RAW: 1pt por rasgo aplicable respondido
+        rawPossible++;
+        if(isCorrect) rawEarned++;
+        // WEIGHTED
+        const w = getStepWeight_(step.id);
+        if(step.optional){
+          // "no penaliza": solo suma si acierta, nunca cuenta como fallo ni en la curva
+          optPossibleW += w;
+          if(isCorrect) optEarnedW += w;
+        } else {
+          attrPossibleW += w;
+          if(isCorrect) attrEarnedW += w; else wrongCount++;
+        }
       });
+      // Examen: curva dura por palabra sobre el bloque de rasgos normales.
+      // Práctica: lineal ponderada. Los opcionales van aparte (lineales).
+      const attrScore = (mode === 'exam')
+        ? attrPossibleW * examAttrCurve_(wrongCount)
+        : attrEarnedW;
+      wEarned += attrScore + optEarnedW;
+      wPossible += attrPossibleW + optPossibleW;
     }
   }
-  // If catCorrect=false: possible=2, earned=0 — clean score
 
-  MM.totalCorrect += earned;
-  MM.totalAttempted += possible;
+  MM.totalCorrect += wEarned;
+  MM.totalAttempted += wPossible;
   MM.doneTokens++;
-  // Track per-category stats
+  // Track per-category stats — en puntos RAW (diagnóstico sin ponderar)
   const _tcat = token.cat;
   if(!MM.catStats[_tcat]) MM.catStats[_tcat]={correct:0,total:0};
-  MM.catStats[_tcat].total += possible;
-  MM.catStats[_tcat].correct += earned;
-  MM.selections[MM.tokenIdx] = {cat:MM.currentCat, atrs:{...MM.currentAtrs}, earned, possible};
-  // Track global token-level results
+  MM.catStats[_tcat].total += rawPossible;
+  MM.catStats[_tcat].correct += rawEarned;
+  MM.selections[MM.tokenIdx] = {cat:MM.currentCat, atrs:{...MM.currentAtrs}, earned:wEarned, possible:wPossible, rawEarned, rawPossible};
+  // Track global token-level results — "sin error" = todos los rasgos RAW bien
   if(!MM._tokensOk) MM._tokensOk=0;
   if(!MM._tokensErr) MM._tokensErr=0;
-  if(earned===possible) MM._tokensOk++; else MM._tokensErr++;
+  if(rawEarned===rawPossible) MM._tokensOk++; else MM._tokensErr++;
   if(catCorrect) {
     playClick(); // C4B: click suave al confirmar (mismo sonido en examen: no revela nada)
     // Fase 3.1 (jul-2026): en examen, sin pop del token ni flash "¡categoría
@@ -1607,7 +1716,7 @@ function confirmToken(){
       if(MM.tokenIdx !== undefined && MM.tokenIdx !== null && MM.tokenIdx >= 0){
         popElement('mm-tk-' + MM.tokenIdx);
       }
-      const allCorrect = (earned === possible);
+      const allCorrect = (rawEarned === rawPossible);
       showCorrectFlash(allCorrect ? '¡' + displayCat + ' correcta!' : displayCat + ' (con detalles)');
     }
   }
@@ -1615,9 +1724,10 @@ function confirmToken(){
   // Re-render text flow to reflect done/active states
   renderMaestroText();
 
-  // Practice mode: show feedback panel
+  // Practice mode: show feedback panel — puntos RAW (lo que el alumno ve
+  // como "X de Y rasgos", sin los pesos internos de la nota).
   if(mode==='practice'){
-    showTokenFeedback(token, catCorrect, earned, possible, displayCat);
+    showTokenFeedback(token, catCorrect, rawEarned, rawPossible, displayCat);
   } else {
     document.getElementById('mm-cascade-wrap').innerHTML='';
   }
@@ -1625,9 +1735,11 @@ function confirmToken(){
   // Check if all tokens done
   const allDone = sent.tokens.every((_,i)=>MM.selections[i]!==undefined);
   if(allDone){
-    // Fire progression (XP + mission + combo celebrations) for this text
+    // Fire progression (XP + mission + combo celebrations) for this text.
+    // Errores = huecos RAW (nº de rasgos fallados), no la nota ponderada —
+    // el XP/misiones miden esfuerzo, no dureza de examen.
     try{
-      const textErrors = Object.values(MM.selections||{}).reduce((a,s)=>a+Math.max(0,(s.possible||0)-(s.earned||0)),0);
+      const textErrors = Object.values(MM.selections||{}).reduce((a,s)=>a+Math.max(0,(s.rawPossible||0)-(s.rawEarned||0)),0);
       const sentObj = { funciones_presentes: [] }; // morphology has no function tags
       onSentenceCompleted(sentObj, textErrors);
     }catch(e){console.warn('[morph progress]',e);}
@@ -1653,6 +1765,9 @@ function buildRespuestaPAU_(token, cascade, correctAtrs){
       const depVal = correctAtrs[step.dependsOn.step];
       if(depVal !== step.dependsOn.val) return;
     }
+    // Un verbo simple no menciona la perífrasis en la respuesta PAU: "verbo,
+    // no, primera…" es incorrecto. Solo se nombra si SÍ es perífrasis.
+    if(step.id === 'perífrasis' && (correctAtrs[step.id]||'no') === 'no') return;
     const val = correctAtrs[step.id];
     if(val) parts.push(val);
   });
@@ -1669,9 +1784,11 @@ function showTokenFeedback(token, catCorrect, earned, possible, displayCat){
   const correctAtrs = getEffectiveCorrectAtrs_(token);
   let attrRows = cascade.steps
     .filter(s=>!s.dependsOn||(MM.currentAtrs[s.dependsOn.step]===s.dependsOn.val))
+    // F9: no mostrar rasgos que no se preguntaron (sin respuesta en el banco).
+    .filter(s=>morphStepAnswerable_(s, correctAtrs))
     .map(s=>{
       const chosen = MM.currentAtrs[s.id]||'—';
-      const correct = correctAtrs[s.id]||'—';
+      const correct = morphCorrectVal_(s.id, correctAtrs)||'—';
       const normV = v => v==='contracción'?'contracta':v;
       const ok = normV(chosen)===normV(correct);
       return `<div style="font-size:.8rem;padding:3px 0;border-bottom:1px solid rgba(0,0,0,.05)">
