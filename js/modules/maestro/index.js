@@ -933,6 +933,11 @@ const MORPH_PESO_CAT_BASE = 2;
 // Curva de examen por palabra (mismo espíritu que Simples 100/40/10/0). Un
 // único punto de ajuste si Josele quiere suavizarla (p.ej. [1,0.5,0.25,0]).
 const MORPH_EXAM_ATTR_CURVE = [1, 0.4, 0.1, 0]; // índice = nº de rasgos fallados; 3+ → 0
+// Verbo tiene 8-9 pasos frente a los 3-5 del resto de categorías (F9,
+// 2026-07-14: Josele pidió suavizar solo aquí — un fallo aislado en un
+// verbo no debe pesar igual que en una palabra con la mitad de rasgos).
+// Curva más larga y más suave; a partir de 6 fallados ya se va a 0.
+const MORPH_EXAM_ATTR_CURVE_VERBO = [1, 0.65, 0.4, 0.25, 0.15, 0.05, 0];
 
 function getCategoryWeight_(cat, nivel){
   if(nivel === 'aprendiz') return MORPH_PESO_CAT_BASE; // plano: solo clase genérica
@@ -941,8 +946,9 @@ function getCategoryWeight_(cat, nivel){
 function getStepWeight_(stepId){
   return MORPH_STEPS_DISCRIMINANTES.has(stepId) ? 2 : 1;
 }
-function examAttrCurve_(wrongCount){
-  return MORPH_EXAM_ATTR_CURVE[Math.min(wrongCount, MORPH_EXAM_ATTR_CURVE.length - 1)];
+function examAttrCurve_(wrongCount, cat){
+  const curve = cat === 'Verbo' ? MORPH_EXAM_ATTR_CURVE_VERBO : MORPH_EXAM_ATTR_CURVE;
+  return curve[Math.min(wrongCount, curve.length - 1)];
 }
 
 // F9 (jul-2026): valor CORRECTO de un paso según el banco, con el default
@@ -1686,7 +1692,7 @@ function confirmToken(){
       // Examen: curva dura por palabra sobre el bloque de rasgos normales.
       // Práctica: lineal ponderada. Los opcionales van aparte (lineales).
       const attrScore = (mode === 'exam')
-        ? attrPossibleW * examAttrCurve_(wrongCount)
+        ? attrPossibleW * examAttrCurve_(wrongCount, token.cat)
         : attrEarnedW;
       wEarned += attrScore + optEarnedW;
       wPossible += attrPossibleW + optPossibleW;

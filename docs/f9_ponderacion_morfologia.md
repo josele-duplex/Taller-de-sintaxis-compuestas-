@@ -61,11 +61,24 @@ no muestra "no" para verbos simples.
 - Texto n3 completo fallando 1 rasgo automático de cada 3 palabras: práctica 9.5,
   **examen 8.7**, viejo 9.4.
 
-⚠ **Aviso ya trasladado a Josele:** la curva dura es notablemente severa en los
-verbos (8 rasgos): **1 solo fallo → 55% de la palabra en examen**. Es lo que pidió
-("curva dura, como en Simples"), pero si al verlo en un examen real resulta
-excesivo, suavizar es cambiar UNA línea: `MORPH_EXAM_ATTR_CURVE`, p.ej.
-`[1, 0.5, 0.25, 0]` (1 fallo→62%, 2→44%) o `[1, 0.6, 0.35, 0.1]` (1 fallo→70%).
+⚠→✅ **Aviso trasladado a Josele y ya resuelto (2026-07-14, mismo día):** la
+curva dura era severa en verbos (1 fallo → 55%). Confirmado que era por tener
+8-9 rasgos frente a los 3-5 del resto — **suavizada solo para Verbo**
+(`MORPH_EXAM_ATTR_CURVE_VERBO`), el resto de categorías conserva la curva
+original sin cambios:
+
+| Fallos | Verbo (curva suave) | Resto de categorías (curva dura, sin cambio) |
+|---|---|---|
+| 0 | 100% | 100% |
+| 1 | **74%** (antes 55%) | 57% |
+| 2 | **55%** | 36% |
+| 3 | **44%** | 29% |
+| 4 | 36% | — |
+| 5 | 29% | — |
+| 6+ | 25%→0% | — |
+
+Verificado en preview: "asumió" (Verbo, 7 rasgos respondidos correctos) → 10/10
+sin errores de consola.
 
 ## Vinculación
 
