@@ -1,116 +1,83 @@
 # -*- coding: utf-8 -*-
 """
-Genera el favicon de Taller de Sintaxis a partir de vectores propios (no
-escala una imagen existente). Un solo isotipo (plumilla) sobre fondo solido
-de marca, renderizado en alta resolucion y reducido con LANCZOS a cada
-tamano final -- criterio "pixel-perfect" en vez de un unico PNG escalado.
+Genera el favicon y los iconos de app de Taller de Sintaxis a partir del
+arte fuente en assets/Nuevas_imagenes/ (pluma + doble helice, sobre badge
+circular blanco), recortado y reducido con LANCZOS a cada tamano final.
 
 Uso: python scripts/make_favicon.py   (desde la raiz del repo)
 
-Dos variantes del isotipo, no una sola escalada:
-  - "simple"  (16px y favicon.svg): silueta pura, sin ranura ni orificio --
-    a ese tamano el detalle interno se convierte en ruido y arruina la
-    silueta (verificado: con detalle, a 16px se leia como una mancha).
-  - "detalle" (32px en adelante): anade la ranura central + el orificio,
-    perfectamente legibles a partir de ahi.
+Sustituye al enfoque anterior (isotipo dibujado por vectores propios en
+PIL): el nuevo diseno viene ya como artwork terminado (encargo de Josele),
+no como forma parametrica, asi que aqui solo se recorta/escala -- no se
+inventan formas nuevas. Si cambia el artwork fuente, sustituye el PNG en
+assets/Nuevas_imagenes/ y vuelve a ejecutar este script; no edites los
+PNG/ICO/SVG de salida a mano.
 
-Colores: los YA declarados como marca oficial en manifest.json / meta
-theme-color de index.html -- no son una eleccion nueva de este script.
-  theme_color      #102A43  (navy "petroleo" -- fondo solido)
-  background_color #F5F1E8  (pergamino/crema -- color del isotipo)
-
-Para regenerar tras cambiar algun color o proporcion, edita este archivo y
-vuelve a ejecutarlo -- no edites los PNG/ICO a mano.
+Un unico recorte cuadrado centrado (mismo encuadre para todos los tamanos,
+igual que en la lamina de referencia del disenador) en vez de recortes
+distintos por tamano -- a 16/32px el detalle interno (helice) se pierde y
+se lee como una mancha de color, pero es el mismo compromiso que acepto el
+propio archivo de referencia del disenador (Icónos y favicon.png).
 """
-from PIL import Image, ImageDraw
+from PIL import Image
+import base64
+import io
+import os
 
-NAVY = (16, 42, 67, 255)      # #102A43
-CREAM = (245, 241, 232, 255)  # #F5F1E8
-SS = 8  # factor de supersampling
+SRC = 'assets/Nuevas_imagenes/Logo portada pluma y doble hélice.png'
+OUT = 'assets'
 
-def bezier(p0, p1, p2, p3, steps=40):
-    pts = []
-    for i in range(steps + 1):
-        t = i / steps
-        mt = 1 - t
-        x = (mt**3)*p0[0] + 3*(mt**2)*t*p1[0] + 3*mt*(t**2)*p2[0] + (t**3)*p3[0]
-        y = (mt**3)*p0[1] + 3*(mt**2)*t*p1[1] + 3*mt*(t**2)*p2[1] + (t**3)*p3[1]
-        pts.append((x, y))
-    return pts
+# Centro y semilado del recorte cuadrado sobre el lienzo fuente (1254x1254):
+# deja un margen blanco similar al de la lamina de referencia del disenador.
+CX, CY, HALF = 627, 627, 545
 
-def nib_path(cx, cy, scale):
-    """Plumilla: cuerpo redondeado arriba que se afila en una punta larga y
-    marcada hacia abajo (mas daga/kite que gota) -- silueta que no se
-    confunde con una ficha/pick generica y llena bien el marco. Mismas
-    coordenadas (viewBox 0 0 128 128, scale=1) que assets/favicon.svg --
-    si tocas esto, actualiza tambien el <path> del SVG a mano."""
-    def P(x, y):
-        return (cx + x * scale, cy + y * scale)
 
-    top      = P(0, -46)
-    r_ctrl1  = P(36, -46)
-    r_ctrl2  = P(42, -20)
-    r_mid    = P(34, 2)
-    r_ctrl3  = P(24, 22)
-    tip      = P(0, 54)
-    l_ctrl3  = P(-24, 22)
-    l_mid    = P(-34, 2)
-    l_ctrl2  = P(-42, -20)
-    l_ctrl1  = P(-36, -46)
+def load_master():
+    src = Image.open(SRC).convert('RGB')
+    return src.crop((CX - HALF, CY - HALF, CX + HALF, CY + HALF))
 
-    pts = []
-    pts += bezier(top, r_ctrl1, r_ctrl2, r_mid, 28)
-    pts += bezier(r_mid, r_ctrl3, r_ctrl3, tip, 24)
-    pts += bezier(tip, l_ctrl3, l_ctrl3, l_mid, 24)
-    pts += bezier(l_mid, l_ctrl2, l_ctrl1, top, 28)
-    return pts
 
-def draw_master(size, detail=True):
-    hi = size * SS
-    img = Image.new('RGBA', (hi, hi), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
+def save_png(master, size, path):
+    master.resize((size, size), Image.LANCZOS).save(path, optimize=True)
+    print('OK', path, size)
 
-    radius = hi * 0.225
-    d.rounded_rectangle([0, 0, hi - 1, hi - 1], radius=radius, fill=NAVY)
 
-    cx, cy = hi / 2, hi * 0.5
-    scale = hi / 128.0
+def save_svg(master, path, size=256):
+    """SVG valido que envuelve el PNG (raster) via <image> base64 -- no hay
+    fuente vectorial del nuevo diseno, pero mantiene el favicon.svg
+    funcionando para navegadores que lo priorizan."""
+    render = master.resize((size, size), Image.LANCZOS)
+    buf = io.BytesIO()
+    render.save(buf, format='PNG')
+    b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}" '
+        f'role="img" aria-label="Taller de Sintaxis">\n'
+        f'  <title>Taller de Sintaxis</title>\n'
+        f'  <image href="data:image/png;base64,{b64}" x="0" y="0" '
+        f'width="{size}" height="{size}"/>\n'
+        f'</svg>\n'
+    )
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(svg)
+    print('OK', path)
 
-    pts = nib_path(cx, cy, scale)
-    d.polygon(pts, fill=CREAM)
-
-    if detail:
-        slit_w = 2.8 * scale
-        d.line([(cx, cy - 9 * scale), (cx, cy + 48 * scale)], fill=NAVY, width=max(1, int(slit_w)))
-        hole_r = 5.2 * scale
-        hy = cy - 14 * scale
-        d.ellipse([cx - hole_r, hy - hole_r, cx + hole_r, hy + hole_r], fill=NAVY)
-
-    return img.resize((size, size), Image.LANCZOS)
-
-def save(img, path):
-    img.save(path)
-    print('OK', path, img.size)
 
 if __name__ == '__main__':
-    import os
-    out = 'assets'
-    os.makedirs(out, exist_ok=True)
+    os.makedirs(OUT, exist_ok=True)
+    master = load_master()
 
-    png16  = draw_master(16,  detail=False)  # silueta pura, sin ruido
-    png32  = draw_master(32,  detail=True)
-    png180 = draw_master(180, detail=True)
-    png512 = draw_master(512, detail=True)
+    save_png(master, 16,   f'{OUT}/favicon-16.png')
+    save_png(master, 32,   f'{OUT}/favicon-32.png')
+    save_png(master, 180,  f'{OUT}/favicon-180.png')
+    save_png(master, 512,  f'{OUT}/favicon-512.png')
+    save_png(master, 1024, f'{OUT}/logo_2.png')
+    save_png(master, 1254, f'{OUT}/logo.png')
 
-    save(png16,  f'{out}/favicon-16.png')
-    save(png32,  f'{out}/favicon-32.png')
-    save(png180, f'{out}/favicon-180.png')
-    save(png512, f'{out}/favicon-512.png')
+    frames = [master.resize((s, s), Image.LANCZOS) for s in (16, 32, 48)]
+    frames[0].save(f'{OUT}/favicon.ico', format='ICO',
+                    sizes=[(16, 16), (32, 32), (48, 48)],
+                    append_images=frames[1:])
+    print('OK', f'{OUT}/favicon.ico')
 
-    # .ico multi-resolucion: cada tamano con su propio render (no un unico
-    # escalado), mismo criterio "pixel-perfect" que el resto.
-    ico_frames = [draw_master(16, detail=False), draw_master(32, detail=True), draw_master(48, detail=True)]
-    ico_frames[0].save(f'{out}/favicon.ico', format='ICO',
-                        sizes=[(16, 16), (32, 32), (48, 48)],
-                        append_images=ico_frames[1:])
-    print('OK', f'{out}/favicon.ico')
+    save_svg(master, f'{OUT}/favicon.svg')
