@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Genera el favicon y los iconos de app de Taller de Sintaxis a partir del
-arte fuente en assets/Nuevas_imagenes/ (pluma + doble helice, sobre badge
-circular blanco), recortado y reducido con LANCZOS a cada tamano final.
+arte fuente en assets/Nuevas_imagenes/ (monograma T/S + hoja/helice + nodos,
+sobre tarjeta blanca redondeada), recortado y reducido con LANCZOS a cada
+tamano final.
 
 Uso: python scripts/make_favicon.py   (desde la raiz del repo)
 
@@ -13,23 +14,27 @@ inventan formas nuevas. Si cambia el artwork fuente, sustituye el PNG en
 assets/Nuevas_imagenes/ y vuelve a ejecutar este script; no edites los
 PNG/ICO/SVG de salida a mano.
 
-Un unico recorte cuadrado centrado (mismo encuadre para todos los tamanos,
-igual que en la lamina de referencia del disenador) en vez de recortes
-distintos por tamano -- a 16/32px el detalle interno (helice) se pierde y
-se lee como una mancha de color, pero es el mismo compromiso que acepto el
-propio archivo de referencia del disenador (Icónos y favicon.png).
+Un unico recorte cuadrado centrado (mismo encuadre para todos los tamanos)
+en vez de recortes distintos por tamano. OJO resolucion: el archivo fuente
+es una lamina de presentacion de 1254x1254 con varias muestras de tamano
+dibujadas dentro del mismo lienzo -- el glifo real del "favicon principal"
+mide ~440x440px efectivos (no 512 ni 1024 como sugieren sus etiquetas), asi
+que favicon-512/logo_2/logo.png llevan un escalado hacia arriba (~1.2x-2.8x)
+desde esa resolucion. Aceptado por Josele (ver conversacion): al ser un
+diseno plano de formas solidas, no textura fina, el upscale con LANCZOS no
+se nota mal salvo mirando muy de cerca.
 """
 from PIL import Image
 import base64
 import io
 import os
 
-SRC = 'assets/Nuevas_imagenes/Logo portada pluma y doble hélice.png'
+SRC = 'assets/Nuevas_imagenes/Nuevos favicon e iconos.png'
 OUT = 'assets'
 
 # Centro y semilado del recorte cuadrado sobre el lienzo fuente (1254x1254):
-# deja un margen blanco similar al de la lamina de referencia del disenador.
-CX, CY, HALF = 627, 627, 545
+# glifo del "favicon principal" sin el borde/sombra de la tarjeta redondeada.
+CX, CY, HALF = 271, 320, 220
 
 
 def load_master():

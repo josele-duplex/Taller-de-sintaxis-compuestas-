@@ -15,7 +15,7 @@
 
    Para forzar que los usuarios recojan cambios grandes de golpe (en vez de
    ir refrescándose visita a visita), sube el número de CACHE_NAME. */
-const CACHE_NAME = 'taller-sintaxis-shell-v2';
+const CACHE_NAME = 'taller-sintaxis-shell-v3';
 
 const SHELL_ASSETS = [
   './',
