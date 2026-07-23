@@ -1,0 +1,310 @@
+<style>
+  :root{
+    --paper:#F4F1E9; --panel:#FBF9F3; --ink:#16283B; --ink-soft:#3C4A57;
+    --muted:#697680; --line:#E1DACA; --line-strong:#D2C9B4;
+    --teal:#0F766E; --teal-ink:#0B5A54;
+    --fn-suj:#2563EB; --fn-v:#0F766E; --fn-cd:#B45309; --fn-ci:#7C3AED; --fn-cc:#15803D;
+    --shadow:0 1px 2px rgba(22,40,59,.04), 0 12px 34px -18px rgba(22,40,59,.20);
+    --serif:ui-serif,"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace;
+
+    /* Screenshot chrome — fixed light palette (matches the real app UI,
+       does NOT follow the reader's theme: a captured screenshot doesn't
+       repaint itself, same as a product photo). */
+    --shot-frame:#DDD6C4; --shot-dot1:#E8A0A0; --shot-dot2:#E8CE9E; --shot-dot3:#A9D8B4;
+    --shot-bg:#F7F5EE; --shot-navy:#152A42; --shot-navy-ink:#CBD5E1;
+    --shot-ok-bg:#EFF9F3; --shot-ok-line:#B9E4C9; --shot-ok-ink:#1D7A46;
+    --shot-suj:#2563EB; --shot-suj-bg:#E3ECFC;
+    --shot-v:#0F766E; --shot-v-bg:#DCF3EE;
+    --shot-cd:#B45309; --shot-cd-bg:#FBEADA;
+    --shot-ci:#7C3AED; --shot-ci-bg:#EFE6FB;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#111820; --panel:#161F29; --ink:#ECE6D8; --ink-soft:#C3CBD3;
+      --muted:#8B98A2; --line:#26313C; --line-strong:#33414E;
+      --teal:#5AD1C6; --teal-ink:#7FE0D7;
+      --fn-suj:#6EA8FA; --fn-v:#5AD1C6; --fn-cd:#E0A458; --fn-ci:#B39BEC; --fn-cc:#63C083;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 18px 40px -20px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#F4F1E9; --panel:#FBF9F3; --ink:#16283B; --ink-soft:#3C4A57; --muted:#697680;
+    --line:#E1DACA; --line-strong:#D2C9B4; --teal:#0F766E; --teal-ink:#0B5A54;
+    --fn-suj:#2563EB; --fn-v:#0F766E; --fn-cd:#B45309; --fn-ci:#7C3AED; --fn-cc:#15803D;
+    --shadow:0 1px 2px rgba(22,40,59,.04), 0 12px 34px -18px rgba(22,40,59,.20);
+  }
+  :root[data-theme="dark"]{
+    --paper:#111820; --panel:#161F29; --ink:#ECE6D8; --ink-soft:#C3CBD3; --muted:#8B98A2;
+    --line:#26313C; --line-strong:#33414E; --teal:#5AD1C6; --teal-ink:#7FE0D7;
+    --fn-suj:#6EA8FA; --fn-v:#5AD1C6; --fn-cd:#E0A458; --fn-ci:#B39BEC; --fn-cc:#63C083;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 18px 40px -20px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0}
+  .page{
+    background:var(--paper); color:var(--ink);
+    font-family:var(--sans); line-height:1.6;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    padding:clamp(28px,6vw,72px) clamp(20px,5vw,40px);
+    display:flex; justify-content:center;
+  }
+  .wrap{width:100%; max-width:760px}
+
+  .eyebrow{
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--teal-ink); margin:0 0 20px;
+  }
+  .wordmark{
+    font-family:var(--serif); font-weight:600; color:var(--ink);
+    font-size:.98rem; letter-spacing:.01em; display:flex; align-items:center; gap:9px;
+    margin:0 0 34px;
+  }
+  .wordmark .nib{color:var(--teal)}
+  .rule{height:1px; background:var(--line); border:0; margin:0}
+
+  h1{
+    font-family:var(--serif); font-weight:600; color:var(--ink);
+    font-size:clamp(1.9rem,5.2vw,2.9rem); line-height:1.12; letter-spacing:-.01em;
+    text-wrap:balance; margin:0 0 18px;
+  }
+  h1 em{font-style:italic; color:var(--teal-ink)}
+  .lead{
+    font-size:clamp(1.02rem,2.4vw,1.18rem); color:var(--ink-soft);
+    max-width:60ch; margin:0 0 34px;
+  }
+
+  /* ── Sentence-analysis hero: recreated app screenshot ──
+     A "browser chrome" frame around the app's real card design (colors,
+     labels and layout match the running application), not an invented
+     illustration. Fixed light palette on purpose — see --shot-* tokens. */
+  .shot{
+    border-radius:14px; overflow:hidden; box-shadow:var(--shadow);
+    border:1px solid var(--shot-frame); margin:0 0 12px;
+  }
+  .shot-bar{
+    background:var(--shot-frame); padding:10px 14px; display:flex; align-items:center; gap:8px;
+  }
+  .shot-bar .dot{width:9px; height:9px; border-radius:50%}
+  .shot-bar .dot:nth-child(1){background:var(--shot-dot1)}
+  .shot-bar .dot:nth-child(2){background:var(--shot-dot2)}
+  .shot-bar .dot:nth-child(3){background:var(--shot-dot3)}
+  .shot-bar .title{
+    font-family:var(--sans); font-size:.72rem; color:#6B6455; margin-left:6px;
+  }
+  .shot-nav{
+    background:var(--shot-navy); color:var(--shot-navy-ink); padding:12px 18px;
+    display:flex; flex-wrap:wrap; gap:6px 16px; align-items:center;
+    font-family:var(--sans); font-size:.76rem;
+  }
+  .shot-nav .step{color:#7FE0D7; font-weight:700}
+  .shot-nav .step.now{color:#fff; background:rgba(255,255,255,.12); padding:4px 10px; border-radius:7px}
+  .shot-body{background:var(--shot-bg); padding:clamp(20px,4vw,30px)}
+  .shot-ok{
+    display:inline-block; background:var(--shot-ok-bg); border:1px solid var(--shot-ok-line);
+    color:var(--shot-ok-ink); font-family:var(--sans); font-size:.78rem; font-weight:700;
+    border-radius:8px; padding:7px 13px; margin:0 0 16px;
+  }
+  .shot-cards{display:flex; flex-wrap:wrap; gap:12px}
+  .shot-card{
+    background:var(--shot-ok-bg); border:1.5px solid var(--shot-ok-line); border-radius:11px;
+    padding:14px 16px; flex:1 1 150px; min-width:150px;
+  }
+  .shot-card .words{
+    font-family:var(--serif); font-size:1.05rem; color:#1E293B; margin:0 0 10px; text-wrap:balance;
+  }
+  .shot-card .badge{
+    display:inline-flex; flex-direction:column; align-items:center; gap:2px;
+    border-radius:8px; padding:6px 16px 8px; width:100%;
+  }
+  .shot-card .badge .fn{font-family:var(--sans); font-weight:800; font-size:.92rem}
+  .shot-card .badge .syn{font-family:var(--mono); font-size:.62rem; opacity:.75}
+  .shot-card .badge .ck{font-size:.7rem; margin-top:2px; opacity:.8}
+  .shot-card.suj .badge{background:var(--shot-suj-bg); color:var(--shot-suj)}
+  .shot-card.v .badge{background:var(--shot-v-bg); color:var(--shot-v)}
+  .shot-card.cd .badge{background:var(--shot-cd-bg); color:var(--shot-cd)}
+  .shot-card.ci .badge{background:var(--shot-ci-bg); color:var(--shot-ci)}
+  .caption{
+    font-size:.86rem; color:var(--muted); margin:16px 2px 46px; font-style:italic;
+    font-family:var(--serif);
+  }
+
+  /* ── Feature grid ── */
+  .sect-label{
+    font-family:var(--mono); font-size:.7rem; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--muted); margin:0 0 22px;
+  }
+  .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line);
+    border:1px solid var(--line); border-radius:14px; overflow:hidden; margin:0 0 46px}
+  .cell{background:var(--paper); padding:22px 22px 24px}
+  .cell h3{
+    font-family:var(--serif); font-size:1.12rem; font-weight:600; color:var(--ink);
+    margin:0 0 7px; letter-spacing:-.005em;
+  }
+  .cell p{font-size:.92rem; color:var(--ink-soft); margin:0}
+  .cell .n{
+    font-family:var(--mono); font-size:.66rem; letter-spacing:.1em; color:var(--teal-ink);
+    display:block; margin:0 0 12px;
+  }
+
+  /* ── Differentiator callout ── */
+  .callout{
+    border-left:3px solid var(--teal); padding:6px 0 6px 24px; margin:0 0 46px;
+  }
+  .callout h2{
+    font-family:var(--serif); font-weight:600; color:var(--ink);
+    font-size:clamp(1.3rem,3.2vw,1.7rem); line-height:1.2; margin:0 0 12px; text-wrap:balance;
+  }
+  .callout p{font-size:1.02rem; color:var(--ink-soft); margin:0; max-width:58ch}
+  .callout strong{color:var(--ink); font-weight:600}
+
+  /* ── Credibility strip ── */
+  .trust{
+    display:flex; flex-wrap:wrap; gap:10px; margin:0 0 46px;
+  }
+  .badge{
+    font-family:var(--mono); font-size:.74rem; letter-spacing:.03em; color:var(--ink-soft);
+    background:var(--panel); border:1px solid var(--line); border-radius:999px;
+    padding:8px 14px; display:inline-flex; align-items:center; gap:8px;
+  }
+  .badge .dot{width:6px; height:6px; border-radius:50%; background:var(--teal); flex:none}
+
+  /* ── Readiness note ── */
+  .note{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:24px 26px; margin:0 0 46px;
+  }
+  .note p{margin:0; color:var(--ink-soft); font-size:.98rem; max-width:62ch}
+  .note strong{color:var(--ink); font-weight:600}
+
+  /* ── CTA ── */
+  .cta{
+    border-top:1px solid var(--line-strong); padding-top:34px; margin:0 0 40px;
+  }
+  .cta h2{
+    font-family:var(--serif); font-weight:600; font-size:clamp(1.25rem,3vw,1.55rem);
+    color:var(--ink); margin:0 0 20px; text-wrap:balance;
+  }
+  .actions{display:flex; flex-direction:column; gap:12px}
+  .action{
+    display:flex; align-items:baseline; gap:12px; font-size:1rem; color:var(--ink-soft);
+  }
+  .action .k{
+    font-family:var(--mono); font-size:.68rem; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--teal-ink); flex:none; width:104px; padding-top:2px;
+  }
+  .ph{
+    color:var(--teal-ink); font-weight:600; border-bottom:1.5px dashed var(--line-strong);
+  }
+
+  footer{
+    border-top:1px solid var(--line); padding-top:22px; color:var(--muted); font-size:.86rem;
+    display:flex; flex-wrap:wrap; gap:6px 18px; align-items:baseline;
+  }
+  footer .name{font-family:var(--serif); color:var(--ink-soft); font-size:.95rem}
+
+  @media (max-width:560px){
+    .grid{grid-template-columns:1fr}
+    .action{flex-direction:column; gap:3px}
+    .action .k{width:auto}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .reveal{opacity:0; transform:translateY(10px); animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+    .shot{animation-delay:.08s}
+    .shot-card{opacity:0; animation:fade .5s ease forwards}
+    .shot-card:nth-child(1){animation-delay:.28s} .shot-card:nth-child(2){animation-delay:.38s}
+    .shot-card:nth-child(3){animation-delay:.48s} .shot-card:nth-child(4){animation-delay:.58s}
+    @keyframes rise{to{opacity:1; transform:none}}
+    @keyframes fade{to{opacity:1}}
+  }
+</style>
+
+<div class="page">
+  <div class="wrap">
+
+    <div class="wordmark"><span class="nib">✒</span> Taller de Sintaxis</div>
+
+    <p class="eyebrow reveal">Aplicación educativa · Lengua Castellana · ESO y Bachillerato</p>
+    <h1 class="reveal">El rigor de la <em>Nueva Gramática</em>, hecho aplicación.</h1>
+    <p class="lead reveal">El profesor explica en clase como siempre; la aplicación acompaña al
+      alumno cuando llega a casa —le corrige, le da consejos y lo evalúa— y le devuelve al
+      profesor las horas de corrección.</p>
+
+    <div class="shot reveal">
+      <div class="shot-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="title">Taller de Sintaxis — Análisis Sintáctico</span>
+      </div>
+      <div class="shot-nav">
+        <span class="step">✓ NP (Verbo)</span>
+        <span class="step">✓ Sujeto</span>
+        <span class="step now">Funciones del Predicado</span>
+        <span style="opacity:.45">Sintagmas</span>
+      </div>
+      <div class="shot-body">
+        <span class="shot-ok">✓ Predicado Verbal (PV) identificado</span>
+        <div class="shot-cards">
+          <div class="shot-card suj"><p class="words">El presidente</p>
+            <span class="badge"><span class="fn">Sujeto</span><span class="syn">SN</span><span class="ck">✓</span></span></div>
+          <div class="shot-card v"><p class="words">entregó</p>
+            <span class="badge"><span class="fn">NP</span><span class="syn">SV</span><span class="ck">✓</span></span></div>
+          <div class="shot-card cd"><p class="words">los diplomas</p>
+            <span class="badge"><span class="fn">CD</span><span class="syn">SN</span></span></div>
+          <div class="shot-card ci"><p class="words">a los alumnos más brillantes</p>
+            <span class="badge"><span class="fn">CI</span><span class="syn">SP</span></span></div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Así analiza el alumno, paso a paso — con corrección y explicación inmediatas, y con la terminología exacta de la NGLE.</p>
+
+    <p class="sect-label">Qué incluye</p>
+    <div class="grid">
+      <div class="cell"><span class="n">01</span><h3>Análisis sintáctico guiado</h3><p>De la oración simple a la compuesta, paso a paso y con corrección inmediata.</p></div>
+      <div class="cell"><span class="n">02</span><h3>Morfología en tres niveles</h3><p>Desde 1.º de ESO hasta el modelo de análisis de la EBAU.</p></div>
+      <div class="cell"><span class="n">03</span><h3>Oración compuesta</h3><p>Motor propio: proposiciones, nexos y relaciones entre ellas.</p></div>
+      <div class="cell"><span class="n">04</span><h3>Evaluación y datos del profesor</h3><p>Examen con PIN y calificación automática. Un mapa con métricas de cada alumno y grupo: qué función se atasca y cómo evoluciona la clase.</p></div>
+      <div class="cell"><span class="n">05</span><h3>Práctica y juego</h3><p>Modos rápidos y competitivos para sostener el interés del aula.</p></div>
+      <div class="cell"><span class="n">06</span><h3>Rigor NGLE y EBAU</h3><p>Terminología y criterios oficiales en cada análisis.</p></div>
+    </div>
+
+    <div class="callout">
+      <h2>Aprender y evaluar, en una sola herramienta.</h2>
+      <p>No es un simple corrector ni una teoría más: es un <strong>itinerario guiado y
+        autocorregido</strong> que, además, le da al profesor la evaluación hecha —examen,
+        calificación e informes—. Hoy no existe otra herramienta que reúna ambas cosas.</p>
+    </div>
+
+    <div class="note">
+      <p><strong>Plenamente operativa hoy, en uso real en el aula.</strong> El paso siguiente
+        —llevarla a miles de aulas— es precisamente donde encaja un socio editorial: la
+        infraestructura para escalarla es un desarrollo estándar, no un obstáculo de fondo.</p>
+    </div>
+
+    <p class="sect-label">Por qué tomarla en serio</p>
+    <div class="trust">
+      <span class="badge"><span class="dot"></span>En uso real en el aula</span>
+      <span class="badge"><span class="dot"></span>Inscrita en el Registro de la Propiedad Intelectual</span>
+      <span class="badge"><span class="dot"></span>Creada por un profesor de Lengua</span>
+      <span class="badge"><span class="dot"></span>Cero dependencias externas</span>
+      <span class="badge"><span class="dot"></span>~34.000 líneas de código propio</span>
+    </div>
+
+    <div class="cta">
+      <h2>Véala funcionar en dos minutos, sin registrarse.</h2>
+      <div class="actions">
+        <div class="action"><span class="k">Vídeo</span><span><span class="ph">[enlace al vídeo de 2 min]</span></span></div>
+        <div class="action"><span class="k">Probarla</span><span><span class="ph">[enlace a la aplicación]</span> — entre con cualquier nombre</span></div>
+        <div class="action"><span class="k">Hablamos</span><span>Escríbame y buscamos quince minutos: <span class="ph">[su correo]</span></span></div>
+      </div>
+    </div>
+
+    <footer>
+      <span class="name">[Nombre y apellidos]</span>
+      <span>Profesor de Lengua Castellana y Literatura · filólogo</span>
+      <span>[correo] · [teléfono]</span>
+    </footer>
+
+  </div>
+</div>
