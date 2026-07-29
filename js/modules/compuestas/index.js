@@ -346,15 +346,27 @@
       }
     });
 
-    // Capa 2: inclusión flexible (solo los que tienen al menos una propiedad deseada)
-    const hayInclusiones = cats.some(cat=>state.filtros[cat].size > 0);
-    if(hayInclusiones){
-      const conDeseados = filtered.filter(ej=>
-        cats.some(cat=>state.filtros[cat].size > 0 && state.filtros[cat].has(getEjVal(ej, cat)))
-      );
-      // Capa 3: fallback — si inclusión+exclusión vacía, quedarse con solo exclusión
-      if(conDeseados.length > 0) filtered = conDeseados;
-    }
+    // Capa 2: inclusión. DENTRO de una categoría los valores suman (basta
+    // cumplir uno); ENTRE categorías se cruzan (hay que cumplir todas). Es
+    // lo que promete la ayuda de los chips: «solo verás oraciones que
+    // TENGAN esa característica».
+    //
+    // Antes esto era un cats.some(...), o sea "o" también ENTRE categorías:
+    // en cuanto dos categorías tenían algo marcado bastaba cumplir UNA para
+    // entrar. Con «coordinada» + «nivel medio» marcados entraban todas las
+    // de nivel medio aunque fuesen subordinadas — y como el banco es 179
+    // subordinadas frente a 50 coordinadas, lo que salía era casi siempre
+    // una subordinada (bug detectado por Josele, jul-2026).
+    //
+    // También se ha quitado el "fallback" que, cuando el cruce daba 0,
+    // descartaba en silencio las inclusiones y devolvía el banco entero.
+    // Si no hay coincidencias ahora se devuelven 0 y la vista de filtros ya
+    // lo dice ("No hay ejercicios con esos filtros") en vez de mentir.
+    cats.forEach(cat=>{
+      if(state.filtros[cat].size > 0){
+        filtered = filtered.filter(ej=>state.filtros[cat].has(getEjVal(ej, cat)));
+      }
+    });
 
     state.filtered = filtered;
     state.idx = 0;
@@ -432,7 +444,21 @@
       return;
     }
     aplicarFiltros();
-    const opc = calcularOpcionesFiltro();
+    let opc = calcularOpcionesFiltro();
+
+    // Ahora que las categorías se cruzan (Y), un subtipo marcado que el tipo
+    // elegido ya no ofrece se queda "marcado en la sombra": su chip no se
+    // dibuja, el cruce da 0 y el alumno no ve por qué. Lo soltamos.
+    const subtiposVisibles = new Set(opc.subtipos);
+    let podado = false;
+    state.filtros.subtipo.forEach(s=>{
+      if(!subtiposVisibles.has(s)){ state.filtros.subtipo.delete(s); podado = true; }
+    });
+    if(podado){
+      aplicarFiltros();
+      opc = calcularOpcionesFiltro();
+    }
+
     const total = state.ejercicios.length;
     const tras = state.filtered.length;
 
@@ -2225,22 +2251,63 @@
   // FASE 5 — Relaciones entre oraciones
   // ═════════════════════════════════════════════════════════════════════
 
-  // Mini-resumen visual de las oraciones ya clasificadas
+  // Mini-resumen visual de las oraciones que el alumno acaba de delimitar.
+  //
+  // OJO — esta tarjeta REGALABA la respuesta. Nació cuando existía una fase 4
+  // en la que el alumno clasificaba cada oración; al desaparecer esa fase
+  // (ahora se va del paso 3 al paso 4 «Clasificar y relacionar»), la tarjeta
+  // se quedó mostrando `p.tipo` y `p.subtipo` del banco sin que el alumno
+  // hubiera contestado nada: leía «O1 Coordinada · O2 Subordinada · Sustantiva
+  // de CD» justo encima de las preguntas 1, 2 y 3, que piden precisamente eso
+  // (bug detectado por Josele, jul-2026).
+  //
+  // Ahora muestra las PALABRAS de cada oración —que es la información útil
+  // para razonar— y revela tipo y subtipo solo a medida que se aciertan:
+  //   · el tipo, cuando el sub-paso 1 está resuelto (y, si es subordinación,
+  //     también el 4: hasta saber la dirección no se sabe quién es la
+  //     principal y quién la subordinada);
+  //   · el subtipo, cuando el sub-paso 3 está resuelto.
   function renderResumenPropos(ej){
+    const eng = state.engine;
+    const tipoRevelado = new Set();
+    const subtipoRevelado = new Set();
+    (ej.relaciones||[]).forEach((rel,i)=>{
+      const resp = (eng && eng.f5Respuestas && eng.f5Respuestas[i]) || {};
+      const ids = Array.isArray(rel.proposiciones) ? rel.proposiciones : [];
+      const tipoListo = resp.tipoOk === true &&
+        (rel.tipo !== 'subordinacion' || resp.direccionOk === true);
+      if(tipoListo) ids.forEach(id=>tipoRevelado.add(id));
+      if(resp.subtipoOk === true) ids.forEach(id=>subtipoRevelado.add(id));
+    });
+
     const items = (ej.proposiciones||[]).map((p,idx)=>{
       const n = idx + 1;
       const colorCls = 'p' + Math.min(n, 4);
-      const tipoLbl = etiquetaTipoProp(p.tipo);
-      const subLbl = p.subtipo ? ' · ' + etiquetaSubtipoExtendida(p.subtipo) : '';
+      const palabras = palabrasDeProp(p, ej);
+      const verTipo = tipoRevelado.has(p.id);
+      const tipoLbl = verTipo ? etiquetaTipoProp(p.tipo) : '';
+      const subLbl = (verTipo && subtipoRevelado.has(p.id) && p.subtipo)
+        ? ' · ' + etiquetaSubtipoExtendida(p.subtipo)
+        : '';
       return `
         <div class="cp-prop-mini ${colorCls}">
           <span class="cp-clasif-prop-id ${colorCls}">O${n}</span>
-          <span style="font-weight:700">${escHtml(tipoLbl)}</span>
+          <span style="font-family:'Lora',serif">${escHtml(palabras)}</span>
+          ${tipoLbl ? `<span style="font-weight:700">· ${escHtml(tipoLbl)}</span>` : ''}
           <span style="color:var(--muted);font-size:.78rem">${escHtml(subLbl)}</span>
         </div>`;
     }).join('');
     return `
       <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">${items}</div>`;
+  }
+
+  // Reconstruye el texto de una oración a partir de los índices de sus tokens.
+  function palabrasDeProp(p, ej){
+    const idxs = Array.isArray(p && p.indices) ? p.indices.slice().sort((a,b)=>a-b) : [];
+    if(idxs.length === 0) return '';
+    return idxs.map(i=>(ej.tokens[i]||{}).texto||'')
+               .filter(Boolean).join(' ')
+               .replace(/\s+([,.;:!?])/g, '$1');
   }
 
   function renderRelaciones5(ej){
