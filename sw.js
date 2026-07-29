@@ -8,14 +8,24 @@
    (script.google.com) se dejan pasar sin tocar — siempre van en vivo.
 
    Estrategia para los archivos propios de la app (HTML/CSS/JS/assets):
-   "stale-while-revalidate" — sirve la copia en caché al instante y, en
-   paralelo, pide la versión de red para refrescar la caché de cara a la
-   próxima carga. Si no hay red y no hay caché, la petición falla como de
+   "network-first con respaldo en caché" — con conexión sirve SIEMPRE la
+   versión de red (y la guarda para después); sin conexión sirve la copia
+   guardada. Si no hay red y no hay caché, la petición falla como de
    costumbre (no hay nada que hacer sin haber visitado la app antes).
+
+   OJO — antes esto era "stale-while-revalidate" (servía la caché al
+   instante y refrescaba para la visita siguiente). Se cambió en jul-2026
+   porque provocaba dos fallos difíciles de ver:
+     1. tras cada despliegue, la primera carga mostraba la versión ANTERIOR;
+     2. peor aún, podía mezclar versiones (index.html nuevo + módulos JS
+        viejos), lo que hacía reaparecer bugs ya corregidos.
+   Como la app no tiene build ni nombres de archivo con hash, no hay forma
+   de distinguir "js/modules/compuestas/index.js v6" de "v7": la única
+   estrategia segura es preguntar a la red primero.
 
    Para forzar que los usuarios recojan cambios grandes de golpe (en vez de
    ir refrescándose visita a visita), sube el número de CACHE_NAME. */
-const CACHE_NAME = 'taller-sintaxis-shell-v4';
+const CACHE_NAME = 'taller-sintaxis-shell-v5';
 
 const SHELL_ASSETS = [
   './',
@@ -59,7 +69,6 @@ const SHELL_ASSETS = [
   './js/modules/sint/index.js',
   './js/modules/compuestas/index.js',
   './js/modules/arcade/index.js',
-  './js/modules/morph/index.js',
   './js/modules/sintagmas/index.js',
   './js/modules/maestro/index.js',
   './js/modules/chispa/index.js',
@@ -67,12 +76,35 @@ const SHELL_ASSETS = [
   './js/modules/teacher/informe-excel.js',
 ];
 
+/* Precarga tolerante a fallos.
+
+   NUNCA usar cache.addAll() aquí: si UN SOLO archivo de la lista devuelve
+   404, addAll() rechaza, la instalación entera falla y —esto es lo grave—
+   el Service Worker viejo sigue mandando indefinidamente, sirviendo su
+   caché antigua. Es exactamente lo que pasó entre el 4 y el 7 de julio de
+   2026: la lista incluía './js/modules/morph/index.js', ese módulo se
+   archivó en _legacy/ y desde entonces ninguna instalación llegó a
+   completarse en los dispositivos que ya tenían la app instalada.
+
+   Con cache.put() archivo a archivo, un asset que falte se registra en la
+   consola y el resto se guarda igual. */
+async function precacheShell() {
+  const cache = await caches.open(CACHE_NAME);
+  const fallos = [];
+  await Promise.all(SHELL_ASSETS.map(async (url) => {
+    try {
+      const res = await fetch(new Request(url, { cache: 'reload' }));
+      if (!res.ok) { fallos.push(url + ' → HTTP ' + res.status); return; }
+      await cache.put(url, res);
+    } catch (err) {
+      fallos.push(url + ' → ' + err.message);
+    }
+  }));
+  if (fallos.length) console.warn('[sw] Assets no cacheados:', fallos);
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(precacheShell().then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
@@ -95,16 +127,18 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
+  // Network-first: la red manda. Solo si falla (sin conexión) tiramos de
+  // la copia guardada. Así un despliegue se ve en la PRIMERA carga y nunca
+  // se mezclan archivos de dos versiones distintas.
   event.respondWith(
-    caches.match(req).then((cached) => {
-      const network = fetch(req).then((res) => {
-        if (res && res.status === 200) {
+    fetch(req)
+      .then((res) => {
+        if (res && res.ok) {
           const copy = res.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
         }
         return res;
-      }).catch(() => cached);
-      return cached || network;
-    })
+      })
+      .catch(() => caches.match(req).then((cached) => cached || Response.error()))
   );
 });
