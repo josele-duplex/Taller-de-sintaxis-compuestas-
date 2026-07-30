@@ -5078,13 +5078,25 @@
   // ═════════════════════════════════════════════════════════════════════
 
   // Devuelve la familia pedagógica de un subtipo de subordinada (NGLE):
-  // 'sustantiva' | 'relativa' | 'adverbial' | 'construccion' | null
+  // 'sustantiva' | 'relativa' | 'construccion' | null
+  //
+  // Antes existía una cuarta familia 'adverbial' aquí (temporal, locativa,
+  // modal, comparativa), distinta de 'construccion' (causal, final,
+  // condicional, concesiva, ilativa). Es una distinción NGLE real, pero
+  // NO es la que enseña la app: el paso interactivo (familiaDelSubtipo,
+  // más abajo, y el texto de ayuda "construcciones — antes llamadas
+  // adverbiales" en renderRelaciones5) solo ofrece TRES familias al
+  // alumno — sustantiva / relativo / construcción —, metiendo temporal
+  // en 'construccion' igual que causal o final. Con las dos funciones
+  // separadas, un alumno que acertaba "Construcción" en el paso 4 veía
+  // luego el resumen final llamarla "adverbial temporal": contradecía lo
+  // que él mismo acababa de responder bien. Unificado jul-2026 (Josele).
   function familiaPAU(subtipo){
     if(!subtipo) return null;
     if(subtipo.startsWith('sustantiva')) return 'sustantiva';
     if(subtipo.startsWith('relativa'))   return 'relativa';
-    if(['temporal','locativa','modal','comparativa'].includes(subtipo)) return 'adverbial';
-    if(['causal','final','condicional','concesiva','ilativa_constr'].includes(subtipo)) return 'construccion';
+    if(['temporal','locativa','modal','comparativa',
+        'causal','final','condicional','concesiva','ilativa_constr'].includes(subtipo)) return 'construccion';
     return null;
   }
 
@@ -5100,16 +5112,12 @@
         relativa_semilibre:      'de relativo semilibre'
       })[subtipo] || 'de relativo';
     }
-    if(fam === 'adverbial'){
-      return ({
-        temporal:    'adverbial temporal',
-        locativa:    'adverbial de lugar',
-        modal:       'adverbial de modo',
-        comparativa: 'adverbial comparativa'
-      })[subtipo] || 'adverbial';
-    }
     if(fam === 'construccion'){
       return ({
+        temporal:       'temporal',
+        locativa:       'de lugar',
+        modal:          'de modo',
+        comparativa:    'comparativa',
         causal:         'causal',
         final:          'final',
         condicional:    'condicional',
