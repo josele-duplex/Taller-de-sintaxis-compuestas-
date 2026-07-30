@@ -83,6 +83,13 @@ const CP_CC_SUBTIPOS = new Set([
 // funcion_sp (sección 6).
 const CP_FUNCION_SP = new Set(['c_regimen','ci','cc','cn','c_adj','c_adv','atributo']);
 const CP_SUBTIPO_ELIMINADO = 'sustantiva_c_regimen'; // ya no existe en 1.2
+// Categorías válidas de token (tokens[].categoria).
+const CP_CATEGORIAS_TOKEN = new Set([
+  'sustantivo','adjetivo','verbo','adverbio','pronombre','pronombre_relativo',
+  'conjuncion','puntuacion','otro',
+]);
+// relacion.tipo (distinto de Tipo_Oracion/tipo_oracion, que es de todo el ejercicio).
+const CP_RELACION_TIPOS = new Set(['coordinacion','subordinacion','yuxtaposicion']);
 
 // ════════════════════════════════════════════════════════════════════
 //  UTILIDADES
@@ -218,8 +225,25 @@ function validarCompuestas(cabecera, filas, R){
       R.error(id, `metadatos.nivel "${o.metadatos.nivel}" inválido.`);
 
     // tokens
-    const nTokens = Array.isArray(o.tokens) ? o.tokens.length : 0;
+    const tokens = Array.isArray(o.tokens) ? o.tokens : [];
+    const nTokens = tokens.length;
     if(nTokens===0) R.error(id, 'Sin array "tokens".');
+
+    // Índices consecutivos alineados con la posición, categoría válida y texto
+    // reconstruible. No es solo estilo: js/modules/compuestas/index.js accede
+    // a tokens por posición directa (ej.tokens[idx]), así que un "i" desalineado
+    // muestra el token equivocado al alumno sin que salte ningún error visible.
+    let reconstruido = '';
+    tokens.forEach((t, ti)=>{
+      if(!t || typeof t.i!=='number' || t.i!==ti)
+        R.error(id, `token ${ti}: "i" es ${t?.i} (debería ser ${ti}, la propia posición en el array).`);
+      if(!t || !CP_CATEGORIAS_TOKEN.has(t.categoria))
+        R.error(id, `token ${ti} ("${t?.texto}"): categoría "${t?.categoria}" no válida.`);
+      const texto = t?.texto || '';
+      reconstruido = t?.categoria==='puntuacion' ? reconstruido.replace(/\s+$/,'') + texto + ' ' : reconstruido + texto + ' ';
+    });
+    if(nTokens && typeof o.texto==='string' && reconstruido.trim()!==o.texto.trim())
+      R.aviso(id, `el texto reconstruido desde "tokens" ("${reconstruido.trim()}") no coincide con "texto" ("${o.texto.trim()}").`);
 
     // Helper: validar índices contra el rango de tokens
     const idxFueraRango = (idxs) =>
@@ -229,10 +253,27 @@ function validarCompuestas(cabecera, filas, R){
     const props = Array.isArray(o.proposiciones) ? o.proposiciones : [];
     if(props.length===0) R.error(id, 'Sin array "proposiciones".');
     const propIds = new Set();
+    const propIdsVistos = new Set();
     props.forEach((p, k)=>{
-      if(p.id) propIds.add(p.id);
+      if(p.id){
+        if(propIdsVistos.has(p.id)) R.error(id, `proposición "${p.id}" duplicada.`);
+        propIdsVistos.add(p.id);
+        propIds.add(p.id);
+      }
       if(!p.verbo || typeof p.verbo.indice!=='number')
         R.aviso(id, `proposición ${p.id||k+1} sin verbo.indice.`);
+      else {
+        if(p.verbo.indice<0 || p.verbo.indice>=nTokens)
+          R.error(id, `proposición ${p.id||k+1}: verbo.indice fuera de rango.`);
+        else if(tokens[p.verbo.indice]?.categoria!=='verbo')
+          R.error(id, `proposición ${p.id||k+1}: verbo.indice apunta a un token que no es "verbo" (es "${tokens[p.verbo.indice]?.categoria}", "${tokens[p.verbo.indice]?.texto}").`);
+        const ip = p.verbo.indices_perifrasis;
+        if(ip!==undefined){
+          if(idxFueraRango(ip)) R.error(id, `proposición ${p.id||k+1}: indices_perifrasis fuera de rango.`);
+          else if(Array.isArray(ip) && !ip.includes(p.verbo.indice))
+            R.error(id, `proposición ${p.id||k+1}: indices_perifrasis no contiene a verbo.indice.`);
+        }
+      }
       if(idxFueraRango(p.indices))
         R.error(id, `proposición ${p.id||k+1}: índices fuera de rango (0..${nTokens-1}).`);
       // subtipo eliminado / inválido (un solo mensaje, el más útil)
@@ -255,18 +296,53 @@ function validarCompuestas(cabecera, filas, R){
       });
     });
 
+    // nexos: IDs únicos, índices y referencias (antes que relaciones, que los referencian)
+    const nexoIds = new Set();
+    const nexoIdsVistos = new Set();
+    (Array.isArray(o.nexos)?o.nexos:[]).forEach((n,k)=>{
+      if(n.id){
+        if(nexoIdsVistos.has(n.id)) R.error(id, `nexo "${n.id}" duplicado.`);
+        nexoIdsVistos.add(n.id);
+        nexoIds.add(n.id);
+      }
+      if(idxFueraRango(n.indices)) R.error(id, `nexo ${n.id||k+1}: índices fuera de rango.`);
+    });
+
     // relaciones
     const rels = Array.isArray(o.relaciones) ? o.relaciones : [];
+    const relIdsVistos = new Set();
     rels.forEach((r, k)=>{
+      if(r.id){
+        if(relIdsVistos.has(r.id)) R.error(id, `relación "${r.id}" duplicada.`);
+        relIdsVistos.add(r.id);
+      }
+      if(!CP_RELACION_TIPOS.has(r.tipo))
+        R.error(id, `relación ${r.id||k+1}: tipo "${r.tipo}" inválido (debe ser coordinacion/subordinacion/yuxtaposicion).`);
       if(r.subtipo===CP_SUBTIPO_ELIMINADO)
         R.error(id, `relación ${r.id||k+1}: subtipo "${CP_SUBTIPO_ELIMINADO}" eliminado en 1.2 (usa sustantiva_termino_preposicion).`);
       else if(r.subtipo && !CP_SUBTIPOS.has(r.subtipo))
         R.error(id, `relación ${r.id||k+1}: subtipo "${r.subtipo}" no válido.`);
-      // referencias a proposiciones existentes
-      (Array.isArray(r.proposiciones)?r.proposiciones:[]).forEach(pid=>{
+      // referencias a proposiciones y nexo existentes
+      const propList = Array.isArray(r.proposiciones) ? r.proposiciones : [];
+      propList.forEach(pid=>{
         if(!propIds.has(pid))
           R.error(id, `relación ${r.id||k+1}: referencia a proposición "${pid}" que no existe.`);
       });
+      if(r.nexo && !nexoIds.has(r.nexo))
+        R.error(id, `relación ${r.id||k+1}: referencia a nexo "${r.nexo}" que no existe.`);
+      // Estructura por tipo: subordinación binaria con direccion+funcion;
+      // coordinación ≥2 proposiciones y sin funcion propia.
+      if(r.tipo==='subordinacion'){
+        if(propList.length!==2)
+          R.error(id, `relación ${r.id||k+1}: subordinación con ${propList.length} proposiciones (debe ser exactamente 2).`);
+        if(!r.direccion) R.error(id, `relación ${r.id||k+1}: subordinación sin "direccion".`);
+        if(!r.funcion) R.error(id, `relación ${r.id||k+1}: subordinación sin "funcion".`);
+      } else if(r.tipo==='coordinacion'){
+        if(propList.length<2)
+          R.error(id, `relación ${r.id||k+1}: coordinación con menos de 2 proposiciones.`);
+        if(r.funcion)
+          R.aviso(id, `relación ${r.id||k+1}: coordinación con "funcion" (no debería llevar).`);
+      }
       // funcion_sp obligatoria SSI subtipo es sustantiva_termino_preposicion
       if(r.subtipo==='sustantiva_termino_preposicion'){
         if(!r.funcion_sp) R.error(id, `relación ${r.id||k+1}: subtipo término_preposición requiere "funcion_sp".`);
@@ -274,11 +350,6 @@ function validarCompuestas(cabecera, filas, R){
       } else if(r.funcion_sp){
         R.aviso(id, `relación ${r.id||k+1}: funcion_sp presente pero el subtipo no es sustantiva_termino_preposicion.`);
       }
-    });
-
-    // nexos: índices y referencias
-    (Array.isArray(o.nexos)?o.nexos:[]).forEach((n,k)=>{
-      if(idxFueraRango(n.indices)) R.error(id, `nexo ${n.id||k+1}: índices fuera de rango.`);
     });
   });
 }
