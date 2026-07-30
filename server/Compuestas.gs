@@ -328,8 +328,19 @@ function readCompBancoFromSheet_(mode) {
       console.warn('[readCompBancoFromSheet_] JSON inválido en fila', i + 2, 'ID=', id);
       continue;
     }
-    // Asegurar que el ejercicio lleva su propio ID (puede venir del JSON o de la columna)
-    if (!parsed.id) parsed.id = id;
+    // La columna ID MANDA sobre el "id" de dentro del JSON.
+    //
+    // Antes esto era `if (!parsed.id) parsed.id = id;`, o sea que ganaba el
+    // del JSON. Como los lotes generados por IA traen su propio "id" dentro
+    // del JSON (normalmente copiado del ejemplo: OC_0001, OC_0002…), al
+    // pegarlos al final de la hoja quedaban 55 filas sirviéndose con un ID
+    // que no era el suyo, y con colisiones reales: dos filas distintas se
+    // servían las dos como OC_0014. Eso descoloca los exámenes que
+    // referencian un ID y mezcla las analíticas por ejercicio.
+    //
+    // Ahora manda la columna, que es la que se ve en la hoja y la que
+    // referencia todo lo demás. Así da igual qué venga dentro del JSON.
+    parsed.id = id;
     if (!parsed.tipo_ejercicio) parsed.tipo_ejercicio = 'compuesta';
 
     parsed._tipo_oracion    = tipo.toLowerCase();
@@ -832,8 +843,26 @@ function getStatsCompuestas_() {
   return { ok: true, total: total, mediaNota: media };
 }
 
-// ── Auto-numeración de IDs en Compuestas_Banco ──────────────────────────
+// ── Auto-numeración y sincronización de IDs en Compuestas_Banco ─────────
 //
+// Esta es LA función que hay que ejecutar después de pegar un lote nuevo.
+// Está pensada para que pegar oraciones compuestas sea tan simple como
+// pegar oraciones simples: pega debajo de la última fila ocupada, deja la
+// columna A en blanco si quieres, y ejecútala. No hace falta pedirle a la
+// IA que ponga el ID en ningún sitio concreto.
+//
+// Hace dos trabajos:
+//   (a) asignar un ID a las filas que no tengan uno válido;
+//   (b) sincronizar el campo "id" de dentro del JSON con la columna A.
+//
+// (b) es la parte nueva (jul-2026). Antes la función hacía `continue` en
+// cuanto la columna A tenía un ID válido, así que un lote pegado con su
+// propio "id" dentro del JSON (lo que hace siempre la IA: suele copiar el
+// del ejemplo) quedaba descuadrado para siempre. Así se acumularon 55 filas
+// desincronizadas, con colisiones reales: dos filas distintas se servían
+// las dos como OC_0014.
+//
+// ── (a) Asignación ──
 // Asigna IDs correlativos OC_NNNN a las filas que NO tengan un ID válido.
 // Una fila se considera "sin ID válido" si su celda en la columna A:
 //   • está vacía, o
@@ -846,6 +875,13 @@ function getStatsCompuestas_() {
 //   1. La celda de la columna A (ID).
 //   2. El campo "id" dentro del JSON de la columna G (JSON_Compuesta).
 // De este modo nunca queda desincronizado el ID visible del ID interno.
+//
+// ── (b) Sincronización ──
+// En las filas que YA tienen un ID válido en la columna A no se toca ese ID,
+// pero sí se reescribe el "id" de dentro del JSON para que diga lo mismo.
+// La columna A manda siempre: es lo que se ve en la hoja y lo que
+// referencian Compuestas_Examenes y las analíticas. Es la misma regla que
+// aplica readCompBancoFromSheet_() al servir el banco.
 //
 // Estrategia: encuentra el mayor OC_NNNN ya existente en la hoja y asigna
 // los nuevos a partir de ese número + 1. Nunca rellena huecos en medio
@@ -904,49 +940,82 @@ function asignarIDsCompuestas_() {
       };
     }
 
-    // 3) Recorrer filas y asignar a las que no tengan ID válido
+    // 3) Recorrer filas. Dos trabajos distintos:
+    //    a) ASIGNAR: la columna A está vacía o tiene un ID provisional.
+    //    b) RESINCRONIZAR: la columna A está bien, pero el "id" de dentro del
+    //       JSON dice otra cosa. Es el caso de los lotes pegados al final de
+    //       la hoja: la IA que genera el JSON pone dentro su propio id
+    //       (normalmente copiado del ejemplo, OC_0001, OC_0002…) y quedaba
+    //       desincronizado para siempre porque antes esta función se limitaba
+    //       a hacer `continue` en cuanto la columna A tenía un ID válido.
+    //       Gracias a (b), pegar un lote ya no obliga a decirle nada a la IA
+    //       sobre los IDs ni a editar nada a mano.
     let asignados = 0;
+    let resincronizados = 0;
     let primero = null, ultimo = null;
-    const updates = []; // [{rowIdx, newId, newJson}]
+    const updates = [];
 
     for (let i = 0; i < data.length; i++) {
-      const id = String(data[i][idCol] || '').trim();
-      if (id && ID_REGEX.test(id) && !PLACEHOLDER_REGEX.test(id)) continue; // ya tiene ID válido y definitivo, respetar
+      const idActual = String(data[i][idCol] || '').trim();
+      const yaTieneId = !!idActual && ID_REGEX.test(idActual) && !PLACEHOLDER_REGEX.test(idActual);
 
-      // Asignar siguiente ID
-      maxN++;
-      const newId = 'OC_' + String(maxN).padStart(4, '0');
-      if (!primero) primero = newId;
-      ultimo = newId;
+      let newId;
+      if (yaTieneId) {
+        newId = idActual;         // un ID definitivo NUNCA se renumera
+      } else {
+        maxN++;
+        newId = 'OC_' + String(maxN).padStart(4, '0');
+        if (!primero) primero = newId;
+        ultimo = newId;
+      }
 
-      // Actualizar también el campo "id" dentro del JSON, si parseable
-      let newJsonStr = String(data[i][jsonCol] || '');
-      const parsed = safeParseJSON(newJsonStr);
-      if (parsed) {
+      const rawJson = String(data[i][jsonCol] || '');
+      const parsed = safeParseJSON(rawJson);
+      const idInternoYaOk = !!parsed && parsed.id === newId;
+
+      // Fila en orden: ID válido en la columna y JSON que dice lo mismo.
+      if (yaTieneId && idInternoYaOk) continue;
+
+      let newJsonStr = rawJson;
+      if (parsed && !idInternoYaOk) {
+        const idAnterior = parsed.id;
         parsed.id = newId;
         try {
           newJsonStr = JSON.stringify(parsed);
         } catch (e) {
           // Si la serialización falla, dejamos el JSON original (mejor incoherente que roto)
+          newJsonStr = rawJson;
           console.warn('[asignarIDsCompuestas] no se pudo re-serializar JSON de fila', i + 2);
         }
+        if (yaTieneId && newJsonStr !== rawJson) {
+          console.log('[asignarIDsCompuestas] fila ' + (i + 2) + ': id interno '
+                    + idAnterior + ' → ' + newId);
+        }
       }
-      // Si no era parseable, el JSON quedará desincronizado: lo registramos pero no rompemos.
+      // Si no era parseable, el JSON queda desincronizado: se avisa, no se rompe.
 
+      const jsonCambiado = newJsonStr !== rawJson;
       updates.push({
         rowIdx: i + 2,
         newId: newId,
+        escribirId: !yaTieneId,
         newJson: newJsonStr,
+        jsonCambiado: jsonCambiado,
         jsonOk: !!parsed
       });
-      asignados++;
+      // Ojo: una fila con ID válido y JSON no parseable llega hasta aquí en
+      // cada pasada (para poder avisar de que ese JSON está roto), pero no se
+      // cambia nada. No debe contarse como resincronizada o el informe diría
+      // "1 fila corregida" para siempre.
+      if (!yaTieneId) asignados++;
+      else if (jsonCambiado) resincronizados++;
     }
 
-    // 4) Escribir cambios
+    // 4) Escribir cambios (solo las celdas que de verdad cambian)
     let warnings = [];
     for (const u of updates) {
-      sheet.getRange(u.rowIdx, idCol + 1).setValue(u.newId);
-      sheet.getRange(u.rowIdx, jsonCol + 1).setValue(u.newJson);
+      if (u.escribirId)    sheet.getRange(u.rowIdx, idCol + 1).setValue(u.newId);
+      if (u.jsonCambiado)  sheet.getRange(u.rowIdx, jsonCol + 1).setValue(u.newJson);
       if (!u.jsonOk) warnings.push('Fila ' + u.rowIdx + ' (' + u.newId + '): JSON_Compuesta no parseable, ID actualizado solo en columna A.');
     }
 
@@ -960,6 +1029,7 @@ function asignarIDsCompuestas_() {
     return {
       ok: true,
       asignados: asignados,
+      resincronizados: resincronizados,
       rango: primero ? (primero + (primero === ultimo ? '' : ' → ' + ultimo)) : '—',
       total_filas: data.length,
       duplicados: duplicados,
@@ -1305,7 +1375,7 @@ function buildCompuestasSubMenu_(ui) {
   m.addItem('🧹 Limpiar cabeceras fantasma',        'menuLimpiarCabecerasFantasma');
   m.addItem('🧹 Separar Resultados ⇄ Practica_Log', 'menuMigrarResultadosCompuestas');
   m.addItem('🔁 Migrar seeds a 4 dígitos (OC_NNN → OC_0NNN)', 'menuMigrarSeedsA4Digitos');
-  m.addItem('🔢 Asignar IDs automáticamente',       'menuAsignarIDsCompuestas');
+  m.addItem('🔢 Poner los IDs en orden (tras pegar un lote)', 'menuAsignarIDsCompuestas');
   m.addSeparator();
   // Parche del lote literario (jul-2026): ver server/ParcheLoteLiterario.gs
   m.addItem('👁 Previsualizar parche lote literario', 'menuPreviewParcheLoteLiterario');
@@ -1482,10 +1552,11 @@ function menuAsignarIDsCompuestas() {
 
   // Confirmar con el usuario antes de modificar
   const resp = ui.alert(
-    '🔢 Asignar IDs automáticamente',
-    'Se asignarán IDs correlativos OC_NNNN a las filas que NO tengan ya un ID válido.\n\n' +
-    'Los IDs ya válidos (OC_0001, OC_0042…) NO se tocan, para preservar los enlaces con Compuestas_Resultados. Los IDs provisionales OC_9000-OC_9999 (de lotes recién pegados) SÍ se renumeran siempre.\n\n' +
-    'Para cada fila renumerada se actualiza también el campo "id" dentro del JSON_Compuesta.\n\n' +
+    '🔢 Poner los IDs en orden',
+    'Esto es lo que hay que pulsar después de pegar un lote nuevo. Hace dos cosas:\n\n' +
+    '1) Asigna IDs correlativos OC_NNNN a las filas que no tengan uno. Puedes dejar la columna A en blanco al pegar.\n\n' +
+    '2) Sincroniza el campo "id" de dentro del JSON con la columna A. Da igual qué id haya puesto la IA dentro del JSON: manda la columna. Ya no hace falta avisarla de nada.\n\n' +
+    'Los IDs ya válidos de la columna A (OC_0001, OC_0042…) NO se renumeran nunca, para no romper los enlaces con Compuestas_Resultados. Los provisionales OC_9000-OC_9999 sí.\n\n' +
     '¿Continuar?',
     ui.ButtonSet.YES_NO);
   if (resp !== ui.Button.YES) return;
@@ -1496,13 +1567,19 @@ function menuAsignarIDsCompuestas() {
     return;
   }
 
+  const resinc = r.resincronizados || 0;
   let msg = '';
-  if (r.asignados === 0) {
-    msg = 'No había filas sin ID válido. Nada que hacer.\n\n';
+  if (r.asignados === 0 && resinc === 0) {
+    msg = 'Todo estaba en orden: ninguna fila sin ID y ningún JSON descuadrado.\n\n';
     msg += 'Total de filas revisadas: ' + r.total_filas;
   } else {
-    msg = 'IDs asignados: ' + r.asignados + '\n';
-    msg += 'Rango: ' + r.rango + '\n';
+    if (r.asignados > 0) {
+      msg += 'IDs nuevos asignados: ' + r.asignados + '\n';
+      msg += 'Rango: ' + r.rango + '\n';
+    }
+    if (resinc > 0) {
+      msg += 'Filas cuyo "id" interno estaba descuadrado y se ha corregido: ' + resinc + '\n';
+    }
     msg += 'Total de filas en la hoja: ' + r.total_filas + '\n\n';
     msg += 'La caché del banco ya está invalidada; las nuevas oraciones están disponibles.';
   }
@@ -1516,7 +1593,7 @@ function menuAsignarIDsCompuestas() {
     if (r.warnings.length > 3) msg += '\n  …y ' + (r.warnings.length - 3) + ' más (revisa el log de ejecución).';
   }
 
-  ui.alert(r.asignados === 0 ? 'Sin cambios' : '✓ Listo', msg, ui.ButtonSet.OK);
+  ui.alert((r.asignados === 0 && resinc === 0) ? "Sin cambios" : "✓ Listo", msg, ui.ButtonSet.OK);
 }
 
 function menuStatsCompuestas() {
