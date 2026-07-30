@@ -137,7 +137,13 @@ Una fila por reto; columna `JSON_Reto` con schema **formacion v1.0**:
 
 - **Solucionario canónico**: los cortes y clasificaciones se fijan según `Referencia_Morfologia_Sintaxis.md` del proyecto de Lengua; el campo `tolerancia` absorbe alomorfos y cortes alternativos aceptables; `zona_gris: true` activa la mecánica de caso frontera (2.6). **El docente valida el solucionario del lote semilla antes de publicar** — igual que con los lotes de compuestas.
 - **Banco de pruebas de morfología** (`js/data/pruebas-morfologia.js`, gemelo del banco de reflexión de sintaxis): ~10 entradas reutilizables por ítem (prueba de la familia, "¿crea palabra nueva?", descomposición, forma intermedia inexistente, test sigla/acrónimo…). Anclaje por repertorio, cero trabajo por reto — el mismo modelo de anclaje ya decidido para el banco de sintaxis.
-- **Validador** `scripts/validate_formacion.py`, gemelo de `validate_compuesta.py`: cortes que reconstruyen la palabra, etiquetas de lista cerrada, prueba_id existente, distractores ∈ vecinos confundibles.
+- **Validador**: un modo nuevo `formacion` de `scripts/validar-banco.mjs`, que es el validador de bancos que este repo ya tiene (Node, sin dependencias, con sus listas cerradas sincronizadas con `js/glosario/tags.js`). Comprueba: cortes que reconstruyen la palabra, etiquetas y procedimientos de lista cerrada, `prueba_id` existente, distractores ∈ vecinos confundibles. Se invoca así:
+
+  ```bash
+  node scripts/validar-banco.mjs formacion banco_export/Formacion_Banco.tsv
+  ```
+
+  > *Corrección (jul-2026, sesión F0·1).* Este apartado decía antes «validador `scripts/validate_formacion.py`, gemelo de `validate_compuesta.py`». **Ninguno de esos dos archivos existe**: no hay validadores de banco en Python en este repo (el único `.py` es `scripts/make_favicon.py`). El gemelo real es `validar-banco.mjs`, que ya tiene los modos `simples` y `compuestas` en producción. El mismo error estaba en el plan del Laboratorio y se corrigió allí igual.
 
 ### 5.2 Reutilización directa (nada de esto se escribe de cero)
 
@@ -169,7 +175,7 @@ Solo estaciones 2-3 (la 1 es de aprendizaje); curva dura de examen (100/40/10/0,
 
 | Fase | Sesión | Qué se hace | Modelo | Por qué |
 |---|---|---|---|---|
-| **F0** | 1 | Diseñar el **schema v1.0** de `Formacion_Banco` (campos, `tolerancia`, `zona_gris`, IDs de prueba) + el validador `validate_formacion.py` | 🟣 **Opus** | Es la decisión de arquitectura de datos de todo el módulo: si el schema queda cojo, se repaga en cada lote posterior. Mismo criterio que se usó para fijar el schema 1.2 de compuestas |
+| **F0** | 1 | Diseñar el **schema v1.0** de `Formacion_Banco` (campos, `tolerancia`, `zona_gris`, IDs de prueba) + el modo `formacion` de `scripts/validar-banco.mjs` | 🟣 **Opus** | Es la decisión de arquitectura de datos de todo el módulo: si el schema queda cojo, se repaga en cada lote posterior. Mismo criterio que se usó para fijar el schema 1.2 de compuestas |
 | F0 | 2 | Endpoints GET del banco + hoja `Formacion_Banco` en el Sheet | 🟢 Sonnet | Ejecución directa sobre el patrón ya existente (`getOraciones`, `getOracionesCompuestas`) |
 | F0 | 3 | **Lote semilla Aprendiz** (~30 retos, contenido) | 🟢 Sonnet → validado por Josele | Generación de contenido siguiendo el canon ya fijado en la sesión 1; el filtro de calidad es la validación humana, no el modelo |
 | **F1** | 1-4 | Motor de estaciones 1-2: pantalla, drag & drop, feedback, XP, analíticas silenciosas | 🟢 Sonnet | Reutiliza patrones ya probados (`iidd*` de compuestas, gamificación); sin decisiones de arquitectura nuevas |
