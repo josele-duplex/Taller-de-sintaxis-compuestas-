@@ -81,7 +81,7 @@ Idéntica a la del Laboratorio y por el mismo motivo: `parseTSV` de `validar-ban
 | Si hay ≥3 juicios, al menos uno con `veredicto: "correcta"` | ❌ ERROR | Si todo está mal, se contesta «mal» sin mirar |
 | Todo juicio no correcto lleva `forma_correcta` | ❌ ERROR | Nunca el error solo en pantalla |
 | `zona_gris` ⟺ existe un ítem `frontera` | ❌ ERROR | Esa bandera excluye el ítem del examen |
-| Las palabras de los ítems están en `corpus` | ⚠ AVISO | El reto debe girar sobre su corpus |
+| La palabra de `piezas` y `clasifica_prueba` está en `corpus` | ⚠ AVISO | El reto debe girar sobre su corpus. **No** se comprueba en `agrupa` (sus cestas traen distractores de fuera a propósito), ni en `juicio` ni `par_minimo` (usan formas que no existen o variantes) |
 
 > **Diferencia deliberada con el Laboratorio.** Allí «al menos 1 juicio por reto» es **ERROR**, porque la semilla del Laboratorio lo fijó explícitamente («cada reto incluye al menos un juicio de gramaticalidad»). El plan de la Fábrica **no impone esa regla por reto**: lista el juicio como tipo de ítem (2.5) y el marco teórico pide 4-6 por unidad didáctica, que es otra unidad de medida. Un reto de «agrupa familias → desmonta → etiqueta» es pedagógicamente completo sin juicio. Se queda en AVISO: no invento una regla que el plan no fijó.
 
@@ -490,8 +490,10 @@ Traduce a máquina el principio central del módulo. Se comprueba buscando térm
 |---|---|---|
 | Estación 1, cualquier nivel | Metalenguaje **prohibido**, sin excepciones | ❌ ERROR |
 | Estación 2, nivel `basico` | Prohibido en `piezas`(cortar), `monta`, `par_minimo` y `juicio` | ❌ ERROR |
-| Estación 2, `medio` y `avanzado` | Desaconsejado | ⚠ AVISO |
+| Estación 2, `medio` y `avanzado` | Desaconsejado **solo** en `piezas`, `monta` y `cadena` | ⚠ AVISO |
 | Estación 3, cualquier nivel | Libre (es donde se gana) | — |
+
+> **Excepción razonada:** en `medio` y `avanzado`, los tipos `frontera`, `juicio` y `par_minimo` quedan **exentos** incluso del aviso. Su contenido *es* la comparación de etiquetas: un caso frontera pregunta literalmente «*sietemesino*: ¿compuesta o parasintética?», y no existe forma de redactarlo sin nombrar los dos procedimientos. Avisar ahí sería ruido garantizado en todos los lotes, y un aviso que siempre salta es un aviso que se deja de leer. (Detectado al verificar el schema contra un reto real de nivel avanzado.)
 
 **Términos que cuentan como metalenguaje:** raíz, morfema, afijo, prefijo, sufijo, interfijo, flexivo, derivativo, derivación, composición, compuesta, parasíntesis, parasintética, sigla, acrónimo, acortamiento, abreviatura, numerónimo, préstamo, lexema, base léxica, familia léxica, elemento compositivo, cultismo.
 
