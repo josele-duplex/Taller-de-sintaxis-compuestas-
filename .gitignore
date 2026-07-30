@@ -1,7 +1,14 @@
 node_modules/
 .DS_Store
 Thumbs.db
-.claude/
+
+# Config local de Claude Code (permisos, servidor de preview, worktrees):
+# no versionar. EXCEPCIÓN: .claude/skills/ sí se versiona — es el skill
+# "taller-sintaxis" (terminología NGLE, schema de datos, convenciones de
+# despliegue). Antes vivía solo en la caché de sesión de otra app y se
+# perdía; ahora vive en el repo para que persista entre máquinas y sesiones.
+.claude/*
+!.claude/skills/
 
 # Visual Studio (metadatos locales del IDE, no del proyecto)
 .vs/
