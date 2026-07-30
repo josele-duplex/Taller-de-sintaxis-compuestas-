@@ -1307,6 +1307,10 @@ function buildCompuestasSubMenu_(ui) {
   m.addItem('🔁 Migrar seeds a 4 dígitos (OC_NNN → OC_0NNN)', 'menuMigrarSeedsA4Digitos');
   m.addItem('🔢 Asignar IDs automáticamente',       'menuAsignarIDsCompuestas');
   m.addSeparator();
+  // Parche del lote literario (jul-2026): ver server/ParcheLoteLiterario.gs
+  m.addItem('👁 Previsualizar parche lote literario', 'menuPreviewParcheLoteLiterario');
+  m.addItem('🩹 Aplicar parche lote literario',       'menuAplicarParcheLoteLiterario');
+  m.addSeparator();
   m.addItem('🔄 Regenerar caché de compuestas',     'menuRegenerarCompuestas');
   m.addItem('📊 Ver resumen de mi banco',           'menuResumenBancoCompuestas');
   m.addItem('📊 Resumen de resultados',             'menuStatsCompuestas');
