@@ -8,8 +8,9 @@
  * NO toca la app ni el Sheet: solo LEE el archivo TSV y reporta.
  *
  * USO (desde la carpeta del proyecto, en la terminal):
- *   node scripts/validar-banco.mjs simples    banco_export/Oraciones_Banco.tsv
- *   node scripts/validar-banco.mjs compuestas  banco_export/Compuestas_Banco.tsv
+ *   node scripts/validar-banco.mjs simples      banco_export/Oraciones_Banco.tsv
+ *   node scripts/validar-banco.mjs compuestas   banco_export/Compuestas_Banco.tsv
+ *   node scripts/validar-banco.mjs laboratorio  banco_export/Laboratorio_Banco.tsv
  *
  * Cómo exportar el TSV:
  *   En el Sheet → Archivo → Descargar → "Valores separados por tabulaciones (.tsv)".
@@ -20,7 +21,7 @@
  *   ⚠ AVISO  → algo sospechoso o no recomendado, pero que no rompe. Revísalo.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
 // ════════════════════════════════════════════════════════════════════
 //  LISTAS CERRADAS (fuente de verdad: js/glosario/tags.js y el prompt v1.3)
@@ -83,6 +84,97 @@ const CP_CC_SUBTIPOS = new Set([
 // funcion_sp (sección 6).
 const CP_FUNCION_SP = new Set(['c_regimen','ci','cc','cn','c_adj','c_adv','atributo']);
 const CP_SUBTIPO_ELIMINADO = 'sustantiva_c_regimen'; // ya no existe en 1.2
+
+// ── LABORATORIO (Laboratorio_Banco, columna JSON_Reto, schema 1.0) ──
+// Especificación completa: docs/Schema_Laboratorio_v1.0.md
+const LAB_NIVEL = new Set(['basico','medio','avanzado']);
+const LAB_ORDEN_NIVEL = { basico:1, medio:2, avanzado:3 };
+const LAB_CURSO = new Set(['2E','3E','4E','1B']);
+
+// Las funciones válidas son las mismas que en simples (fuente: FUNC_ORAC de
+// js/glosario/tags.js). Se reutiliza el Set en vez de duplicarlo: si un día
+// se añade una función, se añade en un solo sitio.
+const LAB_FUNCIONES = SIMPLES_FUNCIONES;
+// Ídem con las etiquetas prohibidas, más las que el banco R-07 del proyecto de
+// Lengua usa con otro nombre y se van a colar al importar pares mínimos.
+const LAB_PROHIBIDAS = {
+  ...SIMPLES_PROHIBIDAS,
+  'C.Pred.':'usa "CPvo"', 'CPredicativo':'usa "CPvo"', 'C. Pred.':'usa "CPvo"',
+  'CReg':'usa "C.Rég."', 'C.Reg.':'usa "C.Rég."', 'C. Rég.':'usa "C.Rég."',
+  'Atributo':'usa "Atr."',
+  'Predicado Nominal':'usa "PN"', 'Predicado Verbal':'usa "PV"',
+  'Vocativo':'usa "Vocat."',
+};
+
+// Tipo de ítem → estación. La estación NO se declara en el dato: se deduce de
+// aquí, para que no pueda existir un ítem en una estación que no le toca.
+const LAB_TIPO_ESTACION = {
+  valencia:1, que_cambia:1, intruso:1,
+  manipulacion:2, juicio:2, par_minimo:2, analisis_inverso:2, frontera:2,
+  etiqueta_prueba:3,
+};
+const LAB_MANIPULACIONES = new Set(['sustituye','suprime','cambia_numero','mueve','transforma']);
+const LAB_VEREDICTOS = new Set(['gramatical','agramatical','norma_culta','dudoso']);
+const LAB_ROLES_VALENCIA = new Set(['quien_hace','a_quien_o_que','quien_lo_recibe','donde_cuando_como']);
+const LAB_ENUNCIADOS = new Set(['tecnico','simple']);
+const LAB_DESTINOS = new Set(['reto','caja_pruebas']);
+const LAB_ORDENES = new Set(['fijo','libre']);
+
+// Las 16 causas de agramaticalidad, con el nivel mínimo en que pueden aparecer
+// y el veredicto que les corresponde (§5 de la especificación). Confundir un
+// error de comprensión con uno de norma culta es el error pedagógico que el
+// corpus quiere evitar, así que se valida.
+const LAB_CAUSAS = {
+  concordancia_sv:          { nivelMin:'basico',   veredicto:'agramatical' },
+  concordancia_atr:         { nivelMin:'basico',   veredicto:'agramatical' },
+  transitividad:            { nivelMin:'basico',   veredicto:'agramatical' },
+  orden_imposible:          { nivelMin:'basico',   veredicto:'agramatical' },
+  concordancia_cpvo:        { nivelMin:'medio',    veredicto:'agramatical' },
+  regimen_prep:             { nivelMin:'medio',    veredicto:'agramatical' },
+  pronombre_cruzado:        { nivelMin:'medio',    veredicto:'agramatical' },
+  seleccion_semantica:      { nivelMin:'medio',    veredicto:'agramatical' },
+  articulo_propio:          { nivelMin:'medio',    veredicto:'norma_culta' },
+  pasiva_refleja_intrans:   { nivelMin:'avanzado', veredicto:'agramatical' },
+  duplicacion_obligatoria:  { nivelMin:'avanzado', veredicto:'agramatical' },
+  modo_obligado:            { nivelMin:'avanzado', veredicto:'agramatical' },
+  gradabilidad:             { nivelMin:'avanzado', veredicto:'agramatical' },
+  queismo_dequeismo:        { nivelMin:'avanzado', veredicto:'norma_culta' },
+  leismo_laismo:            { nivelMin:'avanzado', veredicto:'norma_culta' },
+  concordancia_ad_sensum:   { nivelMin:'avanzado', veredicto:'dudoso' },
+};
+
+// Pares de funciones que discriminan de verdad (matriz de vecinos confundibles
+// del Banco_reflexion_metalinguistica.md). Sus ítems deberían pesar 2.
+const LAB_PARES_DISCRIMINANTES = [
+  ['Atr.','CPvo'], ['C.Rég.','CC'], ['CI','CC Finalidad'], ['C.Ag.','CC Causa'],
+  ['Marca.Pas.Ref.','Marca.Imp.'], ['Sujeto','CD'], ['CD','CI'],
+];
+const LAB_FUNC_DISCRIMINANTES = new Set(LAB_PARES_DISCRIMINANTES.flat());
+
+// Metalenguaje que NO puede aparecer en los textos visibles de la estación 1
+// (ni de la estación 2 en nivel basico). OJO: "verbo" y "oración" están
+// deliberadamente FUERA de la lista — son el vocabulario que la propia unidad
+// de 2.º ESO usa a ese nivel ("¿cuántos actores pide este verbo?").
+const LAB_META_PALABRAS = [
+  'sujeto','predicado','sintagma','núcleo','nucleo',
+  'complemento directo','complemento indirecto','complemento circunstancial',
+  'complemento de régimen','complemento agente','complemento predicativo',
+  'atributo','predicativo','circunstancial','régimen','regimen','agente',
+  'transitivo','intransitivo','copulativo','valencia','argumento','adjunto',
+  'pasiva refleja','impersonal','vocativo','pronominalizar','conmutar',
+];
+const LAB_META_SIGLAS = [
+  'CD','CI','CC','NP','PN','PV','CPvo','C.Rég.','C.Ag.','Atr.','Atr. Loc.',
+  'Vocat.','Mod.Or.','Dativo','Marca.Imp.','Marca.Pas.Ref.','Marca.Pron.',
+];
+
+// Terminología del proyecto que nunca debe aparecer en un texto visible
+// (reglas no negociables de CLAUDE.md).
+const LAB_TERMINOLOGIA = {
+  'grupo':'terminología NGLE del proyecto: se dice "sintagma", nunca "grupo"',
+  'proposición':'la app dice "oración" y numera O1/O2/O3, nunca "proposición"',
+  'proposiciones':'la app dice "oraciones" y numera O1/O2/O3',
+};
 
 // ════════════════════════════════════════════════════════════════════
 //  UTILIDADES
@@ -284,15 +376,474 @@ function validarCompuestas(cabecera, filas, R){
 }
 
 // ════════════════════════════════════════════════════════════════════
+//  VALIDADOR DE LABORATORIO (schema 1.0)
+//  Especificación: docs/Schema_Laboratorio_v1.0.md
+// ════════════════════════════════════════════════════════════════════
+
+// Cuántas veces aparece "aguja" dentro de "pajar" (búsqueda literal, no regex).
+function contarOcurrencias(pajar, aguja){
+  if(!pajar || !aguja) return 0;
+  let n=0, desde=0;
+  for(;;){
+    const i = pajar.indexOf(aguja, desde);
+    if(i<0) break;
+    n++; desde = i + aguja.length;
+  }
+  return n;
+}
+
+// Devuelve el primer término de metalenguaje encontrado, o null.
+function buscarMetalenguaje(texto){
+  if(typeof texto!=='string') return null;
+  const t = texto.toLowerCase();
+  for(const pal of LAB_META_PALABRAS){
+    // \b no sirve con tildes en todos los motores: se comprueba a mano que el
+    // carácter anterior y el siguiente no sean letra.
+    const i = t.indexOf(pal);
+    if(i<0) continue;
+    const antes = i>0 ? t[i-1] : ' ';
+    const desp  = t[i+pal.length] || ' ';
+    if(!/[a-záéíóúñü]/.test(antes) && !/[a-záéíóúñü]/.test(desp)) return pal;
+  }
+  for(const sig of LAB_META_SIGLAS){
+    const i = texto.indexOf(sig);
+    if(i<0) continue;
+    const antes = i>0 ? texto[i-1] : ' ';
+    const desp  = texto[i+sig.length] || ' ';
+    // Tras una sigla puede ir punto o coma; antes, espacio o comilla.
+    if(!/[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(antes) && !/[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(desp)) return sig;
+  }
+  return null;
+}
+
+// Todos los textos que el alumno LEE en un ítem (para las comprobaciones de
+// metalenguaje y de terminología).
+function textosVisibles(item){
+  const out = [];
+  const push = v => { if(typeof v==='string' && v.trim()) out.push(v); };
+  push(item.feedback); push(item.explicacion); push(item.consigna);
+  (Array.isArray(item.opciones)?item.opciones:[]).forEach(o=>{ if(o){ push(o.texto); push(o.micro); } });
+  (Array.isArray(item.actores)?item.actores:[]).forEach(a=>{ if(a) push(a.texto); });
+  (Array.isArray(item.slots)?item.slots:[]).forEach(s=>{ if(s) push(s.rol); });
+  return out;
+}
+
+// Comprueba el bloque "opciones" común a varios tipos de ítem.
+function validarOpciones(R, id, ref, opciones, okEsperados){
+  if(!Array.isArray(opciones) || opciones.length<2){
+    R.error(id, `${ref}: necesita al menos 2 "opciones".`);
+    return;
+  }
+  if(opciones.length>4) R.aviso(id, `${ref}: ${opciones.length} opciones (el schema recomienda 2-4).`);
+  const oks = opciones.filter(o=>o && o.ok===true).length;
+  if(oks!==okEsperados){
+    R.error(id, `${ref}: ${oks} opción(es) con ok:true, se esperaban ${okEsperados}.`);
+  }
+  opciones.forEach((o,i)=>{
+    const oref = `${ref} opción ${i+1}`;
+    if(!o || typeof o!=='object'){ R.error(id, `${oref}: no es un objeto.`); return; }
+    if(typeof o.texto!=='string' || !o.texto.trim()) R.error(id, `${oref}: sin "texto".`);
+    // La microexplicación es obligatoria TAMBIÉN en la correcta: es el patrón
+    // del banco de reflexión (cada opción explica por qué acierta o falla).
+    if(typeof o.micro!=='string' || !o.micro.trim()) R.error(id, `${oref}: sin "micro" (obligatoria en todas, correctas incluidas).`);
+    if(o.ok!==undefined && typeof o.ok!=='boolean') R.error(id, `${oref}: "ok" debe ser true o false.`);
+  });
+}
+
+// Comprueba un { texto, funcion } contra su oración.
+function validarObjetivo(R, id, ref, objetivo, oracion){
+  if(!objetivo || typeof objetivo!=='object'){ R.error(id, `${ref}: falta "objetivo".`); return; }
+  const { texto, funcion } = objetivo;
+  if(typeof texto!=='string' || !texto.trim()){ R.error(id, `${ref}: objetivo sin "texto".`); }
+  else if(typeof oracion==='string'){
+    const n = contarOcurrencias(oracion, texto);
+    if(n===0) R.error(id, `${ref}: objetivo "${texto}" NO aparece en la oración (¿error de copia?).`);
+    else if(n>1) R.error(id, `${ref}: objetivo "${texto}" aparece ${n} veces en la oración: es ambiguo, reescribe la oración.`);
+  }
+  if(typeof funcion!=='string' || !funcion.trim()){ R.error(id, `${ref}: objetivo sin "funcion".`); return; }
+  if(LAB_PROHIBIDAS[funcion]) R.error(id, `${ref}: función "${funcion}" PROHIBIDA → ${LAB_PROHIBIDAS[funcion]}.`);
+  else if(!LAB_FUNCIONES.has(funcion)) R.error(id, `${ref}: función "${funcion}" no está en la lista válida del motor.`);
+}
+
+// Lee los identificadores de prueba definidos en js/data/pruebas-sintaxis.js.
+// Ese archivo se escribe en F2·1; mientras no exista, solo se valida el FORMATO
+// de los ids (así el lote semilla de F0·3 puede escribirse ya).
+function cargarIdsPrueba(){
+  const ruta = 'js/data/pruebas-sintaxis.js';
+  if(!existsSync(ruta)) return null;
+  try {
+    const txt = readFileSync(ruta,'utf8');
+    const ids = new Set();
+    for(const m of txt.matchAll(/'(PRU-SINT-[A-Z]+-\d{2}|HEUR-[A-Z-]+)'/g)) ids.add(m[1]);
+    for(const m of txt.matchAll(/"(PRU-SINT-[A-Z]+-\d{2}|HEUR-[A-Z-]+)"/g)) ids.add(m[1]);
+    return ids.size ? ids : null;
+  } catch { return null; }
+}
+
+function validarLaboratorio(cabecera, filas, R){
+  const cId     = colIndex(cabecera,'ID');
+  const cNivel  = colIndex(cabecera,'Nivel');
+  const cCurso  = colIndex(cabecera,'Curso_Min');
+  const cFunc   = colIndex(cabecera,'Funciones');
+  const cTipos  = colIndex(cabecera,'Tipos_Item');
+  const cJson   = colIndex(cabecera,'JSON_Reto');
+  const cGris   = colIndex(cabecera,'Zona_Gris');
+  const cActivo = colIndex(cabecera,'Activo');
+  if(cJson<0){
+    R.error('-', 'No encuentro la columna "JSON_Reto" en la cabecera. ¿Es el TSV del Laboratorio?');
+    return;
+  }
+  const idsPrueba = cargarIdsPrueba();
+  if(!idsPrueba) console.log('   (js/data/pruebas-sintaxis.js aún no existe: solo se valida el FORMATO de los prueba_id)');
+
+  const idsVistos = new Map();
+
+  filas.forEach((cols, i)=>{
+    const fila = i+2;
+    const idCol = (cols[cId]||'').trim();
+    const id = `${idCol||'(sin ID)'} · fila ${fila}`;
+
+    // ── Estructura del TSV ────────────────────────────────────────
+    // Un número de columnas distinto al de la cabecera delata un salto de línea
+    // o un tabulador dentro del JSON: el parser de TSV no los soporta.
+    if(cols.length !== cabecera.length){
+      R.error(id, `la fila tiene ${cols.length} columnas y la cabecera ${cabecera.length}: seguramente el JSON_Reto contiene un salto de línea o un tabulador. Debe caber en UNA línea.`);
+      return;
+    }
+
+    // ── Columna ID ────────────────────────────────────────────────
+    if(!idCol) R.error(id, 'sin ID en la columna ID.');
+    else {
+      if(!/^LB_\d{4}$/.test(idCol)) R.aviso(id, `ID "${idCol}" no sigue el formato LB_NNNN (4 dígitos).`);
+      if(idsVistos.has(idCol)) R.error(id, `ID duplicado (también en fila ${idsVistos.get(idCol)}).`);
+      else idsVistos.set(idCol, fila);
+    }
+
+    // ── Columna Activo ────────────────────────────────────────────
+    const activo = (cols[cActivo]||'').trim().toUpperCase();
+    if(cActivo>=0 && activo && !['TRUE','FALSE'].includes(activo))
+      R.aviso(id, `Activo "${cols[cActivo]}" debería ser TRUE o FALSE.`);
+
+    // ── JSON ──────────────────────────────────────────────────────
+    const raw = (cols[cJson]||'').trim();
+    if(!raw){ R.aviso(id, 'JSON_Reto vacío.'); return; }
+    let o;
+    try { o = JSON.parse(raw); }
+    catch(e){ R.error(id, `JSON_Reto no es JSON válido: ${e.message}`); return; }
+
+    if(o.schema_version && o.schema_version!=='1.0')
+      R.aviso(id, `schema_version "${o.schema_version}" (se espera "1.0").`);
+    if(o.id && idCol && o.id!==idCol)
+      R.error(id, `el "id" del JSON ("${o.id}") no coincide con la columna ID ("${idCol}").`);
+
+    // nivel (columna y JSON)
+    const nivelCol = (cols[cNivel]||'').trim();
+    if(nivelCol && !LAB_NIVEL.has(nivelCol))
+      R.error(id, `Nivel (columna) "${nivelCol}" inválido (basico/medio/avanzado).`);
+    const nivel = LAB_NIVEL.has(o.nivel) ? o.nivel : (LAB_NIVEL.has(nivelCol) ? nivelCol : null);
+    if(!o.nivel) R.error(id, 'el JSON no tiene "nivel".');
+    else if(!LAB_NIVEL.has(o.nivel)) R.error(id, `nivel (JSON) "${o.nivel}" inválido (basico/medio/avanzado).`);
+    if(nivelCol && o.nivel && nivelCol!==o.nivel)
+      R.error(id, `Nivel de la columna ("${nivelCol}") y del JSON ("${o.nivel}") no coinciden.`);
+
+    // curso_min (columna y JSON)
+    const cursoCol = (cols[cCurso]||'').trim();
+    if(cursoCol && !LAB_CURSO.has(cursoCol))
+      R.error(id, `Curso_Min (columna) "${cursoCol}" inválido (2E/3E/4E/1B).`);
+    const cursoJson = o.metadatos?.curso_min;
+    if(!cursoJson) R.aviso(id, 'metadatos.curso_min ausente.');
+    else if(!LAB_CURSO.has(cursoJson)) R.error(id, `metadatos.curso_min "${cursoJson}" inválido (2E/3E/4E/1B).`);
+    else if(cursoCol && cursoCol!==cursoJson)
+      R.error(id, `Curso_Min de la columna ("${cursoCol}") y del JSON ("${cursoJson}") no coinciden.`);
+
+    if(typeof o.titulo_problema!=='string' || !o.titulo_problema.trim())
+      R.error(id, 'falta "titulo_problema".');
+    if(o.metadatos?.origen_oracion_id && !/^OR_\d{4}$/.test(o.metadatos.origen_oracion_id))
+      R.aviso(id, `metadatos.origen_oracion_id "${o.metadatos.origen_oracion_id}" no sigue el formato OR_NNNN.`);
+
+    // corpus
+    const corpus = Array.isArray(o.corpus) ? o.corpus : [];
+    if(corpus.length===0) R.error(id, 'sin array "corpus" (1-6 oraciones).');
+    else if(corpus.length>6) R.aviso(id, `corpus de ${corpus.length} oraciones (el schema recomienda 1-6).`);
+
+    // ── Ítems ─────────────────────────────────────────────────────
+    const items = Array.isArray(o.items) ? o.items : [];
+    if(items.length<3){ R.error(id, `solo ${items.length} ítem(s): el schema pide al menos 3.`); }
+
+    let estacionPrevia = 0;
+    const estacionesVistas = new Set();
+    const tiposVistos = new Set();
+    const funcionesVistas = new Set();
+    let nJuicios = 0, nControlesGramaticales = 0, hayFrontera = false;
+
+    items.forEach((it, k)=>{
+      const ref = `ítem ${k+1}`;
+      if(!it || typeof it!=='object'){ R.error(id, `${ref}: no es un objeto.`); return; }
+      const tipo = it.tipo;
+      const est = LAB_TIPO_ESTACION[tipo];
+      if(!est){
+        R.error(id, `${ref}: tipo "${tipo}" no es uno de los nueve del schema (${Object.keys(LAB_TIPO_ESTACION).join(', ')}).`);
+        return;
+      }
+      tiposVistos.add(tipo);
+      estacionesVistas.add(est);
+
+      // Orden de estaciones no decreciente
+      if(est < estacionPrevia)
+        R.error(id, `${ref} (${tipo}, estación ${est}): va después de un ítem de estación ${estacionPrevia}. Los ítems deben ir ordenados por estación.`);
+      estacionPrevia = Math.max(estacionPrevia, est);
+
+      // fuente_id y peso
+      if(it.fuente_id!==undefined && !/^(PM|AI)-SINT-\d{2}$/.test(it.fuente_id))
+        R.aviso(id, `${ref}: fuente_id "${it.fuente_id}" no sigue el formato PM-SINT-NN o AI-SINT-NN.`);
+      if(it.peso!==undefined && (typeof it.peso!=='number' || it.peso<=0))
+        R.error(id, `${ref}: "peso" debe ser un número positivo.`);
+
+      // ── Metalenguaje y terminología ─────────────────────────────
+      const visibles = textosVisibles(it);
+      if(typeof it.titulo_problema==='string') visibles.push(it.titulo_problema);
+      const metaProhibido =
+        est===1 ||
+        (est===2 && nivel==='basico' && ['manipulacion','juicio'].includes(tipo)) ||
+        (est===2 && nivel==='basico' && ['par_minimo','analisis_inverso'].includes(tipo));
+      for(const txt of visibles){
+        const hallado = buscarMetalenguaje(txt);
+        if(hallado){
+          if(metaProhibido)
+            R.error(id, `${ref} (${tipo}, estación ${est}${nivel?`, nivel ${nivel}`:''}): usa metalenguaje "${hallado}" donde está prohibido → "${txt.slice(0,60)}…"`);
+          else if(est===2 && tipo==='manipulacion')
+            R.aviso(id, `${ref} (manipulacion): usa metalenguaje "${hallado}"; en la estación 2 es preferible evitarlo.`);
+        }
+        const bajo = txt.toLowerCase();
+        for(const [mal, msg] of Object.entries(LAB_TERMINOLOGIA)){
+          if(bajo.includes(mal)) R.error(id, `${ref}: "${mal}" en un texto visible → ${msg}.`);
+        }
+      }
+      // El título del reto también sigue la regla del nivel basico.
+      if(nivel==='basico' && k===0 && typeof o.titulo_problema==='string'){
+        const h = buscarMetalenguaje(o.titulo_problema);
+        if(h) R.error(id, `titulo_problema usa metalenguaje "${h}" y el nivel es basico.`);
+      }
+
+      // ── Por tipo ────────────────────────────────────────────────
+      switch(tipo){
+        case 'valencia': {
+          if(typeof it.verbo!=='string' || !it.verbo.trim()) R.error(id, `${ref}: falta "verbo".`);
+          if(![1,2,3].includes(it.respuesta)) R.error(id, `${ref}: "respuesta" debe ser 1, 2 o 3 (es ${JSON.stringify(it.respuesta)}).`);
+          if(typeof it.feedback!=='string' || !it.feedback.trim())
+            R.error(id, `${ref}: "feedback" es obligatorio en valencia (cierra el descubrimiento).`);
+          if(it.actores!==undefined){
+            if(!Array.isArray(it.actores)){ R.error(id, `${ref}: "actores" debe ser un array.`); break; }
+            it.actores.forEach((a,ai)=>{
+              if(!a || typeof a.texto!=='string' || !a.texto.trim()) R.error(id, `${ref} actor ${ai+1}: sin "texto".`);
+              if(!a || !LAB_ROLES_VALENCIA.has(a.rol)) R.error(id, `${ref} actor ${ai+1}: rol "${a?.rol}" inválido (${[...LAB_ROLES_VALENCIA].join('/')}).`);
+            });
+            const nActores = it.actores.filter(a=>a && a.rol!=='donde_cuando_como').length;
+            if(nActores!==it.respuesta)
+              R.error(id, `${ref}: hay ${nActores} actor(es) pero "respuesta" dice ${it.respuesta}.`);
+          }
+          break;
+        }
+        case 'que_cambia':
+        case 'par_minimo': {
+          if(typeof it.oracion_a!=='string' || !it.oracion_a.trim()) R.error(id, `${ref}: falta "oracion_a".`);
+          if(typeof it.oracion_b!=='string' || !it.oracion_b.trim()) R.error(id, `${ref}: falta "oracion_b".`);
+          if(it.oracion_a && it.oracion_b && it.oracion_a===it.oracion_b)
+            R.error(id, `${ref}: oracion_a y oracion_b son idénticas (un par mínimo necesita UN cambio).`);
+          if(typeof it.cambio!=='string' || !it.cambio.includes('→'))
+            R.aviso(id, `${ref}: "cambio" debería tener el formato "antes → después".`);
+          validarOpciones(R, id, ref, it.opciones, 1);
+          break;
+        }
+        case 'intruso': {
+          const ors = Array.isArray(it.oraciones) ? it.oraciones : [];
+          if(ors.length<3) R.error(id, `${ref}: "oraciones" necesita al menos 3 para que haya serie.`);
+          if(typeof it.respuesta!=='string')
+            R.error(id, `${ref}: "respuesta" debe ser el TEXTO de la oración intrusa, no su posición.`);
+          else if(!ors.includes(it.respuesta))
+            R.error(id, `${ref}: la "respuesta" no está entre las "oraciones".`);
+          if(typeof it.feedback!=='string' || !it.feedback.trim())
+            R.error(id, `${ref}: "feedback" es obligatorio en intruso.`);
+          if(it.opciones!==undefined) validarOpciones(R, id, ref, it.opciones, 1);
+          break;
+        }
+        case 'manipulacion': {
+          if(!LAB_MANIPULACIONES.has(it.manipulacion))
+            R.error(id, `${ref}: "manipulacion" inválida ("${it.manipulacion}"); debe ser ${[...LAB_MANIPULACIONES].join('/')}.`);
+          if(typeof it.oracion!=='string' || !it.oracion.trim()) R.error(id, `${ref}: falta "oracion".`);
+          validarObjetivo(R, id, ref, it.objetivo, it.oracion);
+          if(it.objetivo?.funcion) funcionesVistas.add(it.objetivo.funcion);
+          validarOpciones(R, id, ref, it.opciones, 1);
+          if(it.oracion && corpus.length && !corpus.includes(it.oracion))
+            R.aviso(id, `${ref}: la oración no está en el "corpus" del reto.`);
+          // Ponderación de fronteras discriminantes
+          if(it.objetivo?.funcion && LAB_FUNC_DISCRIMINANTES.has(it.objetivo.funcion) && it.peso!==2)
+            R.aviso(id, `${ref}: función "${it.objetivo.funcion}" es de frontera discriminante y el ítem no lleva peso:2.`);
+          break;
+        }
+        case 'juicio': {
+          nJuicios++;
+          if(typeof it.oracion!=='string' || !it.oracion.trim()) R.error(id, `${ref}: falta "oracion".`);
+          if(!LAB_VEREDICTOS.has(it.veredicto)){
+            R.error(id, `${ref}: "veredicto" inválido ("${it.veredicto}"); debe ser ${[...LAB_VEREDICTOS].join('/')}.`);
+            break;
+          }
+          const esGramatical = it.veredicto==='gramatical';
+          if(esGramatical) nControlesGramaticales++;
+          // causa
+          if(esGramatical){
+            if(it.causa!==undefined) R.error(id, `${ref}: veredicto "gramatical" no debe llevar "causa".`);
+            if(it.gemela_correcta!==undefined) R.error(id, `${ref}: veredicto "gramatical" no debe llevar "gemela_correcta".`);
+            if(it.opciones_causa!==undefined) R.error(id, `${ref}: veredicto "gramatical" no debe llevar "opciones_causa".`);
+          } else {
+            const spec = LAB_CAUSAS[it.causa];
+            if(!it.causa) R.error(id, `${ref}: falta "causa" (obligatoria salvo en veredicto "gramatical").`);
+            else if(!spec) R.error(id, `${ref}: causa "${it.causa}" no está entre las 16 del schema.`);
+            else {
+              if(LAB_ORDEN_NIVEL[spec.nivelMin] > (LAB_ORDEN_NIVEL[nivel]||0))
+                R.error(id, `${ref}: causa "${it.causa}" es de nivel ${spec.nivelMin} y el reto es ${nivel}.`);
+              if(spec.veredicto!==it.veredicto)
+                R.error(id, `${ref}: causa "${it.causa}" corresponde al veredicto "${spec.veredicto}", no a "${it.veredicto}".`);
+            }
+            if(typeof it.gemela_correcta!=='string' || !it.gemela_correcta.trim())
+              R.error(id, `${ref}: veredicto "${it.veredicto}" exige "gemela_correcta" (nunca el error solo en pantalla).`);
+            const opc = Array.isArray(it.opciones_causa) ? it.opciones_causa : [];
+            if(opc.length<2) R.error(id, `${ref}: "opciones_causa" necesita al menos 2 causas.`);
+            else if(opc.length>4) R.aviso(id, `${ref}: ${opc.length} opciones_causa (el schema recomienda 2-4).`);
+            opc.forEach(c=>{ if(!LAB_CAUSAS[c]) R.error(id, `${ref}: opciones_causa contiene "${c}", que no es una causa del schema.`); });
+            if(it.causa && opc.length && !opc.includes(it.causa))
+              R.error(id, `${ref}: la "causa" correcta no está entre las "opciones_causa".`);
+          }
+          if(typeof it.explicacion!=='string' || !it.explicacion.trim())
+            R.error(id, `${ref}: falta "explicacion" (qué se rompe, en lenguaje de alumno).`);
+          break;
+        }
+        case 'analisis_inverso': {
+          if(typeof it.consigna!=='string' || !it.consigna.trim()) R.error(id, `${ref}: falta "consigna".`);
+          const piezas = Array.isArray(it.piezas) ? it.piezas : [];
+          const slots  = Array.isArray(it.slots)  ? it.slots  : [];
+          if(piezas.length<3) R.error(id, `${ref}: "piezas" necesita al menos 3.`);
+          if(slots.length===0){ R.error(id, `${ref}: sin "slots".`); break; }
+          const usadas = new Set();
+          slots.forEach((s,si)=>{
+            const sref = `${ref} slot ${si+1}`;
+            if(!s || typeof s.rol!=='string' || !s.rol.trim()){ R.error(id, `${sref}: sin "rol".`); return; }
+            // En basico los roles van en paráfrasis; en medio/avanzado deben ser
+            // funciones reales del motor.
+            if(nivel!=='basico'){
+              if(LAB_PROHIBIDAS[s.rol]) R.error(id, `${sref}: rol "${s.rol}" PROHIBIDO → ${LAB_PROHIBIDAS[s.rol]}.`);
+              else if(!LAB_FUNCIONES.has(s.rol)) R.error(id, `${sref}: rol "${s.rol}" no está en la lista de funciones del motor.`);
+              else funcionesVistas.add(s.rol);
+            }
+            const acepta = Array.isArray(s.acepta) ? s.acepta : [];
+            if(acepta.length===0){ R.error(id, `${sref}: "acepta" vacío.`); return; }
+            acepta.forEach(a=>{
+              if(!piezas.includes(a)) R.error(id, `${sref}: acepta "${a}", que no está en "piezas".`);
+              else usadas.add(a);
+            });
+          });
+          if(usadas.size >= piezas.length)
+            R.error(id, `${ref}: todas las piezas se usan en algún slot. Debe sobrar al menos una como distractor.`);
+          if(it.orden!==undefined && !LAB_ORDENES.has(it.orden))
+            R.error(id, `${ref}: "orden" debe ser fijo o libre.`);
+          if(it.destino!==undefined && !LAB_DESTINOS.has(it.destino))
+            R.error(id, `${ref}: "destino" debe ser reto o caja_pruebas.`);
+          break;
+        }
+        case 'frontera': {
+          hayFrontera = true;
+          if(typeof it.oracion!=='string' || !it.oracion.trim()) R.error(id, `${ref}: falta "oracion".`);
+          if(typeof it.variante!=='string' || !it.variante.trim()) R.error(id, `${ref}: falta "variante" (el otro análisis posible).`);
+          // Dos correctas: es lo que define la zona gris.
+          validarOpciones(R, id, ref, it.opciones, 2);
+          if(typeof it.explicacion!=='string' || !it.explicacion.trim())
+            R.error(id, `${ref}: falta "explicacion" (por qué las dos valen).`);
+          break;
+        }
+        case 'etiqueta_prueba': {
+          if(typeof it.oracion!=='string' || !it.oracion.trim()) R.error(id, `${ref}: falta "oracion".`);
+          validarObjetivo(R, id, ref, it.objetivo, it.oracion);
+          if(it.objetivo?.funcion) funcionesVistas.add(it.objetivo.funcion);
+          if(!LAB_ENUNCIADOS.has(it.enunciado))
+            R.error(id, `${ref}: "enunciado" debe ser tecnico o simple.`);
+          else if(nivel==='basico' && it.enunciado!=='simple')
+            R.error(id, `${ref}: en nivel basico el enunciado debe ser "simple" (el alumno no ve etiquetas).`);
+          // prueba_id
+          const pid = it.prueba_id;
+          if(typeof pid!=='string' || !pid.trim()) R.error(id, `${ref}: falta "prueba_id".`);
+          else {
+            if(/^HEUR-/.test(pid)) R.error(id, `${ref}: "${pid}" es un heurístico rechazado: solo puede ir en "distractores", nunca como respuesta correcta.`);
+            else if(!/^PRU-SINT-[A-Z]+-\d{2}$/.test(pid)) R.error(id, `${ref}: prueba_id "${pid}" no sigue el formato PRU-SINT-XXX-NN.`);
+            else if(idsPrueba && !idsPrueba.has(pid)) R.error(id, `${ref}: prueba_id "${pid}" no está definido en js/data/pruebas-sintaxis.js.`);
+          }
+          const dist = Array.isArray(it.distractores) ? it.distractores : [];
+          if(dist.length<2 || dist.length>3) R.error(id, `${ref}: "distractores" debe tener 2 o 3 ids (tiene ${dist.length}).`);
+          dist.forEach(d=>{
+            if(typeof d!=='string' || !(/^PRU-SINT-[A-Z]+-\d{2}$/.test(d) || /^HEUR-[A-Z-]+$/.test(d)))
+              R.error(id, `${ref}: distractor "${d}" no sigue el formato PRU-SINT-XXX-NN ni HEUR-XXX.`);
+            else if(idsPrueba && !idsPrueba.has(d)) R.error(id, `${ref}: distractor "${d}" no está definido en js/data/pruebas-sintaxis.js.`);
+          });
+          if(dist.length && !dist.some(d=>/^HEUR-/.test(d)))
+            R.aviso(id, `${ref}: ningún distractor es un heurístico rechazado (HEUR-*); el schema pide al menos uno.`);
+          if(pid && dist.includes(pid)) R.error(id, `${ref}: "${pid}" está a la vez como respuesta y como distractor.`);
+          break;
+        }
+      }
+    });
+
+    // ── Reglas de composición del reto ────────────────────────────
+    if(items.length){
+      if(!estacionesVistas.has(2)) R.error(id, 'sin ningún ítem de estación 2 (manipulación): es el núcleo del reto.');
+      if(!estacionesVistas.has(3)) R.error(id, 'sin ningún ítem de estación 3: el reto no alimenta la Caja de Pruebas.');
+      if(!estacionesVistas.has(1)) R.aviso(id, 'sin ningún ítem de estación 1 (observación).');
+      if(nJuicios===0) R.error(id, 'sin ningún juicio de gramaticalidad (el schema pide al menos 1 por reto).');
+      if(nJuicios>2) R.aviso(id, `${nJuicios} juicios de gramaticalidad (el schema recomienda 1-2 por reto).`);
+      if(nJuicios>=3 && nControlesGramaticales===0)
+        R.error(id, `${nJuicios} juicios y ninguno con veredicto "gramatical": hace falta un control, o el alumno responde "mal" sin mirar.`);
+    }
+    // zona_gris ⟺ hay un ítem frontera
+    if(o.zona_gris===true && !hayFrontera)
+      R.error(id, 'zona_gris:true pero no hay ningún ítem de tipo "frontera".');
+    if(hayFrontera && o.zona_gris!==true)
+      R.error(id, 'hay un ítem "frontera" pero zona_gris no es true (esa bandera es la que lo excluye del examen).');
+    const grisCol = (cols[cGris]||'').trim().toUpperCase();
+    if(cGris>=0 && grisCol==='TRUE' && o.zona_gris!==true)
+      R.error(id, 'columna Zona_Gris TRUE pero zona_gris del JSON no es true.');
+    if(cGris>=0 && grisCol!=='TRUE' && o.zona_gris===true)
+      R.aviso(id, 'zona_gris:true en el JSON pero la columna Zona_Gris no dice TRUE.');
+
+    // ── Columnas derivadas vs JSON ────────────────────────────────
+    const partes = s => String(s||'').split(';').map(x=>x.trim()).filter(Boolean);
+    if(cTipos>=0){
+      const declarados = new Set(partes(cols[cTipos]));
+      if(declarados.size){
+        for(const t of tiposVistos) if(!declarados.has(t))
+          R.aviso(id, `Tipos_Item no incluye "${t}", que sí está en el JSON.`);
+        for(const t of declarados) if(!tiposVistos.has(t))
+          R.aviso(id, `Tipos_Item declara "${t}", que no aparece en el JSON.`);
+      } else R.aviso(id, 'columna Tipos_Item vacía.');
+    }
+    if(cFunc>=0){
+      const declaradas = new Set(partes(cols[cFunc]));
+      if(declaradas.size){
+        for(const f of funcionesVistas) if(!declaradas.has(f))
+          R.aviso(id, `Funciones no incluye "${f}", que sí está en el JSON.`);
+      } else if(funcionesVistas.size) R.aviso(id, 'columna Funciones vacía.');
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
 //  MAIN
 // ════════════════════════════════════════════════════════════════════
 
 function main(){
   const [,, modo, ruta] = process.argv;
-  if(!modo || !ruta || !['simples','compuestas'].includes(modo)){
+  if(!modo || !ruta || !['simples','compuestas','laboratorio'].includes(modo)){
     console.log('USO:');
-    console.log('  node scripts/validar-banco.mjs simples    banco_export/Oraciones_Banco.tsv');
-    console.log('  node scripts/validar-banco.mjs compuestas  banco_export/Compuestas_Banco.tsv');
+    console.log('  node scripts/validar-banco.mjs simples      banco_export/Oraciones_Banco.tsv');
+    console.log('  node scripts/validar-banco.mjs compuestas   banco_export/Compuestas_Banco.tsv');
+    console.log('  node scripts/validar-banco.mjs laboratorio  banco_export/Laboratorio_Banco.tsv');
     process.exit(2);
   }
   let texto;
@@ -304,8 +855,9 @@ function main(){
 
   console.log(`Validando banco de ${modo.toUpperCase()} — ${filas.length} filas — archivo: ${ruta}`);
   const R = new Reporte();
-  if(modo==='simples')    validarSimples(cabecera, filas, R);
-  else                    validarCompuestas(cabecera, filas, R);
+  if(modo==='simples')          validarSimples(cabecera, filas, R);
+  else if(modo==='compuestas')  validarCompuestas(cabecera, filas, R);
+  else                          validarLaboratorio(cabecera, filas, R);
   const code = R.imprimir(filas.length);
   process.exit(code);
 }
