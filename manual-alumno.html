@@ -339,7 +339,7 @@ body.searching .no-result.show{display:block}
 
         <h2><span class="n">1</span> Bienvenida</h2>
         <p class="lead">El Taller de Sintaxis es una aplicación web para <strong>entrenar el análisis de oraciones</strong> de la forma en que se pide en clase y en la PAU. No es un juego de adivinar: te acompaña razonando, te avisa cuando fallas y te explica por qué.</p>
-        <p>Funciona con la terminología oficial que usáis en clase (la de la NGLE): Sujeto, Complemento Directo, Complemento Indirecto, Atributo, Complemento de Régimen, sintagmas, proposiciones… Está pensada para toda la etapa: desde 1.º de ESO hasta 2.º de Bachillerato.</p>
+        <p>Funciona con la terminología oficial que usáis en clase (la de la NGLE): Sujeto, Complemento Directo, Complemento Indirecto, Atributo, Complemento de Régimen, sintagmas, oraciones compuestas… Está pensada para toda la etapa: desde 1.º de ESO hasta 2.º de Bachillerato.</p>
         <div class="box info">
           <div class="bx-h"><span class="em">💡</span> Lo esencial en una frase</div>
           <p>Abres la app, eliges un modo, escribes tu nombre y tu grupo, y practicas. Si el profesor te da un <strong>PIN</strong>, eso es un examen: se guarda tu nota. Sin PIN, es práctica libre para aprender sin presión.</p>
@@ -356,12 +356,32 @@ body.searching .no-result.show{display:block}
           <li><b>Elige un modo</b> tocando su tarjeta. ¡Ya estás dentro!</li>
         </ol>
         <div class="box tip">
-          <div class="bx-h"><span class="em">✅</span> Consejo</div>
-          <p>La app se puede «instalar» como si fuera una aplicación del móvil: en el menú del navegador, busca <em>«Añadir a la pantalla de inicio»</em>. Así tendrás un icono directo, sin abrir el navegador cada vez.</p>
+          <div class="bx-h"><span class="em">✅</span> Consejo: instala la app en tu pantalla de inicio</div>
+          <p>La app se puede «instalar» como si fuera una aplicación del móvil, sin pasar por ninguna tienda de apps. Es opcional, pero te evita la barra de direcciones y las pestañas del navegador: tocas el icono y entras directo, a pantalla completa. El proceso cambia según el móvil:</p>
+        </div>
+        <div class="grid g2">
+          <div class="card">
+            <h4>📱 iPhone / iPad (Safari)</h4>
+            <ol class="steps">
+              <li>Abre el enlace de la app <b>en Safari</b> (tiene que ser Safari; en Chrome para iPhone esta opción no aparece).</li>
+              <li>Toca el icono <b>Compartir</b> (el cuadrado con la flecha hacia arriba), en la barra inferior o superior.</li>
+              <li>Baja en el menú y toca <b>«Añadir a pantalla de inicio»</b>.</li>
+              <li>Confirma con <b>«Añadir»</b>. Ya tienes el icono en tu pantalla, junto a tus demás apps.</li>
+            </ol>
+          </div>
+          <div class="card">
+            <h4>🤖 Android (Chrome)</h4>
+            <ol class="steps">
+              <li>Abre el enlace de la app en Chrome.</li>
+              <li>Toca el menú de <b>tres puntos</b> (⋮), arriba a la derecha.</li>
+              <li>Toca <b>«Instalar aplicación»</b> (o <b>«Añadir a pantalla de inicio»</b>, según la versión de Chrome).</li>
+              <li>Confirma. El icono aparece en tu pantalla de inicio o en el cajón de apps.</li>
+            </ol>
+          </div>
         </div>
         <div class="box warn">
           <div class="bx-h"><span class="em">⚠️</span> Ten en cuenta</div>
-          <p>Como no hay cuenta, tu progreso de práctica se guarda solo <strong>en el navegador de ese dispositivo</strong>. Si cambias de móvil u ordenador, empiezas de cero en cuanto a rachas y misiones. Las notas de <em>examen</em>, en cambio, sí se guardan en el servidor del profesor.</p>
+          <p>Como no hay cuenta, tu progreso de práctica se guarda solo <strong>en el navegador de ese dispositivo</strong>. Si cambias de móvil u ordenador, empiezas de cero en cuanto a rachas y misiones. Las notas de <em>examen</em>, en cambio, sí se guardan en el servidor del profesor. Esto es igual tanto si entras desde el navegador como si usas el icono instalado: es la misma app, solo cambia cómo la abres.</p>
         </div>
       </section>
 
@@ -389,7 +409,7 @@ body.searching .no-result.show{display:block}
           <div class="card"><div class="c-ico">🔗</div><h4>Análisis Sintáctico</h4><p>El modo principal: analizar oraciones simples (verbo, sujeto y funciones).</p><span class="tag">Análisis</span></div>
           <div class="card"><div class="c-ico">🔤</div><h4>Análisis Morfológico</h4><p>Clasificar cada palabra por su categoría gramatical.</p><span class="tag">Análisis</span></div>
           <div class="card"><div class="c-ico">🧱</div><h4>Análisis de Sintagmas</h4><p>Mirar dentro de un sintagma: núcleo y complementos.</p><span class="tag">Análisis</span></div>
-          <div class="card"><div class="c-ico">🔀</div><h4>Oración Compuesta</h4><p>Oraciones con varias proposiciones y sus nexos.</p><span class="tag">Análisis</span></div>
+          <div class="card"><div class="c-ico">🔀</div><h4>Oración Compuesta</h4><p>Varias oraciones enlazadas entre sí y sus nexos.</p><span class="tag">Análisis</span></div>
           <div class="card"><div class="c-ico">🕹️</div><h4>Arcade</h4><p>Modos con presión de tiempo y ranking de clase.</p><span class="tag">Juego</span></div>
           <div class="card"><div class="c-ico">⚡</div><h4>Chispa</h4><p>Preguntas relámpago para identificar funciones.</p><span class="tag">Juego</span></div>
         </div>
@@ -466,7 +486,7 @@ body.searching .no-result.show{display:block}
       <!-- COMPUESTA -->
       <section id="compuesta">
         <h2><span class="n">8</span> Oración Compuesta</h2>
-        <p class="lead">Las oraciones compuestas tienen varias proposiciones (varios verbos). Este modo te lleva paso a paso para que no te pierdas.</p>
+        <p class="lead">Las oraciones compuestas tienen varias oraciones dentro (varios verbos). Este modo te lleva paso a paso para que no te pierdas.</p>
         <div class="tabs" data-tabs>
           <div class="tab-btns" role="tablist" aria-label="Fases de la oración compuesta">
             <button role="tab" aria-selected="true" aria-controls="cp1" id="cpb1">1 · Verbos</button>
@@ -476,19 +496,19 @@ body.searching .no-result.show{display:block}
           </div>
           <div class="tab-panel" data-active="true" id="cp1" role="tabpanel" aria-labelledby="cpb1">
             <h4>Identificar los verbos</h4>
-            <p>Primero marcas todos los verbos. Tantos verbos (o perífrasis) como marques, tantas proposiciones habrá. Es la base de todo el análisis.</p>
+            <p>Primero marcas todos los verbos. Tantos verbos (o perífrasis) como marques, tantas oraciones habrá dentro de la compuesta. Es la base de todo el análisis.</p>
           </div>
           <div class="tab-panel" id="cp2" role="tabpanel" aria-labelledby="cpb2">
             <h4>Identificar los nexos</h4>
-            <p>Señalas las palabras que unen las proposiciones: conjunciones («y», «pero», «porque»), pronombres relativos («que», «quien»), etc. El nexo es la pista del tipo de relación.</p>
+            <p>Señalas las palabras que unen las oraciones: conjunciones («y», «pero», «porque»), pronombres relativos («que», «quien»), etc. El nexo es la pista del tipo de relación.</p>
           </div>
           <div class="tab-panel" id="cp3" role="tabpanel" aria-labelledby="cpb3">
-            <h4>Delimitar las proposiciones</h4>
-            <p>Marcas dónde empieza y dónde acaba cada proposición. La app las llama <strong>P1, P2, P3…</strong> para que sea claro.</p>
+            <h4>Delimitar las oraciones</h4>
+            <p>Marcas dónde empieza y dónde acaba cada oración. La app las llama <strong>O1, O2, O3…</strong> para que sea claro.</p>
           </div>
           <div class="tab-panel" id="cp4" role="tabpanel" aria-labelledby="cpb4">
             <h4>Clasificar y relacionar</h4>
-            <p>Dices qué tipo de relación hay: coordinación (P1 ↔ P2), subordinación (P1 → P2) o yuxtaposición (P1 ∥ P2), y qué función cumple cada proposición subordinada. Si el ejercicio lo pide, también analizas el interior de cada proposición.</p>
+            <p>Dices qué tipo de relación hay: coordinación (O1 ↔ O2), subordinación (O1 → O2) o yuxtaposición (O1 ∥ O2), y qué función cumple cada oración subordinada. Si el ejercicio lo pide, también analizas el interior de cada oración.</p>
           </div>
         </div>
         <div class="box tip">
@@ -644,8 +664,8 @@ body.searching .no-result.show{display:block}
         <div class="faq">
           <details><summary>¿Necesito crear una cuenta o contraseña?</summary><div class="a"><p>No. Solo escribes tu nombre, tu correo y tu grupo al entrar en un modo. No hay registro ni contraseñas.</p></div></details>
           <details><summary>¿Es gratis?</summary><div class="a"><p>Sí. Es una aplicación educativa; solo necesitas el enlace que te dé tu profesor.</p></div></details>
-          <details><summary>¿Funciona en el móvil?</summary><div class="a"><p>Sí, en móvil, tablet y ordenador. Puedes incluso añadirla a la pantalla de inicio del móvil como si fuera una app.</p></div></details>
-          <details><summary>¿Tengo que instalar algo?</summary><div class="a"><p>No. Se abre en el navegador. Nada de descargas.</p></div></details>
+          <details><summary>¿Funciona en el móvil?</summary><div class="a"><p>Sí, en móvil, tablet y ordenador.</p></div></details>
+          <details><summary>¿Tengo que instalar algo?</summary><div class="a"><p>No, nunca es obligatorio: se abre en el navegador y ya está, sin descargas ni tiendas de apps. Si quieres, puedes «instalarla» en tu pantalla de inicio para tener un icono directo y verla a pantalla completa (sin la barra del navegador). Mira el apartado <b>«Cómo entrar»</b> al principio de este manual para los pasos en iPhone/iPad y Android.</p></div></details>
           <details><summary>¿Se guarda mi progreso?</summary><div class="a"><p>La práctica se guarda en el navegador de tu dispositivo (rachas, misiones). Las notas de examen se guardan en el servidor del profesor.</p></div></details>
           <details><summary>Si cambio de dispositivo, ¿pierdo mi progreso?</summary><div class="a"><p>Pierdes las rachas y misiones de práctica de ese dispositivo, pero no tus notas de examen, que quedan en el servidor.</p></div></details>
           <details><summary>¿Qué es un PIN?</summary><div class="a"><p>Un número de 4 dígitos que te da el profesor para hacer un examen concreto. Sin PIN, todo es práctica libre.</p></div></details>
@@ -654,7 +674,7 @@ body.searching .no-result.show{display:block}
           <details><summary>¿Cómo se calcula la nota?</summary><div class="a"><p>De 0 a 10. Los aciertos a la primera valen el máximo; los errores repetidos en el mismo punto restan crédito. El verbo y el sujeto pesan más que otros elementos.</p></div></details>
           <details><summary>Fallé una función. ¿Baja mucho la nota?</summary><div class="a"><p>Un fallo aislado apenas baja. Lo que penaliza es equivocarse varias veces en el mismo bloque. Por eso conviene pensar antes de responder.</p></div></details>
           <details><summary>¿Qué diferencia hay entre Arcade y Chispa?</summary><div class="a"><p>Arcade tiene vidas, tiempo y ranking (más de juego); Chispa son preguntas relámpago de «encuentra la función», sin cronómetro obligatorio.</p></div></details>
-          <details><summary>¿Qué significan P1, P2, P3 en la oración compuesta?</summary><div class="a"><p>Son las proposiciones: P1 la primera, P2 la segunda, etc. La app las nombra así para que sea fácil referirse a cada una.</p></div></details>
+          <details><summary>¿Qué significan O1, O2, O3 en la oración compuesta?</summary><div class="a"><p>Son las oraciones que forman la compuesta: O1 la primera, O2 la segunda, etc. La app las numera así para que sea fácil referirse a cada una.</p></div></details>
           <details><summary>¿Qué hago si no entiendo por qué he fallado?</summary><div class="a"><p>Lee la explicación que aparece tras el error y, si sigues con dudas, apúntalo y pregúntale a tu profesor. También puedes ir al modo Sintagmas para entender la estructura.</p></div></details>
           <details><summary>La oración no tiene sujeto visible. ¿Está mal?</summary><div class="a"><p>No. Hay oraciones con sujeto tácito (por ejemplo, «Llegamos tarde»). La app lo reconoce; no tienes que marcar ninguna palabra como sujeto en esos casos.</p></div></details>
           <details><summary>¿Puedo salir de un ejercicio a la mitad?</summary><div class="a"><p>En práctica sí, cuando quieras. En examen puedes salir, pero lo que no hayas contestado contará como no hecho.</p></div></details>

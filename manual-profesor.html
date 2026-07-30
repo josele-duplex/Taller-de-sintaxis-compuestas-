@@ -294,7 +294,7 @@ body.searching .no-result.show{display:block}
           <li>Elige <b>Práctica</b>, escribe un nombre cualquiera y un grupo, y empieza.</li>
           <li>Resuelve una oración: marca el verbo, el sujeto y las funciones. Falla a propósito para ver las pistas.</li>
           <li>Al terminar, observa el resumen: nota, funciones dominadas y funciones a repasar.</li>
-          <li>Repite con <b>«Oración Compuesta»</b> para ver el flujo de varias proposiciones.</li>
+          <li>Repite con <b>«Oración Compuesta»</b> para ver el flujo de varias oraciones enlazadas.</li>
         </ol>
         <div class="box tip">
           <div class="bx-h"><span class="em">✅</span> Truco para ir rápido</div>
@@ -311,7 +311,7 @@ body.searching .no-result.show{display:block}
             <tr><td><strong>Análisis Sintáctico</strong></td><td>Oración simple: verbo, sujeto y funciones del predicado. El módulo principal.</td><td>✅ Sí</td></tr>
             <tr><td><strong>Análisis Morfológico</strong></td><td>Categoría gramatical de cada palabra, en tres niveles.</td><td>✅ Sí</td></tr>
             <tr><td><strong>Análisis de Sintagmas</strong></td><td>Estructura interna del sintagma: núcleo, modificadores, término.</td><td>➖ No (práctica)</td></tr>
-            <tr><td><strong>Oración Compuesta</strong></td><td>Coordinadas, subordinadas y yuxtapuestas; nexos y proposiciones.</td><td>✅ Sí</td></tr>
+            <tr><td><strong>Oración Compuesta</strong></td><td>Coordinadas, subordinadas y yuxtapuestas; nexos y oraciones que las forman.</td><td>✅ Sí</td></tr>
             <tr><td><strong>Arcade</strong></td><td>Juego: Supervivencia, Contrarreloj, Duelo Fantasma, Radar. Con ranking.</td><td>➖ No</td></tr>
             <tr><td><strong>Chispa</strong></td><td>Preguntas relámpago de «encuentra la función». Mezcla simples y compuestas.</td><td>➖ No</td></tr>
           </tbody>
@@ -329,8 +329,8 @@ body.searching .no-result.show{display:block}
           <thead><tr><th>Convención</th><th>Detalle</th></tr></thead>
           <tbody>
             <tr><td><strong>Sintagma</strong>, no «grupo»</td><td>Se usa siempre «sintagma» (SN, SV, SP…).</td></tr>
-            <tr><td><strong>P1 / P2 / P3</strong></td><td>Las proposiciones se numeran; no se muestran «proposición principal / subordinada» como etiqueta al alumno.</td></tr>
-            <tr><td><strong>Relaciones</strong></td><td>Subordinación <code>P1 → P2</code>, coordinación <code>P1 ↔ P2</code>, yuxtaposición <code>P1 ∥ P2</code>.</td></tr>
+            <tr><td><strong>O1 / O2 / O3</strong></td><td>Cada oración de la compuesta se numera así (nunca «P1/P2/P3»); la app dice «Oración principal / subordinada / coordinada», nunca «proposición».</td></tr>
+            <tr><td><strong>Relaciones</strong></td><td>Subordinación <code>O1 → O2</code>, coordinación <code>O1 ↔ O2</code>, yuxtaposición <code>O1 ∥ O2</code>.</td></tr>
             <tr><td><strong>«para» nunca es CI</strong></td><td>Introduce Complemento Circunstancial de Finalidad, no Complemento Indirecto.</td></tr>
             <tr><td><strong>Preposición = núcleo del SP</strong></td><td>No se etiqueta como «enlace» ni «nexo» dentro del sintagma preposicional.</td></tr>
             <tr><td><strong>Construcciones</strong></td><td>Las antiguas «subordinadas adverbiales» se presentan como «construcciones» (causal, final, condicional…).</td></tr>
@@ -427,11 +427,11 @@ body.searching .no-result.show{display:block}
           <li><strong>Tipo de oración:</strong> todas / coordinada / subordinada / yuxtapuesta / mixta.</li>
           <li><strong>Subtipos concretos:</strong> despliega para elegir coordinadas, sustantivas, relativas, construcciones y adverbiales propias.</li>
           <li><strong>Nivel máximo:</strong> básico / medio / avanzado.</li>
-          <li><strong>Nº máximo de proposiciones</strong> por oración y <strong>nº de ejercicios</strong> + <strong>timer</strong>.</li>
+          <li><strong>Nº máximo de oraciones</strong> por oración compuesta y <strong>nº de ejercicios</strong> + <strong>timer</strong>.</li>
         </ul>
         <div class="box warn">
           <div class="bx-h"><span class="em">⚠️</span> Chip «Pedir análisis interno»</div>
-          <p>Desmarcado por defecto. Si lo dejas <strong>desmarcado</strong>, los alumnos analizan en cinco fases (verbos, nexos, delimitar, clasificar, relacionar) y reciben la nota. Si lo <strong>marcas</strong>, además analizan el interior de cada proposición: más completo pero más largo. Para exámenes tipo PAU, normalmente desmárcalo.</p>
+          <p>Desmarcado por defecto. Si lo dejas <strong>desmarcado</strong>, los alumnos analizan en cinco fases (verbos, nexos, delimitar, clasificar, relacionar) y reciben la nota. Si lo <strong>marcas</strong>, además analizan el interior de cada oración: más completo pero más largo. Para exámenes tipo PAU, normalmente desmárcalo.</p>
         </div>
         <p>Pulsa <b>«🚀 Activar examen»</b> y luego <b>«🔎 Probar PIN actual»</b>.</p>
       </section>
@@ -596,7 +596,7 @@ body.searching .no-result.show{display:block}
           <details><summary>¿Puedo poner límite de tiempo?</summary><div class="a"><p>Sí, con el campo «Timer» (en minutos). Ponlo a 0 para que no haya límite.</p></div></details>
           <details><summary>¿Cuántas oraciones recibe cada alumno?</summary><div class="a"><p>Las que indiques en «Nº de oraciones/ejercicios». Con 0, recibe todas las que cumplan los filtros. Se barajan para que no salgan en el mismo orden.</p></div></details>
           <details><summary>¿Todos los alumnos hacen las mismas oraciones?</summary><div class="a"><p>El examen usa un conjunto pre-computado; el orden se baraja por alumno. Si quieres variedad total, sube el número de oraciones disponibles con los filtros.</p></div></details>
-          <details><summary>¿Qué es el «análisis interno» en compuestas?</summary><div class="a"><p>La fase en la que el alumno analiza el interior de cada proposición (sujeto, predicado, funciones). Va desmarcada por defecto; márcala solo si quieres ese nivel de detalle.</p></div></details>
+          <details><summary>¿Qué es el «análisis interno» en compuestas?</summary><div class="a"><p>La fase en la que el alumno analiza el interior de cada oración (sujeto, predicado, funciones). Va desmarcada por defecto; márcala solo si quieres ese nivel de detalle.</p></div></details>
           <details><summary>¿Puedo ver quién ha suspendido de un vistazo?</summary><div class="a"><p>Sí. El dashboard de resultados muestra media, aprobados y suspendidos, y el informe Excel colorea las notas por tramos.</p></div></details>
           <details><summary>¿Puedo exportar las notas a iDoceo u otro cuaderno?</summary><div class="a"><p>Sí, descargando el CSV de resultados. La integración directa con iDoceo está prevista para más adelante.</p></div></details>
           <details><summary>Un alumno cerró la pestaña en pleno examen. ¿Perdió todo?</summary><div class="a"><p>No. Al volver a entrar con el mismo PIN, la app recupera lo que llevaba en ese dispositivo y le deja continuar.</p></div></details>
