@@ -2565,10 +2565,17 @@
   // solo 3 (EBAU Murcia). Subordinadas dependen de la familia elegida por el alumno.
   function obtenerOpcionesSubtipoF5(rel, familiaElegida){
     if(rel.tipo === 'coordinacion'){
+      // 'ilativa_coord' añadida jul-2026: el banco tiene coordinadas ilativas
+      // («así que», «luego», «por tanto») y no había botón para elegirlas, así
+      // que esos ejercicios no se podían acabar — cualquier respuesta salía mal.
+      // Las distributivas y las explicativas existen en la NGLE y en
+      // etiquetaSubtipoExtendida(), pero no hay ninguna en el banco: cuando se
+      // añadan, añadir aquí también su botón.
       return [
         ['copulativa','Copulativa'],
         ['adversativa','Adversativa'],
-        ['disyuntiva','Disyuntiva']
+        ['disyuntiva','Disyuntiva'],
+        ['ilativa_coord','Ilativa']
       ];
     }
     if(rel.tipo === 'subordinacion'){
