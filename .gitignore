@@ -3,6 +3,12 @@ node_modules/
 Thumbs.db
 .claude/
 
+# Visual Studio (metadatos locales del IDE, no del proyecto)
+.vs/
+
+# Archivos de bloqueo de LibreOffice/Word al tener un documento abierto
+.~lock.*#
+
 # TSV exportados del Sheet para validar (datos en bruto, no versionar).
 # La carpeta y su LEEME.md sí se versionan; los .tsv/.csv no.
 banco_export/*.tsv
