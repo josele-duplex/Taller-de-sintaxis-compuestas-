@@ -103,6 +103,8 @@
 .theme-new-ui .mc-maestro{border-color:#6EE7B7;}.theme-new-ui .mc-maestro:hover{border-color:var(--green);}
 .theme-new-ui .mc-sint4::before{background:var(--purple);}
 .theme-new-ui .mc-sint4{border-color:#C4B5FD;}.theme-new-ui .mc-sint4:hover{border-color:var(--purple);}
+.theme-new-ui .mc-fabrica::before{background:var(--fab-oliva);}
+.theme-new-ui .mc-fabrica{border-color:var(--fab-border);}.theme-new-ui .mc-fabrica:hover{border-color:var(--fab-oliva);}
 .theme-new-ui .mc-arcade{background:#1E0D00;border-color:#7A4500;--sh-nb:0 3px 0 #FF8C00,0 6px 20px rgba(255,120,0,.25);box-shadow:var(--sh-nb);}
 .theme-new-ui .mc-arcade::before{background:linear-gradient(90deg,#FF8C00,#FFD600);}
 .theme-new-ui .mc-arcade:hover{border-color:#FF8C00;background:#2D1500;box-shadow:0 6px 0 #FF8C00,0 12px 32px rgba(255,120,0,.38);}
@@ -4637,3 +4639,241 @@ body.theme-new-ui #screen-login.login-arcade .btn.btn-primary:hover{
 }
 /* ═══════════════════ FIN ARCADE LOGIN FURIA AÑOS 90 ═══════════════════ */
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA FÁBRICA DE PALABRAS — #screen-fabrica (F1, jul-2026)
+
+   Dirección estética: «taller editorial». La pantalla es un banco de
+   trabajo de imprenta, no una app de colores planos:
+     · Las PALABRAS van en Fraunces — son el material que se manipula.
+     · La INTERFAZ va en DM Sans — son las herramientas, deben callarse.
+     · Sombra dura (0 3px 0) en vez de blur difuso: cada pieza se apoya
+       en la mesa como un tipo de imprenta. Es el mismo lenguaje que ya
+       usa .btn-primary del tema (0 3px 0 var(--blue-dk)), no un invento.
+     · Cero degradados. El acento es plano (--fab-oliva) y solo aparece
+       donde hay una acción o un resultado.
+
+   Todo el color sale de las variables --fab-* de tokens.css. Aquí no
+   hay ni un hex de marca escrito a mano, a propósito: cambiar el color
+   del módulo es tocar tokens.css y nada más.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Cabecera del reto ── */
+body.theme-new-ui #screen-fabrica .fab-titulo{
+  font-family:'Fraunces',serif;font-size:1.32rem;font-weight:700;
+  line-height:1.32;letter-spacing:-.015em;text-align:center;color:var(--ui-ink);
+}
+body.theme-new-ui #screen-fabrica .fab-corpus{
+  text-align:center;margin-top:10px;font-family:'Fraunces',serif;
+  font-size:.9rem;color:var(--fab-oliva);letter-spacing:.04em;
+}
+body.theme-new-ui #screen-fabrica .fab-count{
+  text-align:center;font-size:.8rem;color:var(--ui-muted);margin-bottom:12px;
+}
+
+/* ── Botón de acción (Comprobar / Construir / Empezar / Siguiente) ── */
+body.theme-new-ui #screen-fabrica .fab-btn{
+  display:block;padding:13px 26px;border:none;border-radius:var(--ui-r);
+  background:var(--fab-oliva);color:#fff;
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;
+  letter-spacing:.01em;cursor:pointer;
+  box-shadow:0 3px 0 var(--fab-oliva-dk);
+  transition:transform .18s var(--ui-ease-bounce),box-shadow .18s,filter .15s;
+}
+body.theme-new-ui #screen-fabrica .fab-btn:hover{
+  transform:translateY(-2px);box-shadow:0 5px 0 var(--fab-oliva-dk);filter:brightness(1.05);
+}
+body.theme-new-ui #screen-fabrica .fab-btn:active{
+  transform:translateY(2px);box-shadow:0 1px 0 var(--fab-oliva-dk);
+}
+body.theme-new-ui #screen-fabrica .fab-btn-block{width:100%;max-width:340px;margin:0 auto}
+
+/* Secundario: deshacer, limpiar. Presencia mínima, nunca compite. */
+body.theme-new-ui #screen-fabrica .fab-btn-sm{
+  padding:7px 15px;border-radius:var(--ui-r-sm);
+  border:1.5px solid var(--ui-border-strong);background:var(--ui-surface);
+  font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;
+  color:var(--ui-muted);cursor:pointer;transition:border-color .15s,color .15s;
+}
+body.theme-new-ui #screen-fabrica .fab-btn-sm:hover{
+  border-color:var(--fab-oliva);color:var(--fab-oliva);
+}
+
+/* ── Opciones grandes (intruso, par mínimo, juicio, prueba, cascada) ──
+   Entrada escalonada: un solo momento coreografiado al renderizar el
+   ítem, que es lo que da sensación de producto acabado. */
+body.theme-new-ui #screen-fabrica .fab-stack{display:flex;flex-direction:column;gap:10px}
+body.theme-new-ui #screen-fabrica .fab-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+body.theme-new-ui #screen-fabrica .fab-op{
+  padding:15px 20px;border:1.5px solid var(--fab-border);border-radius:var(--ui-r);
+  background:var(--ui-surface);
+  font-family:'Fraunces',serif;font-size:1.02rem;font-weight:600;
+  color:var(--ui-ink);cursor:pointer;text-align:center;
+  box-shadow:0 2px 0 rgba(92,107,46,.16);
+  transition:transform .16s var(--ui-ease-bounce),box-shadow .16s,border-color .16s,background .16s;
+  animation:fab-rise .32s var(--ui-ease) both;
+}
+body.theme-new-ui #screen-fabrica .fab-op:hover{
+  transform:translateY(-2px);border-color:var(--fab-oliva);
+  background:var(--fab-tint);box-shadow:0 4px 0 rgba(92,107,46,.22);
+}
+body.theme-new-ui #screen-fabrica .fab-op:nth-child(1){animation-delay:.02s}
+body.theme-new-ui #screen-fabrica .fab-op:nth-child(2){animation-delay:.07s}
+body.theme-new-ui #screen-fabrica .fab-op:nth-child(3){animation-delay:.12s}
+body.theme-new-ui #screen-fabrica .fab-op:nth-child(4){animation-delay:.17s}
+@keyframes fab-rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+/* Estados tras responder. Nunca solo color: el ✓/✗ lo pone el motor. */
+body.theme-new-ui #screen-fabrica .fab-op.is-ok{
+  background:var(--ui-ok-tint);border-color:var(--ui-ok);color:#14532D;
+  box-shadow:0 2px 0 rgba(21,128,61,.25);
+}
+body.theme-new-ui #screen-fabrica .fab-op.is-bad{
+  background:var(--ui-err-tint);border-color:var(--ui-err);color:#881337;
+  box-shadow:0 2px 0 rgba(190,18,60,.22);
+}
+body.theme-new-ui #screen-fabrica .fab-op.is-dim{opacity:.45;box-shadow:none}
+/* Selección previa a comprobar (frontera: hay que marcar DOS lecturas). */
+body.theme-new-ui #screen-fabrica .fab-op.is-sel{
+  background:var(--fab-tint-2);border-color:var(--fab-oliva);color:var(--fab-oliva-dk);
+  box-shadow:0 2px 0 var(--fab-oliva);
+}
+
+/* La palabra en foco: par mínimo, juicio, frontera y cascada presentan
+   una forma y preguntan por ella. Va sola, grande y centrada — es el
+   objeto de estudio, no un título de sección. */
+body.theme-new-ui #screen-fabrica .fab-foco{
+  text-align:center;font-family:'Fraunces',serif;
+  font-size:1.5rem;font-weight:600;line-height:1.3;
+  color:var(--ui-ink);letter-spacing:.01em;
+}
+
+/* ── Fichas de palabra (agrupa, monta, cadena, capas) ── */
+body.theme-new-ui #screen-fabrica .fab-chip{
+  display:inline-block;margin:3px;padding:8px 14px;
+  border:1.5px solid var(--fab-border);border-radius:var(--ui-r-sm);
+  background:var(--ui-surface);
+  font-family:'Fraunces',serif;font-size:.95rem;font-weight:600;color:var(--ui-ink);
+  cursor:pointer;transition:transform .14s var(--ui-ease-bounce),border-color .14s,background .14s;
+}
+body.theme-new-ui #screen-fabrica .fab-chip:hover{transform:translateY(-1px);border-color:var(--fab-oliva)}
+body.theme-new-ui #screen-fabrica .fab-chip.is-sel{
+  background:var(--fab-tint-2);border-color:var(--fab-oliva);color:var(--fab-oliva-dk);
+}
+body.theme-new-ui #screen-fabrica .fab-chip.is-ok{
+  background:var(--ui-ok-tint);border-color:var(--ui-ok);color:#14532D;cursor:default;
+}
+body.theme-new-ui #screen-fabrica .fab-chip.is-bad{
+  background:var(--ui-err-tint);border-color:var(--ui-err);color:#881337;cursor:default;
+}
+
+/* ── Cestas (agrupa) ── */
+body.theme-new-ui #screen-fabrica .fab-cesta{
+  border:1.5px dashed var(--fab-border);border-radius:var(--ui-r);
+  padding:12px 14px;margin-bottom:10px;background:var(--ui-surface);
+}
+body.theme-new-ui #screen-fabrica .fab-cesta.is-done{border-style:solid}
+body.theme-new-ui #screen-fabrica .fab-cesta-nombre{
+  font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;
+  color:var(--fab-oliva-dk);letter-spacing:.02em;margin-bottom:8px;
+}
+body.theme-new-ui #screen-fabrica .fab-cesta-body{min-height:34px}
+
+/* ── La palabra bajo la lupa (piezas · cortar) ──
+   Es el momento central del módulo: la palabra se presenta en grande,
+   con aire, y los puntos de corte son marcas tipográficas reales. */
+body.theme-new-ui #screen-fabrica .fab-word{
+  text-align:center;font-family:'Fraunces',serif;
+  font-size:1.75rem;font-weight:600;line-height:2.1;color:var(--ui-ink);
+  letter-spacing:.02em;
+}
+body.theme-new-ui #screen-fabrica .fab-cut{
+  display:inline-block;width:16px;cursor:pointer;
+  color:var(--ui-muted-2);font-weight:400;
+  transition:color .14s,transform .14s var(--ui-ease-bounce);
+}
+body.theme-new-ui #screen-fabrica .fab-cut:hover{color:var(--fab-oliva-soft);transform:scaleY(1.25)}
+body.theme-new-ui #screen-fabrica .fab-cut.is-on{
+  color:var(--fab-oliva);font-weight:700;transform:scaleY(1.3);
+}
+
+/* ── Etiquetar piezas (estación 3) ── */
+body.theme-new-ui #screen-fabrica .fab-piece{text-align:center}
+body.theme-new-ui #screen-fabrica .fab-piece-txt{
+  font-family:'Fraunces',serif;font-weight:700;font-size:1.15rem;
+  color:var(--ui-ink);margin-bottom:8px;
+  padding-bottom:6px;border-bottom:2px solid var(--fab-border);
+}
+body.theme-new-ui #screen-fabrica .fab-tag{
+  display:block;width:100%;padding:6px 10px;margin-bottom:4px;
+  border:1.5px solid var(--ui-border);border-radius:var(--ui-r-sm);
+  background:var(--ui-surface);
+  font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;
+  color:var(--ui-muted);cursor:pointer;transition:all .14s;
+}
+body.theme-new-ui #screen-fabrica .fab-tag:hover{border-color:var(--fab-oliva-soft);color:var(--fab-oliva-dk)}
+body.theme-new-ui #screen-fabrica .fab-tag.is-sel{
+  background:var(--fab-tint-2);border-color:var(--fab-oliva);
+  color:var(--fab-oliva-dk);font-weight:700;
+}
+
+/* ── Cadena / capas: la escalera de fabricación ── */
+body.theme-new-ui #screen-fabrica .fab-chain{
+  text-align:center;min-height:32px;margin-bottom:12px;
+  font-family:'Fraunces',serif;font-size:1.05rem;color:var(--ui-ink);
+}
+body.theme-new-ui #screen-fabrica .fab-chain .fab-arrow{
+  color:var(--fab-oliva);margin:0 6px;font-weight:400;
+}
+body.theme-new-ui #screen-fabrica .fab-chain-empty{color:var(--ui-muted-2);font-style:italic;font-size:.9rem}
+
+/* ── Selector de nivel ── */
+body.theme-new-ui #screen-fabrica .fab-nivel{
+  display:block;width:100%;text-align:left;padding:16px 20px;margin-bottom:10px;
+  border:1.5px solid var(--fab-border);border-radius:var(--ui-r);
+  background:var(--ui-surface);cursor:pointer;
+  box-shadow:0 2px 0 rgba(92,107,46,.16);
+  transition:transform .18s var(--ui-ease-bounce),box-shadow .18s,border-color .18s;
+}
+body.theme-new-ui #screen-fabrica .fab-nivel:hover{
+  transform:translateY(-2px);border-color:var(--fab-oliva);
+  box-shadow:0 4px 0 rgba(92,107,46,.22);
+}
+body.theme-new-ui #screen-fabrica .fab-nivel-nom{
+  font-family:'Fraunces',serif;font-weight:700;font-size:1.06rem;color:var(--ui-ink);
+}
+body.theme-new-ui #screen-fabrica .fab-nivel-desc{
+  font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--ui-muted);margin-top:3px;
+}
+
+/* ── Cierre de reto ── */
+body.theme-new-ui #screen-fabrica .fab-fin{text-align:center}
+body.theme-new-ui #screen-fabrica .fab-fin-icon{font-size:2.4rem;line-height:1}
+body.theme-new-ui #screen-fabrica .fab-fin-tit{
+  font-family:'Fraunces',serif;font-weight:700;font-size:1.2rem;margin:8px 0 4px;color:var(--ui-ink);
+}
+body.theme-new-ui #screen-fabrica .fab-fin-sub{font-size:.86rem;color:var(--ui-muted);margin-bottom:18px}
+
+/* ── Explicación (feedback) ── */
+body.theme-new-ui #screen-fabrica .fab-expl.is-ok{
+  background:var(--ui-ok-tint);color:#14532D;border:1.5px solid rgba(21,128,61,.30);
+}
+body.theme-new-ui #screen-fabrica .fab-expl.is-bad{
+  background:var(--ui-err-tint);color:#881337;border:1.5px solid rgba(190,18,60,.28);
+}
+
+/* ── Accesibilidad: sin movimiento para quien lo pide (misma regla que
+      ya aplica el login de Arcade más arriba) ── */
+@media (prefers-reduced-motion: reduce){
+  body.theme-new-ui #screen-fabrica .fab-op{animation:none}
+  body.theme-new-ui #screen-fabrica .fab-btn,
+  body.theme-new-ui #screen-fabrica .fab-op,
+  body.theme-new-ui #screen-fabrica .fab-chip,
+  body.theme-new-ui #screen-fabrica .fab-nivel,
+  body.theme-new-ui #screen-fabrica .fab-cut{transition:none}
+  body.theme-new-ui #screen-fabrica .fab-btn:hover,
+  body.theme-new-ui #screen-fabrica .fab-op:hover,
+  body.theme-new-ui #screen-fabrica .fab-chip:hover,
+  body.theme-new-ui #screen-fabrica .fab-nivel:hover{transform:none}
+}
+/* ═════════════════ FIN LA FÁBRICA DE PALABRAS ═════════════════ */

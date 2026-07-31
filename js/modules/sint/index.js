@@ -3464,7 +3464,13 @@ const LOGIN_PANELS = {
 
   chispa: `
     <p style="font-weight:800;font-size:.9rem;color:#B45309;margin-bottom:12px">⚡ Chispa</p>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:4px">Encuentra la función a toda velocidad. Mezcla oraciones simples y compuestas — sin cronómetro, solo racha.</p>`
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:4px">Encuentra la función a toda velocidad. Mezcla oraciones simples y compuestas — sin cronómetro, solo racha.</p>`,
+
+  fabrica: `
+    <p style="font-weight:800;font-size:.9rem;color:var(--fab-oliva-dk);margin-bottom:12px">🏭 La Fábrica de Palabras</p>
+    <div style="background:var(--fab-tint);border:1px solid var(--fab-border);border-radius:12px;padding:14px 16px;margin-bottom:8px;font-size:.84rem;color:var(--fab-oliva-dk);line-height:1.6">
+      Desmonta y monta palabras en tres estaciones: primero <strong>observas</strong>, luego <strong>manipulas</strong> y solo al final <strong>pones nombre</strong> a cada pieza. El nivel se elige al entrar.
+    </div>`
 };
 
 // Estado y handler del selector de modo del login de Compuestas.
@@ -3922,6 +3928,9 @@ async function handleStartAll(){
   }
   if(currentModule==='chispa'){
     startChispa({name,email,grupo:grupoCompartido});return;
+  }
+  if(currentModule==='fabrica'){
+    startFabrica({name,email,grupo:grupoCompartido});return;
   }
   if(currentModule==='compuestas'){
     ferr('e-cp-mode',''); ferr('e-cp-pin','');

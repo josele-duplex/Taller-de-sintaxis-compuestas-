@@ -899,13 +899,15 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 }
 
 /* Per-module accent (la barra superior de 3px + el estado activo del icono).
-   Cuatro colores CLARAMENTE distintos, uno por módulo académico, dentro de
-   la paleta editorial (petróleo, esmeralda, azul acero, granate). No se usa
-   violeta ni neón. Arcade aparte (ámbar, más abajo).
+   Cinco colores CLARAMENTE distintos, uno por módulo académico, dentro de
+   la paleta editorial (petróleo, esmeralda, azul acero, granate, oliva). No
+   se usa violeta ni neón. Arcade aparte (ámbar, más abajo).
      · Sintáctico → petróleo (navy oscuro)
-     · Morfológico → esmeralda (verde)
+     · Morfológico → esmeralda (verde-azul)
      · Sintagmas   → azul acero medio
-     · Compuesta   → granate suave */
+     · Compuesta   → granate suave
+     · Fábrica     → oliva editorial (verde-amarillo, no confundible con
+                     el esmeralda de Morfológico) */
 .theme-new-ui #screen-portada .mc-sint::before{background:var(--portada-navy)}
 .theme-new-ui #screen-portada .mc-sint:hover .mod-card-icon{background:var(--portada-navy)}
 .theme-new-ui #screen-portada .mc-sint:hover{border-color:var(--portada-navy)}
@@ -918,6 +920,9 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 .theme-new-ui #screen-portada .mc-compuestas::before{background:var(--portada-vino)}
 .theme-new-ui #screen-portada .mc-compuestas:hover .mod-card-icon{background:var(--portada-vino)}
 .theme-new-ui #screen-portada .mc-compuestas:hover{border-color:var(--portada-vino)}
+.theme-new-ui #screen-portada .mc-fabrica::before{background:var(--portada-oliva)}
+.theme-new-ui #screen-portada .mc-fabrica:hover .mod-card-icon{background:var(--portada-oliva)}
+.theme-new-ui #screen-portada .mc-fabrica:hover{border-color:var(--portada-oliva)}
 
 /* Arcade card: carácter algo más enérgico que las académicas pero dentro
    de la paleta editorial: barra ámbar suave (no neón, no magenta). Resto
@@ -939,6 +944,16 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 .theme-new-ui #screen-portada .mc-arcade .mod-card-cta{background:var(--portada-navy);color:#FFFFFF}
 .theme-new-ui #screen-portada .mc-arcade:hover{border-color:#B45309}
 .theme-new-ui #screen-portada .mc-arcade:hover .mod-card-icon{background:#B45309;color:#FFFFFF}
+
+/* Chispa: no tenía regla propia aquí y heredaba la barra petróleo de
+   Sintáctico por defecto (mismo bug que corrigió esta sección para
+   Fábrica). Reutiliza el ámbar dorado que Chispa ya usa en su topbar y
+   su botón (index.html, gradiente #F59E0B→#D97706) — distinto del ámbar
+   más terroso de Arcade (#B45309) para que las dos tarjetas no se
+   confundan entre sí. */
+.theme-new-ui #screen-portada .mc-chispa::before{background:#D97706}
+.theme-new-ui #screen-portada .mc-chispa:hover .mod-card-icon{background:#D97706}
+.theme-new-ui #screen-portada .mc-chispa:hover{border-color:#D97706}
 
 .theme-new-ui .portada-footer{
   margin-top:30px;text-align:center;font-size:.72rem;
@@ -987,6 +1002,8 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 .mod-card.mc-arcade:hover{border-color:#DC2626;background:#FEF2F2}
 .mod-card.mc-sint4{border-color:#C4B5FD}
 .mod-card.mc-sint4:hover{border-color:var(--purple);background:#F5F3FF}
+.mod-card.mc-fabrica{border-color:var(--fab-border)}
+.mod-card.mc-fabrica:hover{border-color:var(--fab-oliva);background:var(--fab-tint)}
 .portada-footer{margin-top:10px;text-align:center;font-size:.68rem;
   color:var(--muted);font-family:'Nunito',sans-serif}
 

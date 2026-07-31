@@ -103,9 +103,32 @@
   --portada-teal-soft: #14B8A6;
   --portada-azul:      #2F6FB0; /* azul acero medio — barra de Sintagmas (distinto del navy) */
   --portada-vino:      #9D4B5E; /* granate suave — barra de Compuesta (cálido, ni violeta ni naranja) */
+  --portada-oliva:     #5C6B2E; /* oliva editorial — barra de la Fábrica de Palabras */
   --portada-blue-soft: #7FA7C9; /* azul suave (legacy, otros usos) */
   --portada-cyan:      #0E7490;
   --portada-magenta:   #BE185D; /* solo arcade */
   --portada-muted:     #5C6B7E;
   --portada-decor:     rgba(15,42,67,0.06); /* puntos/círculos decorativos */
+
+  /* ─────────────────────────────────────────────────────────────
+     FÁBRICA DE PALABRAS — paleta del módulo (jul-2026)
+     Oliva editorial. Es el quinto acento de la paleta de portada y
+     respeta su regla escrita: "no se usa violeta ni neón".
+     Por qué oliva y no otro: los cuatro académicos ya ocupan el eje
+     frío (petróleo 210°, esmeralda 175°, azul acero 210°) y el
+     granate (345°); Arcade y Chispa ocupan el ámbar (35°). El hueco
+     real de la rueda es el verde-amarillo (~75°), que además NO se
+     confunde con el esmeralda de Morfológico: uno es verde-azul y
+     otro verde-amarillo. Semánticamente encaja con un taller
+     (delantal, banco de trabajo) y es un color que en secundaria se
+     lee como "de mayores", no como infantil.
+     Todo el módulo referencia estas variables: cambiar el color de
+     la Fábrica es cambiar --fab-oliva y sus derivados, nada más.
+     ───────────────────────────────────────────────────────────── */
+  --fab-oliva:      #5C6B2E; /* acento principal: barras, títulos, botón */
+  --fab-oliva-dk:   #44511F; /* sombra dura del botón y estado :active */
+  --fab-oliva-soft: #7E9142; /* hover y elementos secundarios */
+  --fab-tint:       #F3F5E9; /* fondo de ficha/panel en reposo */
+  --fab-tint-2:     #E7ECD3; /* fondo de ficha seleccionada */
+  --fab-border:     #C3CFA0; /* borde en reposo */
 }
