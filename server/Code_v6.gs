@@ -936,6 +936,7 @@ function doGet(e) {
     else if (action === 'createExamMorfologia')    { const na=requiereClaveProfesor_(params); result = na || createExamMorfologia_(params); } // Fase 3.4
     else if (action === 'getExamConfigMorfologia') result = getExamConfigMorfologia_(params); // Fase 3.4
     else if (action === 'getResultsByGroup')       { const na=requiereClaveProfesor_(params); result = na || getResultsByGroup_(params); }
+    else if (action === 'getResultadosMorfologia') { const na=requiereClaveProfesor_(params); result = na || getResultadosMorfologia_(params); } // F3 Fábrica: cierra el hueco de Maestro
     else if (action === 'getRankingArcade')        result = getRankingArcade_(params);
     else if (action === 'regenerarMorfologia')     result = regenerarMorfologia_();
     else if (action === 'saveArcadeScore')         result = saveArcadeScore_(params);
@@ -2602,10 +2603,17 @@ function doPost(e) {
     else if (action === 'saveSesionPractica')  result = saveSesionPractica_(payload); // mismo bug de sendBeacon sin body
     else {
       // v6.3 — Delegación al módulo de oración compuesta (Compuestas.gs).
+      // F3 Fábrica (jul-2026) — misma delegación encadenada que ya usa doGet
+      // para Formacion.gs (dispatchFormacionGet_): si dispatchCompuestasPost_
+      // no reconoce la action, probamos dispatchFormacionPost_ antes de dar
+      // el error final.
       const compResult = (typeof dispatchCompuestasPost_ === 'function')
                            ? dispatchCompuestasPost_(action, payload) : null;
+      const formResult = (compResult === null && typeof dispatchFormacionPost_ === 'function')
+                           ? dispatchFormacionPost_(action, payload) : null;
       result = (compResult !== null) ? compResult
-                                     : gasError_('Acción desconocida: ' + action, ERR.UNKNOWN_ACTION);
+             : (formResult !== null) ? formResult
+             : gasError_('Acción desconocida: ' + action, ERR.UNKNOWN_ACTION);
     }
     out.setContent(JSON.stringify(result));
   } catch(err) {
@@ -3062,6 +3070,39 @@ function saveMorphResult_(p) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/**
+ * Endpoint 'getResultadosMorfologia'. Cierra el hueco auditado 2026-07-11:
+ * saveMorphResult_ escribe en Morfologia_Resultados desde Fase 3.3, pero
+ * hasta ahora ningún panel del profesor leía esa hoja. Patrón clonado de
+ * getResultadosCompuestas_ (Compuestas.gs). Requiere clave de profesor
+ * (comprobado por el dispatcher, no aquí — igual que getResultsByGroup_).
+ * @param {{grupo?, evaluacion?, modo?}} params
+ * @return {{ok:true, results:object[], total:number}}
+ */
+function getResultadosMorfologia_(params) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_MORPH);
+  if (!sheet || sheet.getLastRow() < 2) return { ok: true, results: [] };
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+
+  const grupo      = String(params.grupo      || '').trim().toLowerCase();
+  const evaluacion = String(params.evaluacion || '').trim().toLowerCase();
+  const modo       = String(params.modo       || '').trim().toLowerCase();
+
+  const results = [];
+  data.forEach(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[String(h).trim()] = row[i]; });
+    if (grupo && String(obj['Grupo'] || '').trim().toLowerCase() !== grupo) return;
+    if (evaluacion && String(obj['Evaluacion'] || '').trim().toLowerCase() !== evaluacion) return;
+    if (modo && String(obj['Modo'] || '').trim().toLowerCase() !== modo) return;
+    results.push(obj);
+  });
+  return { ok: true, results: results, total: results.length };
 }
 
 // ════════════════════════════════════════════════════════════════════════
