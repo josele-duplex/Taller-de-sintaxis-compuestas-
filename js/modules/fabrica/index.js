@@ -21,6 +21,7 @@
    todavía — eso es F3). El progreso de sesión vive solo en memoria. */
 
 import { textoPrueba, microPrueba } from '../../data/pruebas-morfologia.js';
+import { LS_FAB_MESA, LS_FAB_DIARIO } from '../../core/constants.js';
 
 // ── Catálogos de etiquetas legibles (para no repetir texto ni volver a
 //    inventar terminología — todo sale de las listas cerradas del schema) ──
@@ -223,7 +224,8 @@ async function startFabrica({ name, email, grupo }) {
   FAB = {
     name, email, grupo, nivel: null, pool: [], retoQueue: [], reto: null, retoNum: 0,
     items: [], itemIdx: 0, estacionActual: 0,
-    aciertos: 0, totalItems: 0, racha: 0, rachaMax: 0, erroresPorTipo: {}
+    aciertos: 0, totalItems: 0, racha: 0, rachaMax: 0, erroresPorTipo: {},
+    retosCompletadosSesion: 0
   };
   const nameEl = _el('fab-name');
   if (nameEl) nameEl.textContent = (name || '').split(' ')[0];
@@ -330,6 +332,7 @@ function fabSiguienteItem() {
 }
 
 function _finReto() {
+  FAB.retosCompletadosSesion = (FAB.retosCompletadosSesion || 0) + 1;
   _setOracion('');
   _setPregunta('');
   const pct = FAB.totalItems > 0 ? Math.round((FAB.aciertos / FAB.totalItems) * 100) : 0;
@@ -352,6 +355,140 @@ function exitFabrica() {
 
 function fabCambiarNivel() {
   _mostrarSelectorNivel();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  MESA DE HERRAMIENTAS (§4.3 del plan de producto)
+// ════════════════════════════════════════════════════════════════════════
+// Tabla personal que se rellena sola: cada acierto en `clasifica_prueba`
+// (procedimiento + prueba que lo demuestra) añade o actualiza una fila con
+// el propio ejemplo del alumno — no uno de fábrica. Persiste entre sesiones
+// en localStorage (no hay endpoint de servidor todavía; eso es F3) y crece
+// durante todo el curso: vacía al empezar, llena al acabar.
+
+function _loadMesa() {
+  try { return JSON.parse(localStorage.getItem(LS_FAB_MESA) || '{}'); }
+  catch (e) { return {}; }
+}
+function _saveMesa(m) {
+  try { localStorage.setItem(LS_FAB_MESA, JSON.stringify(m)); } catch (e) {}
+}
+
+function _registrarHerramienta(item) {
+  const mesa = _loadMesa();
+  const esNueva = !mesa[item.procedimiento];
+  mesa[item.procedimiento] = {
+    procedimiento: item.procedimiento,
+    prueba: textoPrueba(item.prueba_id, 'tecnico'),
+    palabra: item.palabra,
+    nivel: FAB.nivel,
+    fecha: new Date().toISOString().slice(0, 10)
+  };
+  _saveMesa(mesa);
+  if (esNueva) {
+    try {
+      if (typeof window.showCombo === 'function') {
+        window.showCombo('🧰 Nueva herramienta: ' + (PROCEDIMIENTO_LABEL[item.procedimiento] || item.procedimiento), 15);
+      }
+    } catch (e) {}
+  }
+}
+
+// Orden pedagógico fijo (§4 del schema), no el de conquista, para que la
+// mesa lea como la "carta de estudio" de la UD y no como un historial.
+function _mesaFilasOrdenadas() {
+  const mesa = _loadMesa();
+  return Object.keys(PROCEDIMIENTO_LABEL).map(p => mesa[p]).filter(Boolean);
+}
+
+function _mesaFilasHtml(filas) {
+  return filas.map(f => '<tr><td>' + escHtml(PROCEDIMIENTO_LABEL[f.procedimiento] || f.procedimiento) +
+    '</td><td>' + escHtml(f.prueba) + '</td><td>' + escHtml(f.palabra) + '</td></tr>').join('');
+}
+
+function fabAbrirMesa() {
+  const filas = _mesaFilasOrdenadas();
+  const body = _el('fab-mesa-body');
+  if (body) {
+    body.innerHTML = filas.length === 0
+      ? '<p class="fab-mesa-vacia">Tu mesa está vacía todavía. Cada vez que aciertes «Clasifica + prueba» en la Estación 3, aquí aparece una herramienta nueva — con tu propio ejemplo.</p>'
+      : '<table class="fab-mesa-table"><thead><tr><th>Procedimiento</th><th>Prueba</th><th>Tu ejemplo</th></tr></thead><tbody>' +
+        _mesaFilasHtml(filas) + '</tbody></table>';
+  }
+  const modal = _el('fab-mesa-modal');
+  if (modal) modal.style.display = 'flex';
+}
+function fabCerrarMesa() {
+  const modal = _el('fab-mesa-modal');
+  if (modal) modal.style.display = 'none';
+}
+function fabImprimirMesa() {
+  const filas = _mesaFilasOrdenadas();
+  const w = window.open('', '_blank');
+  if (!w) return;
+  const filasHtml = filas.length ? _mesaFilasHtml(filas) : '<tr><td colspan="3">Mesa vacía todavía.</td></tr>';
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Mi Mesa de Herramientas</title>' +
+    '<style>body{font-family:sans-serif;padding:24px;color:#222}h1{font-size:1.25rem}' +
+    'table{width:100%;border-collapse:collapse;margin-top:16px}' +
+    'th,td{border:1px solid #ccc;padding:8px 10px;text-align:left;font-size:.9rem;vertical-align:top}' +
+    'th{background:#f2f2ee}</style></head><body>' +
+    '<h1>🧰 Mi Mesa de Herramientas — La Fábrica de Palabras</h1>' +
+    '<table><thead><tr><th>Procedimiento</th><th>Prueba</th><th>Tu ejemplo</th></tr></thead><tbody>' +
+    filasHtml + '</tbody></table></body></html>');
+  w.document.close();
+  w.focus();
+  w.print();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  DIARIO METALINGÜÍSTICO (§4.1 del plan de producto)
+// ════════════════════════════════════════════════════════════════════════
+// Al cerrar la sesión, si completó al menos un reto, un campo opcional de
+// texto libre con la plantilla del marco teórico. Se guarda en localStorage
+// (sin endpoint de servidor todavía; el profesor lo verá en el informe
+// cuando exista `saveSesionFormacion`, eso es F3).
+
+function fabPedirSalir() {
+  if ((FAB.retosCompletadosSesion || 0) > 0) { _mostrarDiario(); return; }
+  exitFabrica();
+}
+
+function _mostrarDiario() {
+  _limpiarExplicacion();
+  const estBadge = _el('fab-estacion');
+  if (estBadge) estBadge.textContent = '';
+  _setOracion('<div class="fab-titulo">¿Qué te llevas de esta sesión?</div>');
+  _setPregunta('Es opcional — te ayuda a fijar lo que has descubierto.');
+  _setFichas(
+    '<textarea id="fab-diario-texto" class="fab-diario-ta" rows="4" ' +
+    'placeholder="Antes pensaba que…, ahora he descubierto que…, y lo sé porque…"></textarea>' +
+    '<div class="fab-row" style="margin-top:14px">' +
+    '<button type="button" class="fab-btn-sm" onclick="fabSaltarDiario()">Saltar</button>' +
+    '<button type="button" class="fab-btn" onclick="fabGuardarDiario()">Guardar y salir</button>' +
+    '</div>'
+  );
+}
+
+function _guardarEntradaDiario(texto) {
+  try {
+    const diario = JSON.parse(localStorage.getItem(LS_FAB_DIARIO) || '[]');
+    diario.push({
+      fecha: new Date().toISOString().slice(0, 10),
+      nivel: FAB.nivel,
+      retos: FAB.retosCompletadosSesion || 0,
+      texto
+    });
+    localStorage.setItem(LS_FAB_DIARIO, JSON.stringify(diario));
+  } catch (e) {}
+}
+function fabGuardarDiario() {
+  const ta = _el('fab-diario-texto');
+  const texto = ta ? ta.value.trim() : '';
+  if (texto) _guardarEntradaDiario(texto);
+  exitFabrica();
+}
+function fabSaltarDiario() {
+  exitFabrica();
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -683,6 +820,7 @@ function fabResponderOpciones(idx) {
   const elegido = opciones[idx];
   _colorearBotones(opciones.length, i => opciones[i].ok, idx);
   _resolverItem(FAB._item.tipo, !!elegido.ok);
+  if (FAB._item.tipo === 'clasifica_prueba' && elegido.ok) _registrarHerramienta(FAB._item);
   _mostrarExplicacion(!!elegido.ok, (elegido.ok ? '✓ ' : '✗ ') + escHtml(elegido.micro || ''));
 }
 
@@ -874,7 +1012,9 @@ export {
   fabCadenaAnadir, fabCadenaDeshacer, fabComprobarCadena,
   fabResponderVeredicto, fabResponderCausa,
   fabFronteraTocar, fabComprobarFrontera,
-  fabResponderCascada
+  fabResponderCascada,
+  fabAbrirMesa, fabCerrarMesa, fabImprimirMesa,
+  fabPedirSalir, fabGuardarDiario, fabSaltarDiario
 };
 
 if (typeof window !== 'undefined') {
@@ -889,7 +1029,9 @@ if (typeof window !== 'undefined') {
     fabCadenaAnadir, fabCadenaDeshacer, fabComprobarCadena,
     fabResponderVeredicto, fabResponderCausa,
     fabFronteraTocar, fabComprobarFrontera,
-    fabResponderCascada
+    fabResponderCascada,
+    fabAbrirMesa, fabCerrarMesa, fabImprimirMesa,
+    fabPedirSalir, fabGuardarDiario, fabSaltarDiario
   });
   Object.defineProperty(window, 'FAB', { get: () => FAB, configurable: true });
 }
