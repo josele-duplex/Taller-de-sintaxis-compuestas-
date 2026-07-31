@@ -20,7 +20,7 @@
    y sin analíticas al servidor (no existe endpoint saveSesionFormacion
    todavía — eso es F3). El progreso de sesión vive solo en memoria. */
 
-import { textoPrueba } from '../../data/pruebas-morfologia.js';
+import { textoPrueba, microPrueba } from '../../data/pruebas-morfologia.js';
 
 // ── Catálogos de etiquetas legibles (para no repetir texto ni volver a
 //    inventar terminología — todo sale de las listas cerradas del schema) ──
@@ -794,9 +794,15 @@ function fabComprobarFrontera() {
 // ── 9. clasifica_prueba ────────────────────────────────────────────────
 function _renderClasificaPrueba(item) {
   FAB._item = item;
-  const correctaOpt = { id: item.prueba_id, texto: textoPrueba(item.prueba_id), ok: true };
-  const distractoresOpt = (item.distractores || []).map(id => ({ id, texto: textoPrueba(id), ok: false }));
-  const opciones = shuffle([correctaOpt, ...distractoresOpt]);
+  // El enunciado del ítem decide el registro de TODAS las opciones (técnico o
+  // sin etiquetas), y cada una lleva su microexplicación: elegir un distractor
+  // sin que la app diga qué demostraría esa prueba no enseña nada.
+  const opt = (id, ok) => ({
+    id, ok,
+    texto: textoPrueba(id, item.enunciado),
+    micro: microPrueba(id, { ok, palabra: item.palabra })
+  });
+  const opciones = shuffle([opt(item.prueba_id, true), ...(item.distractores || []).map(id => opt(id, false))]);
   FAB._opciones = opciones;
   const procLabel = PROCEDIMIENTO_LABEL[item.procedimiento] || item.procedimiento;
   const pregunta = item.enunciado === 'tecnico'
