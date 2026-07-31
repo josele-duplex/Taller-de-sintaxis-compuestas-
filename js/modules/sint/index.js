@@ -3470,6 +3470,12 @@ const LOGIN_PANELS = {
     <p style="font-weight:800;font-size:.9rem;color:var(--fab-oliva-dk);margin-bottom:12px">🏭 La Fábrica de Palabras</p>
     <div style="background:var(--fab-tint);border:1px solid var(--fab-border);border-radius:12px;padding:14px 16px;margin-bottom:8px;font-size:.84rem;color:var(--fab-oliva-dk);line-height:1.6">
       Desmonta y monta palabras en tres estaciones: primero <strong>observas</strong>, luego <strong>manipulas</strong> y solo al final <strong>pones nombre</strong> a cada pieza. El nivel se elige al entrar.
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="toggleFabricaPinBlock()" style="font-size:.8rem;font-weight:700;padding:6px 10px;margin-bottom:4px">🔑 Tengo un PIN de examen</button>
+    <div id="pin-fab-block" class="field" style="display:none">
+      <label for="inp-fab-pin">PIN del examen</label>
+      <input id="inp-fab-pin" class="input input-pin" type="password" inputmode="numeric" maxlength="6" placeholder="····">
+      <p id="e-fab-pin" class="ferr" role="alert"></p>
     </div>`
 };
 
@@ -3488,6 +3494,16 @@ function setCpLoginMode(m){
   });
   const pinBlock = document.getElementById('pin-cp-block');
   if (pinBlock) pinBlock.style.display = m === 'exam' ? 'block' : 'none';
+}
+
+// Login de Fábrica: a diferencia de Compuestas/Morfología no hay tarjetas de
+// modalidad (la práctica es la ruta por defecto de "¡Empezar!") — solo un
+// enlace que revela el campo de PIN cuando el alumno sí tiene examen.
+function toggleFabricaPinBlock(){
+  const block = document.getElementById('pin-fab-block');
+  if (!block) return;
+  const abierto = block.style.display === 'block';
+  block.style.display = abierto ? 'none' : 'block';
 }
 
 
@@ -3930,6 +3946,16 @@ async function handleStartAll(){
     startChispa({name,email,grupo:grupoCompartido});return;
   }
   if(currentModule==='fabrica'){
+    ferr('e-fab-pin','');
+    const fabPin = document.getElementById('inp-fab-pin')?.value?.trim() || '';
+    if(fabPin){
+      if(!/^\d{4,6}$/.test(fabPin)){ ferr('e-fab-pin','El PIN debe tener entre 4 y 6 dígitos numéricos.'); return; }
+      if(typeof iniciarFabricaExamenDesdeLogin === 'function'){
+        iniciarFabricaExamenDesdeLogin({ name, email, grupo: grupoCompartido, pin: fabPin })
+          .catch(err => { ferr('e-fab-pin', String((err && err.message) || err || 'No se ha podido cargar el examen.')); });
+      }
+      return;
+    }
     startFabrica({name,email,grupo:grupoCompartido});return;
   }
   if(currentModule==='compuestas'){

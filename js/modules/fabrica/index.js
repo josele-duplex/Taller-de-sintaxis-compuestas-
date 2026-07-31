@@ -18,7 +18,32 @@
    Alcance F1 (según plan de producto §6): estaciones 1-2-3 completas,
    feedback, XP local, sin examen/PIN (Formacion.gs todavía no lo tiene)
    y sin analíticas al servidor (no existe endpoint saveSesionFormacion
-   todavía — eso es F3). El progreso de sesión vive solo en memoria. */
+   todavía — eso es F3). El progreso de sesión vive solo en memoria.
+
+   F3 · sesión 2 (jul-2026): modo examen con PIN, sobre el backend ya
+   construido en Server/Formacion.gs (createExamFormacion_/getExamenFormacion_/
+   saveResultadoFormacion_). Patrón clonado de _loadMaestroExamByPin +
+   submitMorfologiaResult (js/modules/maestro/index.js) para la carga y el
+   envío, y de calcDetailedScore (js/modules/sint/index.js) para el
+   principio "examen no revela feedback ni da pistas".
+   Diferencias con práctica, todas centralizadas en FAB.mode==='exam':
+     · _colorearBotones/_mostrarExplicacion no revelan nada: solo bloquean
+       los botones y muestran "Respuesta registrada.".
+     · Sin sonido de acierto/fallo (playSuccess/playError) ni racha visible
+       en la topbar — el racha interno sigue actualizándose (mismo XP), lo
+       único que cambia es que no se muestra ni se oye.
+     · `monta` no admite reintentos en examen: el primer tropiezo cierra el
+       ítem (en práctica, el rebote explica y deja reintentar) — sin esto,
+       el alumno podría fuerza-bruta las combinaciones gratis.
+     · Sin "Cambiar nivel" (lo fija el PIN) ni "Mi mesa" (herramienta de
+       consulta, no debe estar disponible durante el examen).
+     · Cola de retos FINITA (la que trae el examen, ya filtrada a Estación
+       2-3 por el servidor): al vaciarse, termina el examen en vez de
+       reiniciar el pool en bucle como hace la práctica libre.
+     · Nota = aciertos/totalItems, sin curva adicional: a diferencia de
+       Simples/Morfología, cada ítem de la Fábrica ya es una unidad binaria
+       (no hay puntuación parcial dentro de un ítem que una curva deba
+       corregir), así que el porcentaje bruto ya es la nota justa. */
 
 import { textoPrueba, microPrueba } from '../../data/pruebas-morfologia.js';
 import { LS_FAB_MESA, LS_FAB_DIARIO } from '../../core/constants.js';
@@ -181,12 +206,19 @@ function _limpiarExplicacion() {
 }
 // `avanza` a false = se muestra el aviso pero el ítem sigue abierto (es el
 // caso de los rebotes de `monta`, donde el alumno debe volver a intentarlo).
+// Examen: nunca se revela `ok` ni `html` — ver la nota de cabecera del
+// archivo ("examen no revela feedback ni da pistas").
 function _mostrarExplicacion(ok, html, avanza) {
   const el = _el('fab-explicacion');
   if (!el) return;
   el.style.display = 'block';
-  el.className = 'fab-expl ' + (ok ? 'is-ok' : 'is-bad');
-  el.innerHTML = html;
+  if (FAB.mode === 'exam') {
+    el.className = 'fab-expl';
+    el.innerHTML = 'Respuesta registrada.';
+  } else {
+    el.className = 'fab-expl ' + (ok ? 'is-ok' : 'is-bad');
+    el.innerHTML = html;
+  }
   const sig = _el('fab-siguiente');
   if (sig && avanza !== false) sig.style.display = 'block';
 }
@@ -207,12 +239,14 @@ function _resolverItem(tipo, correcta) {
   if (correcta) {
     FAB.aciertos++; FAB.racha++;
     if (FAB.racha > FAB.rachaMax) FAB.rachaMax = FAB.racha;
-    try { playSuccess(); } catch (e) {}
+    // Examen: sin sonido de acierto — es una señal de corrección tan válida
+    // como el color de un botón, y aquí tampoco se revela nada.
+    if (FAB.mode !== 'exam') { try { playSuccess(); } catch (e) {} }
     try { awardXP(2, 'fabrica_item'); } catch (e) {}
   } else {
     FAB.racha = 0;
     FAB.erroresPorTipo[tipo] = (FAB.erroresPorTipo[tipo] || 0) + 1;
-    try { playError(); } catch (e) {}
+    if (FAB.mode !== 'exam') { try { playError(); } catch (e) {} }
   }
   _actualizarStreak();
 }
@@ -221,16 +255,71 @@ function _resolverItem(tipo, correcta) {
 
 async function startFabrica({ name, email, grupo }) {
   showScreen('fabrica');
+  _clearFabricaTimer();
   FAB = {
     name, email, grupo, nivel: null, pool: [], retoQueue: [], reto: null, retoNum: 0,
-    items: [], itemIdx: 0, estacionActual: 0,
+    items: [], itemIdx: 0, estacionActual: 0, mode: 'practice',
     aciertos: 0, totalItems: 0, racha: 0, rachaMax: 0, erroresPorTipo: {},
     retosCompletadosSesion: 0
   };
   const nameEl = _el('fab-name');
   if (nameEl) nameEl.textContent = (name || '').split(' ')[0];
+  // Defensivo: si la sesión anterior en esta misma pestaña fue un examen,
+  // deja el "Mi mesa" y el racha ocultos — se restauran aquí.
+  const mesaBtn = _el('fab-btn-mesa');
+  if (mesaBtn) mesaBtn.style.display = '';
+  const streakBadge = _el('fab-streak');
+  if (streakBadge) streakBadge.style.display = '';
+  const timerEl = _el('fab-timer');
+  if (timerEl) timerEl.style.display = 'none';
   _actualizarStreak();
   _mostrarSelectorNivel();
+}
+
+// Entrada de examen: el alumno llega con un PIN ya validado desde el login
+// (ver iniciarFabricaExamenDesdeLogin más abajo, llamada desde
+// handleStartAll en sint/index.js). No pasa por el selector de nivel — el
+// PIN ya trae el nivel y la lista fija de retos que el profesor precomputó
+// en createExamFormacion_ (Server/Formacion.gs).
+async function iniciarFabricaExamenDesdeLogin({ name, email, grupo, pin }) {
+  const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
+  if (!apiUrl) throw new Error('Sin conexión al servidor.');
+  let d;
+  try {
+    const r = await fetchWithTimeout(apiUrl + '?action=getExamenFormacion&pin=' + encodeURIComponent(pin), {}, 12000);
+    d = await r.json();
+  } catch (e) {
+    throw new Error('Error de conexión: ' + (e.message || 'timeout') + '. Inténtalo de nuevo.');
+  }
+  if (!d || !d.ok || !Array.isArray(d.retos) || d.retos.length === 0) {
+    throw new Error((d && d.error) || 'PIN no válido.');
+  }
+  showScreen('fabrica');
+  _clearFabricaTimer();
+  FAB = {
+    name, email, grupo: grupo || d.grupo || '', nivel: d.nivel || 'basico',
+    pool: shuffle(d.retos), retoQueue: [], reto: null, retoNum: 0,
+    items: [], itemIdx: 0, estacionActual: 0, mode: 'exam',
+    examPin: pin, examGrupo: d.grupo || '', examEval: d.evaluacion || '', examName: d.nombreExamen || '',
+    aciertos: 0, totalItems: 0, racha: 0, rachaMax: 0, erroresPorTipo: {},
+    retosCompletadosSesion: 0, _examSent: false
+  };
+  FAB.retoQueue = [...FAB.pool];
+  const nameEl = _el('fab-name');
+  if (nameEl) nameEl.textContent = (name || '').split(' ')[0];
+  const info = NIVEL_INFO[FAB.nivel] || NIVEL_INFO.basico;
+  const nivelBadge = _el('fab-nivel-badge');
+  if (nivelBadge) nivelBadge.textContent = info.icon + ' ' + info.nombre + ' · Examen';
+  const cambiarBtn = _el('fab-cambiar-nivel');
+  if (cambiarBtn) cambiarBtn.style.display = 'none';
+  // Sin herramientas de consulta ni señal de racha visible durante el
+  // examen — ver la nota de cabecera del archivo.
+  const mesaBtn = _el('fab-btn-mesa');
+  if (mesaBtn) mesaBtn.style.display = 'none';
+  const streakBadge = _el('fab-streak');
+  if (streakBadge) streakBadge.style.display = 'none';
+  if (d.timer > 0) _startFabricaTimer(d.timer * 60);
+  _siguienteReto();
 }
 
 function _mostrarSelectorNivel() {
@@ -281,6 +370,9 @@ function _sinDatos() {
 
 function _siguienteReto() {
   if (FAB.retoQueue.length === 0) {
+    // Examen: cola finita — al vaciarse, termina (no se reinicia el pool
+    // en bucle como en práctica libre).
+    if (FAB.mode === 'exam') { _finalizarExamenFabrica(); return; }
     FAB.retoQueue = shuffle(FAB.pool);
     if (FAB.retoQueue.length === 0) { _sinDatos(); return; }
   }
@@ -449,8 +541,121 @@ function fabImprimirMesa() {
 // cuando exista `saveSesionFormacion`, eso es F3).
 
 function fabPedirSalir() {
+  // Mismo patrón que exitMaestro (js/modules/maestro/index.js): en examen
+  // se confirma antes de salir para no perder la nota sin avisar, y no se
+  // muestra el diario (es una reflexión de práctica, no de examen).
+  if (FAB.mode === 'exam') {
+    if (confirm('¿Salir del examen? Si no has terminado, no se guardará la nota.')) {
+      _clearFabricaTimer();
+      exitFabrica();
+    }
+    return;
+  }
   if ((FAB.retosCompletadosSesion || 0) > 0) { _mostrarDiario(); return; }
   exitFabrica();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  EXAMEN — temporizador, cierre y envío del resultado (F3 · sesión 2)
+// ════════════════════════════════════════════════════════════════════════
+
+function _startFabricaTimer(seconds) {
+  FAB.timerRemaining = seconds;
+  const el = _el('fab-timer');
+  if (el) el.style.display = 'inline-block';
+  _updateFabricaTimerDisplay();
+  FAB.timerInterval = setInterval(() => {
+    FAB.timerRemaining--;
+    _updateFabricaTimerDisplay();
+    if (FAB.timerRemaining <= 0) {
+      clearInterval(FAB.timerInterval);
+      FAB.timerInterval = null;
+      _finalizarExamenFabrica();
+    }
+  }, 1000);
+}
+function _updateFabricaTimerDisplay() {
+  const el = _el('fab-timer');
+  if (!el) return;
+  const mm = String(Math.floor(FAB.timerRemaining / 60)).padStart(2, '0');
+  const ss = String(Math.floor(FAB.timerRemaining % 60)).padStart(2, '0');
+  el.textContent = '⏱ ' + mm + ':' + ss;
+  el.style.background = FAB.timerRemaining < 60 ? '#FEF2F2' : FAB.timerRemaining < 180 ? '#FEF3C7' : 'var(--paper3)';
+  el.style.color = FAB.timerRemaining < 60 ? 'var(--red)' : FAB.timerRemaining < 180 ? 'var(--amber)' : 'var(--ink)';
+}
+function _clearFabricaTimer() {
+  if (FAB.timerInterval) { clearInterval(FAB.timerInterval); FAB.timerInterval = null; }
+}
+
+function _finalizarExamenFabrica() {
+  _clearFabricaTimer();
+  const timerEl = _el('fab-timer');
+  if (timerEl) timerEl.style.display = 'none';
+  const nota10 = FAB.totalItems > 0 ? Math.round((FAB.aciertos / FAB.totalItems) * 1000) / 100 : 0;
+  const notaFmt = nota10.toFixed(1);
+  _setOracion('');
+  _setPregunta('');
+  _setFichas(
+    '<div class="fab-fin">' +
+    '<div class="fab-fin-icon">🏭</div>' +
+    '<div class="fab-fin-tit">Examen terminado</div>' +
+    '<div style="font-size:3rem;font-weight:900;color:var(--fab-oliva-dk);line-height:1;margin:10px 0">' + notaFmt + '</div>' +
+    '<div class="fab-fin-sub">' + FAB.aciertos + '/' + FAB.totalItems + ' ítems correctos</div>' +
+    '<p id="fab-exam-msg" style="margin-top:16px;font-size:.85rem;font-weight:600"></p>' +
+    '<button type="button" class="fab-btn fab-btn-block" style="margin-top:6px" onclick="exitFabrica()">Salir</button>' +
+    '</div>'
+  );
+  _limpiarExplicacion();
+  _enviarResultadoFabrica(nota10);
+}
+
+async function _enviarResultadoFabrica(nota10) {
+  const msg = _el('fab-exam-msg');
+  if (FAB._examSent) {
+    if (msg) { msg.textContent = '✓ Resultado ya enviado.'; msg.style.color = 'var(--green)'; }
+    return;
+  }
+  const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
+  if (!apiUrl) {
+    if (msg) { msg.textContent = '⚠ Sin URL de API. La nota no se ha enviado al profesor.'; msg.style.color = 'var(--red)'; }
+    return;
+  }
+  if (msg) { msg.textContent = '⏳ Enviando resultado al profesor…'; msg.style.color = 'var(--blue)'; }
+  // Cuerpo plano (sin envolver en {payload:...}) — así lo espera
+  // saveResultadoFormacion_ en Server/Formacion.gs (dispatchFormacionPost_
+  // le pasa el objeto entero del body tal cual llega).
+  const body = JSON.stringify({
+    action: 'saveResultadoFormacion',
+    email: FAB.email || '', name: FAB.name || '', grupo: FAB.grupo || '',
+    nivel: FAB.nivel || '', modo: 'exam',
+    pin: FAB.examPin || '', evaluacion: FAB.examEval || '', examen: FAB.examName || '',
+    nota: String(nota10 || 0),
+    itemsOk: String(FAB.aciertos || 0),
+    itemsErr: String((FAB.totalItems || 0) - (FAB.aciertos || 0)),
+    itemsTotales: String(FAB.totalItems || 0),
+    erroresCategoria: JSON.stringify(FAB.erroresPorTipo || {})
+  });
+  try {
+    // Sin Content-Type: JSON explícito para evitar el preflight CORS — el
+    // GAS recibe el body raw y lo parsea con JSON.parse(e.postData.contents)
+    // (mismo motivo que saveResultadoCompuestas en compuestas/index.js).
+    const r = await fetchWithTimeout(apiUrl, { method: 'POST', body, mode: 'cors', credentials: 'omit', redirect: 'follow' }, 12000);
+    const d = await r.json();
+    if (d && d.ok) {
+      FAB._examSent = true;
+      if (msg) {
+        msg.textContent = d.duplicate ? '✓ Resultado ya enviado.' : '✓ Resultado enviado correctamente al profesor.';
+        msg.style.color = 'var(--green)';
+      }
+    } else {
+      throw new Error((d && d.error) || 'Error del servidor');
+    }
+  } catch (e) {
+    if (msg) {
+      msg.textContent = '⚠ Error de conexión: ' + (e.message || 'timeout') + '. No se ha podido reenviar automáticamente.';
+      msg.style.color = 'var(--red)';
+    }
+  }
 }
 
 function _mostrarDiario() {
@@ -507,6 +712,7 @@ function _colorearBotones(n, esCorrecta, idxElegido) {
     const btn = _el('fab-op-' + i);
     if (!btn) continue;
     btn.style.pointerEvents = 'none';
+    if (FAB.mode === 'exam') continue; // examen: se bloquea el click, no se revela nada
     if (esCorrecta(i)) btn.classList.add('is-ok');
     else if (i === idxElegido) btn.classList.add('is-bad');
     else btn.classList.add('is-dim');
@@ -598,6 +804,7 @@ function _colorearAgrupaResultado() {
   const cestasHtml = item.cestas.map((c, ci) => {
     const chips = FAB._agrupaPalabras.map((p, i) => {
       if (FAB._agrupaAsignacion[i] !== ci) return '';
+      if (FAB.mode === 'exam') return '<span class="fab-chip">' + escHtml(p.texto) + '</span>';
       const bien = p.cesta === ci;
       return '<span class="fab-chip ' + (bien ? 'is-ok' : 'is-bad') + '">' +
         escHtml(p.texto) + (bien ? ' ✓' : ' ✗') + '</span>';
@@ -785,7 +992,6 @@ function fabMontarConstruir() {
   const item = FAB._item;
   const usa = FAB._montaSel.map(i => item.piezas[i].texto);
   const valida = item.validas.find(v => _arrSameSet(v.usa, usa));
-  const rebote = !valida && (item.rebotes || []).find(r => _arrSameSet(r.usa, usa));
   FAB._montaSel = [];
   if (valida) {
     FAB._montaEncontradas.add(valida.palabra);
@@ -798,8 +1004,17 @@ function fabMontarConstruir() {
     _renderMontaFichas();
     return;
   }
-  // Rebote: se explica por qué esa combinación no monta, pero el ítem NO
-  // se da por resuelto — el alumno vuelve a intentarlo (de ahí el `false`).
+  // Examen: sin reintentos. En práctica el rebote explica por qué esa
+  // combinación no monta y deja seguir probando; en examen eso sería
+  // fuerza bruta gratis (probar todas las combinaciones hasta acertar sin
+  // penalización), así que el primer tropiezo cierra el ítem — cuente lo
+  // que cuente lo que ya se había encontrado.
+  if (FAB.mode === 'exam') {
+    _resolverItem('monta', false);
+    _mostrarExplicacion(false, '');
+    return;
+  }
+  const rebote = (item.rebotes || []).find(r => _arrSameSet(r.usa, usa));
   _renderMontaFichas();
   _mostrarExplicacion(false,
     '✗ ' + escHtml(rebote ? rebote.micro : 'Esas piezas no forman ninguna palabra real.'), false);
@@ -1002,7 +1217,7 @@ const ITEM_RENDERERS = {
 // ── Public API + window bindings (patrón chispa/index.js) ────────────────
 
 export {
-  startFabrica, exitFabrica, fabCambiarNivel, iniciarFabricaNivel,
+  startFabrica, exitFabrica, fabCambiarNivel, iniciarFabricaNivel, iniciarFabricaExamenDesdeLogin,
   fabEmpezarReto, fabSiguienteItem, fabSiguienteReto,
   fabResponderIntruso, fabAgruparSeleccionar, fabAgruparQuitar, fabAgruparColocar, fabAgruparComprobar,
   fabToggleCorte, fabComprobarCorte, fabEtiquetarPieza, fabComprobarEtiquetas,
@@ -1019,7 +1234,7 @@ export {
 
 if (typeof window !== 'undefined') {
   Object.assign(window, {
-    startFabrica, exitFabrica, fabCambiarNivel, iniciarFabricaNivel,
+    startFabrica, exitFabrica, fabCambiarNivel, iniciarFabricaNivel, iniciarFabricaExamenDesdeLogin,
     fabEmpezarReto, fabSiguienteItem, fabSiguienteReto,
     fabResponderIntruso, fabAgruparSeleccionar, fabAgruparQuitar, fabAgruparColocar, fabAgruparComprobar,
     fabToggleCorte, fabComprobarCorte, fabEtiquetarPieza, fabComprobarEtiquetas,

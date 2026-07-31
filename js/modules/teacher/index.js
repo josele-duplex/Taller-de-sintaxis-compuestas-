@@ -531,6 +531,119 @@ async function testMorfoExamPin(){
 }
 
 // ════════════════════════════════════════════════════════
+// EXAMEN DE LA FÁBRICA DE PALABRAS CON PIN — F3 sesión 2 (jul-2026)
+// Mismo patrón que el bloque de Morfología justo arriba: el profesor
+// pre-computa un lote fijo de retos al crear el PIN (createExamFormacion
+// del GAS — Server/Formacion.gs — que deja el examen en
+// Formacion_Examenes con Estado='activo').
+// ════════════════════════════════════════════════════════
+
+function genFabricaExamPin(){
+  const pin = String(Math.floor(1000 + Math.random() * 9000));
+  document.getElementById('tp-fab-exam-pin').value = pin;
+}
+
+function _setFabricaExamStatus(msg, colorVar){
+  const el = document.getElementById('tp-fab-exam-status');
+  el.style.display = 'block';
+  el.textContent = msg;
+  el.style.color = colorVar;
+  el.style.background = colorVar === 'var(--red)'   ? '#FEF2F2'
+                      : colorVar === 'var(--green)' ? '#F0FDF4'
+                      : colorVar === 'var(--amber)' ? '#FFFBEB'
+                      : '#EFF6FF';
+  el.style.borderLeft = '3px solid ' + (colorVar || 'var(--blue)');
+}
+
+async function createExamenFabricaUI(){
+  const pin         = document.getElementById('tp-fab-exam-pin').value.trim();
+  const grupo       = document.getElementById('tp-fab-exam-grupo').value.trim();
+  const evaluacion  = document.getElementById('tp-fab-exam-eval').value.trim();
+  const nombreExamen= document.getElementById('tp-fab-exam-name').value.trim();
+  const nivel       = document.getElementById('tp-fab-exam-nivel').value;
+  const nRetos      = parseInt(document.getElementById('tp-fab-exam-nretos').value) || 0;
+  const timerMin    = parseInt(document.getElementById('tp-fab-exam-timer').value)  || 0;
+
+  if(!pin || !/^\d{4,6}$/.test(pin)){
+    _setFabricaExamStatus('⚠ El PIN debe tener entre 4 y 6 dígitos numéricos.', 'var(--red)');
+    return;
+  }
+  const apiUrl = getApiUrl();
+  if(!apiUrl){
+    _setFabricaExamStatus('⚠ Configura la URL de la API primero.', 'var(--red)');
+    return;
+  }
+  _setFabricaExamStatus('⏳ Enviando configuración al Sheet…', 'var(--blue)');
+  try {
+    const params = new URLSearchParams({
+      action: 'createExamFormacion',
+      pin, grupo, evaluacion, nombreExamen, nivel,
+      nRetos: String(nRetos), timerMin: String(timerMin),
+      clave: (typeof getTeacherPw==='function'?getTeacherPw():'')
+    });
+    const r = await fetchWithRetry(apiUrl + '?' + params.toString(), {}, {
+      timeoutMs: 15000, retries: 2,
+      onRetry: (n)=>{ _setFabricaExamStatus('⏳ Reintentando ('+n+'/2)…', 'var(--amber)'); }
+    });
+    const d = await r.json();
+    if(d.ok){
+      const nReal = d.nRetosReales || nRetos || '?';
+      const parts = ['PIN: ' + pin, nReal + ' retos pre-cargados', 'Nivel: ' + nivel];
+      if(timerMin > 0) parts.push(timerMin + ' min');
+      _setFabricaExamStatus('✓ Examen activado. ' + parts.join(' · '), 'var(--green)');
+    } else {
+      _setFabricaExamStatus('⚠ Error: ' + (d.error || 'desconocido'), 'var(--red)');
+    }
+  } catch(e){
+    _setFabricaExamStatus('⏳ Sin respuesta. Verificando si el examen se creó…', 'var(--amber)');
+    try {
+      await new Promise(r => setTimeout(r, 1500));
+      const verifyParams = new URLSearchParams({ action: 'getExamenFormacion', pin });
+      const verify = await fetchWithTimeout(apiUrl + '?' + verifyParams.toString(), {}, 10000);
+      const vd = await verify.json();
+      if(vd.ok && Array.isArray(vd.retos) && vd.retos.length > 0){
+        _setFabricaExamStatus('✓ El examen se creó correctamente (PIN ' + pin + ', ' + vd.retos.length + ' retos). El timeout era solo de la respuesta.', 'var(--green)');
+      } else {
+        _setFabricaExamStatus('⚠ Error: ' + e.message + '. El examen no se creó. Inténtalo de nuevo.', 'var(--red)');
+      }
+    } catch(e2){
+      _setFabricaExamStatus('⚠ Error de conexión: ' + e.message, 'var(--red)');
+    }
+  }
+}
+
+async function testFabricaExamPin(){
+  const pin = document.getElementById('tp-fab-exam-pin').value.trim();
+  if(!pin || !/^\d{4,6}$/.test(pin)){
+    _setFabricaExamStatus('⚠ Escribe primero un PIN de 4-6 dígitos.', 'var(--amber)');
+    return;
+  }
+  const apiUrl = getApiUrl();
+  if(!apiUrl){
+    _setFabricaExamStatus('⚠ Sin URL de API configurada.', 'var(--red)');
+    return;
+  }
+  _setFabricaExamStatus('⏳ Comprobando PIN ' + pin + '…', 'var(--blue)');
+  try {
+    const url = apiUrl + '?action=getExamenFormacion&pin=' + encodeURIComponent(pin);
+    const r = await fetchWithRetry(url, {}, { timeoutMs: 10000, retries: 1 });
+    const d = await r.json();
+    if(d.ok){
+      const n = (d.retos && d.retos.length) || 0;
+      const parts = ['✓ PIN ' + pin + ' funciona', n + ' retos', 'Nivel: ' + (d.nivel||'—')];
+      if(d.grupo)        parts.push('Grupo ' + d.grupo);
+      if(d.evaluacion)   parts.push('Eval. ' + d.evaluacion);
+      if(d.nombreExamen) parts.push('«' + d.nombreExamen + '»');
+      _setFabricaExamStatus(parts.join(' · '), 'var(--green)');
+    } else {
+      _setFabricaExamStatus('⚠ ' + (d.error || 'PIN no válido'), 'var(--red)');
+    }
+  } catch(e){
+    _setFabricaExamStatus('⚠ Error de conexión: ' + (e && e.message || e), 'var(--red)');
+  }
+}
+
+// ════════════════════════════════════════════════════════
 // CP DASHBOARD — Fase 1.6 (mayo 2026)
 // Lee la hoja Compuestas_Resultados via el endpoint
 // getResultadosCompuestas del GAS y la pinta en una tabla
@@ -1214,6 +1327,8 @@ export {
   genCpExamPin, createExamenCompuestaUI, testCpExamPin,
   // Fase 3.4 — creación de exámenes de Morfología con PIN
   genMorfoExamPin, createExamenMorfologiaUI, testMorfoExamPin,
+  // F3 sesión 2 — creación de exámenes de la Fábrica de Palabras con PIN
+  genFabricaExamPin, createExamenFabricaUI, testFabricaExamPin,
   // B4 (M3) — examen mixto simples+compuestas
   genMixExamPin, _syncMixPesos, crearExamenMixtoUI, testMixExamPin,
   loadMixDashboard, exportMixCSV
@@ -1330,6 +1445,8 @@ if (typeof window !== 'undefined') {
     genCpExamPin, createExamenCompuestaUI, testCpExamPin,
     // Fase 3.4 — creación de exámenes de Morfología con PIN
     genMorfoExamPin, createExamenMorfologiaUI, testMorfoExamPin,
+    // F3 sesión 2 — creación de exámenes de la Fábrica de Palabras con PIN
+    genFabricaExamPin, createExamenFabricaUI, testFabricaExamPin,
     // B4 (M3) — examen mixto simples+compuestas
     genMixExamPin, _syncMixPesos, crearExamenMixtoUI, testMixExamPin,
     loadMixDashboard, exportMixCSV,
