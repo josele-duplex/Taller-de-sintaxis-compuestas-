@@ -283,6 +283,35 @@
 * pyme ← pequeña y mediana empresa (acrónimo español)
 * bit ← *binary digit* (acrónimo de préstamo)
 
+## Acrónimos lexicalizados: la trampa de las mayúsculas
+
+Cuando un acrónimo pasa a usarse como sustantivo común, se escribe en
+minúscula y se somete a las reglas generales de plural — *radar* y *pyme*
+de arriba ya son ejemplos de esto, pero como trampa explícita de
+`juicio` (ítem con forma mal formada por seguir escribiendo en mayúscula
+tras la lexicalización):
+
+* ❌ *un OVNI, dos OVNIs, las PYMEs, el RADAR, el LÁSER.*
+* ✅ *un ovni, dos ovnis, las pymes, el radar, el láser.*
+
+## Prefijos unidos a números o siglas: la trampa del guion
+
+Cuando un prefijo se une a una palabra que empieza por mayúscula (sigla o
+nombre propio) o a un número, es obligatorio el guion intermedio
+(Ortografía de la RAE 2010).
+
+* ❌ *sub21, sub 21, antiOTAN, anti OTAN, proGoya.*
+* ✅ *sub-21, anti-OTAN, pro-Goya.*
+
+## Plurales de compuestos sintagmáticos: la trampa de la concordancia
+
+En los compuestos sintagmáticos (dos palabras separadas que funcionan
+como un solo concepto), el plural solo se marca en el primer elemento,
+el núcleo sustantivo — el segundo actúa como modificador invariable.
+
+* ❌ *coches bombas, horas puntas, niños prodigios, ciudades dormitorios.*
+* ✅ *coches bomba, horas punta, niños prodigio, ciudades dormitorio.*
+
 # Cambio de sufijo derivativo
 
 * nación / nacional
@@ -760,6 +789,124 @@ Cubre los mecanismos de formación que se trabajan entre 2.º-4.º de ESO y 1.º
 
 ---
 
+## Numerónimos
+
+Formas abreviadas en las que un número sustituye letras o palabras.
+
+| Forma | Desarrollo |
+|---|---|
+| 11-S | 11 de septiembre |
+| 11-M | 11 de marzo |
+| 15-M | Movimiento del 15 de mayo |
+| 8-M | Día Internacional de la Mujer |
+| 5G | Quinta generación |
+| 4G | Cuarta generación |
+| 3D | Tres dimensiones |
+| G20 | Grupo de los Veinte |
+| B2B | *Business to Business* |
+| R2D2 | Personaje de *Star Wars* |
+
+*A4* y *V8* se descartan del banco: son designaciones técnicas
+(formato de papel, tipo de motor) más que numerónimos lexicalizados con
+un referente propio como *11-S* o *5G* — categoría demasiado borrosa
+para un ítem `intruso` o `clasifica_prueba` limpio.
+
+## Préstamos sin adaptar y préstamos adaptados
+
+La RAE distingue entre préstamos que conservan su grafía original y
+préstamos adaptados a la ortografía española.
+
+**Sin adaptar** (grafía original): *streamer, influencer, podcast,
+software, hardware, marketing, online, spoiler, feedback, hacker,
+smartphone, freelance, startup, bestseller, casting, thriller, ranking,
+chatbot, gaming.*
+
+*Reality show* se deja fuera del banco de ítems (aunque es un préstamo
+sin adaptar válido): es un sintagma de dos palabras, no un lexema único,
+y el motor de la Fábrica no está pensado para tokenizar préstamos
+pluriverbales dentro de un mismo ítem.
+
+**Adaptados** (grafía españolizada):
+
+| Forma adaptada | Original |
+|---|---|
+| selfi | selfie |
+| tuit | tweet |
+| escáner | scanner |
+| fútbol | football |
+| mitin | meeting |
+| líder | leader |
+| estándar | standard |
+| eslogan | slogan |
+| estrés | stress |
+
+*Güisqui* (de *whisky*) se deja fuera pese a estar recogida por la RAE:
+es una adaptación normativamente válida pero tan poco usada en la
+práctica real que confundiría más de lo que enseña.
+
+## Trampas de norma para siglas y abreviaturas
+
+Muy útiles para ítems `juicio` (forma bien/mal formada) — a diferencia
+del resto del banco, aquí SÍ hace falta un banco de siglas
+incorrectamente escritas, no solo correctas.
+
+**Siglas correctamente escritas**: *ONG, ESO, DNI, IVA, ONU, OTAN, FIFA,
+AVE, GPS, DVD.*
+
+**Siglas incorrectamente escritas:**
+
+| Incorrecta | Motivo |
+|---|---|
+| ONGs | Las siglas son invariables: el plural lo marca el artículo (*las ONG*) |
+| ONG's | Apóstrofo de plural, anglicismo ortográfico |
+| D.N.I. / O.N.U. / E.S.O. / I.E.S. | Los puntos entre letras ya no se usan (Ortografía RAE 2010) |
+| GPSs | Plural incorrecto, mismo motivo que *ONGs* |
+| TICs | Plural incorrecto, mismo motivo que *ONGs* |
+
+> **Nota de criterio (2026-08-02):** el documento original de Josele
+> trataba *ONGs*/*GPSs* como llanamente incorrectas pero *DVDs* como
+> "uso discutido; mejor «los DVD»" — inconsistente, siendo el mismo
+> fenómeno (sigla + *-s*). Aquí se aplica la norma de forma uniforme
+> (las siglas son invariables) para las tres. Si en el aula el criterio
+> real es más laxo con *DVDs* por estar muy asentado en el uso, es
+> decisión de Josele reintroducir esa excepción — no se ha hecho aquí
+> por no inventar un matiz sin su validación.
+>
+> Se descarta *ONUS* como ejemplo de plural incorrecto de *ONU*: no es
+> un error real documentado (nadie escribe así ese plural) y además
+> coincide por casualidad con la palabra española *onus* ('carga',
+> latinismo raro pero real) — confundiría más de lo que enseñaría.
+
+**Abreviaturas correctas**: *pág., p., núm., art., avda., c/, Sr., Sra.,
+Dr., prof., etc.*
+
+**Abreviaturas incorrectas** (falta el punto, o la mayúscula inicial en
+tratamientos):
+
+| Incorrecta | Correcta |
+|---|---|
+| pag | pág. |
+| num | núm. |
+| sr | Sr. |
+| dra | Dra. |
+| etc | etc. |
+| avda | avda. |
+| art | art. |
+| prof | prof. |
+
+*"n°"* (con el símbolo de grado) se descarta como ejemplo de error: el
+símbolo real que se confunde con *núm.* en español es *"nº"* (indicador
+ordinal), no el signo de grado.
+
+---
+
 ## Lo que sigue faltando para el lote semilla de F0·3
 
-Este banco, ya depurado, no cubre: **numerónimos** (*11-S*, *5G*), **préstamos sin adaptar** (*selfi*, *streamer*), **ortografía morfológica en forma de error** (el banco solo trae siglas correctas: faltan *ONGs*, *I.E.S.*, *pag* sin punto), y dos de los tres casos `frontera` del plan (*hispanohablante*, *malcarado* — *sietemesino* ya está aquí, §1 y sección de palabras descompuestas). Ver `docs/Fabrica_Palabras_Plan_Producto.md` §2 y `docs/Schema_Formacion_v1.0.md` §6 y §11 para el resto de huecos.
+Este banco ya cubre numerónimos, préstamos sin adaptar y trampas de
+norma de siglas/abreviaturas (añadido 2026-08-02, a partir de material
+de Josele — ver `docs/fuentes/trampas_gramaticales_generales.md` para lo
+que se descartó por no ser formación de palabras). Sigue faltando: dos de
+los tres casos `frontera` del plan (*hispanohablante*, *malcarado* —
+*sietemesino* ya está aquí, §1 y sección de palabras descompuestas). Ver
+`docs/Fabrica_Palabras_Plan_Producto.md` §2 y `docs/Schema_Formacion_v1.0.md`
+§6 y §11 para el resto de huecos.
