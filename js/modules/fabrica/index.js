@@ -47,6 +47,7 @@
 
 import { textoPrueba, microPrueba } from '../../data/pruebas-morfologia.js';
 import { LS_FAB_MESA, LS_FAB_DIARIO, LS_FAB_MUSEO } from '../../core/constants.js';
+import { pickFabMission, syncFabMission, fabMissionCardHtml } from '../../gamification/missions-fabrica.js';
 
 // ── Catálogos de etiquetas legibles (para no repetir texto ni volver a
 //    inventar terminología — todo sale de las listas cerradas del schema) ──
@@ -250,6 +251,10 @@ function _resolverItem(tipo, correcta) {
   if (correcta) {
     FAB.aciertos++; FAB.racha++;
     if (FAB.racha > FAB.rachaMax) FAB.rachaMax = FAB.racha;
+    // Aciertos por estación: alimenta las misiones que apuntan a una
+    // estación concreta (la 3 hoy). FAB.estacionActual la fija
+    // renderItemFabrica antes de dibujar el ítem.
+    FAB.aciertosEst[FAB.estacionActual] = (FAB.aciertosEst[FAB.estacionActual] || 0) + 1;
     // Examen: sin sonido de acierto — es una señal de corrección tan válida
     // como el color de un botón, y aquí tampoco se revela nada.
     if (FAB.mode !== 'exam') { try { playSuccess(); } catch (e) {} }
@@ -260,6 +265,29 @@ function _resolverItem(tipo, correcta) {
     if (FAB.mode !== 'exam') { try { playError(); } catch (e) {} }
   }
   _actualizarStreak();
+  _sincronizarMision();
+}
+
+// ── Misión diaria de la Fábrica (F4·3) ───────────────────────────────────
+// Pool propio (js/gamification/missions-fabrica.js), no el de Simples: ver
+// la cabecera de ese archivo para el porqué. Solo en práctica — en examen
+// no hay misión, igual que no hay mesa, museo ni reto creativo.
+
+function _fabContadores() {
+  return {
+    aciertos: FAB.aciertos || 0,
+    retos: FAB.retosCompletadosSesion || 0,
+    rachaMax: FAB.rachaMax || 0,
+    herramientasNuevas: FAB.herramientasNuevas || 0,
+    museoNuevas: FAB.museoNuevas || 0,
+    aciertosEst3: (FAB.aciertosEst && FAB.aciertosEst[3]) || 0
+  };
+}
+
+function _sincronizarMision() {
+  if (FAB.mode === 'exam') return;
+  if (!FAB._misionAplicada) FAB._misionAplicada = {};
+  try { syncFabMission(_fabContadores(), FAB._misionAplicada); } catch (e) {}
 }
 
 // ── Ciclo de sesión ───────────────────────────────────────────────────────
@@ -271,8 +299,12 @@ async function startFabrica({ name, email, grupo }) {
     name, email, grupo, nivel: null, pool: [], retoQueue: [], reto: null, retoNum: 0,
     items: [], itemIdx: 0, estacionActual: 0, mode: 'practice',
     aciertos: 0, totalItems: 0, racha: 0, rachaMax: 0, erroresPorTipo: {},
-    retosCompletadosSesion: 0
+    retosCompletadosSesion: 0,
+    aciertosEst: {}, herramientasNuevas: 0, museoNuevas: 0, _misionAplicada: {}
   };
+  // Sortea (o recupera) la misión del día antes de que el alumno empiece:
+  // así la portada del primer reto ya la puede enseñar.
+  try { pickFabMission(); } catch (e) {}
   const nameEl = _el('fab-name');
   if (nameEl) nameEl.textContent = (name || '').split(' ')[0];
   // Defensivo: si la sesión anterior en esta misma pestaña fue un examen,
@@ -315,7 +347,8 @@ async function iniciarFabricaExamenDesdeLogin({ name, email, grupo, pin }) {
     items: [], itemIdx: 0, estacionActual: 0, mode: 'exam',
     examPin: pin, examGrupo: d.grupo || '', examEval: d.evaluacion || '', examName: d.nombreExamen || '',
     aciertos: 0, totalItems: 0, racha: 0, rachaMax: 0, erroresPorTipo: {},
-    retosCompletadosSesion: 0, _examSent: false
+    retosCompletadosSesion: 0, _examSent: false,
+    aciertosEst: {}, herramientasNuevas: 0, museoNuevas: 0, _misionAplicada: {}
   };
   FAB.retoQueue = [...FAB.pool];
   const nameEl = _el('fab-name');
@@ -405,8 +438,16 @@ function _mostrarPortadaReto() {
   _setOracion('<div class="fab-titulo">' + escHtml(FAB.reto.titulo_problema) + '</div>' +
     '<div class="fab-corpus">' + (FAB.reto.corpus || []).map(escHtml).join(' · ') + '</div>');
   _setPregunta('');
-  _setFichas('<button type="button" class="fab-btn fab-btn-block" onclick="fabEmpezarReto()">Empezar reto →</button>');
+  _setFichas(_misionHtml() +
+    '<button type="button" class="fab-btn fab-btn-block" onclick="fabEmpezarReto()">Empezar reto →</button>');
   _actualizarProgreso();
+}
+
+// La misión no existe en examen (ni se sortea ni se sincroniza); el guardia
+// aquí es por si el alumno ya tenía una del día en una sesión de práctica.
+function _misionHtml() {
+  if (FAB.mode === 'exam') return '';
+  try { return fabMissionCardHtml(); } catch (e) { return ''; }
 }
 
 function fabEmpezarReto() {
@@ -440,6 +481,7 @@ function fabSiguienteItem() {
 
 function _finReto() {
   FAB.retosCompletadosSesion = (FAB.retosCompletadosSesion || 0) + 1;
+  _sincronizarMision();
   _setOracion('');
   _setPregunta('');
   const pct = FAB.totalItems > 0 ? Math.round((FAB.aciertos / FAB.totalItems) * 100) : 0;
@@ -451,6 +493,7 @@ function _finReto() {
     '<div class="fab-fin-icon">🏆</div>' +
     '<div class="fab-fin-tit">¡Reto completado!</div>' +
     '<div class="fab-fin-sub">Aciertos de la sesión: ' + FAB.aciertos + '/' + FAB.totalItems + ' (' + pct + '%)</div>' +
+    _misionHtml() +
     '<div class="fab-row">' + creativo +
     '<button type="button" class="fab-btn" onclick="fabSiguienteReto()">Siguiente reto →</button>' +
     '</div></div>');
@@ -498,6 +541,8 @@ function _registrarHerramienta(item) {
   };
   _saveMesa(mesa);
   if (esNueva) {
+    FAB.herramientasNuevas = (FAB.herramientasNuevas || 0) + 1;
+    _sincronizarMision();
     try {
       if (typeof window.showCombo === 'function') {
         window.showCombo('🧰 Nueva herramienta: ' + (PROCEDIMIENTO_LABEL[item.procedimiento] || item.procedimiento), 15);
@@ -929,6 +974,8 @@ function fabCreativoGuardar() {
     fecha: new Date().toISOString().slice(0, 10)
   });
   _saveMuseo(museo);
+  FAB.museoNuevas = (FAB.museoNuevas || 0) + 1;
+  _sincronizarMision();
   try { awardXP(15, 'fabrica_creativo'); } catch (e) {}
   try { playSuccess(); } catch (e) {}
   _limpiarExplicacion();

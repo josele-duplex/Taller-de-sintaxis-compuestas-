@@ -25,7 +25,7 @@
 
    Para forzar que los usuarios recojan cambios grandes de golpe (en vez de
    ir refrescándose visita a visita), sube el número de CACHE_NAME. */
-const CACHE_NAME = 'taller-sintaxis-shell-v5';
+const CACHE_NAME = 'taller-sintaxis-shell-v6';
 
 const SHELL_ASSETS = [
   './',
@@ -56,6 +56,7 @@ const SHELL_ASSETS = [
   './js/glosario/render.js',
   './js/gamification/levels.js',
   './js/gamification/missions.js',
+  './js/gamification/missions-fabrica.js',
   './js/gamification/streak.js',
   './js/gamification/xp.js',
   './js/gamification/dashboard.js',

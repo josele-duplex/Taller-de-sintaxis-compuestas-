@@ -4854,6 +4854,37 @@ body.theme-new-ui #screen-fabrica .fab-fin-tit{
 }
 body.theme-new-ui #screen-fabrica .fab-fin-sub{font-size:.86rem;color:var(--ui-muted);margin-bottom:18px}
 
+/* ── Misión diaria de la Fábrica (F4·3) ── */
+body.theme-new-ui #screen-fabrica .fab-mision{
+  background:var(--fab-tint);border:1.5px solid var(--fab-border);
+  border-radius:var(--ui-r);padding:12px 14px;margin:0 auto 18px;max-width:420px;text-align:left;
+}
+body.theme-new-ui #screen-fabrica .fab-mision.is-done{
+  background:var(--ui-ok-tint);border-color:rgba(21,128,61,.30);
+}
+body.theme-new-ui #screen-fabrica .fab-mision-top{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;
+}
+body.theme-new-ui #screen-fabrica .fab-mision-tag,
+body.theme-new-ui #screen-fabrica .fab-mision-xp{
+  font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--fab-oliva-dk);
+}
+body.theme-new-ui #screen-fabrica .fab-mision.is-done .fab-mision-tag,
+body.theme-new-ui #screen-fabrica .fab-mision.is-done .fab-mision-xp{color:#14532D}
+body.theme-new-ui #screen-fabrica .fab-mision-label{
+  font-size:.88rem;font-weight:700;color:var(--ui-ink);line-height:1.35;margin-bottom:8px;
+}
+body.theme-new-ui #screen-fabrica .fab-mision-bar{
+  height:8px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;
+}
+body.theme-new-ui #screen-fabrica .fab-mision-fill{
+  height:100%;background:var(--fab-oliva);border-radius:99px;transition:width .5s ease;
+}
+body.theme-new-ui #screen-fabrica .fab-mision.is-done .fab-mision-fill{background:#15803D}
+body.theme-new-ui #screen-fabrica .fab-mision-count{
+  font-size:.72rem;color:var(--ui-muted);margin-top:4px;text-align:right;
+}
+
 /* ── Explicación (feedback) ── */
 body.theme-new-ui #screen-fabrica .fab-expl.is-ok{
   background:var(--ui-ok-tint);color:#14532D;border:1.5px solid rgba(21,128,61,.30);
