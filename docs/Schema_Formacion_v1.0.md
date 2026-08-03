@@ -1,7 +1,11 @@
 # Schema `formacion v1.0` — especificación de `Formacion_Banco`
 
-**F0 · sesión 1 · 30-jul-2026 · 🟣 Opus 5**
+**F0 · sesión 1 · 30-jul-2026 · 🟣 Opus 5** — documento base
+**Ampliación v1.1 · F5 sesión 1 · 4-ago-2026 · 🟣 Opus 5** — canon de estructura secuenciada (§12)
+
 Fuente de verdad del formato de datos del módulo La Fábrica de Palabras. Todo lote de contenido y todo cambio del motor se validan contra este documento.
+
+> **Sobre el número de versión.** El documento va por **v1.1**; el campo `schema_version` de cada reto **sigue siendo `"1.0"`**. Las ampliaciones de la §12 son retrocompatibles (un campo opcional nuevo y un cambio de motor que no toca el dato), así que ningún reto de los lotes `basico` y `medio` ya escritos necesita tocarse. Es el mismo criterio que sigue `schema_compuesta_v1_2.md`, que documenta sus ampliaciones v1.3-v1.5 dentro del archivo sin renumerar el dato.
 
 > **Por qué existe este documento.** Es la decisión que se paga todo el curso si sale mal: cada lote posterior (~30 retos de `basico`, ~30 de `medio`, los de `avanzado`) se escribe contra este schema, y el motor lo lee tal cual. Documento primero, código después.
 >
@@ -190,21 +194,23 @@ La trampa canónica del plan (`campo/campeón`, parecido casual frente a familia
   "etiquetas": ["prefijo", "raiz", "sufijo", "flexivo"] }
 ```
 
-**Modo `capas`** (estación 3, el ítem estrella de `avanzado`):
+**Modo `capas`** (estación 3, el ítem estrella de `avanzado`). El canon que decide cuál es el orden correcto está en **§12**:
 
 ```json
 { "tipo": "piezas", "modo": "capas",
-  "palabra": "desordenado",
-  "cortes": ["des", "orden", "ad", "o"],
+  "palabra": "prehistórico",
+  "cortes": ["pre", "histór", "ic", "o"],
   "capas": [
-    { "forma": "orden",       "existe": true },
-    { "forma": "ordenado",    "existe": true },
-    { "forma": "desordenado", "existe": true }
+    { "forma": "historia",     "existe": true },
+    { "forma": "prehistoria",  "existe": true },
+    { "forma": "prehistórico", "existe": true }
   ],
   "alternativa_rechazada": {
-    "capas": ["orden", "desorden", "desordenado"],
-    "micro": "'Desorden' existe, pero 'desordenado' no sale de 'desorden' + -ado: sale de 'ordenado' + des-. El orden de las capas cambia el análisis." } }
+    "capas": ["historia", "histórico", "prehistórico"],
+    "micro": "'Histórico' existe, pero 'prehistórico' no significa 'histórico de antes': significa 'de la prehistoria'. La pieza 'pre-' entra antes que '-ico'." } }
 ```
+
+> **Por qué este ejemplo y no *desordenado*** (que era el del documento base). *Desordenado* tiene vivas las dos formas intermedias —*ordenado* y *desordenar*— con dos significados igual de usados, así que por §12 es **zona gris**, no un caso de orden único: se ha movido a un ítem `frontera`. *Prehistórico* es el caso limpio ideal porque el prefijo va **dentro**, que es contraintuitivo y es justo lo que hay que enseñar.
 
 | Campo | Obligatorio | Reglas |
 |---|---|---|
@@ -213,10 +219,21 @@ La trampa canónica del plan (`campo/campeón`, parecido casual frente a familia
 | `cortes` | ✔ | Array de trozos. **`cortes.join('')` debe reconstruir `palabra` exactamente** — ERROR si no. |
 | `tolerancia` | — | Segmentaciones alternativas aceptables, con `\|` en los puntos de corte (`"libre\|ría"`). Cada una, sin las barras, debe reconstruir `palabra`. |
 | `etiquetas` | en `etiquetar` | Una por corte, misma longitud que `cortes`. Valores de §5. |
-| `capas` | en `capas` | ≥2 pasos ordenados de menor a mayor. Cada uno `{forma, existe}`. La última `forma` debe ser `palabra`. |
-| `alternativa_rechazada` | — | Solo en `capas`. El análisis que parece razonable y no lo es, con su microexplicación. |
+| `capas` | en `capas` | ≥2 pasos ordenados de menor a mayor. Cada uno `{forma, existe}`, con **`existe: true` obligatorio en todas** (§12.3). La última `forma` debe ser `palabra`. |
+| `alternativa_rechazada` | recomendada en `capas` | Solo en `capas`. El análisis que parece razonable y no lo es, con su microexplicación. **Sus formas entran en el pool de fichas** (§12.5): sin ella el ítem no pregunta nada. |
 
-**En `capas`, `existe: false` es lo que prueba la parasíntesis**: si al quitar solo el prefijo o solo el sufijo la forma intermedia no existe (`*rojecer`), la palabra es parasintética. Es la «prueba decisiva» de la sesión 3 de la UD de 3.º ESO, convertida en dato.
+**La prueba de la parasíntesis vive en `alternativa_rechazada`, no en `capas`.** Una palabra parasintética se codifica con una escalera de **exactamente dos pasos** (base → palabra: no hay peldaño intermedio), y la forma inexistente que el alumno debe rechazar va en `alternativa_rechazada`, cuya `micro` explica por qué no existe:
+
+```json
+{ "tipo": "piezas", "modo": "capas", "palabra": "enrojecer",
+  "cortes": ["en", "roj", "ecer"],
+  "capas": [ { "forma": "rojo", "existe": true }, { "forma": "enrojecer", "existe": true } ],
+  "alternativa_rechazada": {
+    "capas": ["rojo", "rojecer", "enrojecer"],
+    "micro": "'*Rojecer' no existe: no se puede llegar a 'enrojecer' pasando por ahí. Las dos piezas entraron a la vez." } }
+```
+
+Es la «prueba decisiva» de la sesión 3 de la UD de 3.º ESO convertida en dato — pero como **camino que se descarta**, que es donde de verdad se juega. Una escalera cuyo peldaño no existe no es una escalera: por eso `capas[].existe` no puede ser `false`.
 
 ### 3.4 `monta`
 
@@ -356,6 +373,8 @@ Exactamente **dos** opciones con `ok: true`. Obliga a `zona_gris: true`, y esa b
 ```
 
 Es el «test rápido» del §4 de la UD de 3.º ESO jugado como cascada (mismo patrón que las cascadas de Maestro). `pasos` ≥2, `respuesta` ∈ `si` \| `no`, y `procedimiento` debe ser compatible con el nivel.
+
+**Ampliación v1.1:** la cascada admite además el campo `conclusion` (texto libre) para terminar en algo que no es un procedimiento — el orden de capas de `avanzado`. Ver §12.5.
 
 ---
 
@@ -528,4 +547,90 @@ Las pruebas no se escriben en cada reto: se apuntan con `prueba_id`. Un lote de 
 
 ---
 
-*Schema `formacion v1.0` · F0 sesión 1 · jul-2026. Fijado en sesión 🟣 Opus 5 por ser la decisión de arquitectura de datos del módulo. Siguiente paso: modo `formacion` de `scripts/validar-banco.mjs` (misma sesión, paso 2). Terminología del proyecto: sintagma (nunca «grupo»), oración (nunca «proposición»); niveles `basico`/`medio`/`avanzado` ↔ Aprendiz/ESO34/Maestro.*
+## 12. Ampliación v1.1 — canon de estructura secuenciada (nivel `avanzado`)
+
+**F5 · sesión 1 · 4-ago-2026 · 🟣 Opus 5.** Aprobada por Josele en sesión.
+
+El ítem estrella de Maestro pregunta en qué **orden** se aplicaron los afijos: ¿`[[des+hacer]+ble]` o `[des+[hacer+ble]]`? Esa pregunta tiene respuesta correcta, y hasta ahora el proyecto no la tenía fijada. Esta sección la fija. Gobierna qué se puede codificar como `piezas`·`capas` (respuesta única) y qué tiene que irse a `frontera` (zona gris), y por tanto gobierna el lote 1B entero.
+
+### 12.1 La escalera de tres pruebas, en orden fijo
+
+Se aplican **en este orden**, y se para en cuanto una decide.
+
+| | Prueba | Qué hace |
+|---|---|---|
+| **P1** | **¿Existe la forma intermedia?** (`PRU-MORF-INTERM-01`) | Existe **una sola** → ese es el orden, y se acabó. No existe **ninguna** → no hay orden que descubrir: es **parasíntesis**. Existen **las dos** → P2. |
+| **P2** | **¿El significado del todo se construye sobre esa forma intermedia?** | La capa buena es aquella cuyo significado sobrevive íntegro dentro del significado final. Si solo un análisis lo cumple, ese es. Si lo cumplen los dos con significados distintos → regla de salida (§12.2). |
+| **P3** | **¿Ese afijo admite esa clase de palabra?** (selección categorial) | Filtro final: *-ble* pide verbo transitivo y da adjetivo; *-ción* y *-miento* piden verbo; *des-* no se engancha libremente a adjetivos. Un análisis que obligue a un afijo a violar su selección se cae **aunque la forma intermedia exista por casualidad**. |
+
+**Ejemplos de cada rama** (los que sirven de patrón al lote 1B):
+
+| Palabra | Decide | Análisis | Por qué |
+|---|---|---|---|
+| *imperdonable* | P1 | `[im+[perdon+able]]` | Existe *perdonable*; no existe \**imperdonar*. |
+| *anticonstitucional* | P1 | `[anti+[constitucional]]` | No existe \**anticonstitución*. |
+| *envejecimiento* | P1 | `[[envejecer]+miento]` | No existe \**vejecimiento*. (Y *envejecer* es a su vez parasintética.) |
+| *enrojecer* | P1 | parasíntesis, sin capas | Ni \**rojecer* ni \**enrojo*. |
+| *desconfianza* | P2 | `[[des+confi(ar)]+anza]` | Existen *confianza* y *desconfiar*; el significado es 'acción de desconfiar', no 'confianza negada'. |
+| *prehistórico* | P2 | `[[pre+historia]+ico]` | Existen *histórico* y *prehistoria*; significa 'de la prehistoria'. **El prefijo va dentro.** |
+| *incomunicación* | P2 | `[[in+comunicar]+ción]` | 'Acción de incomunicar', no 'comunicación negada'. |
+| *inmovilizable* | salida | **zona gris** | 'Que no se puede movilizar' y 'que se puede inmovilizar' están las dos vivas. |
+| *desordenado* | salida | **zona gris** | *Ordenado* y *desordenar* existen, y la lectura adjetival ('que no está ordenado') y la participial ('que ha sido desordenado') son las dos corrientes. |
+
+**En lenguaje de alumno**, la escalera se dice sin metalenguaje y cabe en una línea: *«Quítale una pieza. ¿Lo que queda existe? ¿Y significa lo que tiene que significar?»*
+
+### 12.2 La regla de salida (lo que impide el fraude pedagógico)
+
+> Si tras P1, P2 y P3 siguen vivos **dos análisis con significados distintos y ambos en uso**, **no hay respuesta correcta**. Se codifica como ítem `frontera` con causa `doble_analisis`, **nunca** como `capas` con respuesta única.
+
+Es la honestidad epistemológica que el plan de producto (§2, mecánica 2.6) pide para los grises: se enseñan, no se maquillan. Un `capas` con respuesta única sobre un caso realmente ambiguo enseña al alumno que su análisis correcto está mal, que es el peor error que puede cometer este módulo.
+
+### 12.3 Consecuencias sobre el dato
+
+| Regla | Severidad |
+|---|---|
+| En `capas[]`, `existe` debe ser `true` en **todas** las capas | ❌ ERROR |
+| Una palabra parasintética se codifica con `capas` de **exactamente 2 pasos** (base → palabra) | ❌ ERROR si tiene 3+ |
+| La forma intermedia inexistente va en `alternativa_rechazada`, con su `micro` | ⚠ AVISO si un `capas` de 2 pasos no la trae |
+| `alternativa_rechazada.capas` no puede ser idéntica a `capas[].forma` | ❌ ERROR |
+| Un caso de zona gris no puede ser `capas`: va a `frontera` + `doble_analisis` | criterio editorial, no comprobable |
+
+### 12.4 Locuciones: fuera de la lista cerrada
+
+**No se añade `locucion` como 13.º procedimiento.** Una locución no es una palabra formada, sino una unidad léxica pluriverbal: la NGLE la trata en fraseología, no en formación de palabras — y sobre *ojo de buey* dice expresamente que se considera locución nominal y no compuesto sintáctico (recogido en `docs/fuentes/banco_fabrica_palabras_2.md`, del análisis contrastivo de Josele).
+
+La frontera sintagma / locución / compuesto se juega **solo en ítems `frontera`**, cuyas opciones son texto libre y no tocan la lista cerrada de §4. Casos del lote 1B: *ojo de buey*, *cama nido*, *piel de gallina*, *hombre rana*. Un `clasifica_prueba` o una `cascada` que dieran «locución» como respuesta serían ERROR, porque enseñarían que una locución es una manera de fabricar palabras.
+
+### 12.5 Cultismos y vocal de enlace
+
+La vocal de enlace va **dentro del elemento compositivo**, no como interfijo suelto: *fotografía* se corta `foto` + `grafía`, nunca `fot` + `o` + `grafía`. Es el tratamiento estándar (los elementos compositivos se listan con su vocal: *bio-*, *termo-*, *hidro-*, *psico-*) y evita al alumno una discusión que no le aporta nada. La etiqueta sigue siendo `elemento_culto` (§5).
+
+Nota terminológica ya registrada en las fuentes: la NGLE prefiere «composición neoclásica» / «bases compositivas cultas» a «compuesta culta». **`compuesta_culta` se mantiene** como nombre interno del procedimiento —está en la lista cerrada de §4 y en dos lotes ya escritos—, pero ningún texto visible al alumno debe presentarlo como el término académico preferente.
+
+### 12.6 Los dos cambios de motor que exige este canon
+
+**1. `capas`: el pool lleva los distractores.** Hasta v1.1 el motor construía las fichas solo con `capas[].forma` ([`js/modules/fabrica/index.js`](../js/modules/fabrica/index.js), `_renderPiezasCapas`), de modo que el alumno solo podía colocar las formas del análisis correcto: la rama que detecta `alternativa_rechazada` era **inalcanzable** y el ítem se reducía a ordenar tres formas ya dadas. El acto decisivo —elegir *prehistoria* y no *histórico* como peldaño— no se pedía.
+
+> **Pool = `capas[].forma` ∪ `alternativa_rechazada.capas`** (sin duplicados, barajado). El alumno coloca `capas.length` fichas de entre las del pool. Colocar la escalera rechazada entera dispara su `micro`.
+
+**2. `cascada`: campo `conclusion`.** La cascada de v1.0 siempre termina nombrando un `procedimiento`. La cascada de estructura secuenciada termina en un **orden**, no en un procedimiento. Se añade:
+
+```json
+{ "tipo": "cascada", "palabra": "prehistórico",
+  "pasos": [
+    { "pregunta": "Si le quitas 'pre-', ¿existe lo que queda?",        "respuesta": "si" },
+    { "pregunta": "Si le quitas '-ico', ¿existe lo que queda?",        "respuesta": "si" },
+    { "pregunta": "¿'Prehistórico' significa 'histórico de antes'?",   "respuesta": "no" }
+  ],
+  "conclusion": "Significa 'de la prehistoria': primero se fabricó 'prehistoria' y después se le añadió '-ico'." }
+```
+
+| Campo | Reglas |
+|---|---|
+| `conclusion` | Texto libre. Si está, `procedimiento` es **opcional**; si no está, `procedimiento` sigue siendo obligatorio. Los dos a la vez es ERROR (o clasifica, o secuencia: no las dos cosas en una cascada). |
+
+Es la única forma libre nueva del schema, y cumple §10.2: la lee un humano, no la interpreta el motor.
+
+---
+
+*Schema `formacion v1.0` · F0 sesión 1 · jul-2026. Fijado en sesión 🟣 Opus 5 por ser la decisión de arquitectura de datos del módulo. **Ampliación v1.1 · F5 sesión 1 · ago-2026** (§12: canon de estructura secuenciada, locuciones, cultismos y los dos cambios de motor que exige). Siguiente paso tras v1.1: F5·2, motor y validador; después F5·3, lote 1B. Terminología del proyecto: sintagma (nunca «grupo»), oración (nunca «proposición»); niveles `basico`/`medio`/`avanzado` ↔ Aprendiz/ESO34/Maestro.*
