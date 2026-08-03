@@ -230,6 +230,7 @@ if(window.location.protocol === 'file:') {
         <span class="tb-counter" id="fab-streak">🔥 0</span>
         <span class="tb-timer" id="fab-timer" aria-live="polite"></span>
         <button type="button" class="btn btn-ghost btn-sm" id="fab-btn-mesa" onclick="fabAbrirMesa()" style="padding:5px 12px;font-size:.75rem;font-weight:700">🧰 Mi mesa</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="fab-btn-museo" onclick="fabAbrirMuseo()" style="padding:5px 12px;font-size:.75rem;font-weight:700">🏛 Museo</button>
         <button type="button" class="btn btn-ghost btn-sm" id="fab-cambiar-nivel" onclick="fabCambiarNivel()" style="padding:5px 12px;font-size:.75rem;font-weight:700;display:none">🔄 Cambiar nivel</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="fabPedirSalir()" style="padding:5px 12px;font-size:.75rem;font-weight:700;margin-left:auto">✕ Terminar</button>
       </div>
@@ -261,6 +262,20 @@ if(window.location.protocol === 'file:') {
       <div id="fab-mesa-body" class="fab-mesa-body"></div>
       <div class="fab-mesa-foot">
         <button type="button" class="fab-btn-sm" onclick="fabImprimirMesa()">🖨 Imprimir</button>
+      </div>
+    </div>
+  </div>
+  <!-- Museo de Palabras (§4.2): colección personal de las palabras que el
+       alumno ha inventado en el reto creativo «Fabrica tu palabra». -->
+  <div id="fab-museo-modal" class="fab-mesa-modal" style="display:none">
+    <div class="fab-mesa-panel">
+      <div class="fab-mesa-head">
+        <h3>🏛 Mi Museo de Palabras</h3>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="fabCerrarMuseo()" aria-label="Cerrar">✕</button>
+      </div>
+      <div id="fab-museo-body" class="fab-mesa-body"></div>
+      <div class="fab-mesa-foot">
+        <button type="button" class="fab-btn-sm" onclick="fabImprimirMuseo()">🖨 Imprimir</button>
       </div>
     </div>
   </div>

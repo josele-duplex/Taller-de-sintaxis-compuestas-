@@ -46,7 +46,7 @@
        corregir), así que el porcentaje bruto ya es la nota justa. */
 
 import { textoPrueba, microPrueba } from '../../data/pruebas-morfologia.js';
-import { LS_FAB_MESA, LS_FAB_DIARIO } from '../../core/constants.js';
+import { LS_FAB_MESA, LS_FAB_DIARIO, LS_FAB_MUSEO } from '../../core/constants.js';
 
 // ── Catálogos de etiquetas legibles (para no repetir texto ni volver a
 //    inventar terminología — todo sale de las listas cerradas del schema) ──
@@ -92,6 +92,17 @@ const PROCEDIMIENTO_LABEL = {
   acortamiento: 'un acortamiento', abreviatura: 'una abreviatura',
   numeronimo: 'un numerónimo', prestamo: 'un préstamo'
 };
+
+// §4 del schema — nivel mínimo en que se juega cada procedimiento. Gobierna
+// qué puede declarar el alumno en el reto creativo.
+const PROCEDIMIENTO_NIVEL_MIN = {
+  simple: 'basico', derivada: 'basico', compuesta_lexica: 'basico',
+  compuesta_sintagmatica: 'medio', compuesta_culta: 'medio', parasintetica: 'medio',
+  sigla: 'medio', acronimo: 'medio', acortamiento: 'medio', abreviatura: 'medio',
+  numeronimo: 'medio', prestamo: 'medio'
+};
+
+const ORDEN_NIVEL = { basico: 1, medio: 2, avanzado: 3 };
 
 // Mismos tres niveles y mismos iconos que el módulo de Morfología: el
 // alumno ya reconoce esa escalera, no le inventamos una nueva. La
@@ -265,9 +276,11 @@ async function startFabrica({ name, email, grupo }) {
   const nameEl = _el('fab-name');
   if (nameEl) nameEl.textContent = (name || '').split(' ')[0];
   // Defensivo: si la sesión anterior en esta misma pestaña fue un examen,
-  // deja el "Mi mesa" y el racha ocultos — se restauran aquí.
+  // deja el "Mi mesa", el "Museo" y el racha ocultos — se restauran aquí.
   const mesaBtn = _el('fab-btn-mesa');
   if (mesaBtn) mesaBtn.style.display = '';
+  const museoBtn = _el('fab-btn-museo');
+  if (museoBtn) museoBtn.style.display = '';
   const streakBadge = _el('fab-streak');
   if (streakBadge) streakBadge.style.display = '';
   const timerEl = _el('fab-timer');
@@ -316,6 +329,8 @@ async function iniciarFabricaExamenDesdeLogin({ name, email, grupo, pin }) {
   // examen — ver la nota de cabecera del archivo.
   const mesaBtn = _el('fab-btn-mesa');
   if (mesaBtn) mesaBtn.style.display = 'none';
+  const museoBtn = _el('fab-btn-museo');
+  if (museoBtn) museoBtn.style.display = 'none';
   const streakBadge = _el('fab-streak');
   if (streakBadge) streakBadge.style.display = 'none';
   if (d.timer > 0) _startFabricaTimer(d.timer * 60);
@@ -428,12 +443,17 @@ function _finReto() {
   _setOracion('');
   _setPregunta('');
   const pct = FAB.totalItems > 0 ? Math.round((FAB.aciertos / FAB.totalItems) * 100) : 0;
+  // El reto creativo es de práctica, nunca de examen: es semiabierto y su
+  // definición no puntúa (§4.2 del plan).
+  const creativo = FAB.mode === 'exam' ? '' :
+    '<button type="button" class="fab-btn-sm" onclick="fabAbrirCreativo()">🧪 Fabrica tu palabra</button>';
   _setFichas('<div class="fab-fin">' +
     '<div class="fab-fin-icon">🏆</div>' +
     '<div class="fab-fin-tit">¡Reto completado!</div>' +
     '<div class="fab-fin-sub">Aciertos de la sesión: ' + FAB.aciertos + '/' + FAB.totalItems + ' (' + pct + '%)</div>' +
-    '<button type="button" class="fab-btn fab-btn-block" onclick="fabSiguienteReto()">Siguiente reto →</button>' +
-    '</div>');
+    '<div class="fab-row">' + creativo +
+    '<button type="button" class="fab-btn" onclick="fabSiguienteReto()">Siguiente reto →</button>' +
+    '</div></div>');
   _limpiarExplicacion();
 }
 
@@ -694,6 +714,277 @@ function fabGuardarDiario() {
 }
 function fabSaltarDiario() {
   exitFabrica();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  RETO CREATIVO «FABRICA TU PALABRA» + MUSEO (§4.2 del plan de producto)
+// ════════════════════════════════════════════════════════════════════════
+// El alumno inventa una palabra montándola con piezas del banco, declara con
+// qué procedimiento la ha fabricado y le escribe una definición. Lo que la
+// app corrige sola es el PROCEDIMIENTO (conoce los tipos de las piezas
+// usadas); la definición no puntúa, se expone en el Museo. Es semiabierto
+// pero autocorregible en lo que importa.
+//
+// De dónde salen las piezas: de los propios retos ya cargados (los `monta`
+// las traen ya con su tipo; los `piezas` en modo etiquetar, como cortes +
+// etiquetas). Cero datos nuevos que mantener, y el banco crece solo cuando
+// crece el banco de retos.
+
+const PIEZA_ORDEN = ['prefijo', 'raiz', 'base', 'elemento_culto', 'interfijo', 'sufijo', 'flexivo'];
+
+// Quita los guiones de posición: "des-" y "-ado" son la misma pieza escrita
+// con su marca de dónde va. Al concatenar no cuentan (§3.4 del schema).
+function _piezaLimpia(t) { return String(t || '').replace(/^-+|-+$/g, ''); }
+
+// Cómo se muestra una pieza: con su guion de posición, para que se lea dónde
+// encaja sin tener que explicarlo.
+// Los elementos cultos van sin guion: los hay de delante (`tele-`) y de
+// detrás (`-logía`), y el dato no registra su posición — ponerle un guion
+// fijo mentiría sobre la mitad de ellos.
+function _piezaConGuion(texto, tipo) {
+  if (tipo === 'prefijo') return texto + '-';
+  if (tipo === 'sufijo' || tipo === 'flexivo' || tipo === 'interfijo') return '-' + texto;
+  return texto;
+}
+
+function _bancoPiezas() {
+  const permitidas = new Set(ETIQUETAS_POR_NIVEL[FAB.nivel] || ETIQUETAS_POR_NIVEL.basico);
+  const vistas = new Map();
+  const add = (textoRaw, tipo) => {
+    const texto = _piezaLimpia(textoRaw);
+    if (!texto || !permitidas.has(tipo)) return;
+    const clave = tipo + '|' + texto;
+    if (!vistas.has(clave)) vistas.set(clave, { texto, tipo });
+  };
+  for (const reto of (FAB.pool || [])) {
+    for (const it of (reto.items || [])) {
+      if (it.tipo === 'monta') {
+        for (const p of (it.piezas || [])) add(p.texto, p.tipo);
+      } else if (it.tipo === 'piezas' && it.modo === 'etiquetar') {
+        (it.cortes || []).forEach((c, i) => add(c, (it.etiquetas || [])[i]));
+      }
+    }
+  }
+  return [...vistas.values()].sort((a, b) => {
+    const d = PIEZA_ORDEN.indexOf(a.tipo) - PIEZA_ORDEN.indexOf(b.tipo);
+    return d !== 0 ? d : a.texto.localeCompare(b.texto, 'es');
+  });
+}
+
+// Qué procedimientos son COMPATIBLES con los tipos de pieza usados. No es
+// "cuál es": varias formas admiten más de una lectura y la app no puede
+// decidirlas sin una prueba que solo el alumno puede hacer (¿existe la forma
+// intermedia?). Se valida lo que se puede validar: que lo declarado encaje
+// con las piezas que hay sobre la mesa.
+function _procedimientosCompatibles(tipos) {
+  const n = t => tipos.filter(x => x === t).length;
+  const raices = n('raiz'), pre = n('prefijo'), suf = n('sufijo');
+  const bases = n('base'), cultos = n('elemento_culto'), inter = n('interfijo');
+  const set = new Set();
+  if (cultos >= 1 && (cultos + bases + raices) >= 2) set.add('compuesta_culta');
+  if (bases >= 2) set.add('compuesta_lexica');
+  if (raices === 1 && pre === 0 && suf === 0 && inter === 0 && bases === 0 && cultos === 0) set.add('simple');
+  if (raices >= 1 && bases === 0 && cultos === 0 && (pre + suf + inter) >= 1) {
+    set.add('derivada');
+    // Prefijo y sufijo a la vez: la FORMA es la de una parasintética, pero
+    // quien lo decide de verdad es la prueba de la forma intermedia
+    // (PRU-MORF-INTERM-01). Por eso caben las dos lecturas.
+    if (pre >= 1 && suf >= 1) set.add('parasintetica');
+  }
+  return set;
+}
+
+function _procedimientosDelNivel() {
+  const max = ORDEN_NIVEL[FAB.nivel] || 1;
+  // Los procedimientos que no se montan con piezas (sigla, acrónimo,
+  // acortamiento, abreviatura, numerónimo, préstamo) quedan fuera: no se
+  // pueden fabricar en esta mesa, así que ofrecerlos sería una trampa.
+  return Object.keys(PROCEDIMIENTO_NIVEL_MIN).filter(p =>
+    ORDEN_NIVEL[PROCEDIMIENTO_NIVEL_MIN[p]] <= max &&
+    ['simple', 'derivada', 'compuesta_lexica', 'compuesta_culta', 'parasintetica'].includes(p));
+}
+
+function _palabraCreativa() {
+  return FAB._creaSel.map(p => p.texto).join('');
+}
+
+function fabAbrirCreativo() {
+  FAB._creaBanco = _bancoPiezas();
+  FAB._creaSel = [];
+  FAB._creaProc = null;
+  const estBadge = _el('fab-estacion');
+  if (estBadge) estBadge.textContent = '🧪 Fabrica tu palabra';
+  _limpiarExplicacion();
+  if (FAB._creaBanco.length < 3) {
+    _setOracion('<div class="fab-titulo">🧪 Fabrica tu palabra</div>');
+    _setPregunta('');
+    _setFichas('<p style="text-align:center;color:var(--muted)">Todavía no hay piezas suficientes en tu banco. Juega algunos retos más y vuelve.</p>' +
+      '<div class="fab-row" style="margin-top:14px"><button type="button" class="fab-btn" onclick="fabSiguienteReto()">Seguir jugando →</button></div>');
+    return;
+  }
+  _renderCreativoMontaje();
+}
+
+function _renderCreativoMontaje() {
+  _setOracion('<div class="fab-titulo">🧪 Fabrica tu palabra</div>');
+  _setPregunta('Monta una palabra que no exista todavía. Tú decides.');
+  const palabra = _palabraCreativa();
+  let html = '<div class="fab-chain">' + (FAB._creaSel.length
+    ? FAB._creaSel.map(p => '<span class="fab-chip is-sel">' + escHtml(_piezaConGuion(p.texto, p.tipo)) + '</span>').join('<span class="fab-arrow">+</span>')
+    : '<span class="fab-chain-empty">Toca las piezas para ir montándola…</span>') + '</div>';
+  if (palabra) html += '<div class="fab-foco" style="margin:10px 0 4px">' + escHtml(palabra) + '</div>';
+
+  let tipoActual = null;
+  html += '<div style="margin-top:14px">';
+  FAB._creaBanco.forEach((p, i) => {
+    if (p.tipo !== tipoActual) {
+      tipoActual = p.tipo;
+      html += '<div class="fab-cesta-nombre" style="margin:10px 0 4px">' + escHtml(ETIQUETA_LABEL[p.tipo] || p.tipo) + '</div>';
+    }
+    html += '<button type="button" class="fab-chip" onclick="fabCreativoTocar(' + i + ')">' +
+      escHtml(_piezaConGuion(p.texto, p.tipo)) + '</button>';
+  });
+  html += '</div>';
+
+  html += '<div class="fab-row" style="margin-top:16px">';
+  if (FAB._creaSel.length) {
+    html += '<button type="button" class="fab-btn-sm" onclick="fabCreativoDeshacer()">↶ Deshacer</button>';
+    html += '<button type="button" class="fab-btn-sm" onclick="fabCreativoLimpiar()">Limpiar</button>';
+  }
+  if (FAB._creaSel.length >= 2) {
+    html += '<button type="button" class="fab-btn" onclick="fabCreativoContinuar()">Ya está montada →</button>';
+  }
+  html += '<button type="button" class="fab-btn-sm" onclick="fabCreativoCancelar()">Ahora no</button>';
+  html += '</div>';
+  _setFichas(html);
+}
+
+function fabCreativoTocar(i) {
+  const p = FAB._creaBanco[i];
+  if (p) FAB._creaSel.push(p);
+  _renderCreativoMontaje();
+}
+function fabCreativoDeshacer() { FAB._creaSel.pop(); _renderCreativoMontaje(); }
+function fabCreativoLimpiar() { FAB._creaSel = []; _renderCreativoMontaje(); }
+function fabCreativoCancelar() { _finReto(); }
+
+function fabCreativoContinuar() {
+  _limpiarExplicacion();
+  _setOracion('<div class="fab-foco">' + escHtml(_palabraCreativa()) + '</div>');
+  _setPregunta('¿Con qué procedimiento la has fabricado?');
+  const html = '<div class="fab-stack">' + _procedimientosDelNivel().map(p =>
+    '<button type="button" class="fab-op" onclick="fabCreativoDeclarar(\'' + p + '\')">' +
+    escHtml(PROCEDIMIENTO_LABEL[p] || p) + '</button>').join('') + '</div>' +
+    '<div class="fab-row" style="margin-top:14px">' +
+    '<button type="button" class="fab-btn-sm" onclick="fabCreativoVolver()">← Volver a montarla</button></div>';
+  _setFichas(html);
+}
+
+function fabCreativoVolver() { _renderCreativoMontaje(); }
+
+function fabCreativoDeclarar(proc) {
+  const tipos = FAB._creaSel.map(p => p.tipo);
+  const compatibles = _procedimientosCompatibles(tipos);
+  if (!compatibles.has(proc)) {
+    const alternativas = [...compatibles].map(p => PROCEDIMIENTO_LABEL[p] || p).join(' o ');
+    _mostrarExplicacion(false, '✗ Con estas piezas no sale ' + escHtml(PROCEDIMIENTO_LABEL[proc] || proc) + '. ' +
+      (alternativas ? 'Lo que tienes montado encaja con: <strong>' + escHtml(alternativas) + '</strong>.'
+                    : 'Prueba a cambiar las piezas o el procedimiento.'), false);
+    return;
+  }
+  FAB._creaProc = proc;
+  const dosLecturas = proc === 'parasintetica' || (proc === 'derivada' && compatibles.has('parasintetica'));
+  _limpiarExplicacion();
+  _setPregunta('Ahora dale un significado. Esto no puntúa: es tuyo.');
+  _setFichas(
+    (dosLecturas
+      ? '<p style="font-size:.82rem;color:var(--muted);text-align:center;margin:0 0 12px;line-height:1.5">' +
+        'Ojo: con prefijo y sufijo a la vez caben las dos lecturas. Para decidirla de verdad, comprueba si existe la forma intermedia.</p>'
+      : '') +
+    '<textarea id="fab-crea-def" class="fab-diario-ta" rows="3" ' +
+    'placeholder="' + escHtml(_palabraCreativa()) + ': …"></textarea>' +
+    '<div class="fab-row" style="margin-top:14px">' +
+    '<button type="button" class="fab-btn" onclick="fabCreativoGuardar()">Guardar en mi museo</button>' +
+    '</div>'
+  );
+}
+
+function _loadMuseo() {
+  try { const m = JSON.parse(localStorage.getItem(LS_FAB_MUSEO) || '[]'); return Array.isArray(m) ? m : []; }
+  catch (e) { return []; }
+}
+function _saveMuseo(m) {
+  try { localStorage.setItem(LS_FAB_MUSEO, JSON.stringify(m)); } catch (e) {}
+}
+
+function fabCreativoGuardar() {
+  const ta = _el('fab-crea-def');
+  const museo = _loadMuseo();
+  museo.push({
+    palabra: _palabraCreativa(),
+    piezas: FAB._creaSel.map(p => _piezaConGuion(p.texto, p.tipo)),
+    procedimiento: FAB._creaProc,
+    definicion: ta ? ta.value.trim() : '',
+    nivel: FAB.nivel,
+    fecha: new Date().toISOString().slice(0, 10)
+  });
+  _saveMuseo(museo);
+  try { awardXP(15, 'fabrica_creativo'); } catch (e) {}
+  try { playSuccess(); } catch (e) {}
+  _limpiarExplicacion();
+  _setOracion('');
+  _setPregunta('');
+  _setFichas('<div class="fab-fin">' +
+    '<div class="fab-fin-icon">🏛</div>' +
+    '<div class="fab-fin-tit">«' + escHtml(_palabraCreativa()) + '» ya está en tu museo</div>' +
+    '<div class="fab-fin-sub">Llevas ' + museo.length + ' palabra' + (museo.length === 1 ? '' : 's') + ' fabricada' + (museo.length === 1 ? '' : 's') + '.</div>' +
+    '<div class="fab-row">' +
+    '<button type="button" class="fab-btn-sm" onclick="fabAbrirMuseo()">🏛 Ver mi museo</button>' +
+    '<button type="button" class="fab-btn" onclick="fabSiguienteReto()">Siguiente reto →</button>' +
+    '</div></div>');
+}
+
+// ── El Museo: la colección personal, con su modal y su versión imprimible ──
+
+function _museoFilasHtml(entradas) {
+  return entradas.map(e => '<tr><td><strong>' + escHtml(e.palabra) + '</strong><br>' +
+    '<span style="font-size:.78rem;color:var(--muted)">' + escHtml((e.piezas || []).join(' + ')) + '</span></td>' +
+    '<td>' + escHtml(PROCEDIMIENTO_LABEL[e.procedimiento] || e.procedimiento || '') + '</td>' +
+    '<td>' + escHtml(e.definicion || '—') + '</td></tr>').join('');
+}
+
+function fabAbrirMuseo() {
+  const entradas = _loadMuseo();
+  const body = _el('fab-museo-body');
+  if (body) {
+    body.innerHTML = entradas.length === 0
+      ? '<p class="fab-mesa-vacia">Tu museo está vacío todavía. Al terminar un reto puedes fabricar una palabra nueva con las piezas que has ido conociendo — y se queda aquí.</p>'
+      : '<table class="fab-mesa-table"><thead><tr><th>Palabra</th><th>Procedimiento</th><th>Tu definición</th></tr></thead><tbody>' +
+        _museoFilasHtml(entradas) + '</tbody></table>';
+  }
+  const modal = _el('fab-museo-modal');
+  if (modal) modal.style.display = 'flex';
+}
+function fabCerrarMuseo() {
+  const modal = _el('fab-museo-modal');
+  if (modal) modal.style.display = 'none';
+}
+function fabImprimirMuseo() {
+  const entradas = _loadMuseo();
+  const w = window.open('', '_blank');
+  if (!w) return;
+  const filas = entradas.length ? _museoFilasHtml(entradas) : '<tr><td colspan="3">Museo vacío todavía.</td></tr>';
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Mi Museo de Palabras</title>' +
+    '<style>body{font-family:sans-serif;padding:24px;color:#222}h1{font-size:1.25rem}' +
+    'table{width:100%;border-collapse:collapse;margin-top:16px}' +
+    'th,td{border:1px solid #ccc;padding:8px 10px;text-align:left;font-size:.9rem;vertical-align:top}' +
+    'th{background:#f2f2ee}</style></head><body>' +
+    '<h1>🏛 Mi Museo de Palabras — La Fábrica de Palabras</h1>' +
+    '<table><thead><tr><th>Palabra</th><th>Procedimiento</th><th>Tu definición</th></tr></thead><tbody>' +
+    filas + '</tbody></table></body></html>');
+  w.document.close();
+  w.focus();
+  w.print();
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -1229,6 +1520,9 @@ export {
   fabFronteraTocar, fabComprobarFrontera,
   fabResponderCascada,
   fabAbrirMesa, fabCerrarMesa, fabImprimirMesa,
+  fabAbrirCreativo, fabCreativoTocar, fabCreativoDeshacer, fabCreativoLimpiar,
+  fabCreativoCancelar, fabCreativoContinuar, fabCreativoVolver, fabCreativoDeclarar, fabCreativoGuardar,
+  fabAbrirMuseo, fabCerrarMuseo, fabImprimirMuseo,
   fabPedirSalir, fabGuardarDiario, fabSaltarDiario
 };
 
@@ -1246,6 +1540,9 @@ if (typeof window !== 'undefined') {
     fabFronteraTocar, fabComprobarFrontera,
     fabResponderCascada,
     fabAbrirMesa, fabCerrarMesa, fabImprimirMesa,
+    fabAbrirCreativo, fabCreativoTocar, fabCreativoDeshacer, fabCreativoLimpiar,
+    fabCreativoCancelar, fabCreativoContinuar, fabCreativoVolver, fabCreativoDeclarar, fabCreativoGuardar,
+    fabAbrirMuseo, fabCerrarMuseo, fabImprimirMuseo,
     fabPedirSalir, fabGuardarDiario, fabSaltarDiario
   });
   Object.defineProperty(window, 'FAB', { get: () => FAB, configurable: true });

@@ -16,6 +16,7 @@ export const LS_HINTS_EXAM     = 'taller_hints_exam';     // 'none' | 'first_onl
 export const LS_PROFILE        = 'taller_profile';        // {name,email,grupo,savedAt}
 export const LS_FAB_MESA       = 'taller_fab_mesa';        // Mesa de Herramientas (Fábrica de Palabras)
 export const LS_FAB_DIARIO     = 'taller_fab_diario';      // Diario metalingüístico (Fábrica de Palabras)
+export const LS_FAB_MUSEO      = 'taller_fab_museo';       // Museo de Palabras (Fábrica de Palabras)
 
 // ───── Validación de email ─────
 export const EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@(murciaeduca\.es|alu\.murciaeduca\.es|gmail\.com)$/i;
