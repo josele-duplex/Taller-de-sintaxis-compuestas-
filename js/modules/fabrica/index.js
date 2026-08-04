@@ -1239,7 +1239,9 @@ function fabComprobarEtiquetas() {
 
 function _renderPiezasCapas(item) {
   FAB._item = item;
-  FAB._capasPool = shuffle(item.capas.map(c => c.forma));
+  const rechazadas = (item.alternativa_rechazada && item.alternativa_rechazada.capas) || [];
+  const pool = [...new Set([...item.capas.map(c => c.forma), ...rechazadas])];
+  FAB._capasPool = shuffle(pool);
   FAB._capasSecuencia = [];
   _setOracion('');
   _setPregunta('Ordena las capas de fabricación, de la más pequeña a «' + item.palabra + '».');
@@ -1273,7 +1275,7 @@ function _renderPiezasCapasFichas() {
     { anadir: 'fabCapaAnadir', deshacer: 'fabCapaDeshacer', comprobar: 'fabComprobarCapas' });
 }
 function fabCapaAnadir(forma) {
-  if (FAB._capasSecuencia.length >= FAB._capasPool.length) return;
+  if (FAB._capasSecuencia.length >= FAB._item.capas.length) return;
   FAB._capasSecuencia.push(forma);
   _renderPiezasCapasFichas();
 }
@@ -1532,9 +1534,11 @@ function fabResponderCascada(idx) {
     if (FAB._cascadaIdx < item.pasos.length) {
       _renderCascadaPaso();
     } else {
-      const procLabel = PROCEDIMIENTO_LABEL[item.procedimiento] || item.procedimiento;
       _resolverItem('cascada', FAB._cascadaOk);
-      _mostrarExplicacion(FAB._cascadaOk, (FAB._cascadaOk ? '✓ Correcto: ' : '✗ El resultado real: ') + "'" + escHtml(item.palabra) + "' es " + procLabel + '.');
+      const resultado = item.conclusion
+        ? escHtml(item.conclusion)
+        : "'" + escHtml(item.palabra) + "' es " + (PROCEDIMIENTO_LABEL[item.procedimiento] || item.procedimiento) + '.';
+      _mostrarExplicacion(FAB._cascadaOk, (FAB._cascadaOk ? '✓ Correcto: ' : '✗ El resultado real: ') + resultado);
     }
   }, 650);
 }

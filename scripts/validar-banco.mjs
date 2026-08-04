@@ -739,6 +739,7 @@ function validarFormacion(cabecera, filas, R){
               capas.forEach((c,ci)=>{
                 if(!c || typeof c.forma!=='string' || !c.forma.trim()) R.error(id, `${ref} capa ${ci+1}: sin "forma".`);
                 if(!c || typeof c.existe!=='boolean') R.error(id, `${ref} capa ${ci+1}: "existe" debe ser true o false.`);
+                else if(c.existe!==true) R.error(id, `${ref} capa ${ci+1}: "existe" debe ser "true" en "capas[]" (la forma inexistente va en "alternativa_rechazada", §12.3).`);
               });
               const ultima = capas[capas.length-1];
               if(ultima && ultima.forma!==palabra)
@@ -748,6 +749,8 @@ function validarFormacion(cabecera, filas, R){
             if(alt!==undefined){
               if(!Array.isArray(alt.capas) || alt.capas.length<2)
                 R.error(id, `${ref}: "alternativa_rechazada.capas" necesita al menos 2 formas.`);
+              else if(capas.length && JSON.stringify(alt.capas)===JSON.stringify(capas.map(c=>c.forma)))
+                R.error(id, `${ref}: "alternativa_rechazada.capas" es idéntica a "capas[].forma": no aporta ningún distractor.`);
               if(typeof alt.micro!=='string' || !alt.micro.trim())
                 R.error(id, `${ref}: "alternativa_rechazada" sin "micro" (hay que explicar por qué NO es esa).`);
             }
@@ -893,7 +896,13 @@ function validarFormacion(cabecera, filas, R){
             if(!p || typeof p.pregunta!=='string' || !p.pregunta.trim()) R.error(id, `${ref} paso ${pi+1}: sin "pregunta".`);
             if(!p || !['si','no'].includes(p.respuesta)) R.error(id, `${ref} paso ${pi+1}: "respuesta" debe ser "si" o "no".`);
           });
-          chkProc(ref, it.procedimiento);
+          // conclusion XOR procedimiento (§12.6): o clasifica, o secuencia.
+          const tieneConclusion = typeof it.conclusion==='string' && it.conclusion.trim();
+          const tieneProc = typeof it.procedimiento==='string' && it.procedimiento.trim();
+          if(tieneConclusion && tieneProc)
+            R.error(id, `${ref}: lleva "conclusion" y "procedimiento" a la vez (o clasifica, o secuencia: no las dos cosas en una cascada).`);
+          else if(!tieneConclusion)
+            chkProc(ref, it.procedimiento);
           break;
         }
       }
