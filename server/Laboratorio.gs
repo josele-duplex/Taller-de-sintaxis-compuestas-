@@ -1,29 +1,43 @@
 // ════════════════════════════════════════════════════════════════════════
-//  TALLER DE SINTAXIS — Módulo "El Laboratorio de Oraciones" — F0 · sesión 2
+//  TALLER DE SINTAXIS — Módulo "El Laboratorio de Oraciones"
+//  F0·sesión 2 (getRetosLaboratorio) + F1·sesión 4 (saveSesionLaboratorio,
+//  analíticas silenciosas del motor de cliente).
 //  Archivo independiente añadido al proyecto GAS sin tocar Code_v6.gs
-//  (salvo la delegación de 2 líneas en doGet, igual que hizo Formacion.gs).
+//  (salvo la delegación de 2 líneas en doGet Y en doPost, igual que hizo
+//  Formacion.gs).
 //
-//  Este módulo opera sobre 1 hoja nueva:
+//  Este módulo opera sobre 2 hojas:
 //    • Laboratorio_Banco — banco de "retos" de sintaxis (gemelo de
 //      Formacion_Banco, pero de oración simple)
 //      (schema `laboratorio v1.0`, ver docs/Schema_Laboratorio_v1.0.md)
+//    • Laboratorio_Practica_Log — analíticas silenciosas de práctica libre
+//      (gemela de Chispa_Sesiones/Sintagmas_Sesiones), se crea sola en el
+//      primer envío.
 //
 //  Reutiliza utilidades de Code_v6.gs (scope global compartido):
-//    safeParseJSON, getColMap_, ensureSheetHeaders_
+//    safeParseJSON, getColMap_, ensureSheetHeaders_, appendRowSafe_,
+//    gasError_, ERR
 //  y de Compuestas.gs (mismo scope global):
 //    stripInternalMeta_
 //
 //  Patrón clonado de getFormacion_ / ensureFormacionBancoSheet_ /
-//  dispatchFormacionGet_ (Formacion.gs) — mismo módulo hermano, misma
-//  forma de dato (nivel + JSON en una columna + columnas derivadas).
+//  dispatchFormacionGet_ (Formacion.gs) para el banco, y de
+//  saveSesionChispa_ (Code_v6.gs) para las analíticas — mismo módulo
+//  hermano, misma forma de dato (nivel + JSON en una columna + columnas
+//  derivadas / fila por segmento con errores en JSON).
 //
-//  Solo lee el banco (F1, el motor de cliente que lo consume, es sesión
-//  aparte). No hay todavía modo examen/PIN para este módulo: por eso no
-//  existe un parámetro `mode` como en Compuestas — Activo='TRUE' se aplica
-//  siempre, según fija el schema (§1 del doc).
+//  Solo lee el banco por ahora (GET); las analíticas son el primer POST de
+//  este módulo. Todavía no hay modo examen/PIN: por eso el GET no tiene un
+//  parámetro `mode` como en Compuestas — Activo='TRUE' se aplica siempre,
+//  según fija el schema (§1 del doc).
 //
-//  A diferencia de Formacion_Banco, este banco filtra por TRES parámetros
+//  A diferencia de Formacion_Banco, el banco filtra por TRES parámetros
 //  (nivel / curso / funcion), fijado así en el plan de producto §5.3.
+//
+//  DESPLIEGUE: después de pegar este archivo actualizado en Apps Script,
+//  hace falta Implementar → Gestionar implementaciones → lápiz → Nueva
+//  versión (NUNCA Nueva implementación) para que saveSesionLaboratorio
+//  empiece a responder de verdad.
 // ════════════════════════════════════════════════════════════════════════
 
 // ── Nombre de la hoja nueva ──────────────────────────────────────────────
@@ -194,19 +208,81 @@ function readLaboratorioBancoFromSheet_() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  DISPATCHER — mismo patrón que dispatchFormacionGet_.
-//  Code_v6.gs lo llama desde el fallback de doGet cuando la action no está
-//  en su cadena de if/else principal ni la reconocen dispatchCompuestasGet_
-//  ni dispatchFormacionGet_.
+//  ANALÍTICAS SILENCIOSAS — saveSesionLaboratorio (F1·sesión 4, el motor de
+//  cliente)
+//  Un "segmento" = lo jugado en un nivel del Laboratorio, desde que se
+//  elige hasta que se cambia de nivel, se sale o se cierra la pestaña
+//  (navigator.sendBeacon sobrevive al cierre). Mismo patrón exacto que
+//  saveSesionChispa_ / saveSesionSintagmas_ (Code_v6.gs): una fila por
+//  segmento, errores por categoría serializados en JSON. La categoría no
+//  es solo la función NGLE: en manipulacion es el propio experimento
+//  (sustituye/suprime/cambia_numero/mueve/transforma) — es el eje "qué
+//  prueba no sabe aplicar" que pide el plan de producto §5.3, distinto del
+//  "qué función falla" que ya da el resto de módulos.
 //
-//  Solo GET por ahora: esta sesión (F0·2) es exclusivamente el endpoint de
-//  lectura. El examen con PIN (createExamLaboratorio_/saveLaboratorioResult_,
-//  §5.3-5.4 del plan) es sesión aparte, igual que en Formación (F3).
+//  sendBeacon(url) manda el POST SIN body (todo va en la query string) —
+//  el mismo bug que se tragó las analíticas de Chispa en silencio durante
+//  semanas (ver la nota de doPost en Code_v6.gs). El dispatcher de abajo
+//  recibe siempre `payload` ya resuelto por doPost (que hace ese fallback
+//  a e.parameter), así que aquí no hay que pensar en ello.
+// ════════════════════════════════════════════════════════════════════════
+
+/**
+ * Endpoint 'saveSesionLaboratorio'. Analítica silenciosa de un segmento
+ * jugado en el Laboratorio (un nivel, hasta que se cambia o se sale).
+ * Llamada por sendBeacon — tolera POST sin body.
+ * @param {{email?,name?,grupo?,nivel?,retosCompletados?,aciertos?,totalItems?,rachaMax?,errores?:string}} p - errores es JSON serializado {"sustituye":2,"juicio":1,...}.
+ * @return {{ok:true} | object} error (ERR.EXCEPTION) si falla el guardado.
+ */
+function saveSesionLaboratorio_(p) {
+  const HEADER = [
+    'Fecha', 'Correo', 'Nombre', 'Grupo', 'Nivel',
+    'Retos_Completados', 'Aciertos', 'Total_Items', 'Racha_Max', 'Errores_JSON'
+  ];
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('Laboratorio_Practica_Log');
+    if (!sheet) sheet = ss.insertSheet('Laboratorio_Practica_Log');
+    ensureSheetHeaders_(sheet, HEADER);
+    appendRowSafe_(sheet, HEADER, {
+      'Fecha':              new Date(),
+      'Correo':             String(p.email || '').trim().toLowerCase(),
+      'Nombre':             String(p.name || '').trim(),
+      'Grupo':              String(p.grupo || '').trim(),
+      'Nivel':              String(p.nivel || ''),
+      'Retos_Completados':  parseInt(p.retosCompletados) || 0,
+      'Aciertos':           parseInt(p.aciertos) || 0,
+      'Total_Items':        parseInt(p.totalItems) || 0,
+      'Racha_Max':          parseInt(p.rachaMax) || 0,
+      'Errores_JSON':       String(p.errores || '{}')
+    });
+    return { ok: true };
+  } catch (e) {
+    return gasError_(e.message, ERR.EXCEPTION);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  DISPATCHERS — mismo patrón que dispatchFormacionGet_/dispatchFormacionPost_.
+//  Code_v6.gs los llama desde el fallback de doGet/doPost cuando la action
+//  no está en su cadena de if/else principal ni la reconocen
+//  dispatchCompuestasGet_/Post_ ni dispatchFormacionGet_/Post_.
+//
+//  El GET sigue siendo solo lectura del banco (F0·2). El examen con PIN
+//  (createExamLaboratorio_/saveLaboratorioResult_, §5.3-5.4 del plan) es
+//  sesión aparte (F3), igual que en Formación.
 // ════════════════════════════════════════════════════════════════════════
 
 function dispatchLaboratorioGet_(action, params) {
   switch (action) {
     case 'getRetosLaboratorio': return getRetosLaboratorio_(params);
+    default: return null;
+  }
+}
+
+function dispatchLaboratorioPost_(action, payload) {
+  switch (action) {
+    case 'saveSesionLaboratorio': return saveSesionLaboratorio_(payload);
     default: return null;
   }
 }

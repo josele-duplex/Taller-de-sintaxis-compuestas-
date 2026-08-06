@@ -23,18 +23,25 @@
             manejador de respuesta que ya usaba que_cambia
             (labResponderOpciones) — es la razón de que el schema las trate
             como un solo tipo de motor, no cinco.
-     F1·3 (hecho, esta sesión) → juicio (veredicto + causa en dos pasos,
-            patrón clonado de _renderJuicio/_renderJuicioCausa de
-            fabrica/index.js) y par_minimo (misma forma de dato exacta que
-            que_cambia — renombrado internamente a _renderContraste porque
-            ahora sirve a los dos tipos).
+     F1·3 (hecho) → juicio (veredicto + causa en dos pasos, patrón clonado
+            de _renderJuicio/_renderJuicioCausa de fabrica/index.js) y
+            par_minimo (misma forma de dato exacta que que_cambia —
+            renombrado internamente a _renderContraste porque ahora sirve
+            a los dos tipos).
+     F1·4 (hecho, esta sesión) → analisis_inverso (piezas/slots,
+            click-to-select clonado de _renderAgrupa/fabAgruparSeleccionar/
+            fabAgruparColocar de fabrica/index.js) y analíticas silenciosas
+            (sendBeacon, patrón _enviarSesionChispa de chispa/index.js). XP
+            ya estaba desde F1·1. IMPORTANTE: las analíticas necesitan que
+            Josele añada saveSesionLaboratorio_ a server/Laboratorio.gs (ver
+            nota junto a _enviarAnaliticaLaboratorio más abajo) y redespliegue
+            como Nueva versión; hasta entonces el sendBeacon sale pero no lo
+            recoge nadie (silencioso, no rompe nada).
    Pendiente:
-     F1·4 → analisis_inverso (piezas/slots, patrón iidd* de Compuestas) y
-            las analíticas silenciosas (sendBeacon a un endpoint
-            saveSesionLaboratorio_ que todavía no existe en el GAS). XP ya
-            está desde F1·1 (awardXP en cada acierto, igual que Fábrica).
      F2·1 → etiqueta_prueba (Estación 3) no puede cerrarse del todo hasta
             que exista js/data/pruebas-sintaxis.js; sigue como placeholder.
+            La Caja de Pruebas del Detective (destino:"caja_pruebas" de
+            analisis_inverso) también es de F2 (§4.1 del plan).
    Sin examen con PIN (Laboratorio.gs no lo tiene todavía — es F3 del plan) y
    sin selector de nivel más allá de basico/medio/avanzado: solo hay contenido
    en 'medio' por ahora (lote semilla F0·3), así que basico/avanzado mostrarán
@@ -180,12 +187,13 @@ function _colorearBotones(n, esCorrecta, idxElegido) {
   }
 }
 
-// ── Resolución genérica de un ítem (puntúa, sonido, racha, XP) ────────────
-// XP desde esta misma sesión (igual que Fábrica desde su día 1): es
-// infraestructura ya existente y de coste cero. Lo que SÍ se deja para
-// F1·4 son las analíticas al servidor (sendBeacon), que necesitan un
-// endpoint que Laboratorio.gs todavía no tiene.
-function _resolverItem(correcta) {
+// ── Resolución genérica de un ítem (puntúa, sonido, racha, XP, errores) ───
+// `categoria` alimenta LAB.erroresPorTipo, que es lo que viaja en las
+// analíticas silenciosas (más abajo): en manipulacion es el subtipo
+// (sustituye/suprime/...), en el resto el propio tipo de ítem. Es la razón
+// del eje "por prueba fallada" que pide el plan de producto §5.3 — se
+// puede saber qué EXPERIMENTO falla un grupo, no solo qué función.
+function _resolverItem(correcta, categoria) {
   LAB.totalItems++;
   if (correcta) {
     LAB.aciertos++; LAB.racha++;
@@ -194,6 +202,7 @@ function _resolverItem(correcta) {
     try { awardXP(2, 'laboratorio_item'); } catch (e) {}
   } else {
     LAB.racha = 0;
+    if (categoria) LAB.erroresPorTipo[categoria] = (LAB.erroresPorTipo[categoria] || 0) + 1;
     try { playError(); } catch (e) {}
   }
   _actualizarStreak();
@@ -207,7 +216,7 @@ async function startLaboratorio({ name, email, grupo }) {
     name, email, grupo, nivel: null, pool: [], retoQueue: [], reto: null, retoNum: 0,
     items: [], itemIdx: 0, estacionActual: 0,
     aciertos: 0, totalItems: 0, racha: 0, rachaMax: 0,
-    retosCompletadosSesion: 0
+    retosCompletadosSesion: 0, erroresPorTipo: {}
   };
   const nameEl = _el('lab-name');
   if (nameEl) nameEl.textContent = (name || '').split(' ')[0];
@@ -292,7 +301,8 @@ const ITEM_RENDERERS = {
   intruso: _renderIntruso,
   manipulacion: _renderManipulacion,
   juicio: _renderJuicio,
-  par_minimo: _renderContraste
+  par_minimo: _renderContraste,
+  analisis_inverso: _renderAnalisisInverso
 };
 
 function renderItemLaboratorio() {
@@ -348,9 +358,9 @@ function _finReto() {
 
 function labSiguienteReto() { _siguienteReto(); }
 
-function exitLaboratorio() { showScreen('portada'); }
+function exitLaboratorio() { _enviarAnaliticaLaboratorio(); showScreen('portada'); }
 
-function labCambiarNivel() { _mostrarSelectorNivel(); }
+function labCambiarNivel() { _enviarAnaliticaLaboratorio(); _mostrarSelectorNivel(); }
 
 // ════════════════════════════════════════════════════════════════════════
 //  ESTACIÓN 1 · OBSERVA — los tres tipos jugables ya en esta sesión
@@ -378,7 +388,7 @@ function labResponderValencia(n) {
     else if (k === n) btn.classList.add('is-bad');
     else btn.classList.add('is-dim');
   }
-  _resolverItem(acierto);
+  _resolverItem(acierto, 'valencia');
   _mostrarExplicacion(acierto, (acierto ? '✓ ' : '✗ ') + escHtml(item.feedback || ''));
 }
 
@@ -410,10 +420,12 @@ function _renderContraste(item) {
 // experimentos, más arriba): todos comparten exactamente la misma forma
 // "opciones" — {texto, ok, micro} con una sola correcta.
 function labResponderOpciones(idx) {
+  const item = LAB._item;
   const opciones = LAB._opciones;
   const elegido = opciones[idx];
+  const categoria = item.tipo === 'manipulacion' ? item.manipulacion : item.tipo;
   _colorearBotones(opciones.length, i => opciones[i].ok, idx);
-  _resolverItem(!!elegido.ok);
+  _resolverItem(!!elegido.ok, categoria);
   _mostrarExplicacion(!!elegido.ok, (elegido.ok ? '✓ ' : '✗ ') + escHtml(elegido.micro || ''));
 }
 
@@ -431,7 +443,7 @@ function labResponderIntruso(idx) {
   const oraciones = LAB._oraciones, item = LAB._item;
   const acierto = oraciones[idx] === item.respuesta;
   _colorearBotones(oraciones.length, i => oraciones[i] === item.respuesta, idx);
-  _resolverItem(acierto);
+  _resolverItem(acierto, 'intruso');
   _mostrarExplicacion(acierto, (acierto ? '✓ ' : '✗ ') + escHtml(item.feedback || ''));
 }
 
@@ -537,7 +549,7 @@ function labResponderVeredicto(idx) {
   const elegido = VEREDICTOS[idx];
   const acierto = elegido === item.veredicto;
   _colorearBotones(VEREDICTOS.length, i => VEREDICTOS[i] === item.veredicto, idx);
-  _resolverItem(acierto);
+  _resolverItem(acierto, 'juicio');
   const hayCausa = item.veredicto !== 'gramatical' && Array.isArray(item.opciones_causa) && item.opciones_causa.length > 0;
   if (hayCausa) {
     setTimeout(() => _renderJuicioCausa(item), 550);
@@ -578,13 +590,159 @@ function _mostrarResultadoJuicio(acierto, item) {
   _mostrarExplicacion(acierto, html);
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  ESTACIÓN 2 · MANIPULA (cont.) — analisis_inverso, F1·sesión 4
+// ════════════════════════════════════════════════════════════════════════
+// Patrón click-to-select (seleccionar ficha → click en destino), calcado de
+// _renderAgrupa/fabAgruparSeleccionar/fabAgruparColocar de fabrica/index.js
+// — incluida la decisión de fondo (sprint móvil jul-2026): nada de
+// drag&drop nativo, que en pantallas táctiles daba problemas reales.
+//
+// Identificamos cada pieza por su ÍNDICE en item.piezas (no por su texto):
+// el schema no prohíbe piezas repetidas, y solo el índice es un id estable.
+// LAB._asignacion mapea índice-de-slot → índice-de-pieza; una pieza está
+// "usada" si su índice aparece como algún valor de ese mapa, así que
+// vaciar un slot (o pisarlo con otra pieza) la devuelve sola al banco.
+//
+// destino: "caja_pruebas" (schema §3.7) no se guarda todavía en ningún
+// sitio — la Caja de Pruebas del Detective es pieza de F2 (§4.1 del plan).
+// Por ahora se juega igual que destino: "reto", sin más consecuencia.
+
+function _renderAnalisisInverso(item) {
+  LAB._item = item;
+  LAB._asignacion = {}; // slotIdx -> piezaIdx
+  LAB._piezaSel = null;
+  _setCorpus('<div class="lab-consigna">' + escHtml(item.consigna) + '</div>');
+  _setPregunta('');
+  _renderAnalisisInversoFichas();
+}
+
+function _renderAnalisisInversoFichas() {
+  const item = LAB._item;
+  const asign = LAB._asignacion;
+  const usadas = new Set(Object.values(asign));
+  const pool = item.piezas.map((texto, i) => {
+    if (usadas.has(i)) return '';
+    const sel = LAB._piezaSel === i;
+    return '<button type="button" class="lab-chip' + (sel ? ' is-sel' : '') +
+      '" onclick="labAiSeleccionar(' + i + ')">' + escHtml(texto) + '</button>';
+  }).join('');
+  const slotsHtml = item.slots.map((s, si) => {
+    const piezaIdx = asign[si];
+    const contenido = piezaIdx !== undefined
+      ? '<button type="button" class="lab-chip is-sel" onclick="labAiQuitar(' + si + ')">' + escHtml(item.piezas[piezaIdx]) + ' ✕</button>'
+      : '<span class="lab-slot-vacio">toca una pieza y luego aquí</span>';
+    return '<div class="lab-slot" onclick="labAiColocar(' + si + ')" id="lab-slot-' + si + '">' +
+      '<div class="lab-slot-rol">' + escHtml(s.rol) + '</div>' +
+      '<div class="lab-slot-body">' + contenido + '</div>' +
+      '</div>';
+  }).join('');
+  const todasLlenas = Object.keys(asign).length === item.slots.length;
+  _setFichas(
+    '<div class="lab-banco" style="margin-bottom:14px;min-height:40px">' + (pool || '<span class="lab-slot-vacio">— sin piezas sueltas —</span>') + '</div>' +
+    '<div class="lab-slots">' + slotsHtml + '</div>' +
+    (todasLlenas ? '<button type="button" class="lab-btn lab-btn-block" onclick="labAiComprobar()">Comprobar</button>' : '')
+  );
+}
+
+function labAiSeleccionar(i) {
+  // Defensivo: la UI nunca pinta un botón para una pieza ya colocada, pero
+  // por si acaso (doble click en curso, consola de depuración) no dejamos
+  // seleccionar una pieza que ya está usada en algún slot.
+  if (Object.values(LAB._asignacion).includes(i)) return;
+  LAB._piezaSel = (LAB._piezaSel === i) ? null : i;
+  _renderAnalisisInversoFichas();
+}
+function labAiColocar(slotIdx) {
+  if (LAB._piezaSel === null) return; // clic en un slot sin haber elegido pieza: no hace nada
+  LAB._asignacion[slotIdx] = LAB._piezaSel;
+  LAB._piezaSel = null;
+  _renderAnalisisInversoFichas();
+}
+function labAiQuitar(slotIdx) {
+  delete LAB._asignacion[slotIdx];
+  _renderAnalisisInversoFichas();
+}
+
+function labAiComprobar() {
+  const item = LAB._item;
+  const asign = LAB._asignacion;
+  let todoBien = true;
+  const rolesFallados = [];
+  item.slots.forEach((s, si) => {
+    const pieza = item.piezas[asign[si]];
+    const bien = Array.isArray(s.acepta) && s.acepta.includes(pieza);
+    if (!bien) { todoBien = false; rolesFallados.push(s.rol); }
+  });
+  // Repinta los slots ya cerrados (sin onclick: la comprobación es un
+  // cierre, no se puede seguir tocando).
+  const slotsHtml = item.slots.map((s, si) => {
+    const pieza = item.piezas[asign[si]];
+    const bien = Array.isArray(s.acepta) && s.acepta.includes(pieza);
+    return '<div class="lab-slot is-done">' +
+      '<div class="lab-slot-rol">' + escHtml(s.rol) + '</div>' +
+      '<div class="lab-slot-body"><span class="lab-chip ' + (bien ? 'is-ok' : 'is-bad') + '">' +
+      escHtml(pieza) + (bien ? ' ✓' : ' ✗') + '</span></div></div>';
+  }).join('');
+  _setFichas('<div class="lab-slots">' + slotsHtml + '</div>');
+  _resolverItem(todoBien, 'analisis_inverso');
+  const html = todoBien
+    ? '✓ ¡Construida! Cada pieza está donde tiene que estar.'
+    : '✗ Alguna pieza no está donde tiene que estar. Revisa: ' + rolesFallados.map(escHtml).join(', ') + '.';
+  _mostrarExplicacion(todoBien, html);
+}
+
+// ── Analíticas silenciosas (F1·sesión 4) ──────────────────────────────────
+// Mismo patrón que _enviarSesionChispa (js/modules/chispa/index.js):
+// sendBeacon con todo el payload en la query string (nunca en el body: un
+// POST de sendBeacon sin body ya se tragó en silencio las analíticas de
+// Chispa semanas enteras — ver la nota de doPost en Code_v6.gs). Un
+// "segmento" aquí es lo jugado en un nivel, desde que se elige hasta que
+// se cambia de nivel o se sale. Necesita que Josele pegue
+// saveSesionLaboratorio_ (server/Laboratorio.gs) y redespliegue como
+// Nueva versión — hasta entonces el POST no encuentra la acción y no pasa
+// nada (ni error visible ni dato guardado: sendBeacon no informa de la
+// respuesta).
+function _enviarAnaliticaLaboratorio() {
+  try {
+    if (!LAB || !LAB.totalItems) return; // nada respondido en este nivel
+    const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
+    if (apiUrl && LAB.email) {
+      const params = new URLSearchParams({
+        action: 'saveSesionLaboratorio',
+        email: LAB.email, name: LAB.name || '', grupo: LAB.grupo || '',
+        nivel: LAB.nivel || '',
+        retosCompletados: String(LAB.retosCompletadosSesion || 0),
+        aciertos: String(LAB.aciertos || 0), totalItems: String(LAB.totalItems || 0),
+        rachaMax: String(LAB.rachaMax || 0),
+        errores: JSON.stringify(LAB.erroresPorTipo || {})
+      });
+      const url = apiUrl + '?' + params.toString();
+      if (navigator.sendBeacon) navigator.sendBeacon(url);
+      else fetch(url, { method: 'GET', keepalive: true }).catch(() => {});
+    }
+  } catch (e) { console.warn('[laboratorio analytics]', e); }
+  // Reset del segmento pase lo que pase (también sin API: no acumular).
+  LAB.retosCompletadosSesion = 0; LAB.aciertos = 0; LAB.totalItems = 0; LAB.rachaMax = 0; LAB.erroresPorTipo = {};
+}
+
+// Si el alumno cierra la pestaña en mitad de una sesión, el segmento en
+// curso se envía igualmente (sendBeacon sobrevive al unload) — mismo
+// patrón que Chispa y Sintagmas.
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', function () {
+    try { if (LAB && LAB.totalItems) _enviarAnaliticaLaboratorio(); } catch (e) {}
+  });
+}
+
 // ── Public API + window bindings (patrón fabrica/chispa) ──────────────────
 
 export {
   startLaboratorio, exitLaboratorio, labCambiarNivel, iniciarLaboratorioNivel,
   labEmpezarReto, labSiguienteItem, labSiguienteReto,
   labResponderValencia, labResponderOpciones, labResponderIntruso,
-  labResponderVeredicto, labResponderCausa
+  labResponderVeredicto, labResponderCausa,
+  labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar
 };
 
 if (typeof window !== 'undefined') {
@@ -592,7 +750,8 @@ if (typeof window !== 'undefined') {
     startLaboratorio, exitLaboratorio, labCambiarNivel, iniciarLaboratorioNivel,
     labEmpezarReto, labSiguienteItem, labSiguienteReto,
     labResponderValencia, labResponderOpciones, labResponderIntruso,
-    labResponderVeredicto, labResponderCausa
+    labResponderVeredicto, labResponderCausa,
+    labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar
   });
   Object.defineProperty(window, 'LAB', { get: () => LAB, configurable: true });
 }

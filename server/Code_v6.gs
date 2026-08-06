@@ -2613,12 +2613,17 @@ function doPost(e) {
       // para Formacion.gs (dispatchFormacionGet_): si dispatchCompuestasPost_
       // no reconoce la action, probamos dispatchFormacionPost_ antes de dar
       // el error final.
+      // F1·4 Laboratorio (jul-2026) — mismo encadenado, un eslabón más:
+      // dispatchLaboratorioPost_ (analíticas silenciosas, saveSesionLaboratorio).
       const compResult = (typeof dispatchCompuestasPost_ === 'function')
                            ? dispatchCompuestasPost_(action, payload) : null;
       const formResult = (compResult === null && typeof dispatchFormacionPost_ === 'function')
                            ? dispatchFormacionPost_(action, payload) : null;
+      const labResult = (compResult === null && formResult === null && typeof dispatchLaboratorioPost_ === 'function')
+                           ? dispatchLaboratorioPost_(action, payload) : null;
       result = (compResult !== null) ? compResult
              : (formResult !== null) ? formResult
+             : (labResult !== null) ? labResult
              : gasError_('Acción desconocida: ' + action, ERR.UNKNOWN_ACTION);
     }
     out.setContent(JSON.stringify(result));

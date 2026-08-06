@@ -5087,6 +5087,46 @@ body.theme-new-ui #screen-laboratorio .lab-frase-mini{
   font-family:'Fraunces',serif;font-size:.92rem;font-weight:600;text-align:center;
 }
 
+/* ── analisis_inverso: consigna, banco de piezas y huecos ── */
+body.theme-new-ui #screen-laboratorio .lab-consigna{
+  text-align:center;font-family:'Lora',serif;font-style:italic;
+  font-size:.98rem;color:var(--ui-ink);line-height:1.5;margin-bottom:6px;
+}
+body.theme-new-ui #screen-laboratorio .lab-banco{
+  display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+}
+body.theme-new-ui #screen-laboratorio .lab-chip{
+  display:inline-block;margin:3px;padding:8px 14px;
+  border:1.5px solid var(--lab-border);border-radius:var(--ui-r-sm);
+  background:var(--ui-surface);
+  font-family:'Fraunces',serif;font-size:.95rem;font-weight:600;color:var(--ui-ink);
+  cursor:pointer;transition:transform .14s var(--ui-ease-bounce),border-color .14s,background .14s;
+}
+body.theme-new-ui #screen-laboratorio .lab-chip:hover{transform:translateY(-1px);border-color:var(--lab-verde)}
+body.theme-new-ui #screen-laboratorio .lab-chip.is-sel{
+  background:var(--lab-tint-2);border-color:var(--lab-verde);color:var(--lab-verde-dk);
+}
+body.theme-new-ui #screen-laboratorio .lab-chip.is-ok{
+  background:var(--ui-ok-tint);border-color:var(--ui-ok);color:#14532D;cursor:default;
+}
+body.theme-new-ui #screen-laboratorio .lab-chip.is-bad{
+  background:var(--ui-err-tint);border-color:var(--ui-err);color:#881337;cursor:default;
+}
+body.theme-new-ui #screen-laboratorio .lab-slots{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+body.theme-new-ui #screen-laboratorio .lab-slot{
+  display:flex;align-items:center;gap:12px;
+  border:1.5px dashed var(--lab-border);border-radius:var(--ui-r);
+  padding:8px 14px;background:var(--ui-surface);cursor:pointer;
+}
+body.theme-new-ui #screen-laboratorio .lab-slot.is-done{border-style:solid;cursor:default}
+body.theme-new-ui #screen-laboratorio .lab-slot-rol{
+  font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.03em;color:var(--lab-verde-dk);
+  min-width:64px;
+}
+body.theme-new-ui #screen-laboratorio .lab-slot-body{flex:1;min-height:30px;display:flex;align-items:center}
+body.theme-new-ui #screen-laboratorio .lab-slot-vacio{font-size:.8rem;color:var(--ui-muted-2);font-style:italic}
+
 @media (prefers-reduced-motion: reduce){
   body.theme-new-ui #screen-laboratorio .lab-op{animation:none}
   body.theme-new-ui #screen-laboratorio .lab-btn,
