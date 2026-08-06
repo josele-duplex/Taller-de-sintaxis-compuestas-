@@ -9,7 +9,12 @@
 import { playClick, playSuccess, playError } from '../core/audio.js';
 import { MICRO_LECCIONES, ERROR_TO_LECCION } from './micro-lecciones.js';
 import { MICRO_LECCIONES_CP, ERROR_TO_LECCION_CP } from './micro-lecciones-cp.js';
-import { shouldSuggestMicroLeccion } from './tracking.js';
+import { shouldSuggestMicroLeccion, getErrorHistoryCount } from './tracking.js';
+// Puente de vuelta al Laboratorio de Oraciones (plan de producto §1).
+// pruebaDeFuncion() dice si la Estación 3 sabe reforzar esa función (PN,
+// PV, Conector, Dativo... no tienen prueba en el repertorio y no deberían
+// ofrecer el puente).
+import { pruebaDeFuncion } from '../data/pruebas-sintaxis.js';
 
 // ── Estado privado del módulo ──
 let _pistaTimer = null;
@@ -91,6 +96,45 @@ export function updateMicroLeccionButton(funcion) {
     wrap.style.display = 'block';
   } else {
     wrap.style.display = 'none';
+  }
+}
+
+// Puente de vuelta al Laboratorio (plan §1): si el histórico persistente
+// (taller_error_history, no el contador de esta sesión) llega a 3 fallos
+// de la misma función, ofrece practicarla allí. Igual que la
+// micro-lección, solo en práctica/proyector — nunca en examen, para no
+// ofrecer abandonar un examen a mitad. `G` es la misma dependencia
+// temporal que ya asume tracking.js (comentario de cabecera del archivo).
+const LAB_BRIDGE_THRESHOLD = 3;
+
+export function updateLaboratorioBridgeButton(funcion) {
+  const wrap = document.getElementById('fb-lab-wrap');
+  if (!wrap) return;
+  const enPractica = typeof G !== 'undefined' && (G.mode === 'practice' || G.mode === 'projector');
+  const cuenta = funcion ? getErrorHistoryCount('sintaxis', funcion) : 0;
+  if (enPractica && funcion && cuenta >= LAB_BRIDGE_THRESHOLD && pruebaDeFuncion(funcion)) {
+    wrap.style.display = 'block';
+    wrap.dataset.funcion = funcion;
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+// Handler del botón: cierra el feedback y lanza el Laboratorio ya avisado
+// de qué función reforzar (LAB.funcionSugerida, aplicada en cuanto el
+// alumno elige nivel — el Laboratorio no sabe el nivel de Simples, así que
+// el selector de nivel sigue siendo el primer paso, con un aviso).
+export function irAlLaboratorioDesdeSint() {
+  const wrap = document.getElementById('fb-lab-wrap');
+  const funcion = wrap ? wrap.dataset.funcion : '';
+  if (typeof closeFb === 'function') closeFb();
+  if (typeof startLaboratorio === 'function') {
+    startLaboratorio({
+      name: (typeof G !== 'undefined' && G.name) || '',
+      email: (typeof G !== 'undefined' && G.email) || '',
+      grupo: (typeof G !== 'undefined' && (G.praGrupo || G.examGrupo)) || '',
+      funcionSugerida: funcion
+    });
   }
 }
 

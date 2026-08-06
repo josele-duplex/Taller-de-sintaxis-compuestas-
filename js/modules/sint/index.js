@@ -2622,6 +2622,8 @@ function showFeedback(type,title,consejo,pista='',funcForMicroLeccion=''){
 
   // Micro-lección button (only when function triggers threshold)
   updateMicroLeccionButton(funcForMicroLeccion);
+  // Puente de vuelta al Laboratorio de Oraciones (Laboratorio_Oraciones_Plan_Producto.md §1)
+  updateLaboratorioBridgeButton(funcForMicroLeccion);
 
   // C6: gestión de pistas
   const pistaWrap = document.getElementById('fb-pista-wrap');

@@ -71,8 +71,35 @@
             reflexión de opción múltiple de Fase C en Simples (dato
             distinto). El precedente real y el que se ha clonado es el
             diario de Fábrica, que no toca el servidor.
+     F2·3 (puente de vuelta, hecha esta sesión) → cuando Simples detecta que
+            el alumno acumula 3+ fallos HISTÓRICOS (taller_error_history, no
+            solo de esta sesión) en la misma función, ofrece un botón
+            "🧪 Practica esta función en el Laboratorio" en su overlay de
+            feedback (js/feedback/pista-ui.js:updateLaboratorioBridgeButton,
+            llamado desde showFeedback en sint/index.js). Solo se ofrece si
+            pruebaDeFuncion() confirma que la Estación 3 sabe reforzar esa
+            función (no todas la tienen: PN, PV, Conector, Dativo…) y solo
+            en práctica/proyector, nunca en examen. Al pulsarlo, arranca
+            startLaboratorio con funcionSugerida — el Laboratorio no sabe el
+            nivel del alumno en Simples, así que el selector de nivel sigue
+            siendo el primer paso (con un aviso "🎯 Vienes a reforzar: X");
+            en cuanto elige nivel, iniciarLaboratorioNivel manda `funcion`
+            a getRetosLaboratorio (server/Laboratorio.gs, F0·2, que ya
+            aceptaba ese filtro — solo faltaba que el frontend lo enviara),
+            con fallback a sin filtro si el pool queda vacío.
    Pendiente:
-     F2·3 (resto) → puentes con Simples en los dos sentidos (§1 del plan).
+     F2·3 (puente de ida, sin hacer) → botón al cerrar reto que abra Simples
+            con la MISMA oración cargada (metadatos.origen_oracion_id, §1
+            del plan). Investigado esta sesión: no es solo frontend — el
+            backend (Server/Code_v6.gs) no tiene forma de pedir una oración
+            de Oraciones_Banco por id, solo listas completas filtradas por
+            modo/subfase/funciones (getOraciones_/getOracionesFiltradas_);
+            el id que usan los bloques del frontend (`b<rowIndex>_<i>`) es
+            de fila, no un id estable expuesto para este uso. Hace falta un
+            endpoint nuevo (tipo getOracionById_) antes de poder construir
+            este puente — no se ha hecho porque toca el backend y excede el
+            alcance de "tocar sint/index.js con cuidado" de la regla 4 de
+            CLAUDE.md sin que Josele decida el diseño del endpoint primero.
    Sin examen con PIN (Laboratorio.gs no lo tiene todavía — es F3 del plan) y
    sin selector de nivel más allá de basico/medio/avanzado: solo hay contenido
    en 'medio' por ahora (lote semilla F0·3), así que basico/avanzado mostrarán
@@ -143,10 +170,16 @@ function _mockRetos() {
   }];
 }
 
-async function _cargarRetos(nivel, apiUrl) {
+// funcion (F2·3): filtro opcional del puente de vuelta desde Simples.
+// getRetosLaboratorio (server/Laboratorio.gs, F0·2) ya acepta el parámetro
+// — filtra por la columna derivada `Funciones` — solo faltaba que el
+// frontend lo enviara.
+async function _cargarRetos(nivel, apiUrl, funcion) {
   if (!apiUrl) return { retos: _mockRetos(), usingMock: true };
   try {
-    const r = await fetchWithTimeout(apiUrl + '?action=getRetosLaboratorio&nivel=' + encodeURIComponent(nivel), {}, 12000);
+    let url = apiUrl + '?action=getRetosLaboratorio&nivel=' + encodeURIComponent(nivel);
+    if (funcion) url += '&funcion=' + encodeURIComponent(funcion);
+    const r = await fetchWithTimeout(url, {}, 12000);
     const d = await r.json();
     if (d && d.ok && Array.isArray(d.retos) && d.retos.length > 0) return { retos: d.retos, usingMock: false };
     return { retos: [], usingMock: false };
@@ -267,13 +300,19 @@ function _resolverItem(correcta, categoria) {
 
 // ── Ciclo de sesión ────────────────────────────────────────────────────────
 
-async function startLaboratorio({ name, email, grupo }) {
+// funcionSugerida (F2·3, puente de vuelta desde Simples §1 del plan): la
+// función que el alumno viene a reforzar, fijada por irAlLaboratorioDesdeSint
+// (js/feedback/pista-ui.js). El Laboratorio no sabe el nivel del alumno en
+// Simples, así que no se puede saltar el selector de nivel — solo avisarlo
+// y aplicar el filtro en cuanto elige uno (_mostrarSelectorNivel más abajo).
+async function startLaboratorio({ name, email, grupo, funcionSugerida }) {
   showScreen('laboratorio');
   LAB = {
     name, email, grupo, nivel: null, pool: [], retoQueue: [], reto: null, retoNum: 0,
     items: [], itemIdx: 0, estacionActual: 0,
     aciertos: 0, totalItems: 0, racha: 0, rachaMax: 0,
-    retosCompletadosSesion: 0, erroresPorTipo: {}
+    retosCompletadosSesion: 0, erroresPorTipo: {},
+    funcionSugerida: funcionSugerida || null
   };
   const nameEl = _el('lab-name');
   if (nameEl) nameEl.textContent = (name || '').split(' ')[0];
@@ -292,6 +331,9 @@ function _mostrarSelectorNivel() {
   _setCorpus('');
   _setPregunta('¿Con qué nivel quieres jugar?');
   _limpiarExplicacion();
+  const aviso = LAB.funcionSugerida
+    ? '<p style="text-align:center;color:var(--lab-verde-dk);font-weight:700;font-size:.85rem;margin:-4px 0 14px">🎯 Vienes a reforzar: ' + escHtml(LAB.funcionSugerida) + '</p>'
+    : '';
   const html = Object.keys(NIVEL_INFO).map(nv => {
     const info = NIVEL_INFO[nv];
     return '<button type="button" class="lab-nivel" onclick="iniciarLaboratorioNivel(\'' + nv + '\')">' +
@@ -299,7 +341,7 @@ function _mostrarSelectorNivel() {
       '<div class="lab-nivel-desc">' + escHtml(info.desc) + '</div>' +
       '</button>';
   }).join('');
-  _setFichas(html);
+  _setFichas(aviso + html);
 }
 
 async function iniciarLaboratorioNivel(nivel) {
@@ -307,7 +349,14 @@ async function iniciarLaboratorioNivel(nivel) {
   _setPregunta('Cargando retos…');
   _setFichas('');
   const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
-  const { retos, usingMock } = await _cargarRetos(nivel, apiUrl);
+  let { retos, usingMock } = await _cargarRetos(nivel, apiUrl, LAB.funcionSugerida);
+  // El filtro por función puede dejar el pool vacío en un nivel/función
+  // concretos (lote todavía incompleto): mejor practicar sin filtrar que
+  // dejar al alumno sin nada tras el puente de vuelta desde Simples.
+  if (LAB.funcionSugerida && retos.length === 0) {
+    LAB.funcionSugerida = null;
+    ({ retos, usingMock } = await _cargarRetos(nivel, apiUrl));
+  }
   LAB.usingMock = usingMock;
   LAB.pool = retos.filter(r => Array.isArray(r.items) && r.items.length > 0);
   LAB.retoQueue = shuffle(LAB.pool);

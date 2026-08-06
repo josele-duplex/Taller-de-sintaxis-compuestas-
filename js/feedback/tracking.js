@@ -88,6 +88,18 @@ function _recordMasteryError(modo, funcion) {
 // Accesor público (para el dashboard del alumno y el panel del profesor).
 export function getMastery() { return _loadMastery(); }
 
+// Lectura del contador PERSISTENTE (a través de sesiones) para un modo y
+// función — a diferencia de _sessionFuncErrors (solo esta sesión), es el
+// que consulta el puente de vuelta al Laboratorio de Oraciones (plan de
+// producto §1: "cuando un alumno falla tres veces la misma función en
+// Simples..."), que se refiere al histórico, no a los fallos de hoy.
+export function getErrorHistoryCount(modo, funcion) {
+  try {
+    const hist = JSON.parse(localStorage.getItem('taller_error_history') || '{}');
+    return (hist[modo] && hist[modo][funcion]) || 0;
+  } catch (e) { return 0; }
+}
+
 /**
  * Decide si proponer una micro-lección al alumno tras un error.
  *
