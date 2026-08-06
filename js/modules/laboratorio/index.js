@@ -47,6 +47,13 @@
    en 'medio' por ahora (lote semilla F0·3), así que basico/avanzado mostrarán
    "sin retos disponibles" hasta que existan esos lotes (F4/F5). */
 
+// El canon de aceptabilidad (F2·1) es la fuente única de las tres marcas, los
+// cuatro veredictos y las 16 causas en lenguaje de alumno. Antes vivían
+// escritos a mano aquí; se movieron al dato para que el motor, quien escribe
+// los lotes y el documento editorial digan exactamente lo mismo.
+import { VEREDICTOS as VEREDICTO_UI, ORDEN_VEREDICTOS as VEREDICTOS,
+         etiquetaCausa, llevaAsterisco } from '../../data/canon-agramatical.js';
+
 let LAB = {}; // estado de la sesión (expuesto como window.LAB más abajo)
 
 // ── Mock offline (sin API configurada) ────────────────────────────────────
@@ -503,37 +510,14 @@ function _renderManipulacion(item) {
 // explicativa, sin volver a sumar ni restar). El modo examen (F3) es quien
 // tendrá que combinar los dos aciertos en una sola nota.
 
-// Encabezado + pregunta que ve el alumno para cada veredicto. Las cuatro
-// opciones se muestran siempre fijas (el veredicto es un enum cerrado del
-// schema, no viene con "opciones" en el dato — igual que valencia).
-const VEREDICTO_UI = {
-  gramatical:  { icon: '✓', label: 'Funciona bien' },
-  agramatical: { icon: '✗', label: 'No funciona' },
-  norma_culta: { icon: '⚠', label: 'Se dice, pero cuidado' },
-  dudoso:      { icon: '⚖', label: 'Es debatible' }
-};
-const VEREDICTOS = ['gramatical', 'agramatical', 'norma_culta', 'dudoso'];
-
-// Las 16 causas del schema §5, en lenguaje de alumno (no son las mismas
-// cadenas que se guardan en el dato, que son las claves cerradas del enum).
-const CAUSA_LABEL = {
-  concordancia_sv:         'El verbo no concuerda con quien hace la acción',
-  concordancia_atr:        'La palabra que describe no concuerda con el sujeto',
-  transitividad:           'El verbo no admite eso que recibe la acción',
-  orden_imposible:         'Ese orden de palabras no es posible',
-  concordancia_cpvo:       'La palabra que describe no concuerda con lo que recibe la acción',
-  regimen_prep:            'Esa preposición no es la que exige el verbo',
-  pronombre_cruzado:       'El pronombre no es el de esa función',
-  seleccion_semantica:     'El verbo no admite ese tipo de complemento',
-  articulo_propio:         'El nombre propio no lleva artículo',
-  pasiva_refleja_intrans:  'Ese verbo no admite esta construcción',
-  duplicacion_obligatoria: 'Falta el pronombre que tenía que repetirse',
-  modo_obligado:           'El verbo exige otra forma aquí',
-  gradabilidad:            'Ese adjetivo no admite ese grado',
-  queismo_dequeismo:       'Sobra o falta una preposición delante de "que"',
-  leismo_laismo:           'El pronombre no es el que corresponde a esa función',
-  concordancia_ad_sensum:  'Concuerda con el significado, no con la forma'
-};
+// Las cuatro opciones de veredicto se muestran siempre fijas (el veredicto es
+// un enum cerrado del schema, no viene con "opciones" en el dato — igual que
+// valencia). Sus etiquetas, y las de las 16 causas en lenguaje de alumno,
+// vienen del canon (import de arriba): estaban escritas aquí desde F1·3 y dos
+// de ellas se solapaban —«el pronombre no es el de esa función» valía igual
+// para pronombre_cruzado y para leismo_laismo, que en avanzado pueden salir
+// juntas—. El canon las separa por lo que de verdad las distingue: una rompe
+// la gramática y la otra es cuestión de registro.
 
 function _renderJuicio(item) {
   LAB._item = item;
@@ -563,7 +547,7 @@ function _renderJuicioCausa(item) {
   LAB._causas = causas;
   _setPregunta('¿Qué se rompe?');
   _setFichas('<div class="lab-stack">' +
-    causas.map((c, i) => _btnOp(i, CAUSA_LABEL[c] || c, 'labResponderCausa')).join('') + '</div>');
+    causas.map((c, i) => _btnOp(i, etiquetaCausa(c), 'labResponderCausa')).join('') + '</div>');
 }
 function labResponderCausa(idx) {
   const item = LAB._item;
@@ -580,7 +564,7 @@ function labResponderCausa(idx) {
 function _mostrarResultadoJuicio(acierto, item) {
   let html = (acierto ? '✓ ' : '✗ ') + escHtml(item.explicacion || '');
   if (item.gemela_correcta) {
-    const oracionMarcada = (item.veredicto === 'agramatical' ? '<span class="lab-asterisco">*</span>' : '') + escHtml(item.oracion);
+    const oracionMarcada = (llevaAsterisco(item.veredicto) ? '<span class="lab-asterisco">*</span>' : '') + escHtml(item.oracion);
     html += '<div class="lab-contraste">' +
       '<div class="lab-frase-mini">' + oracionMarcada + '</div>' +
       '<div class="lab-frase-arrow">↓</div>' +
