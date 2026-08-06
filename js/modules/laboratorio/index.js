@@ -37,11 +37,19 @@
             nota junto a _enviarAnaliticaLaboratorio más abajo) y redespliegue
             como Nueva versión; hasta entonces el sendBeacon sale pero no lo
             recoge nadie (silencioso, no rompe nada).
+     F2·2 (hecha, esta sesión) → etiqueta_prueba (Estación 3): el sintagma ya
+            viene etiquetado y el alumno elige qué PRUEBA lo demuestra, contra
+            el repertorio de F2·1 (pruebas-sintaxis.js). Mismo patrón que
+            manipulacion (resaltado del objetivo con _resaltarObjetivo) pero
+            el acierto se decide comparando con item.prueba_id, no con un
+            campo ok:true en las opciones — las pruebas no lo traen consigo,
+            lo compara el motor. microPrueba() ya devolvía el feedback en
+            interrogativo desde F2·1, aquí solo se conecta.
    Pendiente:
-     F2·1 → etiqueta_prueba (Estación 3) no puede cerrarse del todo hasta
-            que exista js/data/pruebas-sintaxis.js; sigue como placeholder.
-            La Caja de Pruebas del Detective (destino:"caja_pruebas" de
-            analisis_inverso) también es de F2 (§4.1 del plan).
+     F2·3 → Caja de Pruebas del Detective (destino:"caja_pruebas" de
+            analisis_inverso, hoy jugado igual que destino:"reto", sin
+            persistir nada), diario metalingüístico y puentes con Simples en
+            los dos sentidos (§1, §4.1, §4.3 del plan).
    Sin examen con PIN (Laboratorio.gs no lo tiene todavía — es F3 del plan) y
    sin selector de nivel más allá de basico/medio/avanzado: solo hay contenido
    en 'medio' por ahora (lote semilla F0·3), así que basico/avanzado mostrarán
@@ -53,6 +61,9 @@
 // los lotes y el documento editorial digan exactamente lo mismo.
 import { VEREDICTOS as VEREDICTO_UI, ORDEN_VEREDICTOS as VEREDICTOS,
          etiquetaCausa, llevaAsterisco } from '../../data/canon-agramatical.js';
+// El repertorio de pruebas (F2·1) es la fuente única de la Estación 3: el
+// reto solo apunta a un prueba_id + sus distractores, el contenido vive aquí.
+import { textoPrueba, microPrueba } from '../../data/pruebas-sintaxis.js';
 
 let LAB = {}; // estado de la sesión (expuesto como window.LAB más abajo)
 
@@ -309,7 +320,8 @@ const ITEM_RENDERERS = {
   manipulacion: _renderManipulacion,
   juicio: _renderJuicio,
   par_minimo: _renderContraste,
-  analisis_inverso: _renderAnalisisInverso
+  analisis_inverso: _renderAnalisisInverso,
+  etiqueta_prueba: _renderEtiquetaPrueba
 };
 
 function renderItemLaboratorio() {
@@ -676,6 +688,55 @@ function labAiComprobar() {
   _mostrarExplicacion(todoBien, html);
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  ESTACIÓN 3 · ETIQUETA + PRUEBA — etiqueta_prueba, F2·sesión 2
+// ════════════════════════════════════════════════════════════════════════
+// Es el Banco_reflexion_metalinguistica.md jugado (plan §2.3, ítem 3.1/3.2):
+// el sintagma ya viene etiquetado (objetivo.funcion) y el alumno elige QUÉ
+// PRUEBA lo demuestra, no la función. El reto no redacta la prueba — apunta
+// un prueba_id al repertorio (pruebas-sintaxis.js) y el motor la resuelve;
+// coste de contenido por reto: cero (schema §3.9).
+//
+// enunciado ('tecnico' | 'simple') decide dos cosas a la vez: qué variante de
+// texto de cada prueba se muestra (textoPrueba) y si la pregunta nombra la
+// función. En 'basico' el validador exige 'simple' siempre — es la variante
+// 3.2 del plan, la primera vez que el alumno del proyecto ve esta pantalla
+// sin ninguna etiqueta.
+const ETQ_PREGUNTA = {
+  tecnico: (funcion) => '¿Qué prueba demuestra que este trozo es <strong>' + escHtml(funcion) + '</strong>?',
+  simple:  () => '¿Cuál de estos cambios demuestra de verdad que funciona así?'
+};
+
+function _renderEtiquetaPrueba(item) {
+  LAB._item = item;
+  const enunciado = item.enunciado || 'tecnico';
+  const ids = shuffle([item.prueba_id, ...(item.distractores || [])]);
+  LAB._pruebaIds = ids;
+  _setCorpus('<div class="lab-frase">' + _resaltarObjetivo(item.oracion, item.objetivo.texto) + '</div>');
+  const preguntaFn = ETQ_PREGUNTA[enunciado] || ETQ_PREGUNTA.tecnico;
+  _setPregunta(preguntaFn(item.objetivo.funcion));
+  _setFichas('<div class="lab-stack">' +
+    ids.map((id, i) => _btnOp(i, textoPrueba(id, enunciado), 'labResponderPrueba')).join('') + '</div>');
+}
+
+// El acierto es "eligió el prueba_id del ítem", no "eligió una opción
+// marcada ok:true" (a diferencia de labResponderOpciones): aquí las opciones
+// no traen su propio veredicto, lo decide la comparación con item.prueba_id.
+// microPrueba(elegido, {ok, trozo}) hace el resto: si acierta, devuelve el
+// .ok de la prueba correcta; si falla — sea el vecino confundible o un
+// heurístico — devuelve su .no, que va en interrogativo (F2·1: "¿Seguro?
+// Esa prueba demuestra X, ¿pasa eso aquí?"), nunca en veredicto cerrado.
+function labResponderPrueba(idx) {
+  const item = LAB._item;
+  const ids = LAB._pruebaIds;
+  const elegido = ids[idx];
+  const acierto = elegido === item.prueba_id;
+  _colorearBotones(ids.length, i => ids[i] === item.prueba_id, idx);
+  _resolverItem(acierto, 'etiqueta_prueba');
+  const micro = microPrueba(elegido, { ok: acierto, trozo: item.objetivo.texto });
+  _mostrarExplicacion(acierto, (acierto ? '✓ ' : '') + escHtml(micro));
+}
+
 // ── Analíticas silenciosas (F1·sesión 4) ──────────────────────────────────
 // Mismo patrón que _enviarSesionChispa (js/modules/chispa/index.js):
 // sendBeacon con todo el payload en la query string (nunca en el body: un
@@ -726,7 +787,8 @@ export {
   labEmpezarReto, labSiguienteItem, labSiguienteReto,
   labResponderValencia, labResponderOpciones, labResponderIntruso,
   labResponderVeredicto, labResponderCausa,
-  labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar
+  labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
+  labResponderPrueba
 };
 
 if (typeof window !== 'undefined') {
@@ -735,7 +797,8 @@ if (typeof window !== 'undefined') {
     labEmpezarReto, labSiguienteItem, labSiguienteReto,
     labResponderValencia, labResponderOpciones, labResponderIntruso,
     labResponderVeredicto, labResponderCausa,
-    labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar
+    labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
+    labResponderPrueba
   });
   Object.defineProperty(window, 'LAB', { get: () => LAB, configurable: true });
 }
