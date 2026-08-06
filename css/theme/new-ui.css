@@ -5073,6 +5073,20 @@ body.theme-new-ui #screen-laboratorio .lab-expl.is-bad{
   background:var(--ui-err-tint);color:#881337;border:1.5px solid rgba(190,18,60,.28);
 }
 
+/* ── juicio: el asterisco de agramaticalidad y el contraste con la gemela ──
+   Regla del plan de producto §2.5: el asterisco lo pinta la UI (nunca el
+   dato), y una oración agramatical nunca aparece sola — siempre junto a su
+   gemela correcta. */
+body.theme-new-ui #screen-laboratorio .lab-asterisco{
+  color:var(--ui-err);font-weight:800;margin-right:1px;
+}
+body.theme-new-ui #screen-laboratorio .lab-contraste{
+  margin-top:10px;padding-top:10px;border-top:1px dashed currentColor;opacity:.85;
+}
+body.theme-new-ui #screen-laboratorio .lab-frase-mini{
+  font-family:'Fraunces',serif;font-size:.92rem;font-weight:600;text-align:center;
+}
+
 @media (prefers-reduced-motion: reduce){
   body.theme-new-ui #screen-laboratorio .lab-op{animation:none}
   body.theme-new-ui #screen-laboratorio .lab-btn,

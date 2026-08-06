@@ -16,15 +16,19 @@
             (selector de nivel → cola de retos → ítem por ítem con estación
             bloqueada → cierre de reto) y las TRES mecánicas de la
             Estación 1 · Observa (valencia, que_cambia, intruso).
-     F1·2 (hecho, esta sesión) → manipulacion: los cinco experimentos
-            (sustituye/suprime/cambia_numero/mueve/transforma). Las cinco
-            comparten estructura de datos (schema §3.4: "objetivo" + una
-            lista "opciones" con exactamente una ok:true) y por tanto un
-            solo render + el MISMO manejador de respuesta que ya usaba
-            que_cambia (labResponderOpciones) — es la razón de que el
-            schema las trate como un solo tipo de motor, no cinco.
+     F1·2 (hecho) → manipulacion: los cinco experimentos (sustituye/suprime/
+            cambia_numero/mueve/transforma). Las cinco comparten estructura
+            de datos (schema §3.4: "objetivo" + una lista "opciones" con
+            exactamente una ok:true) y por tanto un solo render + el MISMO
+            manejador de respuesta que ya usaba que_cambia
+            (labResponderOpciones) — es la razón de que el schema las trate
+            como un solo tipo de motor, no cinco.
+     F1·3 (hecho, esta sesión) → juicio (veredicto + causa en dos pasos,
+            patrón clonado de _renderJuicio/_renderJuicioCausa de
+            fabrica/index.js) y par_minimo (misma forma de dato exacta que
+            que_cambia — renombrado internamente a _renderContraste porque
+            ahora sirve a los dos tipos).
    Pendiente:
-     F1·3 → juicio y par_minimo (Estación 2, quedan como placeholder).
      F1·4 → analisis_inverso (piezas/slots, patrón iidd* de Compuestas) y
             las analíticas silenciosas (sendBeacon a un endpoint
             saveSesionLaboratorio_ que todavía no existe en el GAS). XP ya
@@ -284,9 +288,11 @@ function labEmpezarReto() { renderItemLaboratorio(); }
 
 const ITEM_RENDERERS = {
   valencia: _renderValencia,
-  que_cambia: _renderQueCambia,
+  que_cambia: _renderContraste,
   intruso: _renderIntruso,
-  manipulacion: _renderManipulacion
+  manipulacion: _renderManipulacion,
+  juicio: _renderJuicio,
+  par_minimo: _renderContraste
 };
 
 function renderItemLaboratorio() {
@@ -376,8 +382,17 @@ function labResponderValencia(n) {
   _mostrarExplicacion(acierto, (acierto ? '✓ ' : '✗ ') + escHtml(item.feedback || ''));
 }
 
-// ── que_cambia ──────────────────────────────────────────────────────────
-function _renderQueCambia(item) {
+// ── que_cambia / par_minimo ─────────────────────────────────────────────
+// Misma forma de dato exacta (oracion_a/oracion_b/cambio/opciones): el
+// schema (§3.6) solo distingue que en par_minimo las opciones SÍ pueden
+// nombrar funciones desde nivel medio — es una regla de contenido que
+// valida el banco, no una diferencia de render. Un solo componente para
+// los dos tipos, con la pregunta ajustada a cada uno.
+const CONTRASTE_PREGUNTA = {
+  que_cambia: '¿Qué ha pasado?',
+  par_minimo: '¿Qué función ha cambiado?'
+};
+function _renderContraste(item) {
   LAB._item = item;
   const opciones = shuffle(item.opciones.map((o, i) => ({ ...o, _i: i })));
   LAB._opciones = opciones;
@@ -386,14 +401,14 @@ function _renderQueCambia(item) {
     '<div class="lab-frase-arrow">↓</div>' +
     '<div class="lab-frase">' + escHtml(item.oracion_b) + '</div>'
   );
-  _setPregunta('¿Qué ha pasado?');
+  _setPregunta(CONTRASTE_PREGUNTA[item.tipo] || '¿Qué ha pasado?');
   _setFichas('<div class="lab-stack">' +
     opciones.map((o, i) => _btnOp(i, o.texto, 'labResponderOpciones')).join('') + '</div>');
 }
 
-// Reutilizable por que_cambia, manipulacion (los cinco experimentos, más
-// abajo) y, en la próxima sesión, par_minimo: todos comparten exactamente
-// la misma forma "opciones" — {texto, ok, micro} con una sola correcta.
+// Reutilizable por que_cambia, par_minimo y manipulacion (los cinco
+// experimentos, más arriba): todos comparten exactamente la misma forma
+// "opciones" — {texto, ok, micro} con una sola correcta.
 function labResponderOpciones(idx) {
   const opciones = LAB._opciones;
   const elegido = opciones[idx];
@@ -464,19 +479,120 @@ function _renderManipulacion(item) {
     opciones.map((o, i) => _btnOp(i, o.texto, 'labResponderOpciones')).join('') + '</div>');
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  ESTACIÓN 2 · MANIPULA (cont.) — juicio, F1·sesión 3
+// ════════════════════════════════════════════════════════════════════════
+// Patrón clonado de _renderJuicio/_renderJuicioCausa de fabrica/index.js
+// (mismo problema exacto: veredicto cerrado + causa cerrada en dos pasos).
+// Diferencia de Fábrica que SÍ importa: la nota "el veredicto sin la causa
+// no vale el ítem" del plan de producto (§5.4) es una regla del MODO EXAMEN
+// (curva de nota), no de la práctica — aquí, como en Fábrica, se puntúa por
+// el veredicto (el paso de la causa queda como segunda comprobación
+// explicativa, sin volver a sumar ni restar). El modo examen (F3) es quien
+// tendrá que combinar los dos aciertos en una sola nota.
+
+// Encabezado + pregunta que ve el alumno para cada veredicto. Las cuatro
+// opciones se muestran siempre fijas (el veredicto es un enum cerrado del
+// schema, no viene con "opciones" en el dato — igual que valencia).
+const VEREDICTO_UI = {
+  gramatical:  { icon: '✓', label: 'Funciona bien' },
+  agramatical: { icon: '✗', label: 'No funciona' },
+  norma_culta: { icon: '⚠', label: 'Se dice, pero cuidado' },
+  dudoso:      { icon: '⚖', label: 'Es debatible' }
+};
+const VEREDICTOS = ['gramatical', 'agramatical', 'norma_culta', 'dudoso'];
+
+// Las 16 causas del schema §5, en lenguaje de alumno (no son las mismas
+// cadenas que se guardan en el dato, que son las claves cerradas del enum).
+const CAUSA_LABEL = {
+  concordancia_sv:         'El verbo no concuerda con quien hace la acción',
+  concordancia_atr:        'La palabra que describe no concuerda con el sujeto',
+  transitividad:           'El verbo no admite eso que recibe la acción',
+  orden_imposible:         'Ese orden de palabras no es posible',
+  concordancia_cpvo:       'La palabra que describe no concuerda con lo que recibe la acción',
+  regimen_prep:            'Esa preposición no es la que exige el verbo',
+  pronombre_cruzado:       'El pronombre no es el de esa función',
+  seleccion_semantica:     'El verbo no admite ese tipo de complemento',
+  articulo_propio:         'El nombre propio no lleva artículo',
+  pasiva_refleja_intrans:  'Ese verbo no admite esta construcción',
+  duplicacion_obligatoria: 'Falta el pronombre que tenía que repetirse',
+  modo_obligado:           'El verbo exige otra forma aquí',
+  gradabilidad:            'Ese adjetivo no admite ese grado',
+  queismo_dequeismo:       'Sobra o falta una preposición delante de "que"',
+  leismo_laismo:           'El pronombre no es el que corresponde a esa función',
+  concordancia_ad_sensum:  'Concuerda con el significado, no con la forma'
+};
+
+function _renderJuicio(item) {
+  LAB._item = item;
+  _setCorpus('<div class="lab-frase">' + escHtml(item.oracion) + '</div>');
+  _setPregunta('¿Esta oración funciona?');
+  _setFichas('<div class="lab-stack">' +
+    VEREDICTOS.map((v, i) => _btnOp(i, VEREDICTO_UI[v].icon + ' ' + VEREDICTO_UI[v].label, 'labResponderVeredicto')).join('') +
+    '</div>');
+}
+
+function labResponderVeredicto(idx) {
+  const item = LAB._item;
+  const elegido = VEREDICTOS[idx];
+  const acierto = elegido === item.veredicto;
+  _colorearBotones(VEREDICTOS.length, i => VEREDICTOS[i] === item.veredicto, idx);
+  _resolverItem(acierto);
+  const hayCausa = item.veredicto !== 'gramatical' && Array.isArray(item.opciones_causa) && item.opciones_causa.length > 0;
+  if (hayCausa) {
+    setTimeout(() => _renderJuicioCausa(item), 550);
+  } else {
+    _mostrarResultadoJuicio(acierto, item);
+  }
+}
+
+function _renderJuicioCausa(item) {
+  const causas = shuffle(item.opciones_causa);
+  LAB._causas = causas;
+  _setPregunta('¿Qué se rompe?');
+  _setFichas('<div class="lab-stack">' +
+    causas.map((c, i) => _btnOp(i, CAUSA_LABEL[c] || c, 'labResponderCausa')).join('') + '</div>');
+}
+function labResponderCausa(idx) {
+  const item = LAB._item;
+  const causas = LAB._causas;
+  const acierto = causas[idx] === item.causa;
+  _colorearBotones(causas.length, i => causas[i] === item.causa, idx);
+  _mostrarResultadoJuicio(acierto, item);
+}
+
+// Cierre común (con o sin paso de causa): explicación + contraste con la
+// gemela, nunca la oración mala sola en pantalla (regla del plan §2.5.2).
+// El asterisco (.lab-asterisco) solo se pinta si el veredicto es
+// "agramatical" — norma_culta y dudoso NO llevan asterisco (regla §2.5.1).
+function _mostrarResultadoJuicio(acierto, item) {
+  let html = (acierto ? '✓ ' : '✗ ') + escHtml(item.explicacion || '');
+  if (item.gemela_correcta) {
+    const oracionMarcada = (item.veredicto === 'agramatical' ? '<span class="lab-asterisco">*</span>' : '') + escHtml(item.oracion);
+    html += '<div class="lab-contraste">' +
+      '<div class="lab-frase-mini">' + oracionMarcada + '</div>' +
+      '<div class="lab-frase-arrow">↓</div>' +
+      '<div class="lab-frase-mini">' + escHtml(item.gemela_correcta) + '</div>' +
+      '</div>';
+  }
+  _mostrarExplicacion(acierto, html);
+}
+
 // ── Public API + window bindings (patrón fabrica/chispa) ──────────────────
 
 export {
   startLaboratorio, exitLaboratorio, labCambiarNivel, iniciarLaboratorioNivel,
   labEmpezarReto, labSiguienteItem, labSiguienteReto,
-  labResponderValencia, labResponderOpciones, labResponderIntruso
+  labResponderValencia, labResponderOpciones, labResponderIntruso,
+  labResponderVeredicto, labResponderCausa
 };
 
 if (typeof window !== 'undefined') {
   Object.assign(window, {
     startLaboratorio, exitLaboratorio, labCambiarNivel, iniciarLaboratorioNivel,
     labEmpezarReto, labSiguienteItem, labSiguienteReto,
-    labResponderValencia, labResponderOpciones, labResponderIntruso
+    labResponderValencia, labResponderOpciones, labResponderIntruso,
+    labResponderVeredicto, labResponderCausa
   });
   Object.defineProperty(window, 'LAB', { get: () => LAB, configurable: true });
 }
