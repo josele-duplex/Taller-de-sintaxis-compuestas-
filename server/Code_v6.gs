@@ -899,8 +899,9 @@ function generarConsejoSint(func) {
 /**
  * Punto de entrada único para peticiones GET del frontend. Despacha por
  * `e.parameter.action` a los endpoints (getOraciones_, saveResult_, etc.) y,
- * si la acción no la reconoce, delega en dispatchCompuestasGet_ (Compuestas.gs)
- * y luego en dispatchFormacionGet_ (Formacion.gs), en ese orden.
+ * si la acción no la reconoce, delega en dispatchCompuestasGet_ (Compuestas.gs),
+ * luego en dispatchFormacionGet_ (Formacion.gs) y luego en
+ * dispatchLaboratorioGet_ (Laboratorio.gs), en ese orden.
  * @param {GoogleAppsScript.Events.DoGet} e - e.parameter trae action/mode/subfase/...
  * @return {GoogleAppsScript.Content.TextOutput} JSON con forma {ok:true,...} o {ok:false,error,code}.
  */
@@ -946,14 +947,19 @@ function doGet(e) {
     else {
       // v6.3 — Delegación al módulo de oración compuesta (Compuestas.gs).
       // F0 sesión 2 (jul-2026) — misma delegación encadenada para el módulo
-      // Fábrica de Palabras (Formacion.gs). Si ninguno de los dos
-      // dispatchers reconoce la action, caemos al error original.
+      // Fábrica de Palabras (Formacion.gs). F0 sesión 2 del Laboratorio de
+      // Oraciones (ago-2026) — mismo patrón, tercer eslabón (Laboratorio.gs).
+      // Si ninguno de los tres dispatchers reconoce la action, caemos al
+      // error original.
       const compResult = (typeof dispatchCompuestasGet_ === 'function')
                            ? dispatchCompuestasGet_(action, params) : null;
       const formResult = (compResult === null && typeof dispatchFormacionGet_ === 'function')
                            ? dispatchFormacionGet_(action, params) : null;
+      const labResult = (compResult === null && formResult === null && typeof dispatchLaboratorioGet_ === 'function')
+                           ? dispatchLaboratorioGet_(action, params) : null;
       result = (compResult !== null) ? compResult
              : (formResult !== null) ? formResult
+             : (labResult !== null) ? labResult
              : gasError_('Acción desconocida: ' + action, ERR.UNKNOWN_ACTION);
     }
     out.setContent(JSON.stringify(result));
