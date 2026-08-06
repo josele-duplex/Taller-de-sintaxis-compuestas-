@@ -11,26 +11,26 @@
    Chispa — sin drag&drop nativo (decisión ya tomada en esos módulos por los
    bugs de drag&drop táctil del sprint móvil de jul-2026).
 
-   ALCANCE de esta sesión (F1·sesión 1, según Laboratorio_Oraciones_Plan_Producto.md
-   §6): "pantalla, bloqueo en orden". Se implementa el esqueleto completo del
-   ciclo (selector de nivel → cola de retos → ítem por ítem con estación
-   bloqueada → cierre de reto) y las TRES mecánicas de la Estación 1 · Observa
-   (valencia, que_cambia, intruso), que no necesitan más que elegir una opción.
-   Los seis tipos restantes (manipulacion, juicio, par_minimo, analisis_inverso,
-   frontera — Estación 2 — y etiqueta_prueba — Estación 3) se muestran con un
-   aviso "🚧 llega en la próxima sesión" y un botón para saltar: así un reto
-   completo se puede recorrer de principio a fin ya en esta sesión, sin que el
-   alumno se quede atascado. Las próximas sesiones (F1·2, F1·3, F1·4 del plan)
-   sustituyen cada placeholder por su render real:
-     F1·2 → manipulacion (los cinco experimentos: sustituye/suprime/
-            cambia_numero/mueve/transforma)
-     F1·3 → juicio y par_minimo
-     F1·4 → analisis_inverso (piezas/slots, patrón iidd* de Compuestas), XP
-            ya está desde esta sesión (awardXP en cada acierto, igual que
-            Fábrica) — lo que falta en F1·4 son las analíticas silenciosas
-            (sendBeacon a un endpoint saveSesionLaboratorio_ que todavía no
-            existe en el GAS) y el bloqueo de la Estación 3, que además
-            depende de js/data/pruebas-sintaxis.js (F2·sesión 1).
+   ALCANCE acumulado (Laboratorio_Oraciones_Plan_Producto.md §6):
+     F1·1 (hecho) → pantalla, bloqueo en orden, esqueleto completo del ciclo
+            (selector de nivel → cola de retos → ítem por ítem con estación
+            bloqueada → cierre de reto) y las TRES mecánicas de la
+            Estación 1 · Observa (valencia, que_cambia, intruso).
+     F1·2 (hecho, esta sesión) → manipulacion: los cinco experimentos
+            (sustituye/suprime/cambia_numero/mueve/transforma). Las cinco
+            comparten estructura de datos (schema §3.4: "objetivo" + una
+            lista "opciones" con exactamente una ok:true) y por tanto un
+            solo render + el MISMO manejador de respuesta que ya usaba
+            que_cambia (labResponderOpciones) — es la razón de que el
+            schema las trate como un solo tipo de motor, no cinco.
+   Pendiente:
+     F1·3 → juicio y par_minimo (Estación 2, quedan como placeholder).
+     F1·4 → analisis_inverso (piezas/slots, patrón iidd* de Compuestas) y
+            las analíticas silenciosas (sendBeacon a un endpoint
+            saveSesionLaboratorio_ que todavía no existe en el GAS). XP ya
+            está desde F1·1 (awardXP en cada acierto, igual que Fábrica).
+     F2·1 → etiqueta_prueba (Estación 3) no puede cerrarse del todo hasta
+            que exista js/data/pruebas-sintaxis.js; sigue como placeholder.
    Sin examen con PIN (Laboratorio.gs no lo tiene todavía — es F3 del plan) y
    sin selector de nivel más allá de basico/medio/avanzado: solo hay contenido
    en 'medio' por ahora (lote semilla F0·3), así que basico/avanzado mostrarán
@@ -285,7 +285,8 @@ function labEmpezarReto() { renderItemLaboratorio(); }
 const ITEM_RENDERERS = {
   valencia: _renderValencia,
   que_cambia: _renderQueCambia,
-  intruso: _renderIntruso
+  intruso: _renderIntruso,
+  manipulacion: _renderManipulacion
 };
 
 function renderItemLaboratorio() {
@@ -390,9 +391,9 @@ function _renderQueCambia(item) {
     opciones.map((o, i) => _btnOp(i, o.texto, 'labResponderOpciones')).join('') + '</div>');
 }
 
-// Reutilizable por que_cambia y (en próximas sesiones) por par_minimo y
-// manipulacion, que comparten exactamente la misma forma "opciones":
-// {texto, ok, micro} con una sola correcta.
+// Reutilizable por que_cambia, manipulacion (los cinco experimentos, más
+// abajo) y, en la próxima sesión, par_minimo: todos comparten exactamente
+// la misma forma "opciones" — {texto, ok, micro} con una sola correcta.
 function labResponderOpciones(idx) {
   const opciones = LAB._opciones;
   const elegido = opciones[idx];
@@ -417,6 +418,50 @@ function labResponderIntruso(idx) {
   _colorearBotones(oraciones.length, i => oraciones[i] === item.respuesta, idx);
   _resolverItem(acierto);
   _mostrarExplicacion(acierto, (acierto ? '✓ ' : '✗ ') + escHtml(item.feedback || ''));
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  ESTACIÓN 2 · MANIPULA — F1·sesión 2
+// ════════════════════════════════════════════════════════════════════════
+
+// Pregunta genérica por manipulación (copia de interfaz, no del dato — no
+// pasa por el validador de metalenguaje del banco, así que no hace falta
+// evitar aquí las palabras que sí están prohibidas en items[].feedback).
+const MANIP_PREGUNTA = {
+  sustituye:     'Sustituye el trozo marcado por otra forma. ¿Cuál funciona?',
+  suprime:       '¿Qué pasa si quitas el trozo marcado?',
+  cambia_numero: 'Cambia de número el trozo marcado. ¿Qué pasa con el resto?',
+  mueve:         'Mueve el trozo marcado de sitio. ¿Cuál funciona?',
+  transforma:    'Dale la vuelta a la oración. ¿Cuál es el resultado?'
+};
+
+// Envuelve objetivo.texto en un <mark> dentro de la oración. El schema
+// (§7.1) garantiza que ese texto aparece EXACTA una vez — lo comprueba el
+// validador — así que un indexOf simple basta y no hace falta regex.
+function _resaltarObjetivo(oracion, texto) {
+  const i = oracion.indexOf(texto);
+  if (i < 0) return escHtml(oracion); // defensivo: no debería pasar, ya validado en el banco
+  return escHtml(oracion.slice(0, i)) +
+    '<mark class="lab-marca">' + escHtml(oracion.slice(i, i + texto.length)) + '</mark>' +
+    escHtml(oracion.slice(i + texto.length));
+}
+
+// Las cinco manipulaciones (sustituye/suprime/cambia_numero/mueve/transforma)
+// comparten estructura y corrección — es la decisión de diseño del schema
+// (§3.4): un único render, y las respuestas se resuelven con la misma
+// labResponderOpciones que ya usa que_cambia, porque "opciones" tiene
+// siempre la misma forma {texto, ok, micro} salga lo que salga de la
+// manipulación (una oración resultante en cuatro de los cinco casos, un
+// veredicto — "sigue funcionando"/"queda cojo"/"cambia de significado" — en
+// suprime).
+function _renderManipulacion(item) {
+  LAB._item = item;
+  const opciones = shuffle(item.opciones.map((o, i) => ({ ...o, _i: i })));
+  LAB._opciones = opciones;
+  _setCorpus('<div class="lab-frase">' + _resaltarObjetivo(item.oracion, item.objetivo.texto) + '</div>');
+  _setPregunta(MANIP_PREGUNTA[item.manipulacion] || '¿Qué pasa?');
+  _setFichas('<div class="lab-stack">' +
+    opciones.map((o, i) => _btnOp(i, o.texto, 'labResponderOpciones')).join('') + '</div>');
 }
 
 // ── Public API + window bindings (patrón fabrica/chispa) ──────────────────

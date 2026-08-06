@@ -4969,6 +4969,15 @@ body.theme-new-ui #screen-laboratorio .lab-frase{
 body.theme-new-ui #screen-laboratorio .lab-frase-arrow{
   text-align:center;color:var(--lab-verde);font-size:1.1rem;margin:2px 0;
 }
+/* Pieza señalada dentro de la oración (manipulacion, y en próximas
+   sesiones juicio/par_minimo). Nunca solo negrita: el fondo + subrayado
+   grueso funcionan aunque el alumno no distinga bien el color. */
+body.theme-new-ui #screen-laboratorio .lab-marca{
+  background:var(--lab-tint-2);color:var(--lab-verde-dk);
+  padding:1px 3px;border-radius:4px;font-weight:700;
+  text-decoration:underline;text-decoration-color:var(--lab-verde);
+  text-decoration-thickness:2px;text-underline-offset:2px;
+}
 
 /* ── Botón de acción ── */
 body.theme-new-ui #screen-laboratorio .lab-btn{
