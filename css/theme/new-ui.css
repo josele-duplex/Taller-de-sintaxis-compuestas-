@@ -4996,6 +4996,17 @@ body.theme-new-ui #screen-laboratorio .lab-btn:active{
 }
 body.theme-new-ui #screen-laboratorio .lab-btn-block{width:100%;max-width:340px;margin:0 auto}
 
+/* Secundario: saltar el diario. Presencia mínima, nunca compite. */
+body.theme-new-ui #screen-laboratorio .lab-btn-sm{
+  padding:7px 15px;border-radius:var(--ui-r-sm);
+  border:1.5px solid var(--ui-border-strong);background:var(--ui-surface);
+  font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;
+  color:var(--ui-muted);cursor:pointer;transition:border-color .15s,color .15s;
+}
+body.theme-new-ui #screen-laboratorio .lab-btn-sm:hover{
+  border-color:var(--lab-verde);color:var(--lab-verde-dk);
+}
+
 /* ── Opciones (que_cambia, intruso, valencia) ── */
 body.theme-new-ui #screen-laboratorio .lab-stack{display:flex;flex-direction:column;gap:10px}
 body.theme-new-ui #screen-laboratorio .lab-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
@@ -5147,6 +5158,14 @@ body.theme-new-ui #screen-laboratorio .lab-caja-ejemplo{
 body.theme-new-ui #screen-laboratorio .lab-caja-add{
   margin-top:8px;font-size:.82rem;font-weight:700;
 }
+
+/* ── Diario metalingüístico (F2·sesión 3, plan §4.3) ── */
+body.theme-new-ui #screen-laboratorio .lab-diario-ta{
+  width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid var(--lab-border);
+  border-radius:var(--ui-r-sm);font-family:'DM Sans',sans-serif;font-size:.9rem;line-height:1.5;
+  resize:vertical;color:var(--ui-ink);
+}
+body.theme-new-ui #screen-laboratorio .lab-diario-ta:focus{outline:none;border-color:var(--lab-verde)}
 
 @media (prefers-reduced-motion: reduce){
   body.theme-new-ui #screen-laboratorio .lab-op{animation:none}

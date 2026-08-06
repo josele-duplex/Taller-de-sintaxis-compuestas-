@@ -59,9 +59,20 @@
             tanto LAB_TIPO_ESTACION) sea el mismo del análisis inverso
             normal de Estación 2 — es la única distinción por `destino`, no
             por `tipo`, que tiene el motor.
+     F2·3 (diario, hecha esta sesión) → diario metalingüístico (§4.3):
+            clonado tal cual de Fábrica de Palabras (LS_FAB_DIARIO →
+            LS_LAB_DIARIO), localStorage puro. El "✕ Terminar" de la topbar
+            ahora llama a labPedirSalir (no a exitLaboratorio directamente):
+            si hubo algún reto completado en la sesión, ofrece el diario
+            antes de salir de verdad — mismo papel que fabPedirSalir. OJO:
+            el plan de producto dice que reutiliza "la columna Reflexion de
+            retos y misiones... que ya viaja al informe del profesor", y eso
+            es incorrecto contra el código real — esa columna es la
+            reflexión de opción múltiple de Fase C en Simples (dato
+            distinto). El precedente real y el que se ha clonado es el
+            diario de Fábrica, que no toca el servidor.
    Pendiente:
-     F2·3 (resto) → diario metalingüístico y puentes con Simples en los dos
-            sentidos (§1, §4.3 del plan).
+     F2·3 (resto) → puentes con Simples en los dos sentidos (§1 del plan).
    Sin examen con PIN (Laboratorio.gs no lo tiene todavía — es F3 del plan) y
    sin selector de nivel más allá de basico/medio/avanzado: solo hay contenido
    en 'medio' por ahora (lote semilla F0·3), así que basico/avanzado mostrarán
@@ -76,6 +87,15 @@ import { VEREDICTOS as VEREDICTO_UI, ORDEN_VEREDICTOS as VEREDICTOS,
 // El repertorio de pruebas (F2·1) es la fuente única de la Estación 3: el
 // reto solo apunta a un prueba_id + sus distractores, el contenido vive aquí.
 import { textoPrueba, microPrueba } from '../../data/pruebas-sintaxis.js';
+// Diario metalingüístico (F2·3): mismo patrón exacto que Fábrica de
+// Palabras (js/modules/fabrica/index.js, LS_FAB_DIARIO) — localStorage
+// puro, sin servidor. La afirmación del plan de producto §4.3 de que
+// reutiliza "la columna Reflexion de retos y misiones... que ya viaja al
+// informe del profesor" no se corresponde con el código real: esa columna
+// (Server/Code_v6.gs, EXAM_HEADER) es la reflexión de opción múltiple de
+// Fase C en Simples, un dato distinto. El precedente real de un diario
+// metalingüístico de texto libre es el de Fábrica, y es puramente local.
+import { LS_LAB_DIARIO } from '../../core/constants.js';
 
 let LAB = {}; // estado de la sesión (expuesto como window.LAB más abajo)
 
@@ -397,6 +417,15 @@ function _finReto() {
 function labSiguienteReto() { _siguienteReto(); }
 
 function exitLaboratorio() { _enviarAnaliticaLaboratorio(); showScreen('portada'); }
+
+// Bind real del botón "✕ Terminar" (index.html): si ha completado algún
+// reto en la sesión, ofrece el diario antes de salir de verdad — mismo
+// papel que fabPedirSalir en Fábrica. Cambiar de nivel (labCambiarNivel,
+// debajo) NO pasa por aquí: no es "cerrar sesión", es seguir jugando.
+function labPedirSalir() {
+  if ((LAB.retosCompletadosSesion || 0) > 0) { _mostrarDiario(); return; }
+  exitLaboratorio();
+}
 
 function labCambiarNivel() { _enviarAnaliticaLaboratorio(); _mostrarSelectorNivel(); }
 
@@ -864,6 +893,53 @@ function labVolverDesdeCaja() {
   }
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  DIARIO METALINGÜÍSTICO — F2·sesión 3, plan §4.3
+// ════════════════════════════════════════════════════════════════════════
+// Clonado tal cual de _mostrarDiario/_guardarEntradaDiario/fabGuardarDiario/
+// fabSaltarDiario de js/modules/fabrica/index.js (mismo problema exacto:
+// campo opcional al cerrar sesión, con la plantilla del marco teórico).
+// Reutiliza los mismos contenedores lab-corpus/lab-pregunta/lab-fichas que
+// el resto del módulo, no una pantalla nueva.
+
+function _mostrarDiario() {
+  _limpiarExplicacion();
+  const estBadge = _el('lab-estacion');
+  if (estBadge) estBadge.textContent = '';
+  const progEl = _el('lab-progreso');
+  if (progEl) progEl.textContent = '';
+  _setCorpus('<div class="lab-titulo">¿Qué te llevas de esta sesión?</div>');
+  _setPregunta('Es opcional — te ayuda a fijar lo que has descubierto.');
+  _setFichas(
+    '<textarea id="lab-diario-texto" class="lab-diario-ta" rows="4" ' +
+    'placeholder="Antes pensaba que…, ahora he descubierto que…, y lo sé porque…"></textarea>' +
+    '<div class="lab-row" style="margin-top:14px">' +
+    '<button type="button" class="lab-btn-sm" onclick="labSaltarDiario()">Saltar</button>' +
+    '<button type="button" class="lab-btn" onclick="labGuardarDiario()">Guardar y salir</button>' +
+    '</div>'
+  );
+}
+
+function _guardarEntradaDiario(texto) {
+  try {
+    const diario = JSON.parse(localStorage.getItem(LS_LAB_DIARIO) || '[]');
+    diario.push({
+      fecha: new Date().toISOString().slice(0, 10),
+      nivel: LAB.nivel,
+      retos: LAB.retosCompletadosSesion || 0,
+      texto
+    });
+    localStorage.setItem(LS_LAB_DIARIO, JSON.stringify(diario));
+  } catch (e) {}
+}
+function labGuardarDiario() {
+  const ta = _el('lab-diario-texto');
+  const texto = ta ? ta.value.trim() : '';
+  if (texto) _guardarEntradaDiario(texto);
+  exitLaboratorio();
+}
+function labSaltarDiario() { exitLaboratorio(); }
+
 // ── Analíticas silenciosas (F1·sesión 4) ──────────────────────────────────
 // Mismo patrón que _enviarSesionChispa (js/modules/chispa/index.js):
 // sendBeacon con todo el payload en la query string (nunca en el body: un
@@ -910,22 +986,24 @@ if (typeof window !== 'undefined') {
 // ── Public API + window bindings (patrón fabrica/chispa) ──────────────────
 
 export {
-  startLaboratorio, exitLaboratorio, labCambiarNivel, iniciarLaboratorioNivel,
+  startLaboratorio, exitLaboratorio, labPedirSalir, labCambiarNivel, iniciarLaboratorioNivel,
   labEmpezarReto, labSiguienteItem, labSiguienteReto,
   labResponderValencia, labResponderOpciones, labResponderIntruso,
   labResponderVeredicto, labResponderCausa,
   labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
-  labResponderPrueba, labVerCajaPruebas, labVolverDesdeCaja
+  labResponderPrueba, labVerCajaPruebas, labVolverDesdeCaja,
+  labGuardarDiario, labSaltarDiario
 };
 
 if (typeof window !== 'undefined') {
   Object.assign(window, {
-    startLaboratorio, exitLaboratorio, labCambiarNivel, iniciarLaboratorioNivel,
+    startLaboratorio, exitLaboratorio, labPedirSalir, labCambiarNivel, iniciarLaboratorioNivel,
     labEmpezarReto, labSiguienteItem, labSiguienteReto,
     labResponderValencia, labResponderOpciones, labResponderIntruso,
     labResponderVeredicto, labResponderCausa,
     labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
-    labResponderPrueba, labVerCajaPruebas, labVolverDesdeCaja
+    labResponderPrueba, labVerCajaPruebas, labVolverDesdeCaja,
+    labGuardarDiario, labSaltarDiario
   });
   Object.defineProperty(window, 'LAB', { get: () => LAB, configurable: true });
 }
