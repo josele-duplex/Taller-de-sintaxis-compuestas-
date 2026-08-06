@@ -5127,6 +5127,27 @@ body.theme-new-ui #screen-laboratorio .lab-slot-rol{
 body.theme-new-ui #screen-laboratorio .lab-slot-body{flex:1;min-height:30px;display:flex;align-items:center}
 body.theme-new-ui #screen-laboratorio .lab-slot-vacio{font-size:.8rem;color:var(--ui-muted-2);font-style:italic}
 
+/* ── Caja de Pruebas del Detective (F2·sesión 3) ── */
+body.theme-new-ui #screen-laboratorio .lab-caja-lista{display:flex;flex-direction:column;gap:10px}
+body.theme-new-ui #screen-laboratorio .lab-caja-fila{
+  border:1.5px solid var(--lab-border);border-radius:var(--ui-r);
+  background:var(--ui-surface);padding:12px 16px;
+}
+body.theme-new-ui #screen-laboratorio .lab-caja-funcion{
+  font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.03em;color:var(--lab-verde-dk);
+}
+body.theme-new-ui #screen-laboratorio .lab-caja-prueba{
+  font-size:.82rem;color:var(--ui-muted);margin-top:3px;line-height:1.4;
+}
+body.theme-new-ui #screen-laboratorio .lab-caja-ejemplo{
+  font-family:'Fraunces',serif;font-size:.98rem;font-weight:600;
+  color:var(--ui-ink);margin-top:6px;
+}
+body.theme-new-ui #screen-laboratorio .lab-caja-add{
+  margin-top:8px;font-size:.82rem;font-weight:700;
+}
+
 @media (prefers-reduced-motion: reduce){
   body.theme-new-ui #screen-laboratorio .lab-op{animation:none}
   body.theme-new-ui #screen-laboratorio .lab-btn,

@@ -45,11 +45,23 @@
             campo ok:true en las opciones — las pruebas no lo traen consigo,
             lo compara el motor. microPrueba() ya devolvía el feedback en
             interrogativo desde F2·1, aquí solo se conecta.
+     F2·3 (hecha en parte, esta sesión) → Caja de Pruebas del Detective
+            (§4.1 del plan): un analisis_inverso con destino:"caja_pruebas"
+            que se construye bien ahora persiste el ejemplo del alumno en
+            localStorage (taller_caja_pruebas_<email>), junto a la función y
+            la prueba conquistada — que toma de LAB._cajaContexto, fijado
+            por el último etiqueta_prueba acertado en la sesión (el schema
+            de analisis_inverso no lleva función propia, así que el enlace
+            es de contexto, no de dato). Visor propio (labVerCajaPruebas,
+            botón "📇 Mi Caja" en la topbar) que reutiliza los mismos
+            contenedores del resto del módulo. La estación de este ítem se
+            fuerza a 3 en _estacionDeItem aunque su tipo de schema (y por
+            tanto LAB_TIPO_ESTACION) sea el mismo del análisis inverso
+            normal de Estación 2 — es la única distinción por `destino`, no
+            por `tipo`, que tiene el motor.
    Pendiente:
-     F2·3 → Caja de Pruebas del Detective (destino:"caja_pruebas" de
-            analisis_inverso, hoy jugado igual que destino:"reto", sin
-            persistir nada), diario metalingüístico y puentes con Simples en
-            los dos sentidos (§1, §4.1, §4.3 del plan).
+     F2·3 (resto) → diario metalingüístico y puentes con Simples en los dos
+            sentidos (§1, §4.3 del plan).
    Sin examen con PIN (Laboratorio.gs no lo tiene todavía — es F3 del plan) y
    sin selector de nivel más allá de basico/medio/avanzado: solo hay contenido
    en 'medio' por ahora (lote semilla F0·3), así que basico/avanzado mostrarán
@@ -134,7 +146,14 @@ const LAB_TIPO_ESTACION = {
   manipulacion: 2, juicio: 2, par_minimo: 2, analisis_inverso: 2, frontera: 2,
   etiqueta_prueba: 3
 };
-function _estacionDeItem(item) { return LAB_TIPO_ESTACION[item.tipo] || 2; }
+// Caso especial: analisis_inverso con destino "caja_pruebas" (ítem 3.3 del
+// plan, "Tu ejemplo para la caja") es de Estación 3 aunque su tipo de schema
+// sea el mismo que el análisis inverso normal de Estación 2 — el schema no
+// distingue estación por tipo en ese caso, solo por `destino`.
+function _estacionDeItem(item) {
+  if (item.tipo === 'analisis_inverso' && item.destino === 'caja_pruebas') return 3;
+  return LAB_TIPO_ESTACION[item.tipo] || 2;
+}
 
 const ESTACION_INFO = {
   1: { icon: '🔍', label: 'Estación 1 · Observa' },
@@ -682,9 +701,22 @@ function labAiComprobar() {
   }).join('');
   _setFichas('<div class="lab-slots">' + slotsHtml + '</div>');
   _resolverItem(todoBien, 'analisis_inverso');
-  const html = todoBien
+  let html = todoBien
     ? '✓ ¡Construida! Cada pieza está donde tiene que estar.'
     : '✗ Alguna pieza no está donde tiene que estar. Revisa: ' + rolesFallados.map(escHtml).join(', ') + '.';
+  // destino: "caja_pruebas" (schema §3.7, ítem 3.3 del plan): si se
+  // construye bien, el ejemplo del alumno se fija en su Caja de Pruebas del
+  // Detective, junto a la función/prueba que acaba de conquistar (F2·2).
+  if (todoBien && item.destino === 'caja_pruebas') {
+    _guardarEnCajaPruebas(LAB.email, {
+      funcion: LAB._cajaContexto ? LAB._cajaContexto.funcion : null,
+      pruebaId: LAB._cajaContexto ? LAB._cajaContexto.pruebaId : null,
+      ejemplo: _construirEjemploCaja(item, asign),
+      consigna: item.consigna,
+      fecha: new Date().toISOString()
+    });
+    html += '<div class="lab-caja-add">📇 Guardado en tu Caja de Pruebas del Detective.</div>';
+  }
   _mostrarExplicacion(todoBien, html);
 }
 
@@ -733,8 +765,103 @@ function labResponderPrueba(idx) {
   const acierto = elegido === item.prueba_id;
   _colorearBotones(ids.length, i => ids[i] === item.prueba_id, idx);
   _resolverItem(acierto, 'etiqueta_prueba');
+  // La prueba recién conquistada queda disponible para el siguiente ítem del
+  // reto (3.3 "Tu ejemplo para la caja", más abajo): el schema de
+  // analisis_inverso no lleva función propia, así que la Caja de Pruebas la
+  // toma de aquí — de la última prueba que el alumno acertó en esta sesión.
+  if (acierto) LAB._cajaContexto = { funcion: item.objetivo.funcion, pruebaId: item.prueba_id };
   const micro = microPrueba(elegido, { ok: acierto, trozo: item.objetivo.texto });
   _mostrarExplicacion(acierto, (acierto ? '✓ ' : '') + escHtml(micro));
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  LA CAJA DE PRUEBAS DEL DETECTIVE — F2·sesión 3, plan §4.1
+// ════════════════════════════════════════════════════════════════════════
+// "Tabla personal que se rellena sola": cada prueba conquistada en la
+// Estación 3 (etiqueta_prueba correcto → analisis_inverso con
+// destino:"caja_pruebas" construido bien) añade una fila con la función, la
+// prueba en lenguaje de alumno y el ejemplo que el propio alumno fabricó.
+// Persistencia: localStorage por alumno, mismo patrón de ámbito que
+// taller_error_history (core/profile.js) — nada de servidor, es material de
+// estudio personal, no una analítica.
+
+const CAJA_KEY_PREFIX = 'taller_caja_pruebas_';
+function _cajaKey(email) { return CAJA_KEY_PREFIX + (email || 'anon'); }
+
+function _leerCajaPruebas(email) {
+  try { return JSON.parse(localStorage.getItem(_cajaKey(email)) || '[]'); }
+  catch (e) { return []; }
+}
+
+// Sin duplicar la misma prueba con el mismo ejemplo exacto (el alumno puede
+// repetir el mismo reto en otra sesión y volver a construir la misma frase).
+function _guardarEnCajaPruebas(email, entrada) {
+  try {
+    const caja = _leerCajaPruebas(email);
+    const yaEsta = caja.some(c => c.pruebaId === entrada.pruebaId && c.ejemplo === entrada.ejemplo);
+    if (!yaEsta) {
+      caja.push(entrada);
+      localStorage.setItem(_cajaKey(email), JSON.stringify(caja));
+    }
+  } catch (e) { console.warn('[laboratorio] no se pudo guardar en la Caja de Pruebas:', e); }
+}
+
+// Reconstruye la frase del alumno a partir de las piezas colocadas, en el
+// orden de los slots (aproximación razonable para "orden": "libre" también
+// — no hay forma de saber el orden gramatical real sin analizarla, y esto
+// es una carta de estudio, no un ítem que se corrija).
+function _construirEjemploCaja(item, asignacion) {
+  const texto = item.slots.map((s, si) => item.piezas[asignacion[si]]).join(' ');
+  const cap = texto.charAt(0).toUpperCase() + texto.slice(1);
+  return /[.!?]$/.test(cap) ? cap : cap + '.';
+}
+
+// Visor: reutiliza los mismos contenedores lab-corpus/lab-pregunta/lab-fichas
+// que el resto del módulo (mismo patrón que _mostrarSelectorNivel/_finReto),
+// no una pantalla nueva. Accesible en cualquier momento desde la topbar
+// ("📇 Mi Caja"), incluso antes de elegir nivel o en mitad de un reto.
+function labVerCajaPruebas() {
+  if (!LAB || !LAB.email) return; // sin sesión de Laboratorio arrancada, no hace nada
+  LAB._enCaja = true;
+  const caja = _leerCajaPruebas(LAB.email);
+  const estBadge = _el('lab-estacion');
+  if (estBadge) estBadge.textContent = '📇 Caja de Pruebas del Detective';
+  const progEl = _el('lab-progreso');
+  if (progEl) progEl.textContent = caja.length + (caja.length === 1 ? ' prueba conquistada' : ' pruebas conquistadas');
+  _limpiarExplicacion();
+  _setPregunta('');
+  if (caja.length === 0) {
+    _setCorpus('<div class="lab-titulo">📇 Tu Caja de Pruebas del Detective</div>');
+    _setFichas(
+      '<p style="text-align:center;color:var(--muted)">Todavía está vacía. Cada vez que aciertes una prueba en la Estación 3 y fabriques tu propio ejemplo, aparecerá aquí.</p>' +
+      '<button type="button" class="lab-btn lab-btn-block" onclick="labVolverDesdeCaja()" style="margin-top:16px">← Volver</button>'
+    );
+    return;
+  }
+  const filas = caja.map(c =>
+    '<div class="lab-caja-fila">' +
+      '<div class="lab-caja-funcion">' + escHtml(c.funcion || '—') + '</div>' +
+      '<div class="lab-caja-prueba">' + escHtml(c.pruebaId ? textoPrueba(c.pruebaId, 'simple') : '') + '</div>' +
+      '<div class="lab-caja-ejemplo">«' + escHtml(c.ejemplo) + '»</div>' +
+    '</div>'
+  ).join('');
+  _setCorpus('<div class="lab-titulo">📇 Tu Caja de Pruebas del Detective</div>');
+  _setFichas(
+    '<div class="lab-caja-lista">' + filas + '</div>' +
+    '<button type="button" class="lab-btn lab-btn-block" onclick="labVolverDesdeCaja()" style="margin-top:16px">← Volver</button>'
+  );
+}
+
+// Vuelve exactamente a donde estaba: si había un reto en curso, redibuja el
+// mismo ítem (renderItemLaboratorio es de módulo, no hace falta exponerla);
+// si no, al selector de nivel.
+function labVolverDesdeCaja() {
+  LAB._enCaja = false;
+  if (LAB.reto && Array.isArray(LAB.items) && LAB.itemIdx < LAB.items.length) {
+    renderItemLaboratorio();
+  } else {
+    _mostrarSelectorNivel();
+  }
 }
 
 // ── Analíticas silenciosas (F1·sesión 4) ──────────────────────────────────
@@ -788,7 +915,7 @@ export {
   labResponderValencia, labResponderOpciones, labResponderIntruso,
   labResponderVeredicto, labResponderCausa,
   labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
-  labResponderPrueba
+  labResponderPrueba, labVerCajaPruebas, labVolverDesdeCaja
 };
 
 if (typeof window !== 'undefined') {
@@ -798,7 +925,7 @@ if (typeof window !== 'undefined') {
     labResponderValencia, labResponderOpciones, labResponderIntruso,
     labResponderVeredicto, labResponderCausa,
     labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
-    labResponderPrueba
+    labResponderPrueba, labVerCajaPruebas, labVolverDesdeCaja
   });
   Object.defineProperty(window, 'LAB', { get: () => LAB, configurable: true });
 }
