@@ -131,6 +131,16 @@ if(window.location.protocol === 'file:') {
         <p class="mod-card-desc">Un vistazo y a responder: ¿cuál es la función? Rápido, que salta la Chispa.</p>
         <span class="mod-card-cta">Jugar</span>
       </div>
+      <div class="mod-card mc-fabrica" data-module="fabrica" onclick="goModule('fabrica')" role="button" tabindex="0"
+           onkeydown="if(event.key==='Enter')goModule('fabrica')">
+        <span class="mod-card-badge">Nuevo</span>
+        <span class="mod-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="3" y="10" width="6" height="10" rx="1"/><rect x="10" y="5" width="6" height="15" rx="1"/><rect x="17" y="13" width="4" height="7" rx="1"/></svg>
+        </span>
+        <h3 class="mod-card-title">La Fábrica de Palabras</h3>
+        <p class="mod-card-desc">Desmonta y monta palabras: raíces, prefijos, sufijos… descubre de qué están hechas.</p>
+        <span class="mod-card-cta">Jugar</span>
+      </div>
     </div>
     <div class="portada-footer">
       <a href="manual-alumno.html" target="_blank" rel="noopener" style="color:#1D4ED8;font-weight:700;text-decoration:underline">📖 Manual de uso</a>
@@ -206,6 +216,68 @@ if(window.location.protocol === 'file:') {
        importar cuánto crezca el contenido de arriba. -->
   <div style="flex-shrink:0;padding:12px 20px calc(12px + env(safe-area-inset-bottom));box-sizing:border-box">
     <button type="button" id="chi-siguiente" onclick="chispaSiguiente()" style="display:none;width:100%;max-width:640px;margin:0 auto;padding:14px;font-size:1rem;font-weight:800;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 12px rgba(217,119,6,.3)">Siguiente →</button>
+  </div>
+</div>
+
+<!-- FÁBRICA — módulo "La Fábrica de Palabras" (formación de palabras) -->
+<div id="screen-fabrica" class="screen" style="flex-direction:column;height:100dvh;overflow:hidden">
+  <div class="topbar">
+    <div class="tb-inner">
+      <div class="tb-row1">
+        <span class="tb-name" id="fab-name"></span>
+        <span class="tb-badge" style="background:var(--fab-oliva);color:#fff">🏭 Fábrica</span>
+        <span class="tb-badge" id="fab-nivel-badge" style="background:var(--fab-tint);color:var(--fab-oliva-dk)"></span>
+        <span class="tb-counter" id="fab-streak">🔥 0</span>
+        <span class="tb-timer" id="fab-timer" aria-live="polite"></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="fab-btn-mesa" onclick="fabAbrirMesa()" style="padding:5px 12px;font-size:.75rem;font-weight:700">🧰 Mi mesa</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="fab-btn-museo" onclick="fabAbrirMuseo()" style="padding:5px 12px;font-size:.75rem;font-weight:700">🏛 Museo</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="fab-cambiar-nivel" onclick="fabCambiarNivel()" style="padding:5px 12px;font-size:.75rem;font-weight:700;display:none">🔄 Cambiar nivel</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="fabPedirSalir()" style="padding:5px 12px;font-size:.75rem;font-weight:700;margin-left:auto">✕ Terminar</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:2px 4px">
+        <span id="fab-estacion" style="font-size:.78rem;font-weight:800;color:var(--fab-oliva-dk)"></span>
+        <span id="fab-progreso" style="font-size:.78rem;color:var(--muted)"></span>
+      </div>
+    </div>
+  </div>
+  <div style="flex:1;min-height:0;overflow-y:auto;display:flex;align-items:center;justify-content:center;padding:16px 20px">
+    <div style="width:100%;max-width:640px">
+      <div id="fab-oracion" style="margin-bottom:10px"></div>
+      <div id="fab-pregunta" style="text-align:center;font-weight:700;font-size:.95rem;color:var(--fab-oliva-dk);margin-bottom:18px;letter-spacing:.01em"></div>
+      <div id="fab-fichas"></div>
+      <div id="fab-explicacion" class="fab-expl" style="display:none;margin-top:16px;padding:12px 16px;border-radius:var(--ui-r);font-size:.88rem;font-weight:500;line-height:1.5;text-align:center" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+  <div style="flex-shrink:0;padding:12px 20px calc(12px + env(safe-area-inset-bottom));box-sizing:border-box">
+    <button type="button" id="fab-siguiente" class="fab-btn" onclick="fabSiguienteItem()" style="display:none;width:100%;max-width:640px;margin:0 auto">Siguiente →</button>
+  </div>
+  <!-- Mesa de Herramientas (§4.3): tabla personal acumulada de procedimientos
+       conquistados en Estación 3, accesible en cualquier momento de la sesión. -->
+  <div id="fab-mesa-modal" class="fab-mesa-modal" style="display:none">
+    <div class="fab-mesa-panel">
+      <div class="fab-mesa-head">
+        <h3>🧰 Mi Mesa de Herramientas</h3>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="fabCerrarMesa()" aria-label="Cerrar">✕</button>
+      </div>
+      <div id="fab-mesa-body" class="fab-mesa-body"></div>
+      <div class="fab-mesa-foot">
+        <button type="button" class="fab-btn-sm" onclick="fabImprimirMesa()">🖨 Imprimir</button>
+      </div>
+    </div>
+  </div>
+  <!-- Museo de Palabras (§4.2): colección personal de las palabras que el
+       alumno ha inventado en el reto creativo «Fabrica tu palabra». -->
+  <div id="fab-museo-modal" class="fab-mesa-modal" style="display:none">
+    <div class="fab-mesa-panel">
+      <div class="fab-mesa-head">
+        <h3>🏛 Mi Museo de Palabras</h3>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="fabCerrarMuseo()" aria-label="Cerrar">✕</button>
+      </div>
+      <div id="fab-museo-body" class="fab-mesa-body"></div>
+      <div class="fab-mesa-foot">
+        <button type="button" class="fab-btn-sm" onclick="fabImprimirMuseo()">🖨 Imprimir</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -622,6 +694,67 @@ if(window.location.protocol === 'file:') {
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <button type="button" class="btn btn-primary btn-sm" onclick="createExamenMorfologiaUI()">🚀 Activar examen</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="testMorfoExamPin()">🔎 Probar PIN actual</button>
+      </div>
+    </div>
+    <!-- ── F3 sesión 2 (jul-2026): Crear examen de la Fábrica de Palabras ── -->
+    <div class="s-box" style="border:2px solid var(--fab-oliva);background:var(--fab-tint)">
+      <div class="s-title" style="color:var(--fab-oliva-dk)">🏭 Crear examen de la Fábrica de Palabras</div>
+      <div class="s-desc">Genera un PIN y actívalo. Los alumnos lo introducen en el login de la Fábrica ("🔑 Tengo un PIN de examen") en vez de elegir nivel — el nivel lo fija el examen.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 8px">
+        <div style="min-width:128px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">PIN (4 dígitos)</label>
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <input id="tp-fab-exam-pin" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="1234"
+              style="width:88px;text-align:center;font-size:1.1rem;font-weight:900;letter-spacing:.15em;padding:6px 8px">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="genFabricaExamPin()" title="Generar PIN aleatorio">🎲</button>
+          </div>
+        </div>
+        <div style="flex:1;min-width:80px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Grupo</label>
+          <select id="tp-fab-exam-grupo" class="input grupo-select" data-grupo-placeholder="— Elige clase —" style="font-size:.88rem;padding:6px 8px;margin-top:4px"></select>
+        </div>
+        <div style="flex:1;min-width:60px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Evaluación</label>
+          <select id="tp-fab-exam-eval" class="input" style="font-size:.88rem;padding:6px 8px;margin-top:4px">
+            <option value="1ª">1ª</option>
+            <option value="2ª">2ª</option>
+            <option value="3ª">3ª</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nombre del examen</label>
+        <input id="tp-fab-exam-name" class="input" type="text" placeholder="Ej: Fábrica de Palabras T1" style="width:100%;font-size:.88rem;padding:6px 8px;margin-top:4px">
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+        <div style="min-width:150px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nivel</label>
+          <select id="tp-fab-exam-nivel" class="input" style="font-size:.88rem;padding:6px 8px;margin-top:4px;width:100%">
+            <option value="basico">🌱 Aprendiz — 1.º-2.º ESO</option>
+            <option value="medio">📗 3.º-4.º ESO</option>
+            <option value="avanzado">🧬 Maestro — 1.º Bach</option>
+          </select>
+        </div>
+        <div style="min-width:110px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nº de retos</label>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <input id="tp-fab-exam-nretos" class="input" type="number" min="0" max="30" value="0" style="width:70px;font-size:.88rem;padding:6px 8px;text-align:center">
+            <span style="font-size:.72rem;color:var(--muted)">0 = todos</span>
+          </div>
+        </div>
+        <div style="min-width:110px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Timer (minutos)</label>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <input id="tp-fab-exam-timer" class="input" type="number" min="0" max="180" value="0" style="width:70px;font-size:.88rem;padding:6px 8px;text-align:center">
+            <span style="font-size:.72rem;color:var(--muted)">0 = sin límite</span>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:.72rem;color:var(--muted);margin:-4px 0 10px">El examen solo juega Estación 2-3 (manipula + etiqueta) — Estación 1 es de aprendizaje, sin nota.</p>
+      <p id="tp-fab-exam-status" style="font-size:.85rem;display:none;padding:8px 12px;border-radius:8px;margin-bottom:8px" role="status"></p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn btn-primary btn-sm" onclick="createExamenFabricaUI()">🚀 Activar examen</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="testFabricaExamPin()">🔎 Probar PIN actual</button>
       </div>
     </div>
     <div class="s-box" style="border-left:4px solid #F59E0B">

@@ -93,6 +93,7 @@ import './modules/sintagmas/index.js';
 import './modules/maestro/index.js';
 import './modules/teacher/index.js';
 import './modules/chispa/index.js';
+import './modules/fabrica/index.js';
 
 console.log('[app.js] Módulos ES6 cargados y expuestos en window.');
 

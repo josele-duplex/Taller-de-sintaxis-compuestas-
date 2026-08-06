@@ -4,13 +4,33 @@
 
 import { loadProgress } from '../core/storage.js';
 import { levelFromXP } from './levels.js';
+import { getFabMission } from './missions-fabrica.js';
 import { getMastery, MASTERY_THRESHOLD } from '../feedback/tracking.js';
+
+// Bloque de misión reutilizable: la de Simples (p.todayMission) y la de la
+// Fábrica (p.fabMission) son pools distintos pero se pintan igual.
+function _misionHtml(m, titulo) {
+  if (!m) return '';
+  return `
+      <div style="background:${m.completed?'#F0FDF4':'#EFF6FF'};border:2px solid ${m.completed?'#86EFAC':'#93C5FD'};border-radius:14px;padding:14px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:.72rem;font-weight:800;color:${m.completed?'#059669':'#1D4ED8'};text-transform:uppercase;letter-spacing:.08em">${m.completed?'✓ '+titulo+' cumplida':'🎯 '+titulo}</div>
+          <div style="font-size:.75rem;font-weight:800;color:${m.completed?'#059669':'#1D4ED8'}">+${m.reward} XP</div>
+        </div>
+        <div style="font-weight:700;color:var(--ink);font-size:.9rem;margin-bottom:8px">${m.label}</div>
+        <div style="height:8px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${Math.round(m.progress/m.target*100)}%;background:${m.completed?'#059669':'#1D4ED8'};border-radius:99px"></div>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${m.progress}/${m.target}</div>
+      </div>`;
+}
 
 // ═══ DASHBOARD PANEL FOR STUDENT (opens from portada corner) ═══
 export function showStudentDashboard() {
   const p = loadProgress();
   const lvl = levelFromXP(p.xp);
   const m = p.todayMission;
+  const fabM = getFabMission();
   // Build last 7 days bars
   const today = new Date();
   const days = [];
@@ -63,19 +83,8 @@ export function showStudentDashboard() {
           <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px;color:var(--muted)">oraciones esta semana</div>
         </div>
       </div>
-      ${m ? `
-      <div style="background:${m.completed?'#F0FDF4':'#EFF6FF'};border:2px solid ${m.completed?'#86EFAC':'#93C5FD'};border-radius:14px;padding:14px;margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="font-size:.72rem;font-weight:800;color:${m.completed?'#059669':'#1D4ED8'};text-transform:uppercase;letter-spacing:.08em">${m.completed?'✓ Misión cumplida':'🎯 Misión de hoy'}</div>
-          <div style="font-size:.75rem;font-weight:800;color:${m.completed?'#059669':'#1D4ED8'}">+${m.reward} XP</div>
-        </div>
-        <div style="font-weight:700;color:var(--ink);font-size:.9rem;margin-bottom:8px">${m.label}</div>
-        <div style="height:8px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden">
-          <div style="height:100%;width:${Math.round(m.progress/m.target*100)}%;background:${m.completed?'#059669':'#1D4ED8'};border-radius:99px"></div>
-        </div>
-        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${m.progress}/${m.target}</div>
-      </div>
-      ` : ''}
+      ${_misionHtml(m, 'Misión de hoy')}
+      ${_misionHtml(fabM, 'Misión de la Fábrica')}
       ${(() => {
         const mast = getMastery();
         const sint = mast['sint'] || {};
