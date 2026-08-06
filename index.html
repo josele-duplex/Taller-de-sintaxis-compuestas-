@@ -141,6 +141,16 @@ if(window.location.protocol === 'file:') {
         <p class="mod-card-desc">Desmonta y monta palabras: raíces, prefijos, sufijos… descubre de qué están hechas.</p>
         <span class="mod-card-cta">Jugar</span>
       </div>
+      <div class="mod-card mc-laboratorio" data-module="laboratorio" onclick="goModule('laboratorio')" role="button" tabindex="0"
+           onkeydown="if(event.key==='Enter')goModule('laboratorio')">
+        <span class="mod-card-badge">Nuevo</span>
+        <span class="mod-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M9 2v6.5L4 18a2 2 0 0 0 1.8 3h12.4a2 2 0 0 0 1.8-3l-5-9.5V2"/><path d="M9 2h6"/><path d="M6.5 14h11"/></svg>
+        </span>
+        <h3 class="mod-card-title">El Laboratorio de Oraciones</h3>
+        <p class="mod-card-desc">Rompe oraciones a propósito para ver qué las sostiene: sustituye, suprime, juzga si funcionan.</p>
+        <span class="mod-card-cta">Experimentar</span>
+      </div>
     </div>
     <div class="portada-footer">
       <a href="manual-alumno.html" target="_blank" rel="noopener" style="color:#1D4ED8;font-weight:700;text-decoration:underline">📖 Manual de uso</a>
@@ -278,6 +288,37 @@ if(window.location.protocol === 'file:') {
         <button type="button" class="fab-btn-sm" onclick="fabImprimirMuseo()">🖨 Imprimir</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- LABORATORIO — módulo "El Laboratorio de Oraciones" (F1·sesión 1) -->
+<div id="screen-laboratorio" class="screen" style="flex-direction:column;height:100dvh;overflow:hidden">
+  <div class="topbar">
+    <div class="tb-inner">
+      <div class="tb-row1">
+        <span class="tb-name" id="lab-name"></span>
+        <span class="tb-badge" style="background:var(--lab-verde);color:#fff">🧪 Laboratorio</span>
+        <span class="tb-badge" id="lab-nivel-badge" style="background:var(--lab-tint);color:var(--lab-verde-dk)"></span>
+        <span class="tb-counter" id="lab-streak">🔥 0</span>
+        <button type="button" class="btn btn-ghost btn-sm" id="lab-cambiar-nivel" onclick="labCambiarNivel()" style="padding:5px 12px;font-size:.75rem;font-weight:700;display:none">🔄 Cambiar nivel</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="exitLaboratorio()" style="padding:5px 12px;font-size:.75rem;font-weight:700;margin-left:auto">✕ Terminar</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:2px 4px">
+        <span id="lab-estacion" style="font-size:.78rem;font-weight:800;color:var(--lab-verde-dk)"></span>
+        <span id="lab-progreso" style="font-size:.78rem;color:var(--muted)"></span>
+      </div>
+    </div>
+  </div>
+  <div style="flex:1;min-height:0;overflow-y:auto;display:flex;align-items:center;justify-content:center;padding:16px 20px">
+    <div style="width:100%;max-width:640px">
+      <div id="lab-corpus" style="margin-bottom:10px"></div>
+      <div id="lab-pregunta" style="text-align:center;font-weight:700;font-size:.95rem;color:var(--lab-verde-dk);margin-bottom:18px;letter-spacing:.01em"></div>
+      <div id="lab-fichas"></div>
+      <div id="lab-explicacion" class="lab-expl" style="display:none;margin-top:16px;padding:12px 16px;border-radius:var(--ui-r);font-size:.88rem;font-weight:500;line-height:1.5;text-align:center" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+  <div style="flex-shrink:0;padding:12px 20px calc(12px + env(safe-area-inset-bottom));box-sizing:border-box">
+    <button type="button" id="lab-siguiente" class="lab-btn" onclick="labSiguienteItem()" style="display:none;width:100%;max-width:640px;margin:0 auto">Siguiente →</button>
   </div>
 </div>
 

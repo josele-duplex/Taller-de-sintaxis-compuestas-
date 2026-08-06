@@ -131,4 +131,23 @@
   --fab-tint:       #F3F5E9; /* fondo de ficha/panel en reposo */
   --fab-tint-2:     #E7ECD3; /* fondo de ficha seleccionada */
   --fab-border:     #C3CFA0; /* borde en reposo */
+
+  /* ─────────────────────────────────────────────────────────────
+     LABORATORIO DE ORACIONES (jul-2026) — mismo patrón que --fab-*:
+     cambiar el color del módulo es cambiar --lab-verde y derivados,
+     nada más. Verde tomado directamente del color de cabecera ya
+     elegido para la hoja Laboratorio_Banco en el Sheet (#1b7a4d),
+     para que Sheet y app se reconozcan como el mismo módulo. OJO:
+     queda cerca de --green (#16A34A, Morfológico/Maestro) — se
+     distinguen por ser más oscuro y virar a azulado, pero si al
+     verlas juntas en la portada resultan confundibles, es la primera
+     variable a retocar (ver arriba, nota de la Fábrica sobre la
+     rueda de color de la portada).
+     ───────────────────────────────────────────────────────────── */
+  --lab-verde:      #1B7A4D; /* acento principal: barras, títulos, botón */
+  --lab-verde-dk:   #145A39; /* sombra dura del botón y estado :active */
+  --lab-verde-soft: #2F9C68; /* hover y elementos secundarios */
+  --lab-tint:       #EAF6EF; /* fondo de ficha/panel en reposo */
+  --lab-tint-2:     #D3ECDE; /* fondo de ficha seleccionada */
+  --lab-border:     #A8D8BE; /* borde en reposo */
 }

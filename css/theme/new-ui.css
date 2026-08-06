@@ -105,6 +105,8 @@
 .theme-new-ui .mc-sint4{border-color:#C4B5FD;}.theme-new-ui .mc-sint4:hover{border-color:var(--purple);}
 .theme-new-ui .mc-fabrica::before{background:var(--fab-oliva);}
 .theme-new-ui .mc-fabrica{border-color:var(--fab-border);}.theme-new-ui .mc-fabrica:hover{border-color:var(--fab-oliva);}
+.theme-new-ui .mc-laboratorio::before{background:var(--lab-verde);}
+.theme-new-ui .mc-laboratorio{border-color:var(--lab-border);}.theme-new-ui .mc-laboratorio:hover{border-color:var(--lab-verde);}
 .theme-new-ui .mc-arcade{background:#1E0D00;border-color:#7A4500;--sh-nb:0 3px 0 #FF8C00,0 6px 20px rgba(255,120,0,.25);box-shadow:var(--sh-nb);}
 .theme-new-ui .mc-arcade::before{background:linear-gradient(90deg,#FF8C00,#FFD600);}
 .theme-new-ui .mc-arcade:hover{border-color:#FF8C00;background:#2D1500;box-shadow:0 6px 0 #FF8C00,0 12px 32px rgba(255,120,0,.38);}
@@ -4942,3 +4944,133 @@ body.theme-new-ui #screen-fabrica .fab-diario-ta:focus{outline:none;border-color
   body.theme-new-ui #screen-fabrica .fab-nivel:hover{transform:none}
 }
 /* ═════════════════ FIN LA FÁBRICA DE PALABRAS ═════════════════ */
+
+/* ═════════════════ EL LABORATORIO DE ORACIONES (F1·sesión 1) ═════════════════
+   Subconjunto de las clases .fab-* de arriba, renombradas .lab-* y con la
+   paleta --lab-* (ver css/tokens.css). Solo lo que esta sesión necesita:
+   selector de nivel, opciones de estación 1, explicación, cierre de reto y
+   el placeholder de los tipos que aún no tienen render. Cuando F1·2-4
+   implementen manipulacion/juicio/par_minimo/analisis_inverso, lo normal
+   será que reutilicen estas mismas clases (ya vienen genéricas) más algunas
+   nuevas (fichas/slots), no que se dupliquen otra vez. */
+
+body.theme-new-ui #screen-laboratorio .lab-titulo{
+  text-align:center;font-family:'Fraunces',serif;font-weight:700;
+  font-size:1.15rem;color:var(--ui-ink);margin-bottom:8px;line-height:1.35;
+}
+body.theme-new-ui #screen-laboratorio .lab-corpus-list{
+  text-align:center;font-family:'Lora',serif;font-style:italic;
+  font-size:.92rem;color:var(--ui-muted);line-height:1.5;
+}
+body.theme-new-ui #screen-laboratorio .lab-frase{
+  text-align:center;font-family:'Fraunces',serif;
+  font-size:1.25rem;font-weight:600;line-height:1.4;color:var(--ui-ink);
+}
+body.theme-new-ui #screen-laboratorio .lab-frase-arrow{
+  text-align:center;color:var(--lab-verde);font-size:1.1rem;margin:2px 0;
+}
+
+/* ── Botón de acción ── */
+body.theme-new-ui #screen-laboratorio .lab-btn{
+  display:block;padding:13px 26px;border:none;border-radius:var(--ui-r);
+  background:var(--lab-verde);color:#fff;
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;
+  letter-spacing:.01em;cursor:pointer;
+  box-shadow:0 3px 0 var(--lab-verde-dk);
+  transition:transform .18s var(--ui-ease-bounce),box-shadow .18s,filter .15s;
+}
+body.theme-new-ui #screen-laboratorio .lab-btn:hover{
+  transform:translateY(-2px);box-shadow:0 5px 0 var(--lab-verde-dk);filter:brightness(1.05);
+}
+body.theme-new-ui #screen-laboratorio .lab-btn:active{
+  transform:translateY(2px);box-shadow:0 1px 0 var(--lab-verde-dk);
+}
+body.theme-new-ui #screen-laboratorio .lab-btn-block{width:100%;max-width:340px;margin:0 auto}
+
+/* ── Opciones (que_cambia, intruso, valencia) ── */
+body.theme-new-ui #screen-laboratorio .lab-stack{display:flex;flex-direction:column;gap:10px}
+body.theme-new-ui #screen-laboratorio .lab-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+body.theme-new-ui #screen-laboratorio .lab-op{
+  padding:15px 20px;border:1.5px solid var(--lab-border);border-radius:var(--ui-r);
+  background:var(--ui-surface);
+  font-family:'Fraunces',serif;font-size:1.02rem;font-weight:600;
+  color:var(--ui-ink);cursor:pointer;text-align:center;
+  box-shadow:0 2px 0 rgba(27,122,77,.16);
+  transition:transform .16s var(--ui-ease-bounce),box-shadow .16s,border-color .16s,background .16s;
+  animation:lab-rise .32s var(--ui-ease) both;
+}
+body.theme-new-ui #screen-laboratorio .lab-op:hover{
+  transform:translateY(-2px);border-color:var(--lab-verde);
+  background:var(--lab-tint);box-shadow:0 4px 0 rgba(27,122,77,.22);
+}
+body.theme-new-ui #screen-laboratorio .lab-op:nth-child(1){animation-delay:.02s}
+body.theme-new-ui #screen-laboratorio .lab-op:nth-child(2){animation-delay:.07s}
+body.theme-new-ui #screen-laboratorio .lab-op:nth-child(3){animation-delay:.12s}
+body.theme-new-ui #screen-laboratorio .lab-op:nth-child(4){animation-delay:.17s}
+@keyframes lab-rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+body.theme-new-ui #screen-laboratorio .lab-op.is-ok{
+  background:var(--ui-ok-tint);border-color:var(--ui-ok);color:#14532D;
+  box-shadow:0 2px 0 rgba(21,128,61,.25);
+}
+body.theme-new-ui #screen-laboratorio .lab-op.is-bad{
+  background:var(--ui-err-tint);border-color:var(--ui-err);color:#881337;
+  box-shadow:0 2px 0 rgba(190,18,60,.22);
+}
+body.theme-new-ui #screen-laboratorio .lab-op.is-dim{opacity:.45;box-shadow:none}
+
+/* ── Selector de nivel ── */
+body.theme-new-ui #screen-laboratorio .lab-nivel{
+  display:block;width:100%;text-align:left;padding:16px 20px;margin-bottom:10px;
+  border:1.5px solid var(--lab-border);border-radius:var(--ui-r);
+  background:var(--ui-surface);cursor:pointer;
+  box-shadow:0 2px 0 rgba(27,122,77,.16);
+  transition:transform .18s var(--ui-ease-bounce),box-shadow .18s,border-color .18s;
+}
+body.theme-new-ui #screen-laboratorio .lab-nivel:hover{
+  transform:translateY(-2px);border-color:var(--lab-verde);
+  box-shadow:0 4px 0 rgba(27,122,77,.22);
+}
+body.theme-new-ui #screen-laboratorio .lab-nivel-nom{
+  font-family:'Fraunces',serif;font-weight:700;font-size:1.06rem;color:var(--ui-ink);
+}
+body.theme-new-ui #screen-laboratorio .lab-nivel-desc{
+  font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--ui-muted);margin-top:3px;
+}
+
+/* ── Cierre de reto ── */
+body.theme-new-ui #screen-laboratorio .lab-fin{text-align:center}
+body.theme-new-ui #screen-laboratorio .lab-fin-icon{font-size:2.4rem;line-height:1}
+body.theme-new-ui #screen-laboratorio .lab-fin-tit{
+  font-family:'Fraunces',serif;font-weight:700;font-size:1.2rem;margin:8px 0 4px;color:var(--ui-ink);
+}
+body.theme-new-ui #screen-laboratorio .lab-fin-sub{font-size:.86rem;color:var(--ui-muted);margin-bottom:18px}
+
+/* ── Placeholder "llega en la próxima sesión" ── */
+body.theme-new-ui #screen-laboratorio .lab-stub{
+  text-align:center;background:var(--lab-tint);border:1.5px dashed var(--lab-border);
+  border-radius:var(--ui-r);padding:20px 18px;
+}
+body.theme-new-ui #screen-laboratorio .lab-stub-icon{font-size:1.8rem;line-height:1;margin-bottom:6px}
+body.theme-new-ui #screen-laboratorio .lab-stub-txt{
+  font-size:.86rem;color:var(--lab-verde-dk);line-height:1.5;margin-bottom:14px;
+}
+
+/* ── Explicación (feedback) ── */
+body.theme-new-ui #screen-laboratorio .lab-expl.is-ok{
+  background:var(--ui-ok-tint);color:#14532D;border:1.5px solid rgba(21,128,61,.30);
+}
+body.theme-new-ui #screen-laboratorio .lab-expl.is-bad{
+  background:var(--ui-err-tint);color:#881337;border:1.5px solid rgba(190,18,60,.28);
+}
+
+@media (prefers-reduced-motion: reduce){
+  body.theme-new-ui #screen-laboratorio .lab-op{animation:none}
+  body.theme-new-ui #screen-laboratorio .lab-btn,
+  body.theme-new-ui #screen-laboratorio .lab-op,
+  body.theme-new-ui #screen-laboratorio .lab-nivel{transition:none}
+  body.theme-new-ui #screen-laboratorio .lab-btn:hover,
+  body.theme-new-ui #screen-laboratorio .lab-op:hover,
+  body.theme-new-ui #screen-laboratorio .lab-nivel:hover{transform:none}
+}
+/* ═════════════════ FIN EL LABORATORIO DE ORACIONES ═════════════════ */

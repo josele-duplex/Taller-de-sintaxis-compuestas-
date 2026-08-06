@@ -3476,6 +3476,12 @@ const LOGIN_PANELS = {
       <label for="inp-fab-pin">PIN del examen</label>
       <input id="inp-fab-pin" class="input input-pin" type="password" inputmode="numeric" maxlength="6" placeholder="····">
       <p id="e-fab-pin" class="ferr" role="alert"></p>
+    </div>`,
+
+  laboratorio: `
+    <p style="font-weight:800;font-size:.9rem;color:var(--lab-verde-dk);margin-bottom:12px">🧪 El Laboratorio de Oraciones</p>
+    <div style="background:var(--lab-tint);border:1px solid var(--lab-border);border-radius:12px;padding:14px 16px;margin-bottom:8px;font-size:.84rem;color:var(--lab-verde-dk);line-height:1.6">
+      No analizas la oración entera: la <strong>rompes a propósito</strong> para ver qué la sostiene. Sustituye, suprime, mueve… y juzga si sigue funcionando. El nivel se elige al entrar.
     </div>`
 };
 
@@ -3957,6 +3963,9 @@ async function handleStartAll(){
       return;
     }
     startFabrica({name,email,grupo:grupoCompartido});return;
+  }
+  if(currentModule==='laboratorio'){
+    startLaboratorio({name,email,grupo:grupoCompartido});return;
   }
   if(currentModule==='compuestas'){
     ferr('e-cp-mode',''); ferr('e-cp-pin','');
