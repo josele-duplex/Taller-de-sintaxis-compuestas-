@@ -696,10 +696,21 @@ function validarFormacion(cabecera, filas, R){
         case 'intruso': {
           const pal = Array.isArray(it.palabras) ? it.palabras : [];
           if(pal.length<3) R.error(id, `${ref}: "palabras" necesita al menos 3 para que haya serie.`);
-          if(typeof it.respuesta!=='string')
-            R.error(id, `${ref}: "respuesta" debe ser el TEXTO de la palabra intrusa, no su posición.`);
-          else if(!pal.includes(it.respuesta))
-            R.error(id, `${ref}: la "respuesta" no está entre las "palabras".`);
+          // sin_intruso (§13): exactamente una de las dos cosas — o hay
+          // trampa ("respuesta" en "palabras"), o no la hay ("sin_intruso":true
+          // y sin "respuesta"). El botón «No hay intrusa» lo pinta el motor
+          // siempre, tenga o no trampa el ítem.
+          if(it.sin_intruso===true){
+            if(it.respuesta!==undefined)
+              R.error(id, `${ref}: "sin_intruso":true no debe llevar "respuesta".`);
+          } else {
+            if(it.sin_intruso!==undefined)
+              R.error(id, `${ref}: "sin_intruso" solo puede ser "true" (o no aparecer); usa "respuesta" para el caso con trampa.`);
+            if(typeof it.respuesta!=='string')
+              R.error(id, `${ref}: "respuesta" debe ser el TEXTO de la palabra intrusa, no su posición (o "sin_intruso":true si no la hay).`);
+            else if(!pal.includes(it.respuesta))
+              R.error(id, `${ref}: la "respuesta" no está entre las "palabras".`);
+          }
           if(typeof it.feedback!=='string' || !it.feedback.trim())
             R.error(id, `${ref}: "feedback" es obligatorio en intruso.`);
           if(it.opciones!==undefined) validarOpciones(R, id, ref, it.opciones, 1);
@@ -817,6 +828,10 @@ function validarFormacion(cabecera, filas, R){
         case 'juicio': {
           nJuicios++;
           if(typeof it.forma!=='string' || !it.forma.trim()) R.error(id, `${ref}: falta "forma".`);
+          // contexto (§13): opcional, convierte el juicio suelto en diagnóstico
+          // de una operación concreta ("un alumno quería fabricar X y escribió...").
+          if(it.contexto!==undefined && (typeof it.contexto!=='string' || !it.contexto.trim()))
+            R.error(id, `${ref}: "contexto" debe ser texto no vacío si aparece.`);
           if(!FP_VEREDICTOS.has(it.veredicto)){
             R.error(id, `${ref}: "veredicto" inválido ("${it.veredicto}"); debe ser ${[...FP_VEREDICTOS].join('/')}.`);
             break;

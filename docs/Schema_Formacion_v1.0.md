@@ -2,10 +2,11 @@
 
 **F0 · sesión 1 · 30-jul-2026 · 🟣 Opus 5** — documento base
 **Ampliación v1.1 · F5 sesión 1 · 4-ago-2026 · 🟣 Opus 5** — canon de estructura secuenciada (§12)
+**Ampliación v1.2 · Fase B revisión · 10-ago-2026 · 🔵 Sonnet** — «no hay intrusa» y contexto en juicio (§13)
 
 Fuente de verdad del formato de datos del módulo La Fábrica de Palabras. Todo lote de contenido y todo cambio del motor se validan contra este documento.
 
-> **Sobre el número de versión.** El documento va por **v1.1**; el campo `schema_version` de cada reto **sigue siendo `"1.0"`**. Las ampliaciones de la §12 son retrocompatibles (un campo opcional nuevo y un cambio de motor que no toca el dato), así que ningún reto de los lotes `basico` y `medio` ya escritos necesita tocarse. Es el mismo criterio que sigue `schema_compuesta_v1_2.md`, que documenta sus ampliaciones v1.3-v1.5 dentro del archivo sin renumerar el dato.
+> **Sobre el número de versión.** El documento va por **v1.2**; el campo `schema_version` de cada reto **sigue siendo `"1.0"`**. Las ampliaciones de la §12 y la §13 son retrocompatibles (campos opcionales nuevos y cambios de motor que no tocan el dato existente), así que ningún reto de los lotes `basico`, `medio` y `avanzado` ya escritos necesita tocarse. Es el mismo criterio que sigue `schema_compuesta_v1_2.md`, que documenta sus ampliaciones v1.3-v1.5 dentro del archivo sin renumerar el dato.
 
 > **Por qué existe este documento.** Es la decisión que se paga todo el curso si sale mal: cada lote posterior (~30 retos de `basico`, ~30 de `medio`, los de `avanzado`) se escribe contra este schema, y el motor lo lee tal cual. Documento primero, código después.
 >
@@ -173,6 +174,8 @@ La trampa canónica del plan (`campo/campeón`, parecido casual frente a familia
 
 `respuesta` es **el texto de la palabra**, no su posición, y debe estar en `palabras` (≥3). Opcionalmente `opciones` para preguntar además por qué no encaja.
 
+**Ampliación v1.2 (§13):** el ítem puede no tener trampa. Con `"sin_intruso": true` no lleva `respuesta`; el motor pinta siempre un botón «🚫 No hay intrusa», tenga o no trampa el ítem. Ver §13.1.
+
 ### 3.3 `piezas` — el tipo central
 
 **Modo `cortar`** (estación 2, mecánica 2.1):
@@ -313,6 +316,7 @@ Es la mecánica 2.3 («¿nueva o la misma?»), la pregunta exacta de la sesión 
 | `opciones_causa` | según veredicto | 2-4 causas, una de ellas la correcta. |
 | `forma_correcta` | según veredicto | Obligatoria salvo en `correcta`, donde está prohibida. |
 | `explicacion` | ✔ | Qué se rompe, en lenguaje de alumno. |
+| `contexto` | — | **Ampliación v1.2 (§13.2).** Texto libre opcional, antes de la forma en foco: convierte el juicio suelto en el diagnóstico de una operación concreta («Un alumno quería fabricar el contrario de *hacer* y escribió…»). |
 
 **Los cuatro veredictos y su marca en pantalla** (mapa fijo del motor, igual que en el Laboratorio — un solo campo, no dos):
 
@@ -633,4 +637,41 @@ Es la única forma libre nueva del schema, y cumple §10.2: la lee un humano, no
 
 ---
 
-*Schema `formacion v1.0` · F0 sesión 1 · jul-2026. Fijado en sesión 🟣 Opus 5 por ser la decisión de arquitectura de datos del módulo. **Ampliación v1.1 · F5 sesión 1 · ago-2026** (§12: canon de estructura secuenciada, locuciones, cultismos y los dos cambios de motor que exige). Siguiente paso tras v1.1: F5·2, motor y validador; después F5·3, lote 1B. Terminología del proyecto: sintagma (nunca «grupo»), oración (nunca «proposición»); niveles `basico`/`medio`/`avanzado` ↔ Aprendiz/ESO34/Maestro.*
+## 13. Ampliación v1.2 — «no hay intrusa» y contexto en juicio
+
+**Fase B de la revisión de agosto 2026 · 10-ago-2026 · 🔵 Sonnet.** Confirmada por Josele: los controles sin intrusa son deliberados — el alumno debe poder descubrir que no siempre hay una palabra intrusa, que es aprender a desconfiar de la pregunta, no solo a contestarla. Ver `docs/Plan_Revision_Fabrica_2026-08.md` §4.
+
+### 13.1 `intruso` sin intrusa
+
+| Campo | Obligatorio | Reglas |
+|---|---|---|
+| `sin_intruso` | — | Solo puede valer `true`, o no aparecer. |
+
+**Exactamente una de las dos cosas** (❌ ERROR si no se cumple):
+
+- `sin_intruso: true` **y** `respuesta` ausente — el control no tiene trampa.
+- `sin_intruso` ausente **y** `respuesta` presente, con el texto exacto de la palabra intrusa entre `palabras` — es el caso de siempre (§3.2).
+
+Tener `sin_intruso: true` a la vez que `respuesta` es ERROR; tener ninguna de las dos también lo es.
+
+**Motor:** `_renderIntruso` pinta las palabras y, debajo, un botón `🚫 No hay intrusa` que aparece **siempre**, con o sin trampa. Es imprescindible que salga en todos los ítems del tipo: si solo apareciera cuando no hay intrusa, el propio botón delataría la respuesta antes de que el alumno piense. Pedagógicamente el ítem cambia entero para bien: hasta el intruso normal exige ahora una decisión más («¿seguro que hay intrusa?») antes de señalar una palabra.
+
+`fabResponderSinIntrusa()` acierta si y solo si `sin_intruso === true`; `fabResponderIntruso(idx)` acierta si y solo si **no** hay `sin_intruso` y la palabra elegida es la `respuesta`. Los dos casos comparten el mismo color final (`_colorearIntrusoResultado`): la respuesta correcta en verde, la elegida en rojo si era otra, el resto atenuado — igual que el resto de tipos del módulo.
+
+### 13.2 `contexto` opcional en `juicio`
+
+| Campo | Obligatorio | Reglas |
+|---|---|---|
+| `contexto` | — | Texto libre no vacío si aparece. ❌ ERROR si aparece vacío o solo con espacios. |
+
+Convierte el juicio suelto en el diagnóstico de una operación concreta: en vez de presentar *\*legali* sin más contexto, el reto puede decir «Un alumno quería fabricar el contrario de *hacer* y escribió…» antes de mostrar la forma en foco. El motor lo pinta como una línea breve encima de la palabra (`_renderJuicio`, clase `fab-contexto`); si no hay `contexto`, el ítem se ve exactamente igual que antes de esta ampliación.
+
+No se ha tocado nada más: `causa`, `veredicto`, `forma_correcta` y el resto de campos de `juicio` (§3.7) siguen igual.
+
+### 13.3 Retrocompatibilidad
+
+Los dos campos son opcionales y el validador solo los revisa si aparecen: ningún reto de los lotes `basico`, `medio` o `avanzado` ya escritos necesita cambiarse. Sin tocar Apps Script — es cambio de solo cliente (`js/modules/fabrica/index.js`, `css/theme/new-ui.css`, `scripts/validar-banco.mjs`).
+
+---
+
+*Schema `formacion v1.0` · F0 sesión 1 · jul-2026. Fijado en sesión 🟣 Opus 5 por ser la decisión de arquitectura de datos del módulo. **Ampliación v1.1 · F5 sesión 1 · ago-2026** (§12: canon de estructura secuenciada, locuciones, cultismos y los dos cambios de motor que exige). **Ampliación v1.2 · Fase B revisión · ago-2026** (§13: «no hay intrusa» en todo ítem `intruso` y `contexto` opcional en `juicio`, ambos solo cliente). Terminología del proyecto: sintagma (nunca «grupo»), oración (nunca «proposición»); niveles `basico`/`medio`/`avanzado` ↔ Aprendiz/ESO34/Maestro.*
