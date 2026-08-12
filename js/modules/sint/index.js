@@ -1566,6 +1566,34 @@ function _launchGame({ name, email, pin, subfase, oraciones, usingMock, timerDur
   if (timerDuration > 0) startTimer();
 }
 
+// ── F2·3 Laboratorio → Simples (puente de ida) ──────────────────────────
+// Entrada directa con UNA oración ya resuelta por getOracionByTexto
+// (Server/Code_v6.gs) — sin pasar por el login compartido ni pedir el
+// banco completo. Mismo patrón directo a _launchGame que usa el examen
+// mixto (mixtoEmpezarParte1), pero en modo 'practice' con un pool de una
+// sola oración. selectedMode/selectedSubfase/currentModule son variables
+// de este mismo script (function declaration → global automático, ver
+// nota de cierre del archivo), así que basta con fijarlas aquí antes de
+// llamar a _launchGame; no hace falta pasar por handleStartAll.
+async function iniciarSintDesdeOracion({ name, email, grupo, oracion }) {
+  let norm = null;
+  try { norm = normalizeOracion(oracion); } catch (e) { norm = null; }
+  if (!norm) {
+    console.error('[iniciarSintDesdeOracion] normalizeOracion falló', oracion);
+    alert('No se ha podido cargar esta oración en el Taller de Simples.');
+    return false;
+  }
+  selectedMode = 'practice';
+  selectedSubfase = 'completo';
+  currentModule = 'sint';
+  _launchGame({
+    name: name || '', email: email || '', pin: '', subfase: 'completo',
+    oraciones: [norm], usingMock: false, timerDuration: 0,
+    praGrupo: grupo || '', reflexionActiva: false
+  });
+  return true;
+}
+
 // ════════════════════════════════════════════════════════
 // TIMER
 // ════════════════════════════════════════════════════════

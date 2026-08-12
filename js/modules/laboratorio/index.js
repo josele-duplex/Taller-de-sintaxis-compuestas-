@@ -456,16 +456,67 @@ function _finReto() {
   _setCorpus('');
   _setPregunta('');
   const pct = LAB.totalItems > 0 ? Math.round((LAB.aciertos / LAB.totalItems) * 100) : 0;
+  // Puente de ida (§9 del schema, F2·3): solo se ofrece si el reto trae
+  // metadatos.origen_oracion_id — no todos los retos lo tienen todavía.
+  const origenTexto = (LAB.reto && LAB.reto.metadatos && LAB.reto.metadatos.origen_oracion_id) || '';
+  const puenteBtn = origenTexto
+    ? '<button type="button" class="lab-btn-sm" id="lab-btn-puente" onclick="labIrASimples()">🔗 Practica esta oración en Simples</button>'
+    : '';
   _setFichas('<div class="lab-fin">' +
     '<div class="lab-fin-icon">🧪</div>' +
     '<div class="lab-fin-tit">¡Reto completado!</div>' +
     '<div class="lab-fin-sub">Aciertos de la sesión: ' + LAB.aciertos + '/' + LAB.totalItems + ' (' + pct + '%)</div>' +
     '<button type="button" class="lab-btn" onclick="labSiguienteReto()">Siguiente reto →</button>' +
+    puenteBtn +
     '</div>');
   _limpiarExplicacion();
 }
 
 function labSiguienteReto() { _siguienteReto(); }
+
+// Handler del botón "🔗 Practica esta oración en Simples" (§9 del schema,
+// F2·3, puente de ida). Fetch bajo demanda al pulsar, no al cerrar el
+// reto: así los retos que el alumno no puentea no gastan una llamada al
+// GAS. getOracionByTexto (Server/Code_v6.gs) busca por texto exacto —
+// found:false es un resultado normal (oración no dada de alta todavía en
+// Oraciones_Banco), no un error.
+async function labIrASimples() {
+  const origenTexto = (LAB.reto && LAB.reto.metadatos && LAB.reto.metadatos.origen_oracion_id) || '';
+  if (!origenTexto) return;
+  const btn = _el('lab-btn-puente');
+  const btnReset = () => { if (btn) { btn.disabled = false; btn.textContent = '🔗 Practica esta oración en Simples'; } };
+  if (btn) { btn.disabled = true; btn.textContent = 'Buscando la oración…'; }
+  const apiUrl = getApiUrl();
+  if (!apiUrl) {
+    alert('No hay conexión con el servidor. No se puede abrir Simples desde aquí.');
+    btnReset();
+    return;
+  }
+  try {
+    const url = apiUrl + '?action=getOracionByTexto&texto=' + encodeURIComponent(origenTexto);
+    const r = await fetchWithTimeout(url, {}, 8000);
+    const d = await r.json();
+    if (!d || d.ok === false) throw new Error((d && d.error) || 'Error del servidor.');
+    if (!d.found) {
+      alert('Esta oración todavía no está en el banco de Simples. Avisa a tu profesor.');
+      btnReset();
+      return;
+    }
+    if (typeof window.iniciarSintDesdeOracion !== 'function') {
+      alert('No se ha podido cargar el Taller de Simples. Recarga la página e inténtalo de nuevo.');
+      btnReset();
+      return;
+    }
+    const ok = await window.iniciarSintDesdeOracion({
+      name: LAB.name || '', email: LAB.email || '', grupo: LAB.grupo || '', oracion: d.oracion
+    });
+    if (!ok) btnReset();
+  } catch (e) {
+    console.error('[laboratorio] labIrASimples', e);
+    alert('No se ha podido cargar la oración en Simples: ' + (e.message || 'error desconocido'));
+    btnReset();
+  }
+}
 
 function exitLaboratorio() { _enviarAnaliticaLaboratorio(); showScreen('portada'); }
 
@@ -1038,7 +1089,7 @@ if (typeof window !== 'undefined') {
 
 export {
   startLaboratorio, exitLaboratorio, labPedirSalir, labCambiarNivel, iniciarLaboratorioNivel,
-  labEmpezarReto, labSiguienteItem, labSiguienteReto,
+  labEmpezarReto, labSiguienteItem, labSiguienteReto, labIrASimples,
   labResponderValencia, labResponderOpciones, labResponderIntruso,
   labResponderVeredicto, labResponderCausa,
   labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
@@ -1049,7 +1100,7 @@ export {
 if (typeof window !== 'undefined') {
   Object.assign(window, {
     startLaboratorio, exitLaboratorio, labPedirSalir, labCambiarNivel, iniciarLaboratorioNivel,
-    labEmpezarReto, labSiguienteItem, labSiguienteReto,
+    labEmpezarReto, labSiguienteItem, labSiguienteReto, labIrASimples,
     labResponderValencia, labResponderOpciones, labResponderIntruso,
     labResponderVeredicto, labResponderCausa,
     labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
