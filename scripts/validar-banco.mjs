@@ -733,13 +733,22 @@ function validarLaboratorio(cabecera, filas, R){
 
     if(typeof o.titulo_problema!=='string' || !o.titulo_problema.trim())
       R.error(id, 'falta "titulo_problema".');
-    if(o.metadatos?.origen_oracion_id && !/^OR_\d{4}$/.test(o.metadatos.origen_oracion_id))
-      R.aviso(id, `metadatos.origen_oracion_id "${o.metadatos.origen_oracion_id}" no sigue el formato OR_NNNN.`);
 
     // corpus
     const corpus = Array.isArray(o.corpus) ? o.corpus : [];
     if(corpus.length===0) R.error(id, 'sin array "corpus" (1-6 oraciones).');
     else if(corpus.length>6) R.aviso(id, `corpus de ${corpus.length} oraciones (el schema recomienda 1-6).`);
+
+    // Puente de ida a Simples (§9, F2·3, 12-ago-2026): origen_oracion_id ya
+    // NO es un código OR_NNNN (Oraciones_Banco nunca tuvo esa columna) —
+    // es el texto literal de una de las oraciones de "corpus", byte a byte
+    // idéntico al que buscará getOracionByTexto_ en el banco de Simples.
+    const origenId = o.metadatos?.origen_oracion_id;
+    if(origenId!==undefined && origenId!==null && origenId!=='') {
+      if(typeof origenId!=='string') R.error(id, 'metadatos.origen_oracion_id debe ser texto.');
+      else if(!corpus.includes(origenId))
+        R.aviso(id, `metadatos.origen_oracion_id no coincide (byte a byte) con ninguna oración de "corpus" — el puente a Simples no encontrará esta oración en Oraciones_Banco si tampoco coincide allí.`);
+    }
 
     // ── Ítems ─────────────────────────────────────────────────────
     const items = Array.isArray(o.items) ? o.items : [];

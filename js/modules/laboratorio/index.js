@@ -88,18 +88,20 @@
             aceptaba ese filtro — solo faltaba que el frontend lo enviara),
             con fallback a sin filtro si el pool queda vacío.
    Pendiente:
-     F2·3 (puente de ida, sin hacer) → botón al cerrar reto que abra Simples
-            con la MISMA oración cargada (metadatos.origen_oracion_id, §1
-            del plan). Investigado esta sesión: no es solo frontend — el
-            backend (Server/Code_v6.gs) no tiene forma de pedir una oración
-            de Oraciones_Banco por id, solo listas completas filtradas por
-            modo/subfase/funciones (getOraciones_/getOracionesFiltradas_);
-            el id que usan los bloques del frontend (`b<rowIndex>_<i>`) es
-            de fila, no un id estable expuesto para este uso. Hace falta un
-            endpoint nuevo (tipo getOracionById_) antes de poder construir
-            este puente — no se ha hecho porque toca el backend y excede el
-            alcance de "tocar sint/index.js con cuidado" de la regla 4 de
-            CLAUDE.md sin que Josele decida el diseño del endpoint primero.
+     F2·3 (puente de ida, sin hacer TODAVÍA en el frontend) → botón al
+            cerrar reto que abra Simples con la MISMA oración cargada.
+            2026-08-12: el bloqueo de backend ya está resuelto —
+            Server/Code_v6.gs tiene getOracionByTexto_ (endpoint
+            getOracionByTexto), que busca por texto EXACTO (no por id: la
+            hoja Oraciones_Banco nunca tuvo columna de ID estable) contra
+            metadatos.origen_oracion_id, que ahora guarda el texto literal
+            de la oración, no un código OR_NNNN (ver §9 de
+            docs/Schema_Laboratorio_v1.0.md). Falta solo la parte de
+            frontend: el botón en el cierre de reto, la llamada al
+            endpoint, y el punto de entrada en Simples que cargue una
+            única oración ya resuelta en vez de pedir el banco entero
+            (investigar sint/index.js antes de tocarlo, regla 4 de
+            CLAUDE.md).
    Sin examen con PIN (Laboratorio.gs no lo tiene todavía — es F3 del plan) y
    sin selector de nivel más allá de basico/medio/avanzado: solo hay contenido
    en 'medio' por ahora (lote semilla F0·3), así que basico/avanzado mostrarán

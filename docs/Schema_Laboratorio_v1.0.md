@@ -58,7 +58,7 @@ El validador comprueba que cada fila tiene exactamente el mismo número de colum
   "items": [ /* §3 */ ],
   "zona_gris": false,
   "metadatos": {
-    "origen_oracion_id": "OR_0117",
+    "origen_oracion_id": "Entregó un ramo a su profesora.",
     "origen_ud": "UD-D-3E-sint S3",
     "curso_min": "3E"
   }
@@ -74,7 +74,7 @@ El validador comprueba que cada fila tiene exactamente el mismo número de colum
 | `corpus` | ✔ | 1-6 oraciones. Las oraciones sobre las que gira el reto. |
 | `items` | ✔ | ≥3 ítems, **ordenados por estación** (§3). |
 | `zona_gris` | — | `true` si y solo si hay un ítem `frontera`. |
-| `metadatos.origen_oracion_id` | — | `OR_NNNN` de `Oraciones_Banco`. Habilita el puente a Simples y permite heredar el análisis canónico. |
+| `metadatos.origen_oracion_id` | — | **Corrección F2·3 (12-ago-2026):** ya NO es un código `OR_NNNN` — `Oraciones_Banco` nunca tuvo esa columna de ID, así que ese formato quedó aspiracional y no se llegó a usar en ningún lote real. Es el **texto literal** de una de las oraciones de `corpus`, idéntico byte a byte al de la columna A de `Oraciones_Banco`. El endpoint `getOracionByTexto_` (Server/Code_v6.gs) busca por ese texto exacto; si no encuentra coincidencia, el puente a Simples simplemente no se ofrece. Habilita el puente de ida (§9) y permite heredar el análisis canónico. |
 | `metadatos.origen_ud` | — | Unidad del proyecto de Lengua de la que sale el reto. Trazabilidad. |
 | `metadatos.curso_min` | ✔ | `2E`/`3E`/`4E`/`1B`. Debe coincidir con la columna `Curso_Min`. |
 
@@ -445,7 +445,17 @@ Formato validado: `^PRU-SINT-[A-Z]+-\d{2}$` y `^HEUR-[A-Z-]+$`. Mientras `prueba
 
 ---
 
-## 9. Lo que este schema deja fuera a propósito
+## 9. Puente de ida a Simples (`metadatos.origen_oracion_id`)
+
+Decidido con Josele el 12-ago-2026, al cerrar F2·3: `Oraciones_Banco` no tiene columna de ID estable (el `id` que usa el resto del motor de Simples es el número de fila del Sheet, no algo pensado para referenciarse desde otro módulo), así que en vez de migrar esa hoja para añadir un esquema `OR_NNNN` nuevo, el enlace se hace por **texto exacto** — coherente con la decisión de §7.1 (referencias por texto, nunca por posición), que este schema ya aplicaba en otros campos.
+
+- `metadatos.origen_oracion_id` guarda el texto literal de la oración de `Oraciones_Banco` a la que salta el botón "Practica esta oración en Simples", byte a byte idéntico al de su columna A.
+- Backend: `getOracionByTexto_` (`Server/Code_v6.gs`, endpoint `getOracionByTexto`) busca esa fila y devuelve el mismo objeto que arma `buildOracionObject` para el resto de Simples. Si no hay coincidencia exacta, responde `{ok:true, found:false}` — no es un error, el frontend simplemente no ofrece el puente para ese reto.
+- Campo opcional: los retos sin `origen_oracion_id` (o cuyo texto no encuentra pareja en el banco) no muestran el botón. No bloquea nada del resto del reto.
+
+---
+
+## 10. Lo que este schema deja fuera a propósito
 
 - **Texto libre puntuable.** Todo se valida por opciones o por huecos. El diario metalingüístico y la definición del Cazador de contraejemplos se guardan y se exponen, pero no puntúan.
 - **Análisis completo de la oración.** No hay campo para ello: si un ítem lo necesitara, es de Simples. El límite del módulo está en el dato, no solo en la intención.

@@ -26,7 +26,7 @@
 //
 //   §2  ENDPOINTS GET  (doGet?action=...)                      608–822
 //        doGet · getOraciones_ · getOracionesFiltradas_ ·
-//        validatePin_ · getResults_
+//        getOracionByTexto_ (F2·3 Laboratorio) · validatePin_ · getResults_
 //
 //   §3  MORFOLOGÍA · MISIONES · STATS                          822–1110
 //        precomputeMorfologia_ · regenerarMorfologia_ ·
@@ -920,6 +920,7 @@ function doGet(e) {
     else if (action === 'validatePin')  result = validatePin_(params.pin, params.email);
     else if (action === 'getResults')    { const na=requiereClaveProfesor_(params); result = na || getResults_(); }
     else if (action === 'getOracionesFiltradas') result = getOracionesFiltradas_(params);
+    else if (action === 'getOracionByTexto')     result = getOracionByTexto_(params.texto); // F2·3 Laboratorio: puente de ida
     else if (action === 'getStats')     result = getStats_();
     else if (action === 'getTextosMorfologia') result = getTextosMorfologia_(params);
     else if (action === 'getMisiones')          result = getMisiones_(params);
@@ -1114,6 +1115,54 @@ function getOracionesFiltradas_(params) {
   // vez por fila en la fase 0) — no hay que reconstruirlos.
   const oraciones = result.map(c => c.obj).filter(Boolean);
   return { oraciones, total: oraciones.length, filtered: true };
+}
+
+// ── getOracionByTexto_ ──────────────────────────────────────────────────
+// Puente de ida Laboratorio→Simples (F2·3): Oraciones_Banco no tiene columna
+// de ID estable (el "id" que usa el resto del motor es el número de fila),
+// así que en vez de inventar un esquema de IDs nuevo, el enlace se hace por
+// TEXTO exacto de la oración — Laboratorio_Banco ya guarda sus oraciones
+// como texto literal en `corpus`/`metadatos.origen_oracion_id`, así que no
+// hace falta migrar ninguna hoja. Coincidencia exacta tras trim (no
+// normaliza mayúsculas/tildes): si el texto del reto no es byte-idéntico al
+// de Oraciones_Banco, `found` sale false y el frontend simplemente no
+// ofrece el puente — no es un error, así que responde ok:true siempre que
+// la hoja exista.
+/**
+ * Endpoint 'getOracionByTexto'. Busca en Oraciones_Banco una fila cuyo texto
+ * (columna A, tras trim) coincida exactamente con el parámetro. Devuelve la
+ * primera coincidencia si hay duplicados. Incluye borradores (no filtra por
+ * Activo), igual que 'getOraciones' en modo practice — el puente se usa
+ * desde el Laboratorio, nunca desde examen.
+ * @param {string} texto - texto exacto de la oración a buscar.
+ * @return {{ok:true, found:boolean, oracion?:object} | object} error (ERR.BAD_PARAM/ERR.NO_SHEET).
+ */
+function getOracionByTexto_(texto) {
+  const buscado = String(texto || '').trim();
+  if (!buscado) return gasError_('Falta el parámetro "texto".', ERR.BAD_PARAM);
+
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_BANCO);
+  if (!sheet) return gasError_('Hoja "' + SHEET_BANCO + '" no encontrada.', ERR.NO_SHEET);
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { ok: true, found: false };
+
+  const data = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
+  for (let i = 0; i < data.length; i++) {
+    const row   = data[i];
+    const texto = row[COL_TEXTO - 1] ? String(row[COL_TEXTO - 1]).trim() : '';
+    if (texto !== buscado) continue;
+
+    const rawJson = row[COL_JSON - 1] ? String(row[COL_JSON - 1]) : '';
+    const parsed  = safeParseJSON(rawJson);
+    if (!parsed) continue; // fila con JSON roto: sigue buscando otra coincidencia
+
+    const obj = buildOracionObject(row, i + 2);
+    if (!obj) continue;
+    return { ok: true, found: true, oracion: obj };
+  }
+  return { ok: true, found: false };
 }
 
 /**
