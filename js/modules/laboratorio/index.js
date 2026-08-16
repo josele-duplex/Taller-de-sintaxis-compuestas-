@@ -87,6 +87,13 @@
             a getRetosLaboratorio (server/Laboratorio.gs, F0·2, que ya
             aceptaba ese filtro — solo faltaba que el frontend lo enviara),
             con fallback a sin filtro si el pool queda vacío.
+     frontera (hecho, esta sesión) → el noveno y último tipo del schema, y
+            con él los NUEVE tienen render. Zona gris: dos opciones ok:true,
+            las dos puntúan, y el cierre enseña siempre las dos lecturas
+            (§3.8). Trae de propina el soporte de `peso` en _resolverItem
+            (§6), que hasta ahora ningún tipo aplicaba. La exclusión del
+            examen NO se implementa aquí: es cosa del reto (zona_gris) y del
+            modo examen con PIN, que es F3.
    Pendiente:
      F2·3 (puente de ida, sin hacer TODAVÍA en el frontend) → botón al
             cerrar reto que abra Simples con la MISMA oración cargada.
@@ -285,10 +292,20 @@ function _colorearBotones(n, esCorrecta, idxElegido) {
 // (sustituye/suprime/...), en el resto el propio tipo de ítem. Es la razón
 // del eje "por prueba fallada" que pide el plan de producto §5.3 — se
 // puede saber qué EXPERIMENTO falla un grupo, no solo qué función.
+// `peso` (schema §6) es el único multiplicador que trae el dato: valen doble
+// los ítems que caen sobre una frontera discriminante (Atr.↔CPvo, CI↔CC
+// Finalidad, CD↔CI…). Se aplica aquí, a los nueve tipos por igual, no dentro
+// del render de frontera: si mañana un `manipulacion` sobre CPvo lleva
+// peso:2 —el validador ya avisa cuando no lo lleva— pesará doble sin tocar
+// una línea. Por omisión 1, así que hoy solo cambia algo en el ítem frontera
+// de LB_0070, el único del banco con peso declarado. Ojo: LAB.aciertos y
+// LAB.totalItems pasan a ser PUNTOS, no ítems contados a mano; la racha, el
+// XP y las analíticas por tipo siguen contando por ítem.
 function _resolverItem(correcta, categoria) {
-  LAB.totalItems++;
+  const pesoItem = (LAB._item && typeof LAB._item.peso === 'number' && LAB._item.peso > 0) ? LAB._item.peso : 1;
+  LAB.totalItems += pesoItem;
   if (correcta) {
-    LAB.aciertos++; LAB.racha++;
+    LAB.aciertos += pesoItem; LAB.racha++;
     if (LAB.racha > LAB.rachaMax) LAB.rachaMax = LAB.racha;
     try { playSuccess(); } catch (e) {}
     try { awardXP(2, 'laboratorio_item'); } catch (e) {}
@@ -411,6 +428,7 @@ const ITEM_RENDERERS = {
   juicio: _renderJuicio,
   par_minimo: _renderContraste,
   analisis_inverso: _renderAnalisisInverso,
+  frontera: _renderFrontera,
   etiqueta_prueba: _renderEtiquetaPrueba
 };
 
@@ -432,10 +450,10 @@ function renderItemLaboratorio() {
 
 function labSiguienteItem() { LAB.itemIdx++; renderItemLaboratorio(); }
 
-// Placeholder para los seis tipos que llegan en sesiones posteriores (ver
-// cabecera del archivo). No cuenta como acierto ni como fallo — el alumno
-// simplemente lo salta, y no se le penaliza por algo que la app todavía no
-// sabe jugar.
+// Red de seguridad: los nueve tipos del schema ya tienen render, así que
+// esto solo salta si un lote trae un `tipo` desconocido (o mal escrito). No
+// cuenta como acierto ni como fallo — el alumno simplemente lo salta, y no
+// se le penaliza por algo que la app no sabe jugar.
 function _renderStub(item) {
   _setCorpus(item.oracion ? '<div class="lab-frase">' + escHtml(item.oracion) + '</div>' : '');
   _setPregunta('');
@@ -852,6 +870,80 @@ function labAiComprobar() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+//  ESTACIÓN 2 · MANIPULA (cont.) — frontera, la zona gris
+// ════════════════════════════════════════════════════════════════════════
+// El noveno y último tipo del schema (§3.8), y el único en el que el dato
+// trae DOS opciones con ok:true. Render clonado de _renderManipulacion —una
+// oración arriba, una pila de opciones abajo— con tres diferencias, todas
+// del schema y no de gusto visual:
+//
+//   1. Se muestran las DOS versiones de la oración (`oracion` + `variante`,
+//      ambas obligatorias): la variante es la prueba de que la duda existe.
+//      Sin ella el alumno no tiene con qué comparar y la zona gris parece
+//      un capricho. Entre las dos va ⚖ y no ↓ (que en _renderContraste
+//      significa "esto se ha convertido en esto"): aquí no hay flecha, hay
+//      empate.
+//   2. Cualquier opción con ok:true puntúa. No hay lectura preferida, así
+//      que el cierre muestra SIEMPRE las micro de las dos lecturas válidas,
+//      se haya pulsado la que se haya pulsado — lo que se evalúa, y lo dice
+//      el propio campo `explicacion` del ítem, no es cuál eliges sino que
+//      sepas por qué caben las dos. Mostrar solo la del botón pulsado
+//      convertiría el ítem en un acierto ciego.
+//   3. `peso` (2 en estos ítems, §6) cuenta de verdad: lo aplica
+//      _resolverItem para los nueve tipos, no solo aquí.
+//
+// Lo que NO vive aquí: la exclusión del examen. La bandera es del reto
+// entero (`zona_gris: true`, obligatoria si hay un ítem frontera — el
+// validador cruza las dos cosas en los dos sentidos), y quien tiene que
+// filtrarla es el modo examen con PIN, que en el Laboratorio todavía no
+// existe (es F3 del plan). Cuando se escriba, el filtro es una línea:
+// descartar del pool los retos con zona_gris. En práctica el ítem se juega
+// con normalidad — es justo donde enseña.
+
+function _renderFrontera(item) {
+  LAB._item = item;
+  const opciones = shuffle(item.opciones.map((o, i) => ({ ...o, _i: i })));
+  LAB._opciones = opciones;
+  _setCorpus(
+    '<div class="lab-frase">' + escHtml(item.oracion) + '</div>' +
+    (item.variante
+      ? '<div class="lab-frase-arrow">⚖</div>' +
+        '<div class="lab-frase">' + escHtml(item.variante) + '</div>'
+      : '')
+  );
+  _setPregunta('Aquí caben dos análisis y los dos se defienden. ¿Cuál defiendes tú?');
+  _setFichas('<div class="lab-stack">' +
+    opciones.map((o, i) => _btnOp(i, o.texto, 'labResponderFrontera')).join('') + '</div>');
+}
+
+// No reutiliza labResponderOpciones por el cierre, no por la corrección: el
+// coloreado y el "¿ha acertado?" son idénticos (basta con opciones[i].ok),
+// pero el feedback tiene que sacar las dos lecturas válidas y señalar cuál
+// eligió el alumno. El schema permite 2-4 opciones con exactamente dos
+// correctas, así que fallar es posible: elegir una de las que no se
+// defienden.
+function labResponderFrontera(idx) {
+  const opciones = LAB._opciones, item = LAB._item;
+  const elegido = opciones[idx];
+  const acierto = !!elegido.ok;
+  _colorearBotones(opciones.length, i => opciones[i].ok, idx);
+  _resolverItem(acierto, 'frontera');
+  const lecturas = opciones.filter(o => o.ok).map(o =>
+    (o === elegido ? '👉 ' : '') + '<em>' + escHtml(o.texto) + '</em> — ' + escHtml(o.micro || '')
+  ).join('<br>');
+  // Al acertar, la explicación del ítem («las dos son correctas, lo que se
+  // evalúa es que sepas por qué») abre el cierre; al fallar, abre la micro
+  // de la opción elegida —por qué esa no se sostiene— y la explicación va
+  // detrás, ya con las dos lecturas buenas delante.
+  let html = acierto
+    ? '⚖ ' + escHtml(item.explicacion || '')
+    : '✗ ' + escHtml(elegido.micro || '') +
+      (item.explicacion ? '<br><br>' + escHtml(item.explicacion) : '');
+  html += '<div class="lab-contraste">' + lecturas + '</div>';
+  _mostrarExplicacion(acierto, html);
+}
+
+// ════════════════════════════════════════════════════════════════════════
 //  ESTACIÓN 3 · ETIQUETA + PRUEBA — etiqueta_prueba, F2·sesión 2
 // ════════════════════════════════════════════════════════════════════════
 // Es el Banco_reflexion_metalinguistica.md jugado (plan §2.3, ítem 3.1/3.2):
@@ -1091,7 +1183,7 @@ export {
   startLaboratorio, exitLaboratorio, labPedirSalir, labCambiarNivel, iniciarLaboratorioNivel,
   labEmpezarReto, labSiguienteItem, labSiguienteReto, labIrASimples,
   labResponderValencia, labResponderOpciones, labResponderIntruso,
-  labResponderVeredicto, labResponderCausa,
+  labResponderVeredicto, labResponderCausa, labResponderFrontera,
   labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
   labResponderPrueba, labVerCajaPruebas, labVolverDesdeCaja,
   labGuardarDiario, labSaltarDiario
@@ -1102,7 +1194,7 @@ if (typeof window !== 'undefined') {
     startLaboratorio, exitLaboratorio, labPedirSalir, labCambiarNivel, iniciarLaboratorioNivel,
     labEmpezarReto, labSiguienteItem, labSiguienteReto, labIrASimples,
     labResponderValencia, labResponderOpciones, labResponderIntruso,
-    labResponderVeredicto, labResponderCausa,
+    labResponderVeredicto, labResponderCausa, labResponderFrontera,
     labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
     labResponderPrueba, labVerCajaPruebas, labVolverDesdeCaja,
     labGuardarDiario, labSaltarDiario
