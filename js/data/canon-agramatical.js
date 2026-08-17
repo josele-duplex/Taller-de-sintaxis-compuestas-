@@ -1,7 +1,7 @@
 /* canon-agramatical.js — Canon de aceptabilidad del corpus del Laboratorio
    Laboratorio de Oraciones · F2 · sesión 1 (ago-2026)
 
-   Las 16 causas del schema (§5 de docs/Schema_Laboratorio_v1.0.md), con lo que
+   Las 19 causas del schema (§5 de docs/Schema_Laboratorio_v1.0.md), con lo que
    el schema NO guarda: qué marca lleva cada una (✗ / ⚠ / ⚖), cómo se le nombra
    al alumno, con qué ejemplo canónico se contrasta y —lo que de verdad importa
    al escribir un lote— dónde está su frontera: qué cuenta como esa causa y qué
@@ -87,7 +87,14 @@ export const VEREDICTOS = {
 
 export const ORDEN_VEREDICTOS = ['gramatical', 'agramatical', 'norma_culta', 'dudoso'];
 
-// ── Las 16 causas ────────────────────────────────────────────────────────
+// ── Las 19 causas ────────────────────────────────────────────────────────
+//
+// Eran 16 hasta ago-2026. Las tres nuevas (concordancia_det_nombre,
+// concordancia_atono, atono_plural_discordante) salieron de una auditoría del
+// banco: 6 juicios etiquetaban como concordancia_sv errores que no lo eran, y
+// la explicación que leía el alumno era correcta mientras la causa que tenía
+// que elegir era falsa. No había hueco en la lista para lo que de verdad
+// pasaba en esas oraciones.
 //
 // Campos:
 //   marca     — ✗ / ⚠ / ⚖ (clave de MARCAS).
@@ -130,6 +137,15 @@ export const CAUSAS = {
     criterio: 'Exige verbo copulativo (ser, estar, parecer). Con cualquier otro verbo el desajuste es concordancia_cpvo, que es de nivel medio: la frontera entre las dos causas es el verbo, no la palabra que describe. Fuente: PM-SINT-22.'
   },
 
+  concordancia_det_nombre: {
+    marca: 'agramatical', veredicto: 'agramatical', nivelMin: 'basico',
+    familia: 'concordancia',
+    etiqueta: 'Esas dos palabras van juntas y no dicen el mismo número',
+    rompe: 'Determinante y nombre discordantes en género o número dentro del mismo sintagma.',
+    ejemplo: { mal: 'Ayer compramos las entrada.', bien: 'Ayer compramos las entradas.' },
+    criterio: 'El desajuste está DENTRO del sintagma nominal, entre el determinante y su nombre — no con el verbo. Es la frontera con concordancia_sv, y confundirlas era un fallo real y repetido del banco (auditoría de ago-2026): la prueba operativa es que al corregirlo cambia el nombre o el determinante, nunca la forma verbal. Si lo que cambia es el verbo, la causa es concordancia_sv. NO se usa para el pronombre átono con su antecedente (Le … a sus amigos): eso son las dos causas de átono.'
+  },
+
   transitividad: {
     marca: 'agramatical', veredicto: 'agramatical', nivelMin: 'basico',
     familia: 'seleccion',
@@ -146,6 +162,33 @@ export const CAUSAS = {
     rompe: 'Permutación que rompe la estructura del sintagma o de la oración.',
     ejemplo: { mal: 'Casa la limpió Pedro la.', bien: 'Pedro limpió la casa.' },
     criterio: 'El orden tiene que ser IMPOSIBLE, no raro ni marcado. El español ordena con mucha libertad y el módulo enseña justamente eso en el experimento «mueve»: si una permutación se puede decir con otra entonación o en otro contexto, no es un error, es un desplazamiento. Casos seguros: determinante detrás de su nombre, pronombre átono separado de su verbo, preposición sin término.'
+  },
+
+  // Las dos causas del pronombre átono discordante con su antecedente. Van
+  // SEPARADAS a propósito, y es la decisión de canon de ago-2026: el desajuste
+  // no vale lo mismo en las dos direcciones. Un plural donde el antecedente es
+  // uno solo (*A Elena les gusta) no lo dice nadie; un singular donde el
+  // antecedente es plural (Le escribió a sus amigos) lo dice y lo escribe media
+  // España, incluida la prensa. Meterlas en la misma causa obligaba a elegir
+  // entre poner asterisco a lo segundo o quitárselo a lo primero, y las dos
+  // opciones enseñaban algo falso.
+
+  concordancia_atono: {
+    marca: 'agramatical', veredicto: 'agramatical', nivelMin: 'basico',
+    familia: 'pronombre',
+    etiqueta: 'Ese pronombre habla de varios y la persona es una sola',
+    rompe: 'Pronombre átono en plural con antecedente singular.',
+    ejemplo: { mal: 'A Elena les gusta el chocolate.', bien: 'A Elena le gusta el chocolate.' },
+    criterio: 'Solo esta dirección: átono PLURAL con antecedente SINGULAR. Es la que ningún hablante nativo produce, y por eso lleva ✗. La dirección contraria (átono singular con antecedente plural) es atono_plural_discordante y va con ⚠ SIN asterisco. Frontera con pronombre_cruzado: ahí el error es de FUNCIÓN (la por le), aquí es solo de NÚMERO, con la función bien elegida.'
+  },
+
+  atono_plural_discordante: {
+    marca: 'norma_culta', veredicto: 'norma_culta', nivelMin: 'basico',
+    familia: 'pronombre',
+    etiqueta: 'Ese pronombre se dice, pero la norma pide el plural',
+    rompe: 'Átono singular (le) con antecedente plural: discordancia extendida, no agramaticalidad.',
+    ejemplo: { mal: 'Le escribió una carta a sus amigos.', bien: 'Les escribió una carta a sus amigos.' },
+    criterio: 'SIN asterisco, y esto es lo importante: la discordancia de «le» con un antecedente plural está extendidísima en el habla y aparece en el escrito culto, así que la NGLE la trata como discordancia, no como oración rota. La pregunta del ítem es en qué situación no vale, NUNCA si está mal. Es además la ÚNICA causa ⚠ de nivel basico: el alumno de 2.º ESO se encuentra aquí por primera vez con la marca de registro, y el ítem tiene que dejar clarísimo que la oración se entiende y se dice. La dirección contraria (*A Elena les gusta) es concordancia_atono y sí lleva ✗.'
   },
 
   // ── medio: aparece la frontera entre funciones vecinas ──

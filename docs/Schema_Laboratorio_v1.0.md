@@ -230,7 +230,7 @@ Que las cinco manipulaciones compartan estructura es lo que permite un solo moto
 | Campo | Obligatorio | Reglas |
 |---|---|---|
 | `veredicto` | ✔ | `gramatical` \| `agramatical` \| `norma_culta` \| `dudoso` |
-| `causa` | según veredicto | Una de las 16 de §5. Obligatoria salvo si `veredicto: "gramatical"`, donde **no debe aparecer**. |
+| `causa` | según veredicto | Una de las 19 de §5. Obligatoria salvo si `veredicto: "gramatical"`, donde **no debe aparecer**. |
 | `opciones_causa` | según veredicto | 2-4 causas, una de ellas la correcta. Obligatoria salvo en `gramatical`. |
 | `gemela_correcta` | según veredicto | Obligatoria si `agramatical` o `norma_culta`. Prohibida si `gramatical`. |
 | `explicacion` | ✔ | Qué se rompe, en lenguaje de alumno. |
@@ -363,14 +363,23 @@ Traduce a máquina el principio central del módulo («la etiqueta es punto de l
 
 ---
 
-## 5. Las 16 causas de agramaticalidad
+## 5. Las 19 causas de agramaticalidad
 
 Lista cerrada del campo `causa`. La columna «Nivel mín.» la comprueba el validador: una causa de `avanzado` en un reto `basico` es ERROR.
+
+> **Ampliación de 2026-08-17 (tres causas nuevas).** La lista tenía 16 y se quedaba corta: una auditoría de los 116 juicios agramaticales del banco encontró **6 que etiquetaban como `concordancia_sv` errores que no eran de sujeto y verbo** (1 de determinante-nombre y 5 de pronombre átono con su antecedente). En los 6 la `explicacion` que leía el alumno era gramaticalmente correcta y solo la `causa` era falsa, lo que además contaminaba las estadísticas de error por causa del informe del profesor. No había hueco en la lista para lo que de verdad pasaba en esas oraciones, así que se añaden `concordancia_det_nombre`, `concordancia_atono` y `atono_plural_discordante`.
+>
+> **`schema_version` sigue siendo `"1.0"`**: añadir causas es retrocompatible (ningún lote existente deja de validar) y bumpear la versión haría saltar un aviso en todos los lotes ya escritos. Se documenta aquí, siguiendo el mismo patrón que el schema de compuestas con sus ampliaciones.
+>
+> **Las dos causas de átono van separadas a propósito**, y es la decisión de canon más delicada de la ampliación: el desajuste no vale lo mismo en las dos direcciones. Un átono plural con antecedente singular (*A Elena **les** gusta*) no lo produce ningún nativo → ✗ con asterisco. Un átono singular con antecedente plural (***Le** escribió a sus amigos*) lo dice y lo escribe media España, prensa incluida, y la NGLE lo trata como discordancia extendida → ⚠ **sin** asterisco. Una sola causa obligaba a poner asterisco a lo segundo o a quitárselo a lo primero, y las dos opciones enseñan algo falso.
 
 | `causa` | Qué se rompe | Nivel mín. | `veredicto` esperado |
 |---|---|---|---|
 | `concordancia_sv` | número/persona entre sujeto y verbo | basico | agramatical |
 | `concordancia_atr` | el Atr. no concuerda con el sujeto | basico | agramatical |
+| `concordancia_det_nombre` | determinante y nombre discordantes dentro del sintagma | basico | agramatical |
+| `concordancia_atono` | átono plural con antecedente singular | basico | agramatical |
+| `atono_plural_discordante` | átono singular con antecedente plural | basico | **norma_culta** |
 | `transitividad` | verbo intransitivo con CD | basico | agramatical |
 | `orden_imposible` | permutación que rompe la estructura | basico | agramatical |
 | `concordancia_cpvo` | el CPvo no concuerda con su nombre | medio | agramatical |
