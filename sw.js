@@ -24,8 +24,17 @@
    estrategia segura es preguntar a la red primero.
 
    Para forzar que los usuarios recojan cambios grandes de golpe (en vez de
-   ir refrescándose visita a visita), sube el número de CACHE_NAME. */
-const CACHE_NAME = 'taller-sintaxis-shell-v6';
+   ir refrescándose visita a visita), sube el número de CACHE_NAME.
+
+   ⚠️ SHELL_ASSETS HAY QUE MANTENERLA AL DÍA. Cada módulo o archivo de datos
+   nuevo que se añada a js/ debe entrar en la lista. Un archivo que no esté
+   aquí no tiene copia de respaldo: si la red falla justo en él, el fetch
+   handler no encuentra nada en caché y devuelve un error de red. Y como todo
+   el frontend cuelga del grafo de imports de app.js, UN solo módulo caído
+   tumba el arranque entero. Es exactamente lo que pasó el 17-ago-2026 en una
+   carga en frío: fabrica, laboratorio, canon-agramatical y pruebas-sintaxis
+   se habían añadido al proyecto pero nunca a esta lista. */
+const CACHE_NAME = 'taller-sintaxis-shell-v7';
 
 const SHELL_ASSETS = [
   './',
@@ -51,6 +60,9 @@ const SHELL_ASSETS = [
   './js/data/diccionario-sintaxis.js',
   './js/data/diccionario-sintagmas.js',
   './js/data/haber-forms.js',
+  './js/data/canon-agramatical.js',
+  './js/data/pruebas-sintaxis.js',
+  './js/data/pruebas-morfologia.js',
   './js/glosario/tags.js',
   './js/glosario/data.js',
   './js/glosario/render.js',
@@ -73,6 +85,8 @@ const SHELL_ASSETS = [
   './js/modules/sintagmas/index.js',
   './js/modules/maestro/index.js',
   './js/modules/chispa/index.js',
+  './js/modules/fabrica/index.js',
+  './js/modules/laboratorio/index.js',
   './js/modules/teacher/index.js',
   './js/modules/teacher/informe-excel.js',
 ];
@@ -131,15 +145,40 @@ self.addEventListener('fetch', (event) => {
   // Network-first: la red manda. Solo si falla (sin conexión) tiramos de
   // la copia guardada. Así un despliegue se ve en la PRIMERA carga y nunca
   // se mezclan archivos de dos versiones distintas.
-  event.respondWith(
-    fetch(req)
-      .then((res) => {
-        if (res && res.ok) {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
-        }
-        return res;
-      })
-      .catch(() => caches.match(req).then((cached) => cached || Response.error()))
-  );
+  event.respondWith(responder(req));
 });
+
+/* Un fallo de red aquí no es un pixel torcido: si el archivo pedido es un
+   módulo del grafo de app.js, devolver un error tumba el arranque entero de
+   la app (ago-2026). Por eso el camino de error tiene tres oportunidades
+   antes de rendirse: caché → segundo intento de red → error. */
+async function responder(req) {
+  try {
+    const res = await fetch(req);
+    if (res && res.ok) {
+      const copy = res.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+    }
+    return res;
+  } catch (err) {
+    // 1) Copia guardada, si la hay.
+    const cached = await caches.match(req);
+    if (cached) return cached;
+
+    // 2) Sin copia: reintento único. Cubre el caso real que motivó esto —
+    //    una carga en frío con muchas peticiones en paralelo donde el
+    //    servidor deja caer alguna conexión suelta. Al recargar a mano iba
+    //    todo bien, así que el reintento automático suele bastar.
+    try {
+      const res2 = await fetch(req);
+      if (res2 && res2.ok) {
+        const copy = res2.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+      }
+      return res2;
+    } catch (err2) {
+      console.warn('[sw] Sin red y sin copia guardada:', req.url, err2.message);
+      return Response.error();
+    }
+  }
+}
