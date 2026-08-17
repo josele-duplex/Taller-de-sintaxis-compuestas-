@@ -98,6 +98,14 @@ import './modules/laboratorio/index.js';
 
 console.log('[app.js] Módulos ES6 cargados y expuestos en window.');
 
+// Bandera de "el bootstrap llegó hasta el final".
+// Si CUALQUIER import de arriba falla (el navegador o el Service Worker no
+// consiguen un módulo), el motor de módulos ES aborta el archivo entero y esta
+// línea no se ejecuta nunca. El guardián inline de index.html lo comprueba
+// pasados unos segundos y avisa al alumno de que recargue, en vez de dejarle
+// delante de una pantalla muerta. No lo quites sin quitar también el guardián.
+window.__TALLER_BOOTSTRAP_OK__ = true;
+
 // ─────────────────────────────────────────────────────────────
 // 7. PWA — instalable + shell offline (jul-2026)
 // ─────────────────────────────────────────────────────────────

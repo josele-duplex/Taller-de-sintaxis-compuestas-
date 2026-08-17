@@ -1438,10 +1438,71 @@ K: Sujeto_Pts · L: Funciones_Pts · M: NP_Pts · N: Elem_Fallados</pre>
             const FUNC_ADJUNTOS = new Set([...CC_SUBTIPOS, ...])
         ya encuentran CC_SUBTIPOS en window. Despues sus funciones quedan
         accesibles como globales (var, function) para los onclick="" del HTML.
+        (ago-2026: Sint ya no CONFIA en ese orden — lee CC_SUBTIPOS de window
+        con copia de respaldo, para no morir entero si app.js falla. Ver el
+        guardian de arranque justo debajo de los <script>.)
      ────────────────────────────────────────────────────────────────────── -->
 <script type="module" src="js/app.js"></script>
 <script defer src="js/modules/sint/index.js"></script>
 <script defer src="js/modules/teacher/informe-excel.js"></script>
+
+<!-- ──────────────────────────────────────────────────────────────────────
+     Guardian de arranque (ago-2026).
+
+     app.js es un modulo ES: si UN solo import de su grafo falla (el Service
+     Worker devolviendo ERR_FAILED en un modulo que no tenia en cache, una
+     carga en frio con la red a medias, un despliegue a medio propagar), el
+     navegador aborta el archivo entero EN SILENCIO. La app queda a medias:
+     la portada se ve y se puede pulsar, pero los modulos no responden.
+
+     Este script va INLINE a proposito — no se descarga, asi que no puede
+     fallar por lo mismo que estamos vigilando. Comprueba la bandera que
+     app.js pone al final de su cuerpo y, si no esta, avisa al alumno de que
+     recargue en vez de dejarle mirando una pantalla que no reacciona.
+     ────────────────────────────────────────────────────────────────────── -->
+<script>
+(function(){
+  // Recogemos los recursos que fallan al cargar (fase de captura: los errores
+  // de <script>/<link> no burbujean). Solo para el detalle tecnico de Josele.
+  var fallidos = [];
+  window.addEventListener('error', function(ev){
+    var t = ev.target;
+    if(t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK') && (t.src || t.href)){
+      var url = (t.src || t.href).replace(window.location.origin, '');
+      if(fallidos.indexOf(url) === -1) fallidos.push(url);
+    }
+  }, true);
+
+  function avisar(){
+    if(window.__TALLER_BOOTSTRAP_OK__) return;      // arranque correcto
+    if(document.getElementById('boot-fail-banner')) return;
+
+    var det = fallidos.length
+      ? '<div style="font-size:.72rem;opacity:.85;margin-top:6px;font-weight:400">' +
+        'No se pudieron cargar: ' + fallidos.slice(0,4).join(', ') +
+        (fallidos.length > 4 ? ' (y ' + (fallidos.length - 4) + ' mas)' : '') + '</div>'
+      : '';
+
+    var b = document.createElement('div');
+    b.id = 'boot-fail-banner';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#B45309;color:#fff;' +
+      'padding:14px 20px;font-family:Nunito,sans-serif;font-size:.9rem;font-weight:700;text-align:center;' +
+      'box-shadow:0 2px 10px rgba(0,0,0,.3);line-height:1.45';
+    b.innerHTML =
+      '⚠️ La aplicación no se ha cargado del todo. Recarga la página para arreglarlo.' +
+      '<button type="button" onclick="window.location.reload()" ' +
+      'style="background:#fff;border:none;color:#B45309;padding:6px 16px;border-radius:6px;cursor:pointer;' +
+      'margin-left:12px;font-weight:800;font-family:inherit;font-size:.85rem">Recargar</button>' +
+      det;
+    document.body.prepend(b);
+    console.error('[bootstrap] app.js no terminó de ejecutarse. Recursos fallidos:', fallidos);
+  }
+
+  // 'load' espera a los scripts diferidos; el margen extra cubre la ventana en
+  // la que un modulo aun se esta evaluando.
+  window.addEventListener('load', function(){ setTimeout(avisar, 1500); });
+})();
+</script>
 <!--
 ═══════════════════════════════════════════════════════════════════════
 AVISO DE PROPIEDAD INTELECTUAL
