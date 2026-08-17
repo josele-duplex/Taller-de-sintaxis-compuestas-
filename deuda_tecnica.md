@@ -188,6 +188,30 @@ El módulo CP llama a `playSuccess()`, `awardXP()`, `trackError()` del Core. Si 
 
 **Problema**: las protecciones defensivas (`if(typeof X === 'function')`) son una espada de doble filo. Protegen de cuelgues pero ocultan errores que deberían detectarse.
 
+**Caso agravado y ya corregido (ago-2026): globales leídas en top-level.**
+`sint/index.js` leía `CC_SUBTIPOS` (que expone `app.js` en `window`) **durante
+su evaluación top-level**, no dentro de una función. Diferencia clave: una
+llamada fallida dentro de una función rompe esa acción; una referencia fallida
+en top-level aborta **el archivo entero**, así que el motor de Simples
+desaparecía completo por una constante. Ocurrió de verdad en una carga en frío
+en la que el Service Worker no pudo servir varios módulos: `app.js` no llegó a
+ejecutar su cuerpo y `window.CC_SUBTIPOS` nunca se definió.
+
+Tres capas de defensa, hoy en el repo:
+1. `sint/index.js` lee `CC_SUBTIPOS` de `window` con copia de respaldo local.
+2. `app.js` marca `window.__TALLER_BOOTSTRAP_OK__` al terminar; un script
+   **inline** de `index.html` lo comprueba tras `load` y avisa al alumno de que
+   recargue (inline a propósito: no se descarga, no puede fallar igual).
+3. `sw.js` precarga la lista completa y su fetch reintenta antes de rendirse.
+
+**Lo que sigue siendo frágil**: `SHELL_ASSETS` de `sw.js` se mantiene a mano.
+Ya ha fallado dos veces — jul-2026 (un archivo de la lista que ya no existía
+impedía instalar el SW) y ago-2026 (cinco archivos nuevos que nunca se
+añadieron). Al crear un módulo o un archivo de datos nuevo hay que meterlo en
+la lista y subir `CACHE_NAME`. Sin build ni bundler no hay forma automática de
+generarla; lo más barato sería un script que compare `js/**/*.js` contra la
+lista y avise (misma familia que los validadores de banco).
+
 ### 2.9 No hay tests automatizados
 
 **Estado: 🔴 PENDIENTE.** Cero tests. Toda la verificación es manual. Sigue
