@@ -222,7 +222,30 @@ document.addEventListener('keydown', function(ev){
 // GRAMMAR CONSTANTS
 // ════════════════════════════════════════════════════════
 const TIPOS     = ['SN','SP','SAdj','SAdv','SV'];
-// CC subtipos v4.0 — aparecen en el pool de Adjuntos con submenú
+
+// CC subtipos v4.0 — aparecen en el pool de Adjuntos con submenú.
+// La lista MAESTRA vive en js/glosario/tags.js y llega aquí por window,
+// porque app.js hace Object.assign(window, ...) antes de que este script se
+// ejecute (ver bootstrap de index.html).
+//
+// Por qué esta lectura es defensiva (ago-2026): app.js es un módulo ES, así
+// que si UN solo import de su grafo falla (p.ej. el Service Worker devuelve
+// ERR_FAILED en un módulo que no tenía en caché), su cuerpo no llega a
+// ejecutarse y window.CC_SUBTIPOS nunca se define. Leerlo a pelo lanzaba un
+// ReferenceError en la línea de FUNC_ADJUNTOS — en plena evaluación top-level,
+// o sea que se caía el motor de Simples ENTERO por una constante. Con la copia
+// de respaldo el motor arranca igual y el alumno puede seguir analizando.
+//
+// OJO: si añades o quitas un subtipo, tócalo en los DOS sitios (tags.js manda).
+const CC_SUBTIPOS_RESPALDO = ['CC Lugar','CC Tiempo','CC Modo','CC Causa','CC Cantidad','CC Compañía','CC Finalidad','CC Instrumento','CC Benef.'];
+const CC_SUBTIPOS = Array.isArray(window.CC_SUBTIPOS) && window.CC_SUBTIPOS.length
+  ? window.CC_SUBTIPOS
+  : CC_SUBTIPOS_RESPALDO;
+if (!Array.isArray(window.CC_SUBTIPOS)) {
+  console.warn('[sint] CC_SUBTIPOS no llegó desde app.js — usando la copia de respaldo. ' +
+               'Señal de que algún módulo ES no cargó: la app puede estar incompleta.');
+}
+
 // T alone is only used internally for intermediate level; not a draggable label
 // Helpers CC
 function isCC(f){ return f==='CC'||CC_SUBTIPOS.includes(f); }
