@@ -3,7 +3,7 @@
 
 **F2 · sesión 1 · 6 de agosto de 2026 · Norma editorial vigente**
 
-> **Para qué sirve.** Este documento decide **qué se puede preguntar** en un juicio de gramaticalidad del Laboratorio y **cómo se redacta**. Es la parte del canon que un archivo de datos no puede contener: los datos guardan las 19 causas ([`js/data/canon-agramatical.js`](../js/data/canon-agramatical.js)), y aquí está el criterio para usarlas.
+> **Para qué sirve.** Este documento decide **qué se puede preguntar** en un juicio de gramaticalidad del Laboratorio y **cómo se redacta**. Es la parte del canon que un archivo de datos no puede contener: los datos guardan las 22 causas ([`js/data/canon-agramatical.js`](../js/data/canon-agramatical.js)), y aquí está el criterio para usarlas.
 >
 > **Quién lo lee.** Quien escriba un lote de retos (F0·3 `medio`, F4·1 `basico`, F5·2-3 `avanzado`) y quien valide uno. El motor no lee esto; lee el archivo de datos.
 >
@@ -65,7 +65,7 @@ El marco teórico es explícito: eso se aborda como **variación social**, no co
 
 ---
 
-## 4. Las 19 causas y su frontera
+## 4. Las 22 causas y su frontera
 
 La tabla completa —marca, veredicto, nivel mínimo, familia, etiqueta del alumno, ejemplo con su gemela y el criterio de frontera— vive en [`js/data/canon-agramatical.js`](../js/data/canon-agramatical.js), que es la fuente única. Aquí solo el mapa, con **la trampa concreta de cada una**: el caso que parece de esa causa y no lo es.
 

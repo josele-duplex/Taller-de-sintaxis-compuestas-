@@ -128,7 +128,7 @@ const LAB_ENUNCIADOS = new Set(['tecnico','simple']);
 const LAB_DESTINOS = new Set(['reto','caja_pruebas']);
 const LAB_ORDENES = new Set(['fijo','libre']);
 
-// Las 19 causas de agramaticalidad, con el nivel mínimo en que pueden aparecer
+// Las 22 causas de agramaticalidad, con el nivel mínimo en que pueden aparecer
 // y el veredicto que les corresponde (§5 de la especificación). Confundir un
 // error de comprensión con uno de norma culta es el error pedagógico que el
 // corpus quiere evitar, así que se valida.
@@ -893,7 +893,7 @@ function validarLaboratorio(cabecera, filas, R){
           } else {
             const spec = LAB_CAUSAS[it.causa];
             if(!it.causa) R.error(id, `${ref}: falta "causa" (obligatoria salvo en veredicto "gramatical").`);
-            else if(!spec) R.error(id, `${ref}: causa "${it.causa}" no está entre las 19 del schema.`);
+            else if(!spec) R.error(id, `${ref}: causa "${it.causa}" no está entre las 22 del schema.`);
             else {
               if(LAB_ORDEN_NIVEL[spec.nivelMin] > (LAB_ORDEN_NIVEL[nivel]||0))
                 R.error(id, `${ref}: causa "${it.causa}" es de nivel ${spec.nivelMin} y el reto es ${nivel}.`);

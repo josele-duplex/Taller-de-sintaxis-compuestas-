@@ -115,7 +115,7 @@
    "sin retos disponibles" hasta que existan esos lotes (F4/F5). */
 
 // El canon de aceptabilidad (F2·1) es la fuente única de las tres marcas, los
-// cuatro veredictos y las 19 causas en lenguaje de alumno. Antes vivían
+// cuatro veredictos y las 22 causas en lenguaje de alumno. Antes vivían
 // escritos a mano aquí; se movieron al dato para que el motor, quien escribe
 // los lotes y el documento editorial digan exactamente lo mismo.
 import { VEREDICTOS as VEREDICTO_UI, ORDEN_VEREDICTOS as VEREDICTOS,
@@ -692,7 +692,7 @@ function _renderManipulacion(item) {
 
 // Las cuatro opciones de veredicto se muestran siempre fijas (el veredicto es
 // un enum cerrado del schema, no viene con "opciones" en el dato — igual que
-// valencia). Sus etiquetas, y las de las 19 causas en lenguaje de alumno,
+// valencia). Sus etiquetas, y las de las 22 causas en lenguaje de alumno,
 // vienen del canon (import de arriba): estaban escritas aquí desde F1·3 y dos
 // de ellas se solapaban —«el pronombre no es el de esa función» valía igual
 // para pronombre_cruzado y para leismo_laismo, que en avanzado pueden salir

@@ -1,7 +1,7 @@
 /* canon-agramatical.js — Canon de aceptabilidad del corpus del Laboratorio
    Laboratorio de Oraciones · F2 · sesión 1 (ago-2026)
 
-   Las 19 causas del schema (§5 de docs/Schema_Laboratorio_v1.0.md), con lo que
+   Las 22 causas del schema (§5 de docs/Schema_Laboratorio_v1.0.md), con lo que
    el schema NO guarda: qué marca lleva cada una (✗ / ⚠ / ⚖), cómo se le nombra
    al alumno, con qué ejemplo canónico se contrasta y —lo que de verdad importa
    al escribir un lote— dónde está su frontera: qué cuenta como esa causa y qué
@@ -87,14 +87,21 @@ export const VEREDICTOS = {
 
 export const ORDEN_VEREDICTOS = ['gramatical', 'agramatical', 'norma_culta', 'dudoso'];
 
-// ── Las 19 causas ────────────────────────────────────────────────────────
+// ── Las 22 causas ────────────────────────────────────────────────────────
 //
-// Eran 16 hasta ago-2026. Las tres nuevas (concordancia_det_nombre,
+// Eran 16 hasta ago-2026. Las tres primeras nuevas (concordancia_det_nombre,
 // concordancia_atono, atono_plural_discordante) salieron de una auditoría del
 // banco: 6 juicios etiquetaban como concordancia_sv errores que no lo eran, y
 // la explicación que leía el alumno era correcta mientras la causa que tenía
 // que elegir era falsa. No había hueco en la lista para lo que de verdad
 // pasaba en esas oraciones.
+//
+// Ampliación de 2026-08-20 (bloque de valores de «se», paso A —
+// docs/Cascada_Valores_del_SE_Laboratorio.md §6.3): tres causas más
+// (impersonal_pluralizada, reciproco_sujeto_singular, verbo_pronominal_sin_se)
+// que el corpus de «se» necesita para sus juicios y que ninguna de las 19
+// anteriores nombraba. 19 → 22, mismo patrón: retrocompatible, sin subir
+// schema_version.
 //
 // Campos:
 //   marca     — ✗ / ⚠ / ⚖ (clave de MARCAS).
@@ -220,6 +227,19 @@ export const CAUSAS = {
     criterio: 'Las DOS funciones tienen que estar en la oración: es lo que hace el error visible y lo que lo separa del laísmo (⚠, avanzado), donde no hay cruce sino uso extendido de la norma no culta. Regla dura: si el ejemplo se oye con naturalidad en zonas laístas o leístas, la causa es leismo_laismo y la marca es ⚠, no ✗. Fuente: PM-SINT-35.'
   },
 
+  // Nueva de 2026-08-20 (bloque de valores de «se», docs/Cascada_Valores_del_SE_Laboratorio.md
+  // §6.3): el corpus del bloque B (rama paradigmática) trae un error clásico del recíproco
+  // que ninguna causa anterior nombraba.
+
+  reciproco_sujeto_singular: {
+    marca: 'agramatical', veredicto: 'agramatical', nivelMin: 'medio',
+    familia: 'pronombre',
+    etiqueta: 'Ese «se» dice que la acción va de uno a otro, y aquí solo hay una persona',
+    rompe: '«se» recíproco con sujeto en singular: el recíproco exige como mínimo dos participantes.',
+    ejemplo: { mal: 'Ana se escribieron cartas.', bien: 'Ana y Luis se escribieron cartas.' },
+    criterio: 'Solo cuenta cuando el verbo admite la prueba «el uno al otro» / «mutuamente» y el sujeto nombra a una sola persona. El recíproco exige como mínimo dos participantes, así que el arreglo NO puede ser tocar el verbo (Ana escribió cartas ya no es recíproco, es otra acción): tiene que ser añadir un segundo sujeto. Es la misma lógica que concordancia_sv pero sobre el pronombre «se», no sobre la forma verbal: allí se corrige el verbo, aquí se corrige el sujeto.'
+  },
+
   seleccion_semantica: {
     marca: 'agramatical', veredicto: 'agramatical', nivelMin: 'medio',
     familia: 'seleccion',
@@ -227,6 +247,18 @@ export const CAUSAS = {
     rompe: 'El verbo admite el complemento, pero no de ese tipo semántico.',
     ejemplo: { mal: 'Presencié a los jugadores.', bien: 'Presencié el partido.' },
     criterio: 'El verbo sí es transitivo: lo que falla es la clase de cosa. Es la causa más resbaladiza del corpus, porque casi todo se puede rescatar con imaginación o con una lectura figurada. Solo se escribe cuando el rescate es forzado; si a alguien se le ocurre un contexto normal donde se diga, el ítem no vale. Fuente: PM-SINT-36.'
+  },
+
+  // Nueva de 2026-08-20 (mismo origen que reciproco_sujeto_singular): la rama
+  // paradigmática de la cascada de «se» también trae verbos que no existen sin él.
+
+  verbo_pronominal_sin_se: {
+    marca: 'agramatical', veredicto: 'agramatical', nivelMin: 'medio',
+    familia: 'seleccion',
+    etiqueta: 'Ese verbo no existe sin su «se»',
+    rompe: 'Verbo pronominal (arrepentirse, quejarse, atreverse…) usado sin el «se» que forma parte de él.',
+    ejemplo: { mal: 'Alfonso arrepintió.', bien: 'Alfonso se arrepintió.' },
+    criterio: 'Solo verbos genuinamente pronominales, los que no existen sin «se» (arrepentirse, quejarse, atreverse, jactarse…). NO cuenta con verbos que admiten «se» de forma opcional y con matiz (comer/comerse, ir/irse): ahí quitar el «se» no rompe nada, solo cambia el matiz, y no hay ítem. Frontera con transitividad: ahí falta o sobra un complemento; aquí falta una pieza del propio verbo, sin la cual la oración no se sostiene.'
   },
 
   articulo_propio: {
@@ -247,6 +279,20 @@ export const CAUSAS = {
     rompe: 'Pasiva refleja construida sobre un verbo que no admite pasiva.',
     ejemplo: { mal: 'Se desapareció el acuerdo entre las partes.', bien: 'Desapareció el acuerdo entre las partes.' },
     criterio: 'La pasiva refleja necesita un verbo transitivo. Cuidado con los verbos que admiten un se de otro valor (se cayó, se murió, se fue): ahí el se es correcto y no hay error ninguno. El ítem solo vale si la única lectura posible del se es la de pasiva refleja. Fuente: PM-SINT-54.'
+  },
+
+  // Nueva de 2026-08-20 (bloque de valores de «se», docs/Cascada_Valores_del_SE_Laboratorio.md
+  // §6.3): el error que confunde impersonal con pasiva refleja en la dirección contraria a
+  // pasiva_refleja_intrans — aquí el verbo SÍ admite la construcción, pero se pluraliza cuando
+  // no debía.
+
+  impersonal_pluralizada: {
+    marca: 'agramatical', veredicto: 'agramatical', nivelMin: 'avanzado',
+    familia: 'seleccion',
+    etiqueta: 'El verbo copia el plural de quien recibe la acción, y aquí no debía',
+    rompe: 'Verbo de una construcción impersonal con «se» pluralizado por atracción del CD de persona pospuesto (marcado con «a»); el impersonal es siempre 3.ª persona del singular.',
+    ejemplo: { mal: 'Se han pagado a todos los proveedores.', bien: 'Se ha pagado a todos los proveedores.' },
+    criterio: 'Solo cuenta cuando el sintagma pospuesto lleva «a» de persona: esa «a» es la marca de que la construcción es impersonal, no pasiva refleja, así que el verbo tiene que quedarse invariable en 3.ª persona del singular. Si se quita la «a» (Se han pagado las facturas), la construcción pasa a ser pasiva refleja y el plural es correcto: ahí no hay error. No es concordancia_sv: la impersonal con «se» no tiene sujeto, así que no hay nada con lo que el verbo tenga que concordar.'
   },
 
   duplicacion_obligatoria: {

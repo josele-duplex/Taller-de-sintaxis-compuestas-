@@ -230,7 +230,7 @@ Que las cinco manipulaciones compartan estructura es lo que permite un solo moto
 | Campo | Obligatorio | Reglas |
 |---|---|---|
 | `veredicto` | ✔ | `gramatical` \| `agramatical` \| `norma_culta` \| `dudoso` |
-| `causa` | según veredicto | Una de las 19 de §5. Obligatoria salvo si `veredicto: "gramatical"`, donde **no debe aparecer**. |
+| `causa` | según veredicto | Una de las 22 de §5. Obligatoria salvo si `veredicto: "gramatical"`, donde **no debe aparecer**. |
 | `opciones_causa` | según veredicto | 2-4 causas, una de ellas la correcta. Obligatoria salvo en `gramatical`. |
 | `gemela_correcta` | según veredicto | Obligatoria si `agramatical` o `norma_culta`. Prohibida si `gramatical`. |
 | `explicacion` | ✔ | Qué se rompe, en lenguaje de alumno. |
@@ -363,7 +363,7 @@ Traduce a máquina el principio central del módulo («la etiqueta es punto de l
 
 ---
 
-## 5. Las 19 causas de agramaticalidad
+## 5. Las 22 causas de agramaticalidad
 
 Lista cerrada del campo `causa`. La columna «Nivel mín.» la comprueba el validador: una causa de `avanzado` en un reto `basico` es ERROR.
 
