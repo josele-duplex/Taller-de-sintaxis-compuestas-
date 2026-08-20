@@ -372,6 +372,8 @@ Lista cerrada del campo `causa`. La columna «Nivel mín.» la comprueba el vali
 > **`schema_version` sigue siendo `"1.0"`**: añadir causas es retrocompatible (ningún lote existente deja de validar) y bumpear la versión haría saltar un aviso en todos los lotes ya escritos. Se documenta aquí, siguiendo el mismo patrón que el schema de compuestas con sus ampliaciones.
 >
 > **Las dos causas de átono van separadas a propósito**, y es la decisión de canon más delicada de la ampliación: el desajuste no vale lo mismo en las dos direcciones. Un átono plural con antecedente singular (*A Elena **les** gusta*) no lo produce ningún nativo → ✗ con asterisco. Un átono singular con antecedente plural (***Le** escribió a sus amigos*) lo dice y lo escribe media España, prensa incluida, y la NGLE lo trata como discordancia extendida → ⚠ **sin** asterisco. Una sola causa obligaba a poner asterisco a lo segundo o a quitárselo a lo primero, y las dos opciones enseñan algo falso.
+>
+> **Ampliación de 2026-08-20 (bloque de valores de «se»).** El diseño de `docs/Cascada_Valores_del_SE_Laboratorio.md` (PASO 1) necesita nombrar tres errores del corpus de *se* que la lista no cubría: pluralizar el verbo de una impersonal cuando lleva «a + persona» (*\*Se han pagado a todos los proveedores*), un recíproco con sujeto en singular (*\*Ana se escribieron cartas* — el recíproco exige sujeto plural, es la misma lógica que `concordancia_sv` pero sobre el pronombre, no sobre el verbo) y un verbo pronominal usado sin su *se* (*\*Alfonso arrepintió*). Se añaden `impersonal_pluralizada`, `reciproco_sujeto_singular` y `verbo_pronominal_sin_se`. Mismo patrón que la ampliación anterior: retrocompatible, `schema_version` se queda en `"1.0"`.
 
 | `causa` | Qué se rompe | Nivel mín. | `veredicto` esperado |
 |---|---|---|---|
@@ -394,6 +396,9 @@ Lista cerrada del campo `causa`. La columna «Nivel mín.» la comprueba el vali
 | `queismo_dequeismo` | preposición ante *que* añadida o suprimida | avanzado | norma_culta |
 | `leismo_laismo` | *le* por *lo*, *la* por *le* | avanzado | norma_culta |
 | `concordancia_ad_sensum` | concordancia con el significado, no con la forma | avanzado | dudoso |
+| `impersonal_pluralizada` | verbo de una impersonal con «se» pluralizado por el CD de persona pospuesto | avanzado | agramatical |
+| `reciproco_sujeto_singular` | «se» recíproco con sujeto en singular (el recíproco exige varios) | medio | agramatical |
+| `verbo_pronominal_sin_se` | verbo pronominal (arrepentirse, quejarse…) usado sin su «se» | medio | agramatical |
 
 **Fuera del corpus, sin excepción** (no hay código para ellas y el validador rechaza cualquier intento de meterlas): incorrección de origen social (*haiga*, *cocretas*), ortografía, léxico y rasgos dialectales. El marco teórico manda tratarlas como variación social, no como material de análisis.
 

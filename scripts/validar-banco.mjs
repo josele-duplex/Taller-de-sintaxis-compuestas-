@@ -155,6 +155,11 @@ const LAB_CAUSAS = {
   queismo_dequeismo:        { nivelMin:'avanzado', veredicto:'norma_culta' },
   leismo_laismo:            { nivelMin:'avanzado', veredicto:'norma_culta' },
   concordancia_ad_sensum:   { nivelMin:'avanzado', veredicto:'dudoso' },
+  // Ampliación 2026-08-20 (bloque de valores de «se», docs/Cascada_Valores_del_SE_Laboratorio.md):
+  // las tres causas que la cascada necesita para sus juicios y que ninguna de las 19 anteriores nombra.
+  impersonal_pluralizada:   { nivelMin:'avanzado', veredicto:'agramatical' },
+  reciproco_sujeto_singular:{ nivelMin:'medio',    veredicto:'agramatical' },
+  verbo_pronominal_sin_se:  { nivelMin:'medio',    veredicto:'agramatical' },
 };
 
 // Pares de funciones que discriminan de verdad (matriz de vecinos confundibles
