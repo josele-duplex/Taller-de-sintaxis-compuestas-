@@ -178,4 +178,129 @@ Cuatro cosas que el schema v1.0 hoy no cubre. Estado a 2026-08-20 (paso C):
 
 ---
 
-*PASO 1 · diseño · 19-ago-2026. Terminología NGLE del proyecto: sintagma (nunca «grupo»), oración y O1/O2/O3 (nunca «proposición»), «para» nunca introduce CI.*
+## 8. PASO 2 (diseño del ítem, sin código) · 20-ago-2026 · PENDIENTE DE APROBACIÓN
+
+Qué se decide aquí: la estructura JSON del décimo tipo de ítem del schema, `investigacion`. Qué NO se decide: ni una línea del motor que lo ejecuta (PASO 3) — pero para dibujar el JSON hace falta asumir cómo lo va a leer ese motor, así que esta sección da por buena la decisión de §6.4 (`dependsOn` con array) y la aplica.
+
+### 8.1 Dónde vive: un tipo de motor más, no una estación nueva
+
+El schema (`Schema_Laboratorio_v1.0.md` §3) tiene nueve tipos de ítem repartidos en tres estaciones fijas, y ninguno sirve para esto: `investigacion` no es una manipulación (no hay una única `oracion` + `objetivo` + resultado), no es un juicio, y no es `etiqueta_prueba` porque ahí el sintagma **ya viene etiquetado** y solo hay que citar la prueba — aquí no hay etiqueta hasta el último peldaño. Hace falta un tipo nuevo.
+
+**Propuesta: estación 3.** La definición de esa estación en el plan de producto (`Laboratorio_Oraciones_Plan_Producto.md` §2.3) es «nombrar lo ya conquistado y elegir la prueba que lo demuestra» — que es exactamente lo que hace cada peldaño de la cascada: el alumno no manipula la oración, elige qué prueba aplica y por qué, y al final nombra el valor. Es la misma mecánica que `etiqueta_prueba` (3.1: «¿qué prueba lo demuestra?»), repetida varias veces en cadena en vez de una sola.
+
+Consecuencia de esta propuesta sobre las reglas de composición del reto (§2.1 del schema): un reto de "se" satisface la regla «al menos un ítem de estación 3» solo con `investigacion`, pero sigue necesitando **al menos un ítem de estación 1 y de estación 2** (probablemente un `juicio` con alguna de las tres causas nuevas) para no romper esa regla — no puede ser un reto hecho solo de `investigacion`. Lo marco como pregunta abierta en §8.7: es la primera vez que el módulo pide un reto con esta forma.
+
+### 8.2 El repertorio compartido: `CASCADA_SE`
+
+Igual que las pruebas de la §8 del schema no se escriben en cada reto (§7.3: «el contenido pedagógico se ancla por repertorio, no por reto»), **el árbol de la cascada tampoco**. Vive una sola vez, junto a `PRUEBAS_SINTAXIS` en `js/data/pruebas-sintaxis.js`; cada ítem solo aporta el camino que recorre una oración concreta.
+
+Aplicando la cascada de §2 y reutilizando, donde ya existen, los valores cerrados que SE-01 y SE-04 declaran en su propio campo `funcion` (así no se inventa una segunda codificación para lo mismo):
+
+```js
+export const CASCADA_SE = [
+  { id: 'sustitucion',  pruebaId: 'PRU-SINT-SE-05',
+    opts: ['si', 'no'] },                                    // P0 · ¿reaparece le/les?
+
+  { id: 'paradigma',    pruebaId: 'PRU-SINT-SE-02',
+    dependsOn: { paso: 'sustitucion', val: 'no' },
+    opts: ['cambia', 'no_cambia'] },                          // P1 · tronco
+
+  { id: 'concordancia', pruebaId: 'PRU-SINT-SE-01',
+    dependsOn: { paso: 'paradigma', val: 'no_cambia' },
+    opts: ['Marca.Pas.Ref.', 'Marca.Imp.'] },                 // A1 · reusa los valores que SE-01 ya declara
+
+  { id: 'refuerzo',     pruebaId: 'PRU-SINT-SE-03',
+    dependsOn: { paso: 'paradigma', val: 'cambia' },
+    opts: ['a_si_mismo', 'uno_al_otro', 'ninguno'] },          // B1
+
+  { id: 'funcion',      pruebaId: null,
+    dependsOn: { paso: 'refuerzo', val: ['a_si_mismo', 'uno_al_otro'] },
+    opts: ['CD', 'CI'] },                                     // subpaso · sin prueba propia, es «¿hay otro CD?»
+
+  { id: 'supresion',    pruebaId: 'PRU-SINT-SE-04',
+    dependsOn: { paso: 'refuerzo', val: 'ninguno' },
+    opts: ['Marca.Pron.', 'Dativo'] },                         // B2 · reusa los valores que SE-04 ya declara
+];
+```
+
+Notas de esta tabla:
+
+- **`sustitucion`, `paradigma` y `refuerzo` inventan nombres de rama** (`cambia`/`no_cambia`, `a_si_mismo`/`uno_al_otro`/`ninguno`) porque, tal como ya explica el comentario de SE-02/SE-03 en el código, esos peldaños deciden una familia, no una función — no hay una etiqueta de `FUNC_ORAC` que resumirles.
+- **`concordancia` y `supresion` NO inventan nada**: usan literalmente los mismos strings que SE-01 y SE-04 ya declaran en su `funcion` (`Marca.Pas.Ref.`/`Marca.Imp.`, `Marca.Pron.`/`Dativo`). Un peldaño y su prueba dicen lo mismo con el mismo dato — coherente con lo que ya pedía el punto 3 de §5.4.
+- **`funcion` reusa `CD`/`CI` de `FUNC_ORAC` tal cual**, no una versión en minúscula: es el mismo campo que ya usa `objetivo.funcion` en `manipulacion` y `etiqueta_prueba`, así que el validador puede comprobarlo contra la misma lista cerrada sin código nuevo.
+- El `dependsOn` con array de `funcion` es la aplicación directa de la decisión de §6.4.
+
+### 8.3 El ítem `investigacion`
+
+```json
+{ "tipo": "investigacion",
+  "oracion": "Se cortó el flequillo sin ayuda.",
+  "camino": { "sustitucion": "no", "paradigma": "cambia", "refuerzo": "a_si_mismo", "funcion": "CI" },
+  "valor": "reflexivo",
+  "funcion_final": "CI",
+  "explicacion": "Admite «se cortó el flequillo a sí misma»: reflexivo. Y como ya hay otro CD en la oración («el flequillo»), el «se» no puede ser también CD — tiene que ser CI.",
+  "fuente_id": "A2-EJ5-f" }
+```
+
+| Campo | Obligatorio | Reglas |
+|---|---|---|
+| `oracion` | ✔ | La oración sobre la que se investiga. Misma regla que `manipulacion`: si está en el `corpus` del reto, mejor (AVISO si no). |
+| `camino` | ✔ | Objeto `{ id_del_paso: valor_elegido }`, **exactamente** los pasos de `CASCADA_SE` cuyo `dependsOn` queda satisfecho por los pasos anteriores del propio `camino` — ni de más ni de menos. Es el mismo papel que `correctAtrs` en `MORPH_CASCADES` (`js/modules/maestro/index.js`): la ruta correcta que el motor comprueba paso a paso, mostrando solo lo que aplica. |
+| `valor` | ✔ | Uno de los **siete valores** (lista cerrada nueva, `VALORES_SE`): `variante_le` · `reflexivo` · `reciproco` · `morfema_verbal` · `dativo_aspectual` · `pasiva_refleja` · `impersonal`. Tiene que ser consistente con el último paso de `camino` (tabla de derivación en §8.4) — lo comprueba el validador, no se confía en que quien escribe el lote haga la cuenta bien. |
+| `funcion_final` | según `valor` | Solo los tres valores que **sí** son una función real en Simples la llevan (§5.2 del documento): `variante_le` → siempre `CI`; `reflexivo`/`reciproco` → `CD` o `CI`, el que diga `camino.funcion`. Los otros cuatro (morfema verbal, dativo aspectual, pasiva refleja, impersonal) no llevan este campo — no ocupan hueco de función, son marcas, y forzarles un valor sería inventar un dato falso. |
+| `explicacion` | ✔ | Igual que en `juicio`: qué se ha descubierto, en lenguaje de alumno — nunca «es CI», sino el mecanismo. |
+| `fuente_id` | — | Aquí no es `PM-SINT-NN`: las 14 oraciones no vienen del banco R-07 sino del ejercicio 5 de la fuente A2 citada en §1. Propongo `A2-EJ5-a`..`A2-EJ5-n` (letra de la fila de la tabla de §3), formato nuevo que habría que sumar al patrón validado de `fuente_id` (`^PM-SINT-\d{2}$` \| `^AI-SINT-\d{2}$` hoy). |
+
+**Por qué `valor` va explícito y no se deriva en tiempo de ejecución.** Podría calcularse siempre desde el último paso de `camino` (es una tabla fija de 7 filas). Se guarda explícito de todos modos por el mismo motivo que `juicio` guarda `causa` Y `veredicto` pudiendo derivarse uno del otro: es más barato para el validador comparar dos campos que reimplementar la lógica de la cascada, y un lote mal escrito lo delata al instante en vez de fallar en silencio en el motor.
+
+### 8.4 Contra el corpus real: las doce oraciones que no son zona gris
+
+Las 14 filas del ejercicio 5 (§3) menos las dos zonas grises (h, l — van como `frontera`, no como `investigacion`, ver §8.5) y confirmando que el diseño cubre los siete valores sin huecos:
+
+| # | `camino` | `valor` | `funcion_final` |
+|---|---|---|---|
+| a | `{sustitucion:no, paradigma:cambia, refuerzo:ninguno, supresion:Marca.Pron.}` | `morfema_verbal` | — |
+| b | `{sustitucion:si}` | `variante_le` | `CI` |
+| c | `{sustitucion:no, paradigma:cambia, refuerzo:ninguno, supresion:Dativo}` | `dativo_aspectual` | — |
+| d | `{sustitucion:no, paradigma:no_cambia, concordancia:Marca.Pas.Ref.}` | `pasiva_refleja` | — |
+| e | `{sustitucion:no, paradigma:cambia, refuerzo:uno_al_otro, funcion:CD}` | `reciproco` | `CD` |
+| f | `{sustitucion:no, paradigma:cambia, refuerzo:a_si_mismo, funcion:CI}` | `reflexivo` | `CI` |
+| g | `{sustitucion:no, paradigma:cambia, refuerzo:ninguno, supresion:Marca.Pron.}` | `morfema_verbal` | — |
+| i | `{sustitucion:no, paradigma:cambia, refuerzo:uno_al_otro, funcion:CI}` | `reciproco` | `CI` |
+| j | `{sustitucion:no, paradigma:no_cambia, concordancia:Marca.Pas.Ref.}` | `pasiva_refleja` | — |
+| k | `{sustitucion:no, paradigma:no_cambia, concordancia:Marca.Imp.}` | `impersonal` | — |
+| m | `{sustitucion:no, paradigma:cambia, refuerzo:ninguno, supresion:Dativo}` | `dativo_aspectual` | — |
+| n | `{sustitucion:no, paradigma:cambia, refuerzo:ninguno, supresion:Marca.Pron.}` | `morfema_verbal` | — |
+
+Las doce caben en la forma propuesta sin excepciones ni campos ad hoc, y entre ellas agotan los siete valores (③ y ⑥ y ④ y ⑤ aparecen dos veces cada uno, como ya contaba §3). Es la comprobación de que el JSON aguanta antes de aprobarlo, igual que §3 lo fue para la cascada misma.
+
+### 8.5 Lo que NO cambia
+
+Confirmado contra §4 y §7 del PASO 1, que ya lo decidían y este paso no toca:
+
+- Las **tres zonas grises** (h, l, y «Se comunicó por correo») siguen siendo ítems `frontera` — el tipo ya existe, con sus dos `opciones` de `ok: true`, `peso: 2` y fuera del examen por `zona_gris: true`. No usan `investigacion`.
+- Los **pares mínimos de los ejercicios 11-12** siguen siendo `par_minimo` tal cual. Tampoco usan `investigacion`.
+
+`investigacion` es solo para el peldaño de clasificación por comportamiento — el resto del reto de "se" se sigue construyendo con los nueve tipos que ya existían.
+
+### 8.6 Ajustes que le pediría al schema (propuesta, no aplicada todavía)
+
+Si se aprueba lo de arriba, `Schema_Laboratorio_v1.0.md` necesitaría, en el mismo commit que dé de alta el motor (PASO 3):
+
+1. Añadir `investigacion` a la tabla de §3 (décimo tipo, estación 3 — o la que se decida en §8.7.1).
+2. Documentar `CASCADA_SE` junto al catálogo de `prueba_id` (§8 del schema), con la misma lógica de «se fija ahora, se implementa después» que ya se usó con los diez `prueba_id` originales.
+3. Sumar `VALORES_SE` a la lista de listas cerradas de §7.2.
+4. Sumar el patrón `^A2-EJ5-[a-n]$` (o el que se decida) a los formatos válidos de `fuente_id` del §8 del schema.
+5. Una regla de validación específica: que `camino` no tenga pasos de más ni de menos según el `dependsOn` de `CASCADA_SE`, y que `valor`/`funcion_final` sean consistentes con el último paso — es la parte no trivial del validador nuevo, y la única realmente distinta de lo que el validador ya sabe hacer.
+
+### 8.7 Lo que necesito que apruebes (PASO 2)
+
+1. **8.7.1 — La estación.** Propongo estación 3. Si no convence, la alternativa es estación 2 (encaja peor con la definición del plan, pero es defendible porque cada peldaño *manipula* una prueba antes de nombrar nada). Sea cual sea, hay que decidir si un reto de "se" puede saltarse el ítem obligatorio de estación 2 o si tiene que llevar igualmente un `juicio` — mi lectura es que no se salta nada: un reto de "se" lleva su `investigacion` (estación 3) Y su `juicio` con alguna de las tres causas nuevas (estación 2), como cualquier otro reto `avanzado`.
+2. **La forma de `camino`**: objeto `{paso: valor}` en vez de, por ejemplo, un array ordenado de pasos. Lo propongo así porque es más corto de escribir a mano y más fácil de validar (basta mirar las claves), pero pierde el orden explícito en que el alumno los recorrió — que el motor puede reconstruir solo con el propio `dependsOn`, así que no debería hacer falta.
+3. **Que `valor` vaya explícito y no derivado** (razón en §8.3), igual que `causa` + `veredicto` en `juicio`.
+4. **El formato nuevo de `fuente_id`** para las 14 oraciones del ejercicio 5, `A2-EJ5-[a-n]`.
+5. **Los cinco ajustes de §8.6** al schema, para cuando arranque el PASO 3.
+
+---
+
+*PASO 1 · diseño · 19-ago-2026 · PASO 2 · diseño del ítem · 20-ago-2026. Terminología NGLE del proyecto: sintagma (nunca «grupo»), oración y O1/O2/O3 (nunca «proposición»), «para» nunca introduce CI.*
