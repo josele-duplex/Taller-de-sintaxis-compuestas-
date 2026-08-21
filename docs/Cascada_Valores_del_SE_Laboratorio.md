@@ -315,4 +315,17 @@ Si se aprueba lo de arriba, `Schema_Laboratorio_v1.0.md` necesitaría, en el mis
 
 ---
 
-*PASO 1 · diseño · 19-ago-2026 · PASO 2 · diseño del ítem · 20-ago-2026 · aprobado 21-ago-2026. Terminología NGLE del proyecto: sintagma (nunca «grupo»), oración y O1/O2/O3 (nunca «proposición»), «para» nunca introduce CI.*
+## 9. PASO 3 y PASO 4 — hecho (21-ago-2026)
+
+Motor completo, de dato a pantalla:
+
+- **PASO 3** (código, sin contenido): `CASCADA_SE` + `VALORES_SE` en `js/data/pruebas-sintaxis.js`; el tipo `investigacion` documentado en `Schema_Laboratorio_v1.0.md` (§3.10, §7.2, §8.1); el modo `laboratorio` de `scripts/validar-banco.mjs` valida `camino` (sin pasos de más ni de menos, según el propio `dependsOn` de la cascada), `valor` (derivado de la tabla de §8.4 y comparado contra lo declarado) y el formato `A2-EJ5-[a-n]` de `fuente_id`.
+- **PASO 4** (motor visual, `js/modules/laboratorio/index.js`): el ítem se juega peldaño a peldaño, con el rastro de lo recorrido visible encima de la pregunta viva. Decisión pedagógica de Josele: al fallar un peldaño se corrige y se **reconduce** al camino bueno — nunca se deja seguir una rama falsa hasta el final — y el ítem solo cuenta como acierto si no hubo ningún fallo. Al cerrar, conquista la prueba que decidió el valor (Caja de Pruebas del Detective, igual que `etiqueta_prueba`) y, al cerrar el **reto**, si hubo alguna investigación limpia, muestra la tabla de equivalencias de 7 filas de §5.4 (valor → etiqueta en Simples).
+
+**Contenido real** (`banco_export/Laboratorio_Banco_avanzado_lote1.tsv`, bloque H, LB_0184-LB_0187): las 12 oraciones no ambiguas de §8.4 más las 2 zonas grises de §4 (`h`, `l`, como ítems `frontera`), agrupadas por la frontera que cada una prueba — B2 (morfema verbal ↔ dativo aspectual), B1 (reflexivo ↔ recíproco), A1 (pasiva refleja ↔ impersonal) y P0 (variante de *le*). Los tres juicios agramaticales de las causas nuevas de §5 usan literalmente los ejemplos que ya fijaba este documento (`*Alfonso arrepintió`, `*Ana se escribieron cartas`, `*Se han pagado a todos los proveedores`) — no se inventó ningún ejemplo agramatical nuevo. Validado con `scripts/validar-banco.mjs` (0 errores sobre las 24 filas del archivo) y jugado entero en el navegador contestando bien los cuatro retos (100 % en los cuatro, cero errores de consola). La tercera zona gris del ejercicio 13 (*Se comunicó por correo*, pensada como `analisis_inverso`) queda sin escribir — es la única pieza de §3-§4 que no entró en este bloque.
+
+**Pendiente real, no de diseño:** pegar las 4 filas nuevas de `Laboratorio_Banco_avanzado_lote1.tsv` (bloque H) en el Google Sheet — el archivo local es la fuente de trabajo, el Sheet es la fuente de verdad de producción.
+
+---
+
+*PASO 1 · diseño · 19-ago-2026 · PASO 2 · diseño del ítem · 20-ago-2026 · aprobado 21-ago-2026 · PASO 3 (motor de datos) y PASO 4 (motor visual + contenido del bloque H) · 21-ago-2026. Terminología NGLE del proyecto: sintagma (nunca «grupo»), oración y O1/O2/O3 (nunca «proposición»), «para» nunca introduce CI.*
