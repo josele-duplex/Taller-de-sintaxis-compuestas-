@@ -5198,6 +5198,34 @@ body.theme-new-ui #screen-laboratorio .lab-casc-puente{
   font-size:.82rem;color:var(--ui-muted);line-height:1.45;
 }
 
+/* ── Tabla de equivalencias valor↔etiqueta (§5.4, al cerrar el RETO) ──
+   Siete filas fijas (VALOR_SE_UI), la(s) conquistada(s) por este alumno
+   resaltada(s). Va dentro de .lab-fin, así que hereda su ancho centrado. */
+body.theme-new-ui #screen-laboratorio .lab-equiv-tabla{
+  margin:16px 0;padding:14px 16px;border-radius:var(--ui-r);
+  background:var(--ui-surface);border:1.5px solid var(--lab-border);
+  text-align:left;
+}
+body.theme-new-ui #screen-laboratorio .lab-equiv-titulo{
+  font-size:.78rem;color:var(--ui-muted);line-height:1.4;margin-bottom:10px;
+  text-align:center;font-style:italic;
+}
+body.theme-new-ui #screen-laboratorio .lab-equiv-fila{
+  display:flex;align-items:center;gap:10px;padding:5px 6px;border-radius:var(--ui-r-sm);
+  font-size:.84rem;
+}
+body.theme-new-ui #screen-laboratorio .lab-equiv-valor{flex:1;color:var(--ui-ink)}
+body.theme-new-ui #screen-laboratorio .lab-equiv-flecha{color:var(--ui-muted-2);flex:none}
+body.theme-new-ui #screen-laboratorio .lab-equiv-etiqueta{
+  flex:1;font-family:'DM Sans',sans-serif;font-weight:700;color:var(--lab-verde-dk);
+}
+body.theme-new-ui #screen-laboratorio .lab-equiv-fila.is-destacada{
+  background:var(--lab-tint-2);
+}
+body.theme-new-ui #screen-laboratorio .lab-equiv-fila.is-destacada .lab-equiv-valor{
+  font-weight:800;
+}
+
 /* ── Caja de Pruebas del Detective (F2·sesión 3) ── */
 body.theme-new-ui #screen-laboratorio .lab-caja-lista{display:flex;flex-direction:column;gap:10px}
 body.theme-new-ui #screen-laboratorio .lab-caja-fila{

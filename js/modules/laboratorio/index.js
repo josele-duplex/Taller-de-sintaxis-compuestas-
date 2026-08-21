@@ -113,11 +113,14 @@
             Con un solo peldaño fallado no se conquista nada. El cierre añade
             además el puente de §5.4 del documento de cascada: con qué
             etiqueta verá ese mismo «se» en Simples.
+     F5·1 (tabla de equivalencias, hecho esta sesión) → al cerrar el RETO
+            (_finReto, no el ítem), si conquistó alguna investigación limpia,
+            las SIETE filas valor↔etiqueta de §5.4 (_tablaEquivalenciasSE),
+            con la(s) conquistada(s) resaltada(s) — antes del botón de puente
+            a Simples, como pide el documento. LAB._investigacionValores se
+            resetea por reto en _siguienteReto y se rellena en
+            _cerrarInvestigacion, solo con lo acertado sin fallos.
    Pendiente:
-     F5·1 (tabla de equivalencias completa) → §5.4 del documento pide, al
-            cerrar el RETO (no el ítem), las siete filas valor↔etiqueta antes
-            de ofrecer el botón a Simples. Hoy se da solo la fila del valor
-            descubierto, que es la que le toca a ese alumno.
      F2·3 (puente de ida, sin hacer TODAVÍA en el frontend) → botón al
             cerrar reto que abra Simples con la MISMA oración cargada.
             2026-08-12: el bloqueo de backend ya está resuelto —
@@ -436,6 +439,10 @@ function _siguienteReto() {
   LAB.items = LAB.reto.items;
   LAB.itemIdx = 0;
   LAB.estacionActual = 0;
+  // Valores de «se» conquistados en ESTE reto (investigacion acertada, sin
+  // ningún peldaño fallado) — se rellena en _cerrarInvestigacion y decide si
+  // _finReto muestra la tabla de equivalencias de §5.4 del documento de cascada.
+  LAB._investigacionValores = new Set();
   _mostrarPortadaReto();
 }
 
@@ -511,10 +518,16 @@ function _finReto() {
   const puenteBtn = origenTexto
     ? '<button type="button" class="lab-btn-sm" id="lab-btn-puente" onclick="labIrASimples()">🔗 Practica esta oración en Simples</button>'
     : '';
+  // §5.4 del documento de cascada: la tabla de equivalencias completa va
+  // ANTES del botón de puente — es la condición explícita del documento
+  // («el botón solo se ofrece después de esa tabla»).
+  const huboInvestigacion = LAB._investigacionValores && LAB._investigacionValores.size > 0;
+  const tablaEquiv = huboInvestigacion ? _tablaEquivalenciasSE(LAB._investigacionValores) : '';
   _setFichas('<div class="lab-fin">' +
     '<div class="lab-fin-icon">🧪</div>' +
     '<div class="lab-fin-tit">¡Reto completado!</div>' +
     '<div class="lab-fin-sub">Aciertos de la sesión: ' + LAB.aciertos + '/' + LAB.totalItems + ' (' + pct + '%)</div>' +
+    tablaEquiv +
     '<button type="button" class="lab-btn" onclick="labSiguienteReto()">Siguiente reto →</button>' +
     puenteBtn +
     '</div>');
@@ -1139,6 +1152,30 @@ const VALOR_SE_UI = {
   impersonal:       { nombre: 'Marca de impersonal',         etiqueta: 'Marca.Imp.' }
 };
 
+// La tabla de equivalencias de §5.4 del documento de cascada: las SIETE filas
+// completas, no solo la del valor de este alumno — es la respuesta al riesgo
+// que ese apartado señala («el mismo alumno usa los dos módulos y el puente
+// de ida puede llevarle a la misma oración con otro nombre encima»). Se
+// muestra al cerrar el RETO (no cada ítem), y solo si el alumno conquistó
+// alguna investigación limpia en él — es la frase que la abre, no una tabla
+// de referencia suelta. `destacados` resalta la fila (o filas, si el reto
+// trae más de un ítem investigacion) que ese alumno ha descubierto de verdad.
+// Coste de implementación: cero contenido por reto, tal como pedía el propio
+// documento — la tabla sale entera de VALOR_SE_UI.
+function _tablaEquivalenciasSE(destacados) {
+  const filas = Object.entries(VALOR_SE_UI).map(([valor, v]) =>
+    '<div class="lab-equiv-fila' + (destacados.has(valor) ? ' is-destacada' : '') + '">' +
+      '<div class="lab-equiv-valor">' + escHtml(v.nombre) + '</div>' +
+      '<div class="lab-equiv-flecha">→</div>' +
+      '<div class="lab-equiv-etiqueta">' + escHtml(v.etiqueta) + '</div>' +
+    '</div>'
+  ).join('');
+  return '<div class="lab-equiv-tabla">' +
+    '<div class="lab-equiv-titulo">El valor te dice qué ES ese «se». La etiqueta te dice qué HUECO ocupa en el Taller de Simples.</div>' +
+    filas +
+  '</div>';
+}
+
 // Resalta el primer «se» suelto de la oración. Deliberadamente el PRIMERO y
 // solo con límites de palabra: en «Se le han caído los cuadros» hay un «se» y
 // un «le», y es justo la trampa gemela que el documento (§2) quiere que el
@@ -1301,6 +1338,9 @@ function _cerrarInvestigacion() {
   const pruebaId = _pruebaDecisiva(C.pasos);
   if (acierto && pruebaId) {
     LAB._cajaContexto = { funcion: etiquetaSimples, pruebaId };
+    // Alimenta la tabla de equivalencias de §5.4 al cerrar el reto (_finReto):
+    // solo cuenta lo conquistado LIMPIO, igual que la Caja de Pruebas.
+    if (LAB._investigacionValores) LAB._investigacionValores.add(item.valor);
     _guardarEnCajaPruebas(LAB.email, {
       funcion: etiquetaSimples,
       pruebaId,
