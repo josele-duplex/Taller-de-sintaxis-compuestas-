@@ -296,11 +296,23 @@ Si se aprueba lo de arriba, `Schema_Laboratorio_v1.0.md` necesitaría, en el mis
 ### 8.7 Lo que necesito que apruebes (PASO 2)
 
 1. **8.7.1 — La estación.** Propongo estación 3. Si no convence, la alternativa es estación 2 (encaja peor con la definición del plan, pero es defendible porque cada peldaño *manipula* una prueba antes de nombrar nada). Sea cual sea, hay que decidir si un reto de "se" puede saltarse el ítem obligatorio de estación 2 o si tiene que llevar igualmente un `juicio` — mi lectura es que no se salta nada: un reto de "se" lleva su `investigacion` (estación 3) Y su `juicio` con alguna de las tres causas nuevas (estación 2), como cualquier otro reto `avanzado`.
+
+   **✅ APROBADO por Josele (21-ago-2026): estación 3, y el reto lleva investigacion (estación 3) + juicio (estación 2).**
 2. **La forma de `camino`**: objeto `{paso: valor}` en vez de, por ejemplo, un array ordenado de pasos. Lo propongo así porque es más corto de escribir a mano y más fácil de validar (basta mirar las claves), pero pierde el orden explícito en que el alumno los recorrió — que el motor puede reconstruir solo con el propio `dependsOn`, así que no debería hacer falta.
+
+   **✅ APROBADO por Josele (21-ago-2026): objeto `{paso: valor}`.**
 3. **Que `valor` vaya explícito y no derivado** (razón en §8.3), igual que `causa` + `veredicto` en `juicio`.
+
+   **✅ APROBADO por Josele (21-ago-2026): `valor` explícito.**
 4. **El formato nuevo de `fuente_id`** para las 14 oraciones del ejercicio 5, `A2-EJ5-[a-n]`.
+
+   **✅ APROBADO por Josele (21-ago-2026): `A2-EJ5-[a-n]`.**
 5. **Los cinco ajustes de §8.6** al schema, para cuando arranque el PASO 3.
+
+   **✅ APROBADO por Josele (21-ago-2026): los cinco.**
+
+**PASO 2 aprobado en su totalidad (21-ago-2026). Se continúa con el PASO 3.**
 
 ---
 
-*PASO 1 · diseño · 19-ago-2026 · PASO 2 · diseño del ítem · 20-ago-2026. Terminología NGLE del proyecto: sintagma (nunca «grupo»), oración y O1/O2/O3 (nunca «proposición»), «para» nunca introduce CI.*
+*PASO 1 · diseño · 19-ago-2026 · PASO 2 · diseño del ítem · 20-ago-2026 · aprobado 21-ago-2026. Terminología NGLE del proyecto: sintagma (nunca «grupo»), oración y O1/O2/O3 (nunca «proposición»), «para» nunca introduce CI.*

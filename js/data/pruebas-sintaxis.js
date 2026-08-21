@@ -249,6 +249,47 @@ export const PRUEBAS_SINTAXIS = {
   }
 };
 
+// ── Cascada de valores de «se» (docs/Cascada_Valores_del_SE_Laboratorio.md,
+// §8.2, aprobada 21-ago-2026) — la ruta de peldaños que resuelve el ítem
+// `investigacion` de la estación 3. Cada paso señala su `pruebaId` (o `null`
+// si no tiene prueba propia) y, salvo el primero, de qué paso y valor
+// depende para poder mostrarse: es el mismo papel que `dependsOn` cumple en
+// `MORPH_CASCADES` (js/modules/maestro/index.js).
+
+export const CASCADA_SE = [
+  { id: 'sustitucion',  pruebaId: 'PRU-SINT-SE-05',
+    opts: ['si', 'no'] },                                    // P0 · ¿reaparece le/les?
+
+  { id: 'paradigma',    pruebaId: 'PRU-SINT-SE-02',
+    dependsOn: { paso: 'sustitucion', val: 'no' },
+    opts: ['cambia', 'no_cambia'] },                          // P1 · tronco
+
+  { id: 'concordancia', pruebaId: 'PRU-SINT-SE-01',
+    dependsOn: { paso: 'paradigma', val: 'no_cambia' },
+    opts: ['Marca.Pas.Ref.', 'Marca.Imp.'] },                 // A1 · reusa los valores que SE-01 ya declara
+
+  { id: 'refuerzo',     pruebaId: 'PRU-SINT-SE-03',
+    dependsOn: { paso: 'paradigma', val: 'cambia' },
+    opts: ['a_si_mismo', 'uno_al_otro', 'ninguno'] },          // B1
+
+  { id: 'funcion',      pruebaId: null,
+    dependsOn: { paso: 'refuerzo', val: ['a_si_mismo', 'uno_al_otro'] },
+    opts: ['CD', 'CI'] },                                     // subpaso · sin prueba propia, es «¿hay otro CD?»
+
+  { id: 'supresion',    pruebaId: 'PRU-SINT-SE-04',
+    dependsOn: { paso: 'refuerzo', val: 'ninguno' },
+    opts: ['Marca.Pron.', 'Dativo'] },                         // B2 · reusa los valores que SE-04 ya declara
+];
+
+// Los siete valores del ítem `investigacion` (§8.3 del documento de cascada),
+// lista cerrada nueva — no es un subconjunto de FUNC_ORAC: tres de los siete
+// SÍ son una función real de Simples (ver `funcion_final` en el schema), los
+// otros cuatro son marcas que no ocupan hueco de análisis (§5.2 del documento).
+export const VALORES_SE = Object.freeze([
+  'variante_le', 'reflexivo', 'reciproco', 'morfema_verbal',
+  'dativo_aspectual', 'pasiva_refleja', 'impersonal'
+]);
+
 // ── Matriz de vecinos confundibles (banco de reflexión, §2.4 del plan) ────
 //
 // Son las fronteras donde el error es sistemático, no casual. Gobiernan dos
