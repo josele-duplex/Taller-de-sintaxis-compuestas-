@@ -105,10 +105,19 @@
             reto: el dato solo trae el `camino` correcto. Decisión pedagógica
             de Josele (21-ago-2026) anotada junto a _renderInvestigacion:
             al fallar un peldaño se reconduce al camino bueno.
+     F5·1 (enlace con la Caja, hecho esta sesión) → una investigación limpia
+            conquista la prueba que DECIDIÓ el valor (_pruebaDecisiva: el
+            último peldaño del camino con prueba propia, que no siempre es el
+            último jugado), la archiva en la Caja con la oración investigada
+            como ejemplo y fija LAB._cajaContexto, igual que etiqueta_prueba.
+            Con un solo peldaño fallado no se conquista nada. El cierre añade
+            además el puente de §5.4 del documento de cascada: con qué
+            etiqueta verá ese mismo «se» en Simples.
    Pendiente:
-     F5·1 (enlace con la Caja de Pruebas, siguiente paso) → una investigación
-            limpia debería conquistar la prueba que decidió el valor, igual
-            que hace etiqueta_prueba con LAB._cajaContexto.
+     F5·1 (tabla de equivalencias completa) → §5.4 del documento pide, al
+            cerrar el RETO (no el ítem), las siete filas valor↔etiqueta antes
+            de ofrecer el botón a Simples. Hoy se da solo la fila del valor
+            descubierto, que es la que le toca a ese alumno.
      F2·3 (puente de ida, sin hacer TODAVÍA en el frontend) → botón al
             cerrar reto que abra Simples con la MISMA oración cargada.
             2026-08-12: el bloqueo de backend ya está resuelto —
@@ -1245,6 +1254,16 @@ function labCascContinuar() {
   _cerrarInvestigacion();
 }
 
+// El peldaño que DECIDIÓ el valor: el último del camino que tiene prueba
+// propia. No es siempre el último peldaño jugado — en las ramas de reflexivo
+// y recíproco el último es `funcion` ("¿hay ya otro CD?"), que no es una
+// manipulación y no tiene prueba: ahí quien decidió el valor fue `refuerzo`
+// («a sí mismo» / «el uno al otro»). Es lo que se conquista para la Caja.
+function _pruebaDecisiva(pasos) {
+  for (let i = pasos.length - 1; i >= 0; i--) if (pasos[i].pruebaId) return pasos[i].pruebaId;
+  return null;
+}
+
 // Cierre del ítem: aquí sí se puntúa, una sola vez, y aquí sí se usa
 // _mostrarExplicacion (el ítem ha terminado, el botón "Siguiente →" ya toca).
 // Acierta el ítem quien no falló NINGÚN peldaño: la cascada es una cadena y
@@ -1255,6 +1274,13 @@ function _cerrarInvestigacion() {
   const acierto = C.fallos === 0;
   _resolverItem(acierto, 'investigacion');
   const v = VALOR_SE_UI[item.valor] || { nombre: item.valor, etiqueta: '—' };
+  // La etiqueta con la que verá ese mismo «se» en Simples. Es §5.4 del
+  // documento de cascada —«el valor te dice qué ES ese se; la etiqueta te dice
+  // qué HUECO ocupa»— y el seguro contra el riesgo real que ese apartado
+  // señala: el mismo alumno usa los dos módulos y puede encontrarse la misma
+  // oración con otro nombre encima. Los tres valores que SÍ son función usan
+  // funcion_final (la concreta de este ítem, no el «CD o CI» genérico).
+  const etiquetaSimples = item.funcion_final || v.etiqueta;
   const cabecera = acierto
     ? '✓ Investigación limpia: ni un peldaño fallado.'
     : '⚠ Has llegado al final, pero con ' + C.fallos + (C.fallos === 1 ? ' peldaño fallado' : ' peldaños fallados') + '.';
@@ -1263,13 +1289,38 @@ function _cerrarInvestigacion() {
     _cascTrailHtml()
   );
   _setPregunta('');
+  // Una investigación limpia CONQUISTA la prueba que decidió el valor, igual
+  // que un etiqueta_prueba acertado (F2·2). Dos efectos, como allí:
+  //   · LAB._cajaContexto, por si el reto trae después un analisis_inverso con
+  //     destino "caja_pruebas" — así el ejemplo que fabrique el alumno se
+  //     archiva bajo esta prueba y no bajo la del ítem anterior.
+  //   · la fila en la Caja, con la oración investigada como ejemplo. Aquí el
+  //     alumno no fabrica la frase (este tipo no tiene piezas), pero la ha
+  //     PROBADO peldaño a peldaño: es su ejemplo trabajado, no uno prestado.
+  let cajaHtml = '';
+  const pruebaId = _pruebaDecisiva(C.pasos);
+  if (acierto && pruebaId) {
+    LAB._cajaContexto = { funcion: etiquetaSimples, pruebaId };
+    _guardarEnCajaPruebas(LAB.email, {
+      funcion: etiquetaSimples,
+      pruebaId,
+      ejemplo: item.oracion,
+      valor: item.valor,
+      fecha: new Date().toISOString()
+    });
+    cajaHtml = '<div class="lab-caja-add">📇 Prueba conquistada y guardada en tu Caja de Pruebas del Detective.</div>';
+  }
   _setFichas(
     '<div class="lab-casc-veredicto">' +
       '<div class="lab-casc-valor">' + escHtml(v.nombre) + '</div>' +
       (item.funcion_final
         ? '<div class="lab-casc-funcion">Y ocupa un hueco de verdad en el análisis: <strong>' + escHtml(item.funcion_final) + '</strong></div>'
         : '<div class="lab-casc-funcion">Este «se» no ocupa ningún hueco del análisis: es una marca.</div>') +
-    '</div>'
+      // Sin punto final si la etiqueta ya lo trae: media lista de FUNC_ORAC
+      // acaba en punto (Marca.Imp., C.Rég., Atr.…) y «Marca.Imp..» canta.
+      '<div class="lab-casc-puente">En el Taller de Simples verás este «se» etiquetado como <strong>' +
+        escHtml(etiquetaSimples) + '</strong>' + (/\.$/.test(etiquetaSimples) ? '' : '.') + '</div>' +
+    '</div>' + cajaHtml
   );
   _mostrarExplicacion(acierto, cabecera + '<br><br>' + escHtml(item.explicacion || ''));
 }

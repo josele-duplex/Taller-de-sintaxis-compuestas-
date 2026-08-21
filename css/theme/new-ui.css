@@ -5190,6 +5190,13 @@ body.theme-new-ui #screen-laboratorio .lab-casc-valor{
 body.theme-new-ui #screen-laboratorio .lab-casc-funcion{
   margin-top:8px;font-size:.85rem;color:var(--ui-muted);line-height:1.45;
 }
+/* El puente con Simples (§5.4 del documento de cascada): con qué etiqueta verá
+   el alumno ese mismo «se» en el otro módulo. Va separado por una línea porque
+   no es parte del descubrimiento — es la traducción de lo descubierto. */
+body.theme-new-ui #screen-laboratorio .lab-casc-puente{
+  margin-top:12px;padding-top:10px;border-top:1px dashed var(--lab-border);
+  font-size:.82rem;color:var(--ui-muted);line-height:1.45;
+}
 
 /* ── Caja de Pruebas del Detective (F2·sesión 3) ── */
 body.theme-new-ui #screen-laboratorio .lab-caja-lista{display:flex;flex-direction:column;gap:10px}
