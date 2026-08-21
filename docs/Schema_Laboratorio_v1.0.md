@@ -96,11 +96,13 @@ Estas reglas vienen de decisiones ya cerradas (semilla §4 y plan §2.5) y las c
 
 ---
 
-## 3. Los nueve tipos de ítem
+## 3. Los diez tipos de ítem
 
 **Decisión de diseño: 9 tipos de motor, no 15.** El catálogo del plan (§2) lista 15 mecánicas visibles, pero las cinco manipulaciones (sustituye, suprime, cambia el número, mueve, transforma) comparten **exactamente la misma estructura de datos y la misma corrección**: se muestra una oración, se señala un trozo, se eligen opciones de resultado. Así que son un solo tipo `manipulacion` con un campo `manipulacion` que dice cuál es. Igual con la variante simplificada de la estación 3 (un campo `enunciado`, no un tipo aparte) y con «tu ejemplo para la caja» (un `analisis_inverso` con `destino: "caja_pruebas"`).
 
 Esto **no recorta el catálogo**: las 15 mecánicas del plan siguen todas. Recorta el motor, que es donde el número de tipos cuesta dinero.
+
+> **Ampliación de 2026-08-21 (ítem `investigacion`).** El bloque de valores de «se» (`docs/Cascada_Valores_del_SE_Laboratorio.md`, PASO 1-2, aprobado 21-ago-2026) añade un décimo tipo, exclusivo de la estación 3: el alumno investiga una oración con la cascada `CASCADA_SE` (§8.1) y clasifica el «se» por comportamiento antes de que se le dé el nombre. No estaba en el catálogo de 15 mecánicas del plan de producto — es la «investigación abierta» (Tipo 5 del marco, citada en el plan §1 pero no numerada en su catálogo de estación). Un reto de «se» lleva su `investigacion` (estación 3) además del `juicio` habitual de estación 2, como cualquier otro reto `avanzado` — no sustituye ninguna regla de composición de §2.1. `schema_version` se queda en `"1.0"`: es retrocompatible, mismo patrón que las ampliaciones de §5.
 
 | Tipo | Estación | Mecánica del plan | Qué hace |
 |---|---|---|---|
@@ -113,6 +115,7 @@ Esto **no recorta el catálogo**: las 15 mecánicas del plan siguen todas. Recor
 | `analisis_inverso` | 2 | 2.8 y 3.3 | Construir la oración que cumple una condición |
 | `frontera` | 2 | 2.9 | Zona gris: dos análisis puntúan |
 | `etiqueta_prueba` | 3 | 3.1 y 3.2 | Qué prueba lo demuestra |
+| `investigacion` | 3 | — (§ arriba) | Clasificar el «se» por comportamiento con `CASCADA_SE` |
 
 **La estación no se declara: se deduce del tipo.** Un mapa fijo `tipo → estación` en el motor y en el validador. Así no puede existir un reto con un ítem declarado en una estación que no le corresponde.
 
@@ -120,8 +123,8 @@ Esto **no recorta el catálogo**: las 15 mecánicas del plan siguen todas. Recor
 
 | Campo | Obligatorio | Contenido |
 |---|---|---|
-| `tipo` | ✔ | Uno de los nueve. |
-| `fuente_id` | — | `PM-SINT-NN` o `AI-SINT-NN` del banco R-07. Formato validado. |
+| `tipo` | ✔ | Uno de los diez. |
+| `fuente_id` | — | `PM-SINT-NN` o `AI-SINT-NN` del banco R-07; o `A2-EJ5-[a-n]` para los ítems `investigacion` (§3.10), que no vienen de R-07 sino del ejercicio 5 de la fuente A2 (`docs/Cascada_Valores_del_SE_Laboratorio.md` §1). Formato validado. |
 | `peso` | — | Multiplicador para la nota. Por omisión 1; los ítems de frontera discriminante llevan 2 (§6). |
 | `feedback` | — | Texto de refuerzo al acertar. |
 
@@ -326,6 +329,29 @@ Exactamente **dos** opciones con `ok: true`. Obliga a `zona_gris: true` en el re
 
 El contenido de las pruebas no vive aquí: vive en el repertorio (§8). Un reto solo apunta a él. Coste de contenido por reto: cero.
 
+### 3.10 `investigacion`
+
+```json
+{ "tipo": "investigacion",
+  "oracion": "Se cortó el flequillo sin ayuda.",
+  "camino": { "sustitucion": "no", "paradigma": "cambia", "refuerzo": "a_si_mismo", "funcion": "CI" },
+  "valor": "reflexivo",
+  "funcion_final": "CI",
+  "explicacion": "Admite «se cortó el flequillo a sí misma»: reflexivo. Y como ya hay otro CD en la oración («el flequillo»), el «se» no puede ser también CD — tiene que ser CI.",
+  "fuente_id": "A2-EJ5-f" }
+```
+
+| Campo | Obligatorio | Reglas |
+|---|---|---|
+| `oracion` | ✔ | La oración sobre la que se investiga. Misma regla que `manipulacion`: si está en el `corpus` del reto, mejor (AVISO si no). |
+| `camino` | ✔ | Objeto `{ id_del_paso: valor_elegido }`, **exactamente** los pasos de `CASCADA_SE` (§8.1) cuyo `dependsOn` queda satisfecho por los pasos anteriores del propio `camino` — ni de más ni de menos. Es el mismo papel que `correctAtrs` en `MORPH_CASCADES` (`js/modules/maestro/index.js`). |
+| `valor` | ✔ | Uno de los siete valores de la lista cerrada `VALORES_SE` (§7.2, §8.1): `variante_le` · `reflexivo` · `reciproco` · `morfema_verbal` · `dativo_aspectual` · `pasiva_refleja` · `impersonal`. Debe ser consistente con el último paso de `camino` — lo comprueba el validador, no se confía en que quien escribe el lote haga la cuenta bien. |
+| `funcion_final` | según `valor` | Solo los tres valores que **sí** son una función real en Simples la llevan: `variante_le` → siempre `CI`; `reflexivo`/`reciproco` → `CD` o `CI`, el que diga `camino.funcion`. Los otros cuatro (morfema verbal, dativo aspectual, pasiva refleja, impersonal) no llevan este campo. |
+| `explicacion` | ✔ | Igual que en `juicio`: qué se ha descubierto, en lenguaje de alumno — nunca «es CI», sino el mecanismo. |
+| `fuente_id` | — | Formato `A2-EJ5-[a-n]` (§3.0), no `PM-SINT-NN`. |
+
+Diseño completo y razón de cada campo: `docs/Cascada_Valores_del_SE_Laboratorio.md` §8.3-§8.4 (incluye la tabla de derivación `camino → valor` contra las doce oraciones no ambiguas del corpus).
+
 ---
 
 ## 4. Funciones válidas y regla de metalenguaje
@@ -426,7 +452,7 @@ Motivo: el schema lo escribe a mano un filólogo, y contar palabras es donde se 
 
 ### 7.2 Listas cerradas para todo lo que el motor interpreta
 
-`manipulacion`, `veredicto`, `causa`, `funcion`, `rol`, `enunciado`, `destino`, `orden`, `nivel`, `curso_min`. Nada de texto libre en un campo del que dependa una decisión del motor. El texto libre está solo donde lo lee un humano: `titulo_problema`, `texto`, `micro`, `explicacion`, `feedback`, `consigna`.
+`manipulacion`, `veredicto`, `causa`, `funcion`, `rol`, `enunciado`, `destino`, `orden`, `nivel`, `curso_min`, `valor` (`investigacion`, lista `VALORES_SE`, §8.1). Nada de texto libre en un campo del que dependa una decisión del motor. El texto libre está solo donde lo lee un humano: `titulo_problema`, `texto`, `micro`, `explicacion`, `feedback`, `consigna`.
 
 ### 7.3 El contenido pedagógico se ancla por repertorio, no por reto
 
@@ -456,6 +482,23 @@ Las pruebas de la estación 3 no se escriben en cada reto: se apuntan con `prueb
 `HEUR-QUIEN` · `HEUR-A-QUIEN` · `HEUR-PARA-QUIEN` · `HEUR-COMO` · `HEUR-DE-QUE` · `HEUR-PREP-A` («lleva *a*, luego es CI») · `HEUR-PREP-PARA` · `HEUR-PREP-POR` («lleva *por*, luego es CC Causa»)
 
 Formato validado: `^PRU-SINT-[A-Z]+-\d{2}$` y `^HEUR-[A-Z-]+$`. Mientras `pruebas-sintaxis.js` no exista, el validador comprueba **solo el formato**; cuando exista, comprueba además que el id está definido. Un `HEUR-*` en el campo `prueba_id` (no en `distractores`) es siempre ERROR.
+
+### 8.1 La cascada de valores de «se» (`CASCADA_SE`)
+
+**Ampliación de 2026-08-21.** Seis peldaños que resuelven el ítem `investigacion` (§3.10) — cada uno apunta, opcionalmente, a una de las pruebas de arriba. Ya implementada en `js/data/pruebas-sintaxis.js`, junto al resto del repertorio. Diseño completo y razón de cada peldaño: `docs/Cascada_Valores_del_SE_Laboratorio.md` §2 y §8.2.
+
+| `id` del paso | `pruebaId` | `dependsOn` | `opts` |
+|---|---|---|---|
+| `sustitucion` | `PRU-SINT-SE-05` | — (primer paso) | `si` \| `no` |
+| `paradigma` | `PRU-SINT-SE-02` | `sustitucion: no` | `cambia` \| `no_cambia` |
+| `concordancia` | `PRU-SINT-SE-01` | `paradigma: no_cambia` | `Marca.Pas.Ref.` \| `Marca.Imp.` |
+| `refuerzo` | `PRU-SINT-SE-03` | `paradigma: cambia` | `a_si_mismo` \| `uno_al_otro` \| `ninguno` |
+| `funcion` | *(sin prueba propia)* | `refuerzo: [a_si_mismo, uno_al_otro]` | `CD` \| `CI` |
+| `supresion` | `PRU-SINT-SE-04` | `refuerzo: ninguno` | `Marca.Pron.` \| `Dativo` |
+
+`camino` (§3.10) guarda exactamente los pasos cuyo `dependsOn` queda satisfecho por los pasos anteriores del propio `camino` — el validador lo comprueba contra esta tabla, no contra una copia suelta.
+
+**`VALORES_SE`** (lista cerrada, §7.2), también en `js/data/pruebas-sintaxis.js`: `variante_le` · `reflexivo` · `reciproco` · `morfema_verbal` · `dativo_aspectual` · `pasiva_refleja` · `impersonal`.
 
 ---
 
