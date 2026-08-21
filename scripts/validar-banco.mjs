@@ -119,7 +119,7 @@ const LAB_PROHIBIDAS = {
 const LAB_TIPO_ESTACION = {
   valencia:1, que_cambia:1, intruso:1,
   manipulacion:2, juicio:2, par_minimo:2, analisis_inverso:2, frontera:2,
-  etiqueta_prueba:3,
+  etiqueta_prueba:3, investigacion:3,
 };
 const LAB_MANIPULACIONES = new Set(['sustituye','suprime','cambia_numero','mueve','transforma']);
 const LAB_VEREDICTOS = new Set(['gramatical','agramatical','norma_culta','dudoso']);
@@ -161,6 +161,26 @@ const LAB_CAUSAS = {
   reciproco_sujeto_singular:{ nivelMin:'medio',    veredicto:'agramatical' },
   verbo_pronominal_sin_se:  { nivelMin:'medio',    veredicto:'agramatical' },
 };
+
+// La cascada de valores de «se» (§8.1 del schema, docs/Cascada_Valores_del_SE_
+// Laboratorio.md §8.2) — resuelve el ítem "investigacion". OJO: js/data/
+// pruebas-sintaxis.js tiene su propia copia de esta estructura, a propósito
+// (este script es Node puro, sin imports del front). Si se toca una, hay que
+// tocar la otra — está anotado en los dos sitios.
+const LAB_CASCADA_SE = [
+  { id:'sustitucion',  dependsOn:null,                                          opts:['si','no'] },
+  { id:'paradigma',    dependsOn:{ paso:'sustitucion', val:'no' },              opts:['cambia','no_cambia'] },
+  { id:'concordancia', dependsOn:{ paso:'paradigma', val:'no_cambia' },         opts:['Marca.Pas.Ref.','Marca.Imp.'] },
+  { id:'refuerzo',     dependsOn:{ paso:'paradigma', val:'cambia' },            opts:['a_si_mismo','uno_al_otro','ninguno'] },
+  { id:'funcion',      dependsOn:{ paso:'refuerzo', val:['a_si_mismo','uno_al_otro'] }, opts:['CD','CI'] },
+  { id:'supresion',    dependsOn:{ paso:'refuerzo', val:'ninguno' },            opts:['Marca.Pron.','Dativo'] },
+];
+// Los siete valores del ítem "investigacion" (§8.3 del documento de cascada).
+// OJO: misma copia gemela que arriba, en js/data/pruebas-sintaxis.js (VALORES_SE).
+const LAB_VALORES_SE = new Set([
+  'variante_le','reflexivo','reciproco','morfema_verbal',
+  'dativo_aspectual','pasiva_refleja','impersonal',
+]);
 
 // Pares de funciones que discriminan de verdad (matriz de vecinos confundibles
 // del Banco_reflexion_metalinguistica.md). Sus ítems deberían pesar 2.
@@ -666,6 +686,31 @@ function cargarIdsPrueba(){
   } catch { return null; }
 }
 
+// Deriva el valor final de «se» a partir de un "camino" completo, siguiendo la
+// tabla de derivación de docs/Cascada_Valores_del_SE_Laboratorio.md §8.4.
+// Devuelve null si el camino no llega a ningún peldaño terminal (está
+// incompleto o mal formado): en ese caso el propio "camino" ya habrá recibido
+// su error por los pasos que faltan, y no hace falta comparar "valor" contra nada.
+function derivarValorSE(camino){
+  if(!camino || typeof camino!=='object') return null;
+  if(camino.sustitucion==='si') return 'variante_le';
+  if(camino.sustitucion!=='no') return null;
+  if(camino.paradigma==='no_cambia'){
+    if(camino.concordancia==='Marca.Pas.Ref.') return 'pasiva_refleja';
+    if(camino.concordancia==='Marca.Imp.') return 'impersonal';
+    return null;
+  }
+  if(camino.paradigma==='cambia'){
+    if(camino.refuerzo==='a_si_mismo') return 'reflexivo';
+    if(camino.refuerzo==='uno_al_otro') return 'reciproco';
+    if(camino.refuerzo==='ninguno'){
+      if(camino.supresion==='Marca.Pron.') return 'morfema_verbal';
+      if(camino.supresion==='Dativo') return 'dativo_aspectual';
+    }
+  }
+  return null;
+}
+
 function validarLaboratorio(cabecera, filas, R){
   const cId     = colIndex(cabecera,'ID');
   const cNivel  = colIndex(cabecera,'Nivel');
@@ -777,7 +822,7 @@ function validarLaboratorio(cabecera, filas, R){
       const tipo = it.tipo;
       const est = LAB_TIPO_ESTACION[tipo];
       if(!est){
-        R.error(id, `${ref}: tipo "${tipo}" no es uno de los nueve del schema (${Object.keys(LAB_TIPO_ESTACION).join(', ')}).`);
+        R.error(id, `${ref}: tipo "${tipo}" no es uno de los diez del schema (${Object.keys(LAB_TIPO_ESTACION).join(', ')}).`);
         return;
       }
       tiposVistos.add(tipo);
@@ -788,9 +833,14 @@ function validarLaboratorio(cabecera, filas, R){
         R.error(id, `${ref} (${tipo}, estación ${est}): va después de un ítem de estación ${estacionPrevia}. Los ítems deben ir ordenados por estación.`);
       estacionPrevia = Math.max(estacionPrevia, est);
 
-      // fuente_id y peso
-      if(it.fuente_id!==undefined && !/^(PM|AI)-SINT-\d{2}$/.test(it.fuente_id))
-        R.aviso(id, `${ref}: fuente_id "${it.fuente_id}" no sigue el formato PM-SINT-NN o AI-SINT-NN.`);
+      // fuente_id y peso — "investigacion" tiene su propio formato (§3.0 del
+      // schema): no viene del banco R-07, sino del ejercicio 5 de la fuente A2.
+      if(it.fuente_id!==undefined){
+        const feOk = tipo==='investigacion'
+          ? /^A2-EJ5-[a-n]$/.test(it.fuente_id)
+          : /^(PM|AI)-SINT-\d{2}$/.test(it.fuente_id);
+        if(!feOk) R.aviso(id, `${ref}: fuente_id "${it.fuente_id}" no sigue el formato esperado (${tipo==='investigacion' ? 'A2-EJ5-[a-n]' : 'PM-SINT-NN o AI-SINT-NN'}).`);
+      }
       if(it.peso!==undefined && (typeof it.peso!=='number' || it.peso<=0))
         R.error(id, `${ref}: "peso" debe ser un número positivo.`);
 
@@ -981,6 +1031,65 @@ function validarLaboratorio(cabecera, filas, R){
           if(dist.length && !dist.some(d=>/^HEUR-/.test(d)))
             R.aviso(id, `${ref}: ningún distractor es un heurístico rechazado (HEUR-*); el schema pide al menos uno.`);
           if(pid && dist.includes(pid)) R.error(id, `${ref}: "${pid}" está a la vez como respuesta y como distractor.`);
+          break;
+        }
+        case 'investigacion': {
+          if(typeof it.oracion!=='string' || !it.oracion.trim()) R.error(id, `${ref}: falta "oracion".`);
+          if(it.oracion && corpus.length && !corpus.includes(it.oracion))
+            R.aviso(id, `${ref}: la oración no está en el "corpus" del reto.`);
+
+          const camino = it.camino;
+          if(!camino || typeof camino!=='object' || Array.isArray(camino)){
+            R.error(id, `${ref}: falta "camino" (objeto { paso: valor }).`);
+            break;
+          }
+          // Los pasos que CASCADA_SE espera para este camino: cada paso solo
+          // se espera si su padre está entre los esperados Y su respuesta
+          // coincide con el "val" que activa al hijo (§8.6 punto 5).
+          const esperados = [];
+          for(const paso of LAB_CASCADA_SE){
+            if(!paso.dependsOn){ esperados.push(paso.id); continue; }
+            const { paso:padre, val } = paso.dependsOn;
+            const respuestaPadre = camino[padre];
+            const coincide = Array.isArray(val) ? val.includes(respuestaPadre) : respuestaPadre===val;
+            if(esperados.includes(padre) && coincide) esperados.push(paso.id);
+          }
+          const clavesCamino = Object.keys(camino);
+          for(const p of esperados) if(!clavesCamino.includes(p))
+            R.error(id, `${ref}: "camino" no tiene el paso "${p}", que le corresponde según sus propias respuestas.`);
+          for(const p of clavesCamino) if(!esperados.includes(p))
+            R.error(id, `${ref}: "camino" tiene el paso "${p}" de más (no le corresponde según sus propias respuestas).`);
+          // Cada respuesta debe estar entre las "opts" de su paso.
+          for(const paso of LAB_CASCADA_SE){
+            if(camino[paso.id]===undefined) continue;
+            if(!paso.opts.includes(camino[paso.id]))
+              R.error(id, `${ref}: camino.${paso.id} "${camino[paso.id]}" no es una opción válida (${paso.opts.join('/')}).`);
+          }
+
+          // "valor" debe coincidir con lo que se deriva del último peldaño
+          // alcanzado (tabla §8.4 del documento de cascada).
+          const valorDerivado = derivarValorSE(camino);
+          if(typeof it.valor!=='string' || !it.valor.trim()) R.error(id, `${ref}: falta "valor".`);
+          else if(!LAB_VALORES_SE.has(it.valor)) R.error(id, `${ref}: valor "${it.valor}" no está entre los siete de VALORES_SE.`);
+          else if(valorDerivado && it.valor!==valorDerivado)
+            R.error(id, `${ref}: valor "${it.valor}" no coincide con el que se deriva de "camino" ("${valorDerivado}").`);
+
+          // "funcion_final": solo tres valores la llevan, y sale de camino.funcion.
+          const FUNC_FINAL_FIJA = { variante_le:'CI' };
+          const CON_FUNCION_FINAL = new Set(['variante_le','reflexivo','reciproco']);
+          if(CON_FUNCION_FINAL.has(it.valor)){
+            if(typeof it.funcion_final!=='string' || !it.funcion_final.trim())
+              R.error(id, `${ref}: valor "${it.valor}" exige "funcion_final".`);
+            else if(FUNC_FINAL_FIJA[it.valor] && it.funcion_final!==FUNC_FINAL_FIJA[it.valor])
+              R.error(id, `${ref}: valor "${it.valor}" siempre lleva funcion_final "${FUNC_FINAL_FIJA[it.valor]}", no "${it.funcion_final}".`);
+            else if(!FUNC_FINAL_FIJA[it.valor] && camino.funcion && it.funcion_final!==camino.funcion)
+              R.error(id, `${ref}: funcion_final "${it.funcion_final}" no coincide con camino.funcion ("${camino.funcion}").`);
+          } else if(it.valor && it.funcion_final!==undefined){
+            R.error(id, `${ref}: valor "${it.valor}" no ocupa hueco de función; no debe llevar "funcion_final".`);
+          }
+
+          if(typeof it.explicacion!=='string' || !it.explicacion.trim())
+            R.error(id, `${ref}: falta "explicacion" (qué se ha descubierto, en lenguaje de alumno).`);
           break;
         }
       }
