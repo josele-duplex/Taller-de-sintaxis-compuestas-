@@ -232,6 +232,14 @@ Es un proceso muy fácil de equivocarse. No hay automatización ni CI.
 
 ---
 
+### 2.13 El campo `feedback` del Laboratorio lo ignoran 7 de los 10 tipos
+
+El §3.0 de `docs/Schema_Laboratorio_v1.0.md` declara `feedback` («texto de refuerzo al acertar») como campo **común a los diez tipos de ítem**. En `js/modules/laboratorio/index.js` lo pintan solo tres: `valencia`, `intruso` y —desde el 24-ago-2026— `analisis_inverso`.
+
+No quema hoy porque los otros siete llevan su carga pedagógica en `explicacion` o en `opciones[].micro`, así que un `feedback` allí sería redundante más que necesario. `analisis_inverso` era la excepción y por eso se arregló primero: es el único tipo sin ninguno de los dos, o sea el único que se quedaba literalmente sin sitio donde poner el cierre (se detectó jugando LB_0188, donde un fallo solo decía «Revisa: NP» y nunca por qué).
+
+**Riesgo real**: quien escriba un lote nuevo puede poner `feedback` en un `manipulacion` o un `par_minimo` fiándose del schema, y ese texto no se verá nunca. El validador tampoco avisa. Arreglo posible cuando toque: o pintarlo en los siete restantes, o que el validador avise de `feedback` en un tipo que no lo lee.
+
 ## 3. Riesgos por orden de gravedad (actualizado mayo 2026)
 
 | Riesgo | Probabilidad | Impacto | Prioridad |

@@ -173,7 +173,7 @@ Cuatro cosas que el schema v1.0 hoy no cubre. Estado a 2026-08-20 (paso C):
 1. **La cascada de §2**: el orden P0 → P1 → {A1 | B1 → B2} y el subpaso de función.
 2. **El diagnóstico de §5.1**: no se amplía `FUNC_ORAC`; el desajuste real está en `PROMPT_Analisis_Sintactico_Simples_v1_3.md`, que ignora `Marca.Pron.` y `Dativo` y no nombra el recíproco. Actualizarlo a v1.4 es tarea aparte de este módulo — dime si la abro o la dejo anotada.
 3. **El mensaje al alumno de §5.4** y la tabla de equivalencias en el cierre del reto.
-4. **Las tres zonas grises de §4** como ítems `frontera` (fuera del examen).
+4. **Las tres zonas grises de §4** como ítems `frontera` (fuera del examen). **Corregido el 24-ago-2026 (PASO 5): solo dos de las tres.** La de «Se comunicó por correo» no es una ambigüedad estructural sino una oración incompleta, y va como dos `analisis_inverso` — razón en §8.5.
 5. **El aviso de §6.3**: hace falta una causa nueva, `impersonal_pluralizada`.
 
 ---
@@ -278,7 +278,9 @@ Las doce caben en la forma propuesta sin excepciones ni campos ad hoc, y entre e
 
 Confirmado contra §4 y §7 del PASO 1, que ya lo decidían y este paso no toca:
 
-- Las **tres zonas grises** (h, l, y «Se comunicó por correo») siguen siendo ítems `frontera` — el tipo ya existe, con sus dos `opciones` de `ok: true`, `peso: 2` y fuera del examen por `zona_gris: true`. No usan `investigacion`.
+- Las **zonas grises `h` y `l`** siguen siendo ítems `frontera` — el tipo ya existe, con sus dos `opciones` de `ok: true`, `peso: 2` y fuera del examen por `zona_gris: true`. No usan `investigacion`.
+
+  **Corrección del 24-ago-2026 (PASO 5), sobre la tercera.** Este apartado decía «las tres zonas grises», contradiciendo al §4, que sobre «Se comunicó por correo» ya decía «es un `analisis_inverso` perfecto». Manda el §4, y no por gusto: `h` y `l` son **ambigüedades estructurales** —el mismo material admite dos análisis, y `frontera` es exactamente eso—, mientras que el ejercicio 13 es una **oración incompleta**: «comunicar» pide tres actores y la oración no enseña ninguno, solo el medio. No hay dos análisis compitiendo por el mismo material; hay material que falta. Por eso la fuente pide deshacerla **añadiendo** sintagmas y no eligiendo entre dos lecturas. Efecto secundario que conviene anotar: al resolverse construyendo, cada ítem tiene una sola respuesta correcta, así que el reto **no lleva `zona_gris`** y es el único de las tres zonas grises que puede caer en un examen sin ser impugnable.
 - Los **pares mínimos de los ejercicios 11-12** siguen siendo `par_minimo` tal cual. Tampoco usan `investigacion`.
 
 `investigacion` es solo para el peldaño de clasificación por comportamiento — el resto del reto de "se" se sigue construyendo con los nueve tipos que ya existían.
@@ -322,10 +324,35 @@ Motor completo, de dato a pantalla:
 - **PASO 3** (código, sin contenido): `CASCADA_SE` + `VALORES_SE` en `js/data/pruebas-sintaxis.js`; el tipo `investigacion` documentado en `Schema_Laboratorio_v1.0.md` (§3.10, §7.2, §8.1); el modo `laboratorio` de `scripts/validar-banco.mjs` valida `camino` (sin pasos de más ni de menos, según el propio `dependsOn` de la cascada), `valor` (derivado de la tabla de §8.4 y comparado contra lo declarado) y el formato `A2-EJ5-[a-n]` de `fuente_id`.
 - **PASO 4** (motor visual, `js/modules/laboratorio/index.js`): el ítem se juega peldaño a peldaño, con el rastro de lo recorrido visible encima de la pregunta viva. Decisión pedagógica de Josele: al fallar un peldaño se corrige y se **reconduce** al camino bueno — nunca se deja seguir una rama falsa hasta el final — y el ítem solo cuenta como acierto si no hubo ningún fallo. Al cerrar, conquista la prueba que decidió el valor (Caja de Pruebas del Detective, igual que `etiqueta_prueba`) y, al cerrar el **reto**, si hubo alguna investigación limpia, muestra la tabla de equivalencias de 7 filas de §5.4 (valor → etiqueta en Simples).
 
-**Contenido real** (`banco_export/Laboratorio_Banco_avanzado_lote1.tsv`, bloque H, LB_0184-LB_0187): las 12 oraciones no ambiguas de §8.4 más las 2 zonas grises de §4 (`h`, `l`, como ítems `frontera`), agrupadas por la frontera que cada una prueba — B2 (morfema verbal ↔ dativo aspectual), B1 (reflexivo ↔ recíproco), A1 (pasiva refleja ↔ impersonal) y P0 (variante de *le*). Los tres juicios agramaticales de las causas nuevas de §5 usan literalmente los ejemplos que ya fijaba este documento (`*Alfonso arrepintió`, `*Ana se escribieron cartas`, `*Se han pagado a todos los proveedores`) — no se inventó ningún ejemplo agramatical nuevo. Validado con `scripts/validar-banco.mjs` (0 errores sobre las 24 filas del archivo) y jugado entero en el navegador contestando bien los cuatro retos (100 % en los cuatro, cero errores de consola). La tercera zona gris del ejercicio 13 (*Se comunicó por correo*, pensada como `analisis_inverso`) queda sin escribir — es la única pieza de §3-§4 que no entró en este bloque.
+**Contenido real** (`banco_export/Laboratorio_Banco_avanzado_lote1.tsv`, bloque H, LB_0184-LB_0187): las 12 oraciones no ambiguas de §8.4 más las 2 zonas grises de §4 (`h`, `l`, como ítems `frontera`), agrupadas por la frontera que cada una prueba — B2 (morfema verbal ↔ dativo aspectual), B1 (reflexivo ↔ recíproco), A1 (pasiva refleja ↔ impersonal) y P0 (variante de *le*). Los tres juicios agramaticales de las causas nuevas de §5 usan literalmente los ejemplos que ya fijaba este documento (`*Alfonso arrepintió`, `*Ana se escribieron cartas`, `*Se han pagado a todos los proveedores`) — no se inventó ningún ejemplo agramatical nuevo. Validado con `scripts/validar-banco.mjs` (0 errores sobre las 24 filas del archivo) y jugado entero en el navegador contestando bien los cuatro retos (100 % en los cuatro, cero errores de consola). La tercera zona gris del ejercicio 13 (*Se comunicó por correo*) quedó sin escribir en esta tanda; entra en el PASO 5, más abajo.
 
-**Pendiente real, no de diseño:** pegar las 4 filas nuevas de `Laboratorio_Banco_avanzado_lote1.tsv` (bloque H) en el Google Sheet — el archivo local es la fuente de trabajo, el Sheet es la fuente de verdad de producción.
+**Pendiente real, no de diseño:** pegar las 5 filas nuevas de `Laboratorio_Banco_avanzado_lote1.tsv` (bloque H, LB_0184-LB_0188) en el Google Sheet — el archivo local es la fuente de trabajo, el Sheet es la fuente de verdad de producción.
 
 ---
 
-*PASO 1 · diseño · 19-ago-2026 · PASO 2 · diseño del ítem · 20-ago-2026 · aprobado 21-ago-2026 · PASO 3 (motor de datos) y PASO 4 (motor visual + contenido del bloque H) · 21-ago-2026. Terminología NGLE del proyecto: sintagma (nunca «grupo»), oración y O1/O2/O3 (nunca «proposición»), «para» nunca introduce CI.*
+## 10. PASO 5 — la tercera zona gris, cerrada (24-ago-2026)
+
+**LB_0188 · «Se comunicó por correo»: ¿quién se comunicó, o qué se comunicó?** — cinco ítems, `zona_gris: false`, examinable.
+
+El eje del reto no se inventó: se comprobó contra el banco real. La fila 66 de `Oraciones_Banco` es *«Los resultados se enviaron por correo electrónico a los pacientes»*, con `se` → `Marca.Pas.Ref.` como segmento suelto, `por correo electrónico` → `CC Instrumento` y `a los pacientes` → `CI`; y en los verbos pronominales del banco (*se arrepintió*, *se burla*) la columna NP contiene **el verbo con su «se» dentro**. De ahí sale lo que el alumno descubre: **la misma cadena «se comunicó» es una pieza en una lectura y dos en la otra.**
+
+| | Lectura de «quién» | Lectura de «qué» |
+|---|---|---|
+| | *Ana se comunicó por correo.* | *Se comunicó la decisión a los empleados por correo.* |
+| NP | **se comunicó** (el «se» va dentro) | **comunicó** (el «se» se queda fuera) |
+| El «se» | no ocupa hueco: es parte del verbo | `Marca.Pas.Ref.`, pieza aparte |
+
+Los cinco ítems: `valencia` («comunicar» pide 3 actores y la oración no enseña ninguno) · `juicio` con veredicto **`gramatical`** (la oración no está rota: está incompleta) · los dos `analisis_inverso`, `orden: "fijo"` y `peso: 2` cada uno, con *se comunicó* entero en el banco de piezas del segundo como distractor · `investigacion` sobre la oración que el alumno acaba de montar → `pasiva_refleja`, sin `fuente_id` (no sale del ejercicio 5).
+
+**Dos decisiones que conviene no perder:**
+
+1. **No hay `investigacion` sobre la lectura activa, y es deliberado.** Al pasar *Ana se comunicó por correo* por la cascada, el peldaño B2 (supresión) obliga a decidir si *Ana comunicó por correo* se dice o no — y el DLE recoge «comunicar con» intransitivo («U. t. c. prnl.»), así que la respuesta es discutible. Un peldaño que un buen alumno puede fallar teniendo razón no puede puntuar. Esa lectura se cierra en el `feedback` del ítem, sin cascada.
+2. **El `corpus` es solo `["Se comunicó por correo."]`,** y por eso el validador emite un aviso («la oración del ítem 5 no está en el corpus»). Es el aviso deliberado, no un descuido: es el primer reto del banco donde la oración de la `investigacion` **no se da, se construye**, y el corpus se enseña entero al abrir el reto. Con las tres oraciones dentro, el intro regalaba las dos que el alumno tiene que montar — y con `orden: "fijo"` se podían rellenar los huecos copiando el orden de la frase, sin leer una sola etiqueta.
+
+**De propina, un fallo del motor destapado al jugarlo** (commit aparte): `labAiComprobar` nunca pintaba `item.feedback`, así que quien caía en la trampa del ítem 4 solo leía «Revisa: NP», jamás por qué. Corregido — `analisis_inverso` es el único tipo sin `explicacion` ni `opciones[].micro`, o sea el único que no tenía dónde poner el cierre.
+
+Validado con `scripts/validar-banco.mjs` (25 filas · 0 errores · 1 aviso nuevo, el deliberado de arriba) y jugado entero en el navegador: **7/7 (100 %)** con los dos `peso: 2` contando, la cascada resolviendo sus tres peldaños y conquistando `PRU-SINT-SE-01`, la tabla de equivalencias de 7 filas al cerrar el reto, y la trampa del ítem 4 comprobada también por el camino del fallo. Cero errores de consola propios.
+
+---
+
+*PASO 1 · diseño · 19-ago-2026 · PASO 2 · diseño del ítem · 20-ago-2026 · aprobado 21-ago-2026 · PASO 3 (motor de datos) y PASO 4 (motor visual + contenido del bloque H) · 21-ago-2026 · PASO 5 (LB_0188, la tercera zona gris) · 24-ago-2026. Terminología NGLE del proyecto: sintagma (nunca «grupo»), oración y O1/O2/O3 (nunca «proposición»), «para» nunca introduce CI.*
