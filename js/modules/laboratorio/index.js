@@ -897,6 +897,14 @@ function labAiComprobar() {
   let html = todoBien
     ? '✓ ¡Construida! Cada pieza está donde tiene que estar.'
     : '✗ Alguna pieza no está donde tiene que estar. Revisa: ' + rolesFallados.map(escHtml).join(', ') + '.';
+  // El cierre pedagógico del ítem vive en `feedback` (schema §3.0, campo común
+  // a los diez tipos). Hasta aquí solo lo pintaban valencia e intruso, y este
+  // es el tipo que más lo necesita: es el único sin `explicacion` ni
+  // `opciones[].micro`, así que sin esto un fallo solo decía QUÉ hueco estaba
+  // mal, nunca por qué. Se pinta se acierte o se falle — quien cae en la
+  // trampa es justo quien necesita leerlo. Mismo patrón que `investigacion`
+  // con su `explicacion`: cabecera + <br><br> + texto.
+  if (item.feedback) html += '<br><br>' + escHtml(item.feedback);
   // destino: "caja_pruebas" (schema §3.7, ítem 3.3 del plan): si se
   // construye bien, el ejemplo del alumno se fija en su Caja de Pruebas del
   // Detective, junto a la función/prueba que acaba de conquistar (F2·2).
