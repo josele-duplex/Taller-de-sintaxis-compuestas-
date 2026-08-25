@@ -120,6 +120,31 @@
             a Simples, como pide el documento. LAB._investigacionValores se
             resetea por reto en _siguienteReto y se rellena en
             _cerrarInvestigacion, solo con lo acertado sin fallos.
+     F3·sesión 2 (25-ago-2026) → examen con PIN, sobre el backend ya
+            construido en Server/Laboratorio.gs (createExamLaboratorio_/
+            getExamenLaboratorio_/saveLaboratorioResult_, F3·sesión 1).
+            `iniciarExamenLaboratorio` clonado de
+            iniciarFabricaExamenDesdeLogin (js/modules/fabrica/index.js):
+            el alumno llega con PIN ya validado desde el login compartido,
+            no pasa por el selector de nivel (el PIN ya trae nivel/retos
+            fijos, pre-filtrados a Estación 2-3 sin zona gris salvo que el
+            profesor la incluyera al crear el PIN). Diferencias con
+            práctica, todas centralizadas en LAB.mode==='exam' (mismo
+            patrón que FAB.mode): _colorearBotones/_mostrarExplicacion no
+            revelan nada ("Respuesta registrada."), sin sonido de acierto/
+            fallo ni racha/Caja de Pruebas visibles, cola de retos FINITA
+            (al vaciarse, _siguienteReto llama a
+            _finalizarExamenLaboratorio en vez de reciclar el pool), sin
+            analíticas de práctica (_enviarAnaliticaLaboratorio se salta en
+            examen: la nota va aparte por _enviarResultadoLaboratorio).
+     Curva de `juicio` (hecha esta sesión; decidida con Josele el
+            25-ago-2026, cierra lo que el plan §5.4 dejaba abierto) →
+            veredicto ✓ + causa ✓ = 100 · veredicto ✓ + causa ✗ = 40 ·
+            veredicto ✗ = 0 (acierte la causa o no: quien no detecta el
+            problema no ha hecho el diagnóstico). Se aplica IGUAL en
+            práctica y en examen, para que se entrene lo que se mide. Con
+            ella LAB.aciertos deja de ser entero: es PUNTOS (peso §6 ×
+            JUICIO_PARCIAL). Ver la nota larga junto a JUICIO_PARCIAL.
    Pendiente:
      F2·3 (puente de ida, sin hacer TODAVÍA en el frontend) → botón al
             cerrar reto que abra Simples con la MISMA oración cargada.
@@ -135,31 +160,10 @@
             única oración ya resuelta en vez de pedir el banco entero
             (investigar sint/index.js antes de tocarlo, regla 4 de
             CLAUDE.md).
-   F3·sesión 2 (25-ago-2026) → examen con PIN, sobre el backend ya
-          construido en Server/Laboratorio.gs (createExamLaboratorio_/
-          getExamenLaboratorio_/saveLaboratorioResult_, F3·sesión 1).
-          `iniciarExamenLaboratorio` clonado de iniciarFabricaExamenDesdeLogin
-          (js/modules/fabrica/index.js): el alumno llega con PIN ya validado
-          desde el login compartido, no pasa por el selector de nivel (el
-          PIN ya trae nivel/retos fijos, pre-filtrados a Estación 2-3 sin
-          zona gris salvo que el profesor la incluyera al crear el PIN).
-          Diferencias con práctica, todas centralizadas en LAB.mode==='exam'
-          (mismo patrón que FAB.mode): _colorearBotones/_mostrarExplicacion
-          no revelan nada ("Respuesta registrada."), sin sonido de acierto/
-          fallo ni racha/Caja de Pruebas visibles, cola de retos FINITA (al
-          vaciarse, _siguienteReto llama a _finalizarExamenLaboratorio en
-          vez de reciclar el pool), sin analíticas de práctica
-          (_enviarAnaliticaLaboratorio se salta en examen: la nota va aparte
-          por _enviarResultadoLaboratorio). Nota = aciertos/totalItems, SIN
-          la curva 100/40/10/0 que pide el plan §5.4 para `juicio`
-          (veredicto sin causa no debería valer el ítem completo): eso es
-          una puntuación nueva sin precedente clonable, pendiente de cerrar
-          con Josele — hoy `juicio` en examen puntúa igual que en práctica
-          (solo el veredicto). Tampoco se ha tocado el reintento tras fallo
-          de `investigacion` (la cascada de «se» sigue reconduciendo al
-          camino correcto en examen, igual que en práctica) — otra decisión
-          pendiente, análoga a que `monta` no admite reintentos en el
-          examen de Fábrica.
+     Reintento tras fallo en `investigacion` → la cascada de «se» sigue
+            reconduciendo al camino correcto también en examen, igual que
+            en práctica. Decisión abierta, análoga a que `monta` no admite
+            reintentos en el examen de Fábrica.
    Sin selector de nivel más allá de basico/medio/avanzado: solo hay
    contenido en 'medio' por ahora (lote semilla F0·3), así que basico/
    avanzado mostrarán "sin retos disponibles" hasta que existan esos lotes
@@ -354,6 +358,35 @@ function _colorearBotones(n, esCorrecta, idxElegido) {
   }
 }
 
+// Tramo de nota de un `juicio` acertado a medias (decisión de Josele,
+// 25-ago-2026, cerrando lo que el plan de producto §5.4 dejaba abierto):
+//
+//   veredicto ✓ + causa ✓ → 100   veredicto ✗ + causa ✓ → 0
+//   veredicto ✓ + causa ✗ →  40   veredicto ✗ + causa ✗ → 0
+//
+// El veredicto es la PUERTA: si el alumno no detecta que algo falla, la
+// causa ya no puntúa — quien dice «esto funciona» y acto seguido señala qué
+// se rompe se está contradiciendo, no ha hecho el diagnóstico. Y detectar
+// el problema sin saber nombrarlo vale, pero no vale lo mismo: es la
+// traducción a nota del principio «se evalúa la justificación, no el
+// acierto» (plan §2, decisión 2).
+//
+// Se aplica IGUAL en práctica y en examen, también por decisión de Josele:
+// si la causa vale el 60 % del ítem, el alumno no puede descubrirlo el día
+// del examen. En práctica sigue viéndose todo el feedback; lo único que
+// cambia es el porcentaje del cierre de reto.
+//
+// Los juicios de control (`veredicto: "gramatical"`) NO tienen causa que
+// preguntar (schema §3.5), así que son de un solo paso: acertar vale 100.
+const JUICIO_PARCIAL = 0.4;
+
+// LAB.aciertos dejó de ser entero con JUICIO_PARCIAL: se muestra con un
+// decimal, y sin el ".0" cuando cae redondo (que es lo normal).
+function _fmtPuntos(n) {
+  const r = Math.round((n || 0) * 10) / 10;
+  return (r % 1 === 0) ? String(r) : r.toFixed(1);
+}
+
 // ── Resolución genérica de un ítem (puntúa, sonido, racha, XP, errores) ───
 // `categoria` alimenta LAB.erroresPorTipo, que es lo que viaja en las
 // analíticas silenciosas (más abajo): en manipulacion es el subtipo
@@ -369,11 +402,21 @@ function _colorearBotones(n, esCorrecta, idxElegido) {
 // de LB_0070, el único del banco con peso declarado. Ojo: LAB.aciertos y
 // LAB.totalItems pasan a ser PUNTOS, no ítems contados a mano; la racha, el
 // XP y las analíticas por tipo siguen contando por ítem.
+//
+// `correcta` admite dos formas: un BOOLEANO (nueve de los diez tipos son
+// todo-o-nada) o una FRACCIÓN 0..1 — hoy solo la usa `juicio`, que puntúa
+// veredicto y causa por separado (ver JUICIO_PARCIAL). Un acierto parcial NO
+// cuenta como racha, SÍ registra el error para el informe del profesor (el
+// alumno falló algo, y el profesor tiene que verlo) y da la mitad de XP.
 function _resolverItem(correcta, categoria) {
   const pesoItem = (LAB._item && typeof LAB._item.peso === 'number' && LAB._item.peso > 0) ? LAB._item.peso : 1;
+  const frac = (typeof correcta === 'number')
+    ? Math.max(0, Math.min(1, correcta))
+    : (correcta ? 1 : 0);
   LAB.totalItems += pesoItem;
-  if (correcta) {
-    LAB.aciertos += pesoItem; LAB.racha++;
+  LAB.aciertos += pesoItem * frac;
+  if (frac >= 1) {
+    LAB.racha++;
     if (LAB.racha > LAB.rachaMax) LAB.rachaMax = LAB.racha;
     // Examen: sin sonido de acierto — es una señal de corrección tan válida
     // como el color de un botón, y aquí tampoco se revela nada.
@@ -383,6 +426,7 @@ function _resolverItem(correcta, categoria) {
     LAB.racha = 0;
     if (categoria) LAB.erroresPorTipo[categoria] = (LAB.erroresPorTipo[categoria] || 0) + 1;
     if (LAB.mode !== 'exam') { try { playError(); } catch (e) {} }
+    if (frac > 0) { try { awardXP(1, 'laboratorio_item'); } catch (e) {} }
   }
   _actualizarStreak();
 }
@@ -633,7 +677,7 @@ function _finReto() {
   _setFichas('<div class="lab-fin">' +
     '<div class="lab-fin-icon">🧪</div>' +
     '<div class="lab-fin-tit">¡Reto completado!</div>' +
-    '<div class="lab-fin-sub">Aciertos de la sesión: ' + LAB.aciertos + '/' + LAB.totalItems + ' (' + pct + '%)</div>' +
+    '<div class="lab-fin-sub">Aciertos de la sesión: ' + _fmtPuntos(LAB.aciertos) + '/' + LAB.totalItems + ' (' + pct + '%)</div>' +
     tablaEquiv +
     '<button type="button" class="lab-btn" onclick="labSiguienteReto()">Siguiente reto →</button>' +
     puenteBtn +
@@ -760,7 +804,7 @@ function _finalizarExamenLaboratorio() {
     '<div class="lab-fin-icon">🧪</div>' +
     '<div class="lab-fin-tit">Examen terminado</div>' +
     '<div style="font-size:3rem;font-weight:900;color:var(--lab-verde-dk);line-height:1;margin:10px 0">' + notaFmt + '</div>' +
-    '<div class="lab-fin-sub">' + LAB.aciertos + '/' + LAB.totalItems + ' puntos correctos</div>' +
+    '<div class="lab-fin-sub">' + _fmtPuntos(LAB.aciertos) + '/' + LAB.totalItems + ' puntos correctos</div>' +
     '<p id="lab-exam-msg" style="margin-top:16px;font-size:.85rem;font-weight:600"></p>' +
     '<button type="button" class="lab-btn lab-btn-block" style="margin-top:6px" onclick="exitLaboratorio()">Salir</button>' +
     '</div>'
@@ -790,8 +834,10 @@ async function _enviarResultadoLaboratorio(nota10) {
     nivel: LAB.nivel || '', modo: 'exam',
     pin: LAB.examPin || '', evaluacion: LAB.examEval || '', examen: LAB.examName || '',
     nota: String(nota10 || 0),
-    itemsOk: String(LAB.aciertos || 0),
-    itemsErr: String((LAB.totalItems || 0) - (LAB.aciertos || 0)),
+    // Puntos, no ítems contados: con JUICIO_PARCIAL pueden traer decimales,
+    // y el redondeo evita los 2.4000000000000004 de la coma flotante.
+    itemsOk: String(Math.round((LAB.aciertos || 0) * 100) / 100),
+    itemsErr: String(Math.round(((LAB.totalItems || 0) - (LAB.aciertos || 0)) * 100) / 100),
     itemsTotales: String(LAB.totalItems || 0),
     erroresCategoria: JSON.stringify(LAB.erroresPorTipo || {})
   });
@@ -969,6 +1015,7 @@ function _renderManipulacion(item) {
 
 function _renderJuicio(item) {
   LAB._item = item;
+  LAB._juicioVeredictoOk = null; // lo fija labResponderVeredicto
   _setCorpus('<div class="lab-frase">' + escHtml(item.oracion) + '</div>');
   _setPregunta('¿Esta oración funciona?');
   _setFichas('<div class="lab-stack">' +
@@ -981,12 +1028,18 @@ function labResponderVeredicto(idx) {
   const elegido = VEREDICTOS[idx];
   const acierto = elegido === item.veredicto;
   _colorearBotones(VEREDICTOS.length, i => VEREDICTOS[i] === item.veredicto, idx);
-  _resolverItem(acierto, 'juicio');
   const hayCausa = item.veredicto !== 'gramatical' && Array.isArray(item.opciones_causa) && item.opciones_causa.length > 0;
   if (hayCausa) {
+    // La nota del ítem NO se cierra aquí: depende también de la causa
+    // (JUICIO_PARCIAL). Se guarda el veredicto y la resuelve
+    // labResponderCausa. La causa se pregunta AUNQUE el veredicto esté mal
+    // —el alumno tiene que ver qué se rompía—, pero entonces ya no puntúa.
+    LAB._juicioVeredictoOk = acierto;
     setTimeout(() => _renderJuicioCausa(item), 550);
   } else {
-    _mostrarResultadoJuicio(acierto, item);
+    // Control `gramatical`: un solo paso, no hay causa que preguntar.
+    _resolverItem(acierto, 'juicio');
+    _mostrarResultadoJuicio(acierto ? 1 : 0, item);
   }
 }
 
@@ -1000,17 +1053,26 @@ function _renderJuicioCausa(item) {
 function labResponderCausa(idx) {
   const item = LAB._item;
   const causas = LAB._causas;
-  const acierto = causas[idx] === item.causa;
+  const causaOk = causas[idx] === item.causa;
   _colorearBotones(causas.length, i => causas[i] === item.causa, idx);
-  _mostrarResultadoJuicio(acierto, item);
+  // Aquí se cierra la nota del ítem entero (los dos pasos), no solo la causa.
+  const frac = !LAB._juicioVeredictoOk ? 0 : (causaOk ? 1 : JUICIO_PARCIAL);
+  _resolverItem(frac, 'juicio');
+  _mostrarResultadoJuicio(frac, item);
 }
 
 // Cierre común (con o sin paso de causa): explicación + contraste con la
 // gemela, nunca la oración mala sola en pantalla (regla del plan §2.5.2).
 // El asterisco (.lab-asterisco) solo se pinta si el veredicto es
 // "agramatical" — norma_culta y dudoso NO llevan asterisco (regla §2.5.1).
-function _mostrarResultadoJuicio(acierto, item) {
-  let html = (acierto ? '✓ ' : '✗ ') + escHtml(item.explicacion || '');
+// `frac` es la nota del ítem entero (0, JUICIO_PARCIAL o 1). El tramo del
+// medio tiene mensaje propio: reconocer que el alumno SÍ detectó el problema
+// —que es lo primero que se le pide— y separarlo de no haberse enterado.
+function _mostrarResultadoJuicio(frac, item) {
+  const pleno = frac >= 1;
+  const prefijo = pleno ? '✓ '
+    : (frac > 0 ? '◐ Bien visto que algo falla, pero no es eso lo que se rompe. ' : '✗ ');
+  let html = prefijo + escHtml(item.explicacion || '');
   if (item.gemela_correcta) {
     const oracionMarcada = (llevaAsterisco(item.veredicto) ? '<span class="lab-asterisco">*</span>' : '') + escHtml(item.oracion);
     html += '<div class="lab-contraste">' +
@@ -1019,7 +1081,7 @@ function _mostrarResultadoJuicio(acierto, item) {
       '<div class="lab-frase-mini">' + escHtml(item.gemela_correcta) + '</div>' +
       '</div>';
   }
-  _mostrarExplicacion(acierto, html);
+  _mostrarExplicacion(pleno, html);
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -1756,7 +1818,7 @@ function _enviarAnaliticaLaboratorio() {
         email: LAB.email, name: LAB.name || '', grupo: LAB.grupo || '',
         nivel: LAB.nivel || '',
         retosCompletados: String(LAB.retosCompletadosSesion || 0),
-        aciertos: String(LAB.aciertos || 0), totalItems: String(LAB.totalItems || 0),
+        aciertos: String(Math.round((LAB.aciertos || 0) * 100) / 100), totalItems: String(LAB.totalItems || 0),
         rachaMax: String(LAB.rachaMax || 0),
         errores: JSON.stringify(LAB.erroresPorTipo || {})
       });

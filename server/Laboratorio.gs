@@ -262,7 +262,8 @@ function saveSesionLaboratorio_(p) {
       'Grupo':              String(p.grupo || '').trim(),
       'Nivel':              String(p.nivel || ''),
       'Retos_Completados':  parseInt(p.retosCompletados) || 0,
-      'Aciertos':           parseInt(p.aciertos) || 0,
+      // Puntos, no ítems: ver la nota de Items_Ok en saveLaboratorioResult_.
+      'Aciertos':           Math.round((parseFloat(p.aciertos) || 0) * 100) / 100,
       'Total_Items':        parseInt(p.totalItems) || 0,
       'Racha_Max':          parseInt(p.rachaMax) || 0,
       'Errores_JSON':       String(p.errores || '{}')
@@ -548,8 +549,13 @@ function saveLaboratorioResult_(p) {
       'Evaluacion':             p.evaluacion || '',
       'Examen':                 p.examen || '',
       'Nota':                   parseFloat(p.nota) || 0,
-      'Items_Ok':               parseInt(p.itemsOk) || 0,
-      'Items_Err':              parseInt(p.itemsErr) || 0,
+      // Ok/Err son PUNTOS, no ítems contados: un `juicio` con el veredicto
+      // acertado y la causa fallada vale 0,4 (JUICIO_PARCIAL en
+      // js/modules/laboratorio/index.js). parseFloat, no parseInt, o ese
+      // 0,4 se perdería en silencio. Totales sí es entero siempre (suma de
+      // `peso`, que es 1 o 2).
+      'Items_Ok':               Math.round((parseFloat(p.itemsOk) || 0) * 100) / 100,
+      'Items_Err':              Math.round((parseFloat(p.itemsErr) || 0) * 100) / 100,
       'Items_Totales':          parseInt(p.itemsTotales) || 0,
       'Errores_Categoria_JSON': p.erroresCategoria || '{}'
     });
