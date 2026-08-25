@@ -800,6 +800,71 @@ if(window.location.protocol === 'file:') {
         <button type="button" class="btn btn-ghost btn-sm" onclick="testFabricaExamPin()">🔎 Probar PIN actual</button>
       </div>
     </div>
+    <!-- ── F3 sesión 2 (ago-2026): Crear examen del Laboratorio de Oraciones ── -->
+    <div class="s-box" style="border:2px solid var(--lab-verde);background:var(--lab-tint)">
+      <div class="s-title" style="color:var(--lab-verde-dk)">🧪 Crear examen del Laboratorio de Oraciones</div>
+      <div class="s-desc">Genera un PIN y actívalo. Los alumnos lo introducen en el login del Laboratorio ("🔑 Tengo un PIN de examen") en vez de elegir nivel — el nivel lo fija el examen.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 8px">
+        <div style="min-width:128px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">PIN (4 dígitos)</label>
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <input id="tp-lab-exam-pin" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="1234"
+              style="width:88px;text-align:center;font-size:1.1rem;font-weight:900;letter-spacing:.15em;padding:6px 8px">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="genLabExamPin()" title="Generar PIN aleatorio">🎲</button>
+          </div>
+        </div>
+        <div style="flex:1;min-width:80px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Grupo</label>
+          <select id="tp-lab-exam-grupo" class="input grupo-select" data-grupo-placeholder="— Elige clase —" style="font-size:.88rem;padding:6px 8px;margin-top:4px"></select>
+        </div>
+        <div style="flex:1;min-width:60px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Evaluación</label>
+          <select id="tp-lab-exam-eval" class="input" style="font-size:.88rem;padding:6px 8px;margin-top:4px">
+            <option value="1ª">1ª</option>
+            <option value="2ª">2ª</option>
+            <option value="3ª">3ª</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nombre del examen</label>
+        <input id="tp-lab-exam-name" class="input" type="text" placeholder="Ej: Laboratorio de Oraciones T1" style="width:100%;font-size:.88rem;padding:6px 8px;margin-top:4px">
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+        <div style="min-width:150px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nivel</label>
+          <select id="tp-lab-exam-nivel" class="input" style="font-size:.88rem;padding:6px 8px;margin-top:4px;width:100%">
+            <option value="basico">🌱 Aprendiz — 2.º ESO</option>
+            <option value="medio">📗 3.º-4.º ESO</option>
+            <option value="avanzado">🧬 Maestro — 1.º Bach</option>
+          </select>
+        </div>
+        <div style="min-width:110px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Nº de retos</label>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <input id="tp-lab-exam-nretos" class="input" type="number" min="0" max="30" value="0" style="width:70px;font-size:.88rem;padding:6px 8px;text-align:center">
+            <span style="font-size:.72rem;color:var(--muted)">0 = todos</span>
+          </div>
+        </div>
+        <div style="min-width:110px">
+          <label style="font-size:.74rem;font-weight:700;color:var(--muted)">Timer (minutos)</label>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <input id="tp-lab-exam-timer" class="input" type="number" min="0" max="180" value="0" style="width:70px;font-size:.88rem;padding:6px 8px;text-align:center">
+            <span style="font-size:.72rem;color:var(--muted)">0 = sin límite</span>
+          </div>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--ink2);margin-bottom:6px;cursor:pointer">
+        <input id="tp-lab-exam-zonagris" type="checkbox">
+        Incluir retos de zona gris (dos respuestas válidas — desactivado por defecto)
+      </label>
+      <p style="font-size:.72rem;color:var(--muted);margin:-2px 0 10px">El examen solo juega Estación 2-3 (manipula + etiqueta) — Estación 1 es de aprendizaje, sin nota.</p>
+      <p id="tp-lab-exam-status" style="font-size:.85rem;display:none;padding:8px 12px;border-radius:8px;margin-bottom:8px" role="status"></p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn btn-primary btn-sm" onclick="createExamenLaboratorioUI()">🚀 Activar examen</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="testLabExamPin()">🔎 Probar PIN actual</button>
+      </div>
+    </div>
     <div class="s-box" style="border-left:4px solid #F59E0B">
       <div class="s-title">💡 Pistas y Consejos</div>
       <div class="s-desc">Controla qué feedback recibe el alumno al cometer un error en Análisis Sintáctico.</div>
