@@ -336,8 +336,9 @@
       const sp = a.simples_practica || {};
       const ce = a.simples_examen   || {};
       const cp = a.compuestas       || {};
+      const lab = a.laboratorio     || {};
       const sesiones   = (sp.sesiones || 0);
-      const ejercicios = (sp.ejercicios || 0) + (ce.intentos || 0) + (cp.intentos || 0);
+      const ejercicios = (sp.ejercicios || 0) + (ce.intentos || 0) + (cp.intentos || 0) + (lab.intentos || 0);
       const topErr     = (a.errores_top || []).slice(0,3).map(e => e.funcion + ' (' + e.count + ')').join(', ');
       // Solo se rellena cuando el alumno ha hecho exámenes de más de una
       // profundidad — evita ruido en el caso normal (todo 'completo').
@@ -561,6 +562,63 @@
         aoa.push([cell('')]);
       });
       aoa.push([cell('')]);
+    }
+
+    // ── TOP ERRORES DEL LABORATORIO (por prueba fallada) ─────────────────
+    // A diferencia de Compuestas, aquí no hay bloques ponderados (Pilar/
+    // Función/Procedimental): es un solo eje — qué EXPERIMENTO de
+    // manipulación o razonamiento falla el alumno, no qué función (plan de
+    // producto §5.3, F3). Ranking plano, igual que "TOP ERRORES DE LA CLASE".
+    const LAB_CATEGORIA_LABELS = {
+      sustituye:        'Sustituye — ¿qué forma funciona en su lugar?',
+      suprime:          'Suprime — ¿qué pasa si se quita?',
+      cambia_numero:    'Cambia el número — ¿qué concuerda con qué?',
+      mueve:            'Mueve — ¿se desplaza con libertad?',
+      transforma:       'Transforma la oración (pasiva, orden…)',
+      juicio:           'Juicio de gramaticalidad (veredicto + causa)',
+      par_minimo:       'Par mínimo — qué función ha cambiado',
+      analisis_inverso: 'Análisis inverso — construir desde una etiqueta',
+      frontera:         'Caso de frontera (dos funciones parecidas)',
+      etiqueta_prueba:  'Etiquetar con la prueba correcta',
+      investigacion:    'Investigación (caja de pruebas)'
+    };
+    const lab = diag.errores_laboratorio || {};
+    const labTop = Object.keys(lab)
+      .map(k => ({ cat: k, count: parseInt(lab[k]) || 0 }))
+      .filter(e => e.count > 0)
+      .sort((a, b) => b.count - a.count);
+    const totalLab = labTop.reduce((s, e) => s + e.count, 0);
+    const maxLab = labTop.length ? labTop[0].count : 0;
+
+    aoa.push([
+      cell('TOP ERRORES DEL LABORATORIO (por prueba fallada)', S_seccion()),
+      cell('', S_seccion()),cell('', S_seccion()),cell('', S_seccion()),cell('', S_seccion())
+    ]);
+    merges.push(merge(aoa.length-1,0,aoa.length-1,4));
+
+    if (!totalLab){
+      aoa.push([cell('(sin exámenes del Laboratorio registrados en este rango)', S_celda()), cell(''),cell(''),cell(''),cell('')]);
+      aoa.push([cell('')]); aoa.push([cell('')]);
+    } else {
+      aoa.push([
+        cell('Prueba',       S_cabeceraTabla()),
+        cell('Errores',      S_cabeceraTabla()),
+        cell('% del total',  S_cabeceraTabla()),
+        cell('Barra',        S_cabeceraTabla()),
+        cell('',             S_cabeceraTabla())
+      ]);
+      labTop.forEach(e => {
+        const barra = maxLab ? '█'.repeat(Math.max(1, Math.round((e.count / maxLab) * 20))) : '';
+        const pct = totalLab ? Math.round((e.count / totalLab) * 1000) / 10 : 0;
+        aoa.push([
+          cell(LAB_CATEGORIA_LABELS[e.cat] || e.cat, S_celda({ font:{bold:true, sz:10, color:{rgb:C.ink}} })),
+          cell(e.count, S_celdaCentro()),
+          cell(pct + '%', S_celdaCentro()),
+          cell(barra, S_celda({ font:{ color:{rgb:C.marcaDark} } })),
+          cell('', S_celda())
+        ]);
+      });
+      aoa.push([cell('')]); aoa.push([cell('')]);
     }
 
     // Por grupo

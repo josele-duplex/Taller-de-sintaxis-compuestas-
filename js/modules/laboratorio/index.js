@@ -120,6 +120,37 @@
             a Simples, como pide el documento. LAB._investigacionValores se
             resetea por reto en _siguienteReto y se rellena en
             _cerrarInvestigacion, solo con lo acertado sin fallos.
+     F3·sesión 2 (25-ago-2026) → examen con PIN, sobre el backend ya
+            construido en Server/Laboratorio.gs (createExamLaboratorio_/
+            getExamenLaboratorio_/saveLaboratorioResult_, F3·sesión 1).
+            `iniciarExamenLaboratorio` clonado de
+            iniciarFabricaExamenDesdeLogin (js/modules/fabrica/index.js):
+            el alumno llega con PIN ya validado desde el login compartido,
+            no pasa por el selector de nivel (el PIN ya trae nivel/retos
+            fijos, pre-filtrados a Estación 2-3 sin zona gris salvo que el
+            profesor la incluyera al crear el PIN). Diferencias con
+            práctica, todas centralizadas en LAB.mode==='exam' (mismo
+            patrón que FAB.mode): _colorearBotones/_mostrarExplicacion no
+            revelan nada ("Respuesta registrada."), sin sonido de acierto/
+            fallo ni racha/Caja de Pruebas visibles, cola de retos FINITA
+            (al vaciarse, _siguienteReto llama a
+            _finalizarExamenLaboratorio en vez de reciclar el pool), sin
+            analíticas de práctica (_enviarAnaliticaLaboratorio se salta en
+            examen: la nota va aparte por _enviarResultadoLaboratorio).
+     Curva de `juicio` (hecha esta sesión; decidida con Josele el
+            25-ago-2026, cierra lo que el plan §5.4 dejaba abierto) →
+            veredicto ✓ + causa ✓ = 100 · veredicto ✓ + causa ✗ = 40 ·
+            veredicto ✗ = 0 (acierte la causa o no: quien no detecta el
+            problema no ha hecho el diagnóstico). Se aplica IGUAL en
+            práctica y en examen, para que se entrene lo que se mide. Con
+            ella LAB.aciertos deja de ser entero: es PUNTOS (peso §6 ×
+            JUICIO_PARCIAL). Ver la nota larga junto a JUICIO_PARCIAL.
+     Sin reconducción en examen (26-ago-2026, decisión de Josele que cierra
+            el punto que quedaba abierto) → en `investigacion`, un peldaño
+            fallado en examen corta la cascada ahí mismo (labResponderCascada
+            llama a _cerrarInvestigacion sin jugar los peldaños restantes),
+            igual que `monta` no admite reintentos en el examen de Fábrica.
+            En práctica se sigue reconduciendo al camino bueno, sin cambios.
    Pendiente:
      F2·3 (puente de ida, sin hacer TODAVÍA en el frontend) → botón al
             cerrar reto que abra Simples con la MISMA oración cargada.
@@ -135,10 +166,10 @@
             única oración ya resuelta en vez de pedir el banco entero
             (investigar sint/index.js antes de tocarlo, regla 4 de
             CLAUDE.md).
-   Sin examen con PIN (Laboratorio.gs no lo tiene todavía — es F3 del plan) y
-   sin selector de nivel más allá de basico/medio/avanzado: solo hay contenido
-   en 'medio' por ahora (lote semilla F0·3), así que basico/avanzado mostrarán
-   "sin retos disponibles" hasta que existan esos lotes (F4/F5). */
+   Sin selector de nivel más allá de basico/medio/avanzado: solo hay
+   contenido en 'medio' por ahora (lote semilla F0·3), así que basico/
+   avanzado mostrarán "sin retos disponibles" hasta que existan esos lotes
+   (F4/F5) — también en examen. */
 
 // El canon de aceptabilidad (F2·1) es la fuente única de las tres marcas, los
 // cuatro veredictos y las 22 causas en lenguaje de alumno. Antes vivían
@@ -285,12 +316,21 @@ function _limpiarExplicacion() {
   const sig = _el('lab-siguiente');
   if (sig) sig.style.display = 'none';
 }
+// Examen: nunca se revela `ok` ni `html` — plan §5.4, "sin pistas ni
+// feedback hasta el final". Mismo patrón que _mostrarExplicacion en
+// fabrica/index.js, centralizado aquí para no tocar los ~10 sitios que
+// llaman a esta función (uno por tipo de ítem).
 function _mostrarExplicacion(ok, html) {
   const el = _el('lab-explicacion');
   if (!el) return;
   el.style.display = 'block';
-  el.className = 'lab-expl ' + (ok ? 'is-ok' : 'is-bad');
-  el.innerHTML = html;
+  if (LAB.mode === 'exam') {
+    el.className = 'lab-expl';
+    el.innerHTML = 'Respuesta registrada.';
+  } else {
+    el.className = 'lab-expl ' + (ok ? 'is-ok' : 'is-bad');
+    el.innerHTML = html;
+  }
   const sig = _el('lab-siguiente');
   if (sig) sig.style.display = 'block';
 }
@@ -313,10 +353,40 @@ function _colorearBotones(n, esCorrecta, idxElegido) {
     const btn = _el('lab-op-' + i);
     if (!btn) continue;
     btn.style.pointerEvents = 'none';
+    if (LAB.mode === 'exam') continue; // examen: se bloquea el click, no se revela nada
     if (esCorrecta(i)) btn.classList.add('is-ok');
     else if (i === idxElegido) btn.classList.add('is-bad');
     else btn.classList.add('is-dim');
   }
+}
+
+// Tramo de nota de un `juicio` acertado a medias (decisión de Josele,
+// 25-ago-2026, cerrando lo que el plan de producto §5.4 dejaba abierto):
+//
+//   veredicto ✓ + causa ✓ → 100   veredicto ✗ + causa ✓ → 0
+//   veredicto ✓ + causa ✗ →  40   veredicto ✗ + causa ✗ → 0
+//
+// El veredicto es la PUERTA: si el alumno no detecta que algo falla, la
+// causa ya no puntúa — quien dice «esto funciona» y acto seguido señala qué
+// se rompe se está contradiciendo, no ha hecho el diagnóstico. Y detectar
+// el problema sin saber nombrarlo vale, pero no vale lo mismo: es la
+// traducción a nota del principio «se evalúa la justificación, no el
+// acierto» (plan §2, decisión 2).
+//
+// Se aplica IGUAL en práctica y en examen, también por decisión de Josele:
+// si la causa vale el 60 % del ítem, el alumno no puede descubrirlo el día
+// del examen. En práctica sigue viéndose todo el feedback; lo único que
+// cambia es el porcentaje del cierre de reto.
+//
+// Los juicios de control (`veredicto: "gramatical"`) NO tienen causa que
+// preguntar (schema §3.5), así que son de un solo paso: acertar vale 100.
+const JUICIO_PARCIAL = 0.4;
+
+// LAB.aciertos dejó de ser entero con JUICIO_PARCIAL: se muestra con un
+// decimal, y sin el ".0" cuando cae redondo (que es lo normal).
+function _fmtPuntos(n) {
+  const r = Math.round((n || 0) * 10) / 10;
+  return (r % 1 === 0) ? String(r) : r.toFixed(1);
 }
 
 // ── Resolución genérica de un ítem (puntúa, sonido, racha, XP, errores) ───
@@ -334,18 +404,31 @@ function _colorearBotones(n, esCorrecta, idxElegido) {
 // de LB_0070, el único del banco con peso declarado. Ojo: LAB.aciertos y
 // LAB.totalItems pasan a ser PUNTOS, no ítems contados a mano; la racha, el
 // XP y las analíticas por tipo siguen contando por ítem.
+//
+// `correcta` admite dos formas: un BOOLEANO (nueve de los diez tipos son
+// todo-o-nada) o una FRACCIÓN 0..1 — hoy solo la usa `juicio`, que puntúa
+// veredicto y causa por separado (ver JUICIO_PARCIAL). Un acierto parcial NO
+// cuenta como racha, SÍ registra el error para el informe del profesor (el
+// alumno falló algo, y el profesor tiene que verlo) y da la mitad de XP.
 function _resolverItem(correcta, categoria) {
   const pesoItem = (LAB._item && typeof LAB._item.peso === 'number' && LAB._item.peso > 0) ? LAB._item.peso : 1;
+  const frac = (typeof correcta === 'number')
+    ? Math.max(0, Math.min(1, correcta))
+    : (correcta ? 1 : 0);
   LAB.totalItems += pesoItem;
-  if (correcta) {
-    LAB.aciertos += pesoItem; LAB.racha++;
+  LAB.aciertos += pesoItem * frac;
+  if (frac >= 1) {
+    LAB.racha++;
     if (LAB.racha > LAB.rachaMax) LAB.rachaMax = LAB.racha;
-    try { playSuccess(); } catch (e) {}
+    // Examen: sin sonido de acierto — es una señal de corrección tan válida
+    // como el color de un botón, y aquí tampoco se revela nada.
+    if (LAB.mode !== 'exam') { try { playSuccess(); } catch (e) {} }
     try { awardXP(2, 'laboratorio_item'); } catch (e) {}
   } else {
     LAB.racha = 0;
     if (categoria) LAB.erroresPorTipo[categoria] = (LAB.erroresPorTipo[categoria] || 0) + 1;
-    try { playError(); } catch (e) {}
+    if (LAB.mode !== 'exam') { try { playError(); } catch (e) {} }
+    if (frac > 0) { try { awardXP(1, 'laboratorio_item'); } catch (e) {} }
   }
   _actualizarStreak();
 }
@@ -359,17 +442,84 @@ function _resolverItem(correcta, categoria) {
 // y aplicar el filtro en cuanto elige uno (_mostrarSelectorNivel más abajo).
 async function startLaboratorio({ name, email, grupo, funcionSugerida }) {
   showScreen('laboratorio');
+  _clearLaboratorioTimer();
   LAB = {
     name, email, grupo, nivel: null, pool: [], retoQueue: [], reto: null, retoNum: 0,
-    items: [], itemIdx: 0, estacionActual: 0,
+    items: [], itemIdx: 0, estacionActual: 0, mode: 'practice',
     aciertos: 0, totalItems: 0, racha: 0, rachaMax: 0,
     retosCompletadosSesion: 0, erroresPorTipo: {},
     funcionSugerida: funcionSugerida || null
   };
   const nameEl = _el('lab-name');
   if (nameEl) nameEl.textContent = (name || '').split(' ')[0];
+  // Defensivo: si la sesión anterior en esta misma pestaña fue un examen,
+  // deja "Mi Caja", la racha y el temporizador ocultos — se restauran aquí
+  // (mismo patrón que startFabrica).
+  const cajaBtn = _el('lab-btn-caja');
+  if (cajaBtn) cajaBtn.style.display = '';
+  const streakBadge = _el('lab-streak');
+  if (streakBadge) streakBadge.style.display = '';
+  const timerEl = _el('lab-timer');
+  if (timerEl) timerEl.style.display = 'none';
   _actualizarStreak();
   _mostrarSelectorNivel();
+}
+
+// Entrada de examen: el alumno llega con un PIN ya validado desde el login
+// (ver dispatchLaboratorioGet_ createExamLaboratorio_ + getExamenLaboratorio_
+// en server/Laboratorio.gs, F3·sesión 1). No pasa por el selector de
+// nivel — el PIN ya trae el nivel/curso y la lista fija de retos que el
+// profesor precomputó, ya recortada a Estación 2-3 y sin zona gris salvo
+// que él la incluyera al crear el PIN. Patrón clonado de
+// iniciarFabricaExamenDesdeLogin (js/modules/fabrica/index.js).
+//
+// La nota se calcula hoy como aciertos/totalItems (igual que Fábrica: "sin
+// curva adicional"), lo que en `juicio` significa que SOLO puntúa el
+// veredicto — el plan de producto §5.4 pide que el veredicto sin la causa
+// no valga el ítem completo (curva 100/40/10/0), pero eso es una decisión
+// de puntuación nueva sin precedente clonable, pendiente de cerrar con
+// Josele. _resolverItem no ha cambiado: hereda el peso (§6) tal cual ya
+// lo aplica en práctica.
+async function iniciarExamenLaboratorio({ name, email, grupo, pin }) {
+  const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
+  if (!apiUrl) throw new Error('Sin conexión al servidor.');
+  let d;
+  try {
+    const r = await fetchWithTimeout(apiUrl + '?action=getExamenLaboratorio&pin=' + encodeURIComponent(pin), {}, 12000);
+    d = await r.json();
+  } catch (e) {
+    throw new Error('Error de conexión: ' + (e.message || 'timeout') + '. Inténtalo de nuevo.');
+  }
+  if (!d || !d.ok || !Array.isArray(d.retos) || d.retos.length === 0) {
+    throw new Error((d && d.error) || 'PIN no válido.');
+  }
+  showScreen('laboratorio');
+  _clearLaboratorioTimer();
+  LAB = {
+    name, email, grupo: grupo || d.grupo || '', nivel: d.nivel || 'medio',
+    pool: shuffle(d.retos), retoQueue: [], reto: null, retoNum: 0,
+    items: [], itemIdx: 0, estacionActual: 0, mode: 'exam',
+    examPin: pin, examGrupo: d.grupo || '', examEval: d.evaluacion || '', examName: d.nombreExamen || '',
+    aciertos: 0, totalItems: 0, racha: 0, rachaMax: 0, erroresPorTipo: {},
+    retosCompletadosSesion: 0, _examSent: false
+  };
+  LAB.retoQueue = [...LAB.pool];
+  const nameEl = _el('lab-name');
+  if (nameEl) nameEl.textContent = (name || '').split(' ')[0];
+  const info = NIVEL_INFO[LAB.nivel] || NIVEL_INFO.medio;
+  const nivelBadge = _el('lab-nivel-badge');
+  if (nivelBadge) nivelBadge.textContent = info.icon + ' ' + info.nombre + ' · Examen';
+  const cambiarBtn = _el('lab-cambiar-nivel');
+  if (cambiarBtn) cambiarBtn.style.display = 'none';
+  // Sin Caja de Pruebas (es herramienta de consulta, no debe estar
+  // disponible durante el examen) ni racha visible — mismo criterio que
+  // Fábrica con "Mi mesa"/"Museo"/racha.
+  const cajaBtn = _el('lab-btn-caja');
+  if (cajaBtn) cajaBtn.style.display = 'none';
+  const streakBadge = _el('lab-streak');
+  if (streakBadge) streakBadge.style.display = 'none';
+  if (d.timer > 0) _startLaboratorioTimer(d.timer * 60);
+  _siguienteReto();
 }
 
 function _mostrarSelectorNivel() {
@@ -430,6 +580,9 @@ function _sinDatos() {
 
 function _siguienteReto() {
   if (LAB.retoQueue.length === 0) {
+    // Examen: cola finita — al vaciarse, termina (no se reinicia el pool
+    // en bucle como en práctica libre).
+    if (LAB.mode === 'exam') { _finalizarExamenLaboratorio(); return; }
     LAB.retoQueue = shuffle(LAB.pool);
     if (LAB.retoQueue.length === 0) { _sinDatos(); return; }
   }
@@ -526,7 +679,7 @@ function _finReto() {
   _setFichas('<div class="lab-fin">' +
     '<div class="lab-fin-icon">🧪</div>' +
     '<div class="lab-fin-tit">¡Reto completado!</div>' +
-    '<div class="lab-fin-sub">Aciertos de la sesión: ' + LAB.aciertos + '/' + LAB.totalItems + ' (' + pct + '%)</div>' +
+    '<div class="lab-fin-sub">Aciertos de la sesión: ' + _fmtPuntos(LAB.aciertos) + '/' + LAB.totalItems + ' (' + pct + '%)</div>' +
     tablaEquiv +
     '<button type="button" class="lab-btn" onclick="labSiguienteReto()">Siguiente reto →</button>' +
     puenteBtn +
@@ -587,11 +740,130 @@ function exitLaboratorio() { _enviarAnaliticaLaboratorio(); showScreen('portada'
 // papel que fabPedirSalir en Fábrica. Cambiar de nivel (labCambiarNivel,
 // debajo) NO pasa por aquí: no es "cerrar sesión", es seguir jugando.
 function labPedirSalir() {
+  // Mismo patrón que fabPedirSalir (js/modules/fabrica/index.js): en examen
+  // se confirma antes de salir para no perder la nota sin avisar, y no se
+  // muestra el diario (es una reflexión de práctica, no de examen).
+  if (LAB.mode === 'exam') {
+    if (confirm('¿Salir del examen? Si no has terminado, no se guardará la nota.')) {
+      _clearLaboratorioTimer();
+      exitLaboratorio();
+    }
+    return;
+  }
   if ((LAB.retosCompletadosSesion || 0) > 0) { _mostrarDiario(); return; }
   exitLaboratorio();
 }
 
 function labCambiarNivel() { _enviarAnaliticaLaboratorio(); _mostrarSelectorNivel(); }
+
+// ════════════════════════════════════════════════════════════════════════
+//  EXAMEN — temporizador, cierre y envío del resultado (F3 · sesión 2)
+//  Patrón clonado de _startFabricaTimer/_finalizarExamenFabrica/
+//  _enviarResultadoFabrica (js/modules/fabrica/index.js).
+// ════════════════════════════════════════════════════════════════════════
+
+function _startLaboratorioTimer(seconds) {
+  LAB.timerRemaining = seconds;
+  const el = _el('lab-timer');
+  if (el) el.style.display = 'inline-block';
+  _updateLaboratorioTimerDisplay();
+  LAB.timerInterval = setInterval(() => {
+    LAB.timerRemaining--;
+    _updateLaboratorioTimerDisplay();
+    if (LAB.timerRemaining <= 0) {
+      clearInterval(LAB.timerInterval);
+      LAB.timerInterval = null;
+      _finalizarExamenLaboratorio();
+    }
+  }, 1000);
+}
+function _updateLaboratorioTimerDisplay() {
+  const el = _el('lab-timer');
+  if (!el) return;
+  const mm = String(Math.floor(LAB.timerRemaining / 60)).padStart(2, '0');
+  const ss = String(Math.floor(LAB.timerRemaining % 60)).padStart(2, '0');
+  el.textContent = '⏱ ' + mm + ':' + ss;
+  el.style.background = LAB.timerRemaining < 60 ? '#FEF2F2' : LAB.timerRemaining < 180 ? '#FEF3C7' : 'var(--paper3)';
+  el.style.color = LAB.timerRemaining < 60 ? 'var(--red)' : LAB.timerRemaining < 180 ? 'var(--amber)' : 'var(--ink)';
+}
+function _clearLaboratorioTimer() {
+  if (LAB.timerInterval) { clearInterval(LAB.timerInterval); LAB.timerInterval = null; }
+}
+
+// Nota = aciertos/totalItems (puntos ya ponderados por `peso`, §6) — ver la
+// nota junto a iniciarExamenLaboratorio sobre por qué `juicio` no aplica
+// todavía la curva 100/40/10/0 del plan §5.4.
+function _finalizarExamenLaboratorio() {
+  _clearLaboratorioTimer();
+  const timerEl = _el('lab-timer');
+  if (timerEl) timerEl.style.display = 'none';
+  const nota10 = LAB.totalItems > 0 ? Math.round((LAB.aciertos / LAB.totalItems) * 1000) / 100 : 0;
+  const notaFmt = nota10.toFixed(1);
+  _setCorpus('');
+  _setPregunta('');
+  _setFichas(
+    '<div class="lab-fin">' +
+    '<div class="lab-fin-icon">🧪</div>' +
+    '<div class="lab-fin-tit">Examen terminado</div>' +
+    '<div style="font-size:3rem;font-weight:900;color:var(--lab-verde-dk);line-height:1;margin:10px 0">' + notaFmt + '</div>' +
+    '<div class="lab-fin-sub">' + _fmtPuntos(LAB.aciertos) + '/' + LAB.totalItems + ' puntos correctos</div>' +
+    '<p id="lab-exam-msg" style="margin-top:16px;font-size:.85rem;font-weight:600"></p>' +
+    '<button type="button" class="lab-btn lab-btn-block" style="margin-top:6px" onclick="exitLaboratorio()">Salir</button>' +
+    '</div>'
+  );
+  _limpiarExplicacion();
+  _enviarResultadoLaboratorio(nota10);
+}
+
+async function _enviarResultadoLaboratorio(nota10) {
+  const msg = _el('lab-exam-msg');
+  if (LAB._examSent) {
+    if (msg) { msg.textContent = '✓ Resultado ya enviado.'; msg.style.color = 'var(--green)'; }
+    return;
+  }
+  const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
+  if (!apiUrl) {
+    if (msg) { msg.textContent = '⚠ Sin URL de API. La nota no se ha enviado al profesor.'; msg.style.color = 'var(--red)'; }
+    return;
+  }
+  if (msg) { msg.textContent = '⏳ Enviando resultado al profesor…'; msg.style.color = 'var(--blue)'; }
+  // Cuerpo plano (sin envolver en {payload:...}) — así lo espera
+  // saveLaboratorioResult_ en Server/Laboratorio.gs (dispatchLaboratorioPost_
+  // le pasa el objeto entero del body tal cual llega).
+  const body = JSON.stringify({
+    action: 'saveLaboratorioResult',
+    email: LAB.email || '', name: LAB.name || '', grupo: LAB.grupo || '',
+    nivel: LAB.nivel || '', modo: 'exam',
+    pin: LAB.examPin || '', evaluacion: LAB.examEval || '', examen: LAB.examName || '',
+    nota: String(nota10 || 0),
+    // Puntos, no ítems contados: con JUICIO_PARCIAL pueden traer decimales,
+    // y el redondeo evita los 2.4000000000000004 de la coma flotante.
+    itemsOk: String(Math.round((LAB.aciertos || 0) * 100) / 100),
+    itemsErr: String(Math.round(((LAB.totalItems || 0) - (LAB.aciertos || 0)) * 100) / 100),
+    itemsTotales: String(LAB.totalItems || 0),
+    erroresCategoria: JSON.stringify(LAB.erroresPorTipo || {})
+  });
+  try {
+    // Sin Content-Type: JSON explícito para evitar el preflight CORS — mismo
+    // motivo que _enviarResultadoFabrica.
+    const r = await fetchWithTimeout(apiUrl, { method: 'POST', body, mode: 'cors', credentials: 'omit', redirect: 'follow' }, 12000);
+    const d = await r.json();
+    if (d && d.ok) {
+      LAB._examSent = true;
+      if (msg) {
+        msg.textContent = d.duplicate ? '✓ Resultado ya enviado.' : '✓ Resultado enviado correctamente al profesor.';
+        msg.style.color = 'var(--green)';
+      }
+    } else {
+      throw new Error((d && d.error) || 'Error del servidor');
+    }
+  } catch (e) {
+    if (msg) {
+      msg.textContent = '⚠ Error de conexión: ' + (e.message || 'timeout') + '. No se ha podido reenviar automáticamente.';
+      msg.style.color = 'var(--red)';
+    }
+  }
+}
 
 // ════════════════════════════════════════════════════════════════════════
 //  ESTACIÓN 1 · OBSERVA — los tres tipos jugables ya en esta sesión
@@ -745,6 +1017,7 @@ function _renderManipulacion(item) {
 
 function _renderJuicio(item) {
   LAB._item = item;
+  LAB._juicioVeredictoOk = null; // lo fija labResponderVeredicto
   _setCorpus('<div class="lab-frase">' + escHtml(item.oracion) + '</div>');
   _setPregunta('¿Esta oración funciona?');
   _setFichas('<div class="lab-stack">' +
@@ -757,12 +1030,18 @@ function labResponderVeredicto(idx) {
   const elegido = VEREDICTOS[idx];
   const acierto = elegido === item.veredicto;
   _colorearBotones(VEREDICTOS.length, i => VEREDICTOS[i] === item.veredicto, idx);
-  _resolverItem(acierto, 'juicio');
   const hayCausa = item.veredicto !== 'gramatical' && Array.isArray(item.opciones_causa) && item.opciones_causa.length > 0;
   if (hayCausa) {
+    // La nota del ítem NO se cierra aquí: depende también de la causa
+    // (JUICIO_PARCIAL). Se guarda el veredicto y la resuelve
+    // labResponderCausa. La causa se pregunta AUNQUE el veredicto esté mal
+    // —el alumno tiene que ver qué se rompía—, pero entonces ya no puntúa.
+    LAB._juicioVeredictoOk = acierto;
     setTimeout(() => _renderJuicioCausa(item), 550);
   } else {
-    _mostrarResultadoJuicio(acierto, item);
+    // Control `gramatical`: un solo paso, no hay causa que preguntar.
+    _resolverItem(acierto, 'juicio');
+    _mostrarResultadoJuicio(acierto ? 1 : 0, item);
   }
 }
 
@@ -776,17 +1055,26 @@ function _renderJuicioCausa(item) {
 function labResponderCausa(idx) {
   const item = LAB._item;
   const causas = LAB._causas;
-  const acierto = causas[idx] === item.causa;
+  const causaOk = causas[idx] === item.causa;
   _colorearBotones(causas.length, i => causas[i] === item.causa, idx);
-  _mostrarResultadoJuicio(acierto, item);
+  // Aquí se cierra la nota del ítem entero (los dos pasos), no solo la causa.
+  const frac = !LAB._juicioVeredictoOk ? 0 : (causaOk ? 1 : JUICIO_PARCIAL);
+  _resolverItem(frac, 'juicio');
+  _mostrarResultadoJuicio(frac, item);
 }
 
 // Cierre común (con o sin paso de causa): explicación + contraste con la
 // gemela, nunca la oración mala sola en pantalla (regla del plan §2.5.2).
 // El asterisco (.lab-asterisco) solo se pinta si el veredicto es
 // "agramatical" — norma_culta y dudoso NO llevan asterisco (regla §2.5.1).
-function _mostrarResultadoJuicio(acierto, item) {
-  let html = (acierto ? '✓ ' : '✗ ') + escHtml(item.explicacion || '');
+// `frac` es la nota del ítem entero (0, JUICIO_PARCIAL o 1). El tramo del
+// medio tiene mensaje propio: reconocer que el alumno SÍ detectó el problema
+// —que es lo primero que se le pide— y separarlo de no haberse enterado.
+function _mostrarResultadoJuicio(frac, item) {
+  const pleno = frac >= 1;
+  const prefijo = pleno ? '✓ '
+    : (frac > 0 ? '◐ Bien visto que algo falla, pero no es eso lo que se rompe. ' : '✗ ');
+  let html = prefijo + escHtml(item.explicacion || '');
   if (item.gemela_correcta) {
     const oracionMarcada = (llevaAsterisco(item.veredicto) ? '<span class="lab-asterisco">*</span>' : '') + escHtml(item.oracion);
     html += '<div class="lab-contraste">' +
@@ -795,7 +1083,7 @@ function _mostrarResultadoJuicio(acierto, item) {
       '<div class="lab-frase-mini">' + escHtml(item.gemela_correcta) + '</div>' +
       '</div>';
   }
-  _mostrarExplicacion(acierto, html);
+  _mostrarExplicacion(pleno, html);
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -1261,6 +1549,17 @@ function labResponderCascada(idx) {
   const acierto = elegido === correcta;
   _colorearBotones(C._opts.length, i => C._opts[i] === correcta, idx);
   if (!acierto) C.fallos++;
+  // Examen: SIN reconducción (decisión de Josele, 26-ago-2026, cierra el
+  // punto que quedaba abierto en la cabecera del archivo) — un peldaño
+  // fallado corta la cascada ahí mismo, igual que `monta` no admite
+  // reintentos en el examen de Fábrica. Se apunta el valor ELEGIDO, no el
+  // correcto, para no revelar la respuesta en el rastro; el cierre ya se
+  // encarga de no enseñar nada más ("Respuesta registrada.").
+  if (!acierto && LAB.mode === 'exam') {
+    C.trail.push({ pasoId: paso.id, val: elegido, ok: false });
+    _cerrarInvestigacion();
+    return;
+  }
   // Se apunta SIEMPRE el valor correcto, no el elegido: es la reconducción —
   // el camino que queda dibujado en el rastro es el bueno, marcado como
   // fallado si el alumno no dio con él.
@@ -1524,6 +1823,7 @@ function labSaltarDiario() { exitLaboratorio(); }
 function _enviarAnaliticaLaboratorio() {
   try {
     if (!LAB || !LAB.totalItems) return; // nada respondido en este nivel
+    if (LAB.mode === 'exam') return; // el examen manda su nota aparte (_enviarResultadoLaboratorio)
     const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
     if (apiUrl && LAB.email) {
       const params = new URLSearchParams({
@@ -1531,7 +1831,7 @@ function _enviarAnaliticaLaboratorio() {
         email: LAB.email, name: LAB.name || '', grupo: LAB.grupo || '',
         nivel: LAB.nivel || '',
         retosCompletados: String(LAB.retosCompletadosSesion || 0),
-        aciertos: String(LAB.aciertos || 0), totalItems: String(LAB.totalItems || 0),
+        aciertos: String(Math.round((LAB.aciertos || 0) * 100) / 100), totalItems: String(LAB.totalItems || 0),
         rachaMax: String(LAB.rachaMax || 0),
         errores: JSON.stringify(LAB.erroresPorTipo || {})
       });
@@ -1556,7 +1856,7 @@ if (typeof window !== 'undefined') {
 // ── Public API + window bindings (patrón fabrica/chispa) ──────────────────
 
 export {
-  startLaboratorio, exitLaboratorio, labPedirSalir, labCambiarNivel, iniciarLaboratorioNivel,
+  startLaboratorio, iniciarExamenLaboratorio, exitLaboratorio, labPedirSalir, labCambiarNivel, iniciarLaboratorioNivel,
   labEmpezarReto, labSiguienteItem, labSiguienteReto, labIrASimples,
   labResponderValencia, labResponderOpciones, labResponderIntruso,
   labResponderVeredicto, labResponderCausa, labResponderFrontera,
@@ -1568,7 +1868,7 @@ export {
 
 if (typeof window !== 'undefined') {
   Object.assign(window, {
-    startLaboratorio, exitLaboratorio, labPedirSalir, labCambiarNivel, iniciarLaboratorioNivel,
+    startLaboratorio, iniciarExamenLaboratorio, exitLaboratorio, labPedirSalir, labCambiarNivel, iniciarLaboratorioNivel,
     labEmpezarReto, labSiguienteItem, labSiguienteReto, labIrASimples,
     labResponderValencia, labResponderOpciones, labResponderIntruso,
     labResponderVeredicto, labResponderCausa, labResponderFrontera,

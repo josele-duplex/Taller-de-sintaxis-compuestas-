@@ -302,11 +302,11 @@ export const VALORES_SE = Object.freeze([
 // esa prueba resuelve los dos lados con la misma pregunta—, así que no genera
 // un par de pruebas distintas y se marca aparte, en FRONTERAS_INTERNAS.
 //
-// OJO (divergencia conocida, pendiente de decisión): LAB_PARES_DISCRIMINANTES
-// de scripts/validar-banco.mjs lista siete pares POR FUNCIÓN y no incluye
-// CD↔C.Rég., CPvo↔CC Modo ni Vocat.↔Sujeto, que el banco de reflexión sí
-// tiene. Es un aviso de `peso: 2` que hoy no se emite; no afecta a la
-// corrección de ningún lote.
+// Sincronizado 2026-08-25: LAB_PARES_DISCRIMINANTES de scripts/validar-banco.mjs
+// ya lista los nueve pares POR FUNCIÓN, incluidos CD↔C.Rég., CPvo↔CC Modo y
+// Vocat.↔Sujeto (antes solo tenía siete; la nota de "divergencia conocida"
+// que vivía aquí quedó obsoleta y se ha retirado). Si se toca uno de los dos
+// archivos, hay que tocar el otro.
 
 export const PARES_DISCRIMINANTES = [
   { etiqueta: 'Sujeto ↔ CD',

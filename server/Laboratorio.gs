@@ -26,18 +26,29 @@
 //  hermano, misma forma de dato (nivel + JSON en una columna + columnas
 //  derivadas / fila por segmento con errores en JSON).
 //
-//  Solo lee el banco por ahora (GET); las analíticas son el primer POST de
-//  este módulo. Todavía no hay modo examen/PIN: por eso el GET no tiene un
-//  parámetro `mode` como en Compuestas — Activo='TRUE' se aplica siempre,
-//  según fija el schema (§1 del doc).
+//  El GET de banco (getRetosLaboratorio) no tiene un parámetro `mode` como
+//  en Compuestas — Activo='TRUE' se aplica siempre, según fija el schema
+//  (§1 del doc); es la práctica libre la que lee así.
 //
 //  A diferencia de Formacion_Banco, el banco filtra por TRES parámetros
 //  (nivel / curso / funcion), fijado así en el plan de producto §5.3.
 //
+//  F3 · sesión 1 (25-ago-2026): modo examen con PIN, completo por el lado
+//  del servidor — createExamLaboratorio_ (profesor crea PIN) /
+//  getExamenLaboratorio_ (alumno entra con PIN) / saveLaboratorioResult_
+//  (nota final, con deduplicación email+PIN). Patrón clonado de
+//  createExamFormacion_ / getExamenFormacion_ / saveResultadoFormacion_
+//  (Server/Formacion.gs) — mismo problema exacto: retos con ítems
+//  heterogéneos de varias estaciones, no ejercicios sueltos como en
+//  Compuestas/Simples. Todavía SIN motor de cliente que use estos tres
+//  endpoints (eso es F3·sesión 2, en js/modules/laboratorio/index.js +
+//  el login compartido + el panel del profesor). Ver
+//  docs/Laboratorio_Oraciones_Plan_Producto.md §5.4.
+//
 //  DESPLIEGUE: después de pegar este archivo actualizado en Apps Script,
 //  hace falta Implementar → Gestionar implementaciones → lápiz → Nueva
-//  versión (NUNCA Nueva implementación) para que saveSesionLaboratorio
-//  empiece a responder de verdad.
+//  versión (NUNCA Nueva implementación) para que saveSesionLaboratorio y
+//  el examen con PIN empiecen a responder de verdad.
 // ════════════════════════════════════════════════════════════════════════
 
 // ── Nombre de la hoja nueva ──────────────────────────────────────────────
@@ -251,7 +262,8 @@ function saveSesionLaboratorio_(p) {
       'Grupo':              String(p.grupo || '').trim(),
       'Nivel':              String(p.nivel || ''),
       'Retos_Completados':  parseInt(p.retosCompletados) || 0,
-      'Aciertos':           parseInt(p.aciertos) || 0,
+      // Puntos, no ítems: ver la nota de Items_Ok en saveLaboratorioResult_.
+      'Aciertos':           Math.round((parseFloat(p.aciertos) || 0) * 100) / 100,
       'Total_Items':        parseInt(p.totalItems) || 0,
       'Racha_Max':          parseInt(p.rachaMax) || 0,
       'Errores_JSON':       String(p.errores || '{}')
@@ -263,19 +275,311 @@ function saveSesionLaboratorio_(p) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+//  F3 · sesión 1 — EXAMEN CON PIN (primera mitad: hojas + createExamLaboratorio_)
+//  Patrón clonado de createExamFormacion_ / FORMACION_EXAM_HEADER
+//  (Server/Formacion.gs) — mismo módulo hermano, mismo problema: retos con
+//  ítems heterogéneos, no ejercicios sueltos.
+//
+//  2 hojas nuevas:
+//    • Laboratorio_Examenes  — configuración de examen (PIN → retos fijos)
+//    • Laboratorio_Resultados — notas de examen (solo modo examen; la
+//      práctica libre sigue sin tocar el servidor salvo por
+//      saveSesionLaboratorio, que es analítica silenciosa, no nota).
+//
+//  Laboratorio_Resultados se crea ya (columnas fijadas contra el plan
+//  §5.4: curva dura, ponderación por peso, errores por categoría para el
+//  Top del informe) aunque todavía no hay ninguna función que escriba en
+//  ella — eso es saveLaboratorioResult_, la segunda mitad de F3·1.
+// ════════════════════════════════════════════════════════════════════════
+
+const SHEET_LABORATORIO_EXAMS   = 'Laboratorio_Examenes';
+const SHEET_LABORATORIO_RESULTS = 'Laboratorio_Resultados';
+
+const LABORATORIO_EXAM_HEADER = [
+  'PIN', 'Grupo', 'Evaluacion', 'Nombre_Examen', 'Nivel', 'Curso',
+  'N_Retos', 'Timer_Min', 'Incluye_Zona_Gris', 'Estado', 'Fecha', 'Retos_JSON'
+];
+
+// Nota / Items_Ok / Items_Err / Items_Totales son PUNTOS PONDERADOS (campo
+// `peso` del schema, §6), no conteo de ítems — mismo criterio que ya aplica
+// _resolverItem en el motor de práctica del cliente (js/modules/laboratorio/
+// index.js). Errores_Categoria_JSON alimenta el eje "qué prueba no sabe
+// aplicar" del informe del profesor (plan §5.3), igual que en Fábrica.
+const LABORATORIO_RESULT_HEADER = [
+  'Fecha', 'Correo', 'Nombre', 'Grupo', 'Nivel', 'Modo',
+  'PIN', 'Evaluacion', 'Examen',
+  'Nota', 'Items_Ok', 'Items_Err', 'Items_Totales',
+  'Errores_Categoria_JSON'
+];
+
+function ensureLaboratorioExamSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_LABORATORIO_EXAMS);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_LABORATORIO_EXAMS);
+    sheet.appendRow(LABORATORIO_EXAM_HEADER);
+    styleLaboratorioHeader_(sheet, LABORATORIO_EXAM_HEADER.length);
+    return sheet;
+  }
+  ensureSheetHeaders_(sheet, LABORATORIO_EXAM_HEADER);
+  return sheet;
+}
+
+function ensureLaboratorioResultSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_LABORATORIO_RESULTS);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_LABORATORIO_RESULTS);
+    sheet.appendRow(LABORATORIO_RESULT_HEADER);
+    styleLaboratorioHeader_(sheet, LABORATORIO_RESULT_HEADER.length);
+    return sheet;
+  }
+  ensureSheetHeaders_(sheet, LABORATORIO_RESULT_HEADER);
+  return sheet;
+}
+
+// Estación de un ítem — duplicado deliberado de `_estacionDeItem` en
+// js/modules/laboratorio/index.js: GAS no puede importar el módulo ES del
+// cliente, es la misma clase de duplicación que ya existe entre
+// _formacionEstacionDeItem_ (Formacion.gs) y su gemelo del cliente.
+// MANTENER EN SINCRONÍA si el schema laboratorio añade un tipo de ítem
+// nuevo (LAB_TIPO_ESTACION en laboratorio/index.js y en
+// scripts/validar-banco.mjs son los otros dos sitios).
+function _laboratorioEstacionDeItem_(item) {
+  if (item.tipo === 'analisis_inverso' && item.destino === 'caja_pruebas') return 3;
+  const mapa = {
+    valencia: 1, que_cambia: 1, intruso: 1,
+    manipulacion: 2, juicio: 2, par_minimo: 2, analisis_inverso: 2, frontera: 2,
+    etiqueta_prueba: 3, investigacion: 3
+  };
+  return mapa[item.tipo] || 2;
+}
+
+// El examen solo juega Estaciones 2-3 (plan §5.4: la 1 es de aprendizaje,
+// sin nada que evaluar). Filtra los ítems de cada reto y descarta el reto
+// entero si se queda sin ítems jugables. Además excluye los retos de zona
+// gris (`zona_gris:true`, siempre un ítem `frontera`) salvo que el
+// profesor marque `incluirZonaGris` al crear el PIN (plan §5.4: "un
+// ejercicio con dos respuestas válidas es indefendible ante una
+// reclamación" — la exclusión es la opción por defecto, no al revés).
+function _laboratorioRetosParaExamen_(retos, incluirZonaGris) {
+  return retos
+    .filter(r => incluirZonaGris || !r.zona_gris)
+    .map(r => {
+      const items = (r.items || []).filter(it => _laboratorioEstacionDeItem_(it) >= 2);
+      if (items.length === 0) return null;
+      return Object.assign({}, r, { items: items });
+    })
+    .filter(Boolean);
+}
+
+/**
+ * Endpoint 'createExamLaboratorio'. Requiere clave de profesor. Fija PIN,
+ * cierra exámenes previos con el mismo PIN, pre-computa los retos (solo
+ * ítems de Estación 2-3, zona gris excluida salvo flag) y los deja listos
+ * en Laboratorio_Examenes con Estado='activo'.
+ * @param {{pin, nivel?, curso?, nRetos?, timerMin?, incluirZonaGris?, grupo?, evaluacion?, nombreExamen?}} params
+ * @return {{ok:true, pin:string, nRetosReales:number} | object} error (ERR.BAD_PIN/ERR.BAD_PARAM).
+ */
+function createExamLaboratorio_(params) {
+  const sheet = ensureLaboratorioExamSheet_();
+  const col = getColMap_(sheet);
+  const pin = String(params.pin || '').trim();
+  if (!pin || !/^\d{4,6}$/.test(pin)) {
+    return gasError_('PIN inválido (debe tener 4-6 dígitos numéricos)', ERR.BAD_PIN);
+  }
+
+  // 1) Cerrar exámenes activos previos con el mismo PIN
+  const data = sheet.getDataRange().getValues();
+  const estadoIdx = col['Estado'];
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][col['PIN']]).trim() === pin && String(data[i][estadoIdx]).trim() === 'activo') {
+      sheet.getRange(i + 1, estadoIdx + 1).setValue('cerrado');
+    }
+  }
+
+  // 2) Normalizar parámetros
+  const nivel   = String(params.nivel || 'medio').trim().toLowerCase();
+  const curso   = String(params.curso || '*').trim().toUpperCase();
+  const nRetos  = parseInt(params.nRetos)   || 0;
+  const timerMin= parseInt(params.timerMin) || 0;
+  const incluirZonaGris = String(params.incluirZonaGris || '').trim().toLowerCase() === 'true';
+
+  // 3) Leer el banco ya filtrado por nivel/curso (mismo filtro que la
+  //    práctica libre, getRetosLaboratorio_) y recortarlo a examen
+  let retos;
+  try {
+    const r = getRetosLaboratorio_({ nivel: nivel, curso: curso });
+    retos = (r && r.retos) ? r.retos : [];
+  } catch (e) {
+    return gasError_('Error al leer Laboratorio_Banco: ' + e.message, ERR.EXCEPTION);
+  }
+  retos = _laboratorioRetosParaExamen_(retos, incluirZonaGris);
+  if (!retos.length) {
+    return gasError_('No hay retos con ítems de Estación 2-3 para este nivel/curso. Revisa los filtros y el banco.', ERR.BAD_PARAM);
+  }
+
+  // 4) Mezclar (Fisher–Yates) y limitar
+  for (let j = retos.length - 1; j > 0; j--) {
+    const k = Math.floor(Math.random() * (j + 1));
+    [retos[j], retos[k]] = [retos[k], retos[j]];
+  }
+  if (nRetos > 0 && retos.length > nRetos) retos = retos.slice(0, nRetos);
+
+  // 5) Escribir fila ya activa (a diferencia de Compuestas, aquí no hace
+  //    falta el estado intermedio 'creando': el filtrado es rápido y
+  //    síncrono, sin llamadas a otro banco pesado — mismo criterio que
+  //    createExamFormacion_)
+  appendRowSafe_(sheet, LABORATORIO_EXAM_HEADER, {
+    'PIN':               pin,
+    'Grupo':             params.grupo        || '',
+    'Evaluacion':        params.evaluacion   || '',
+    'Nombre_Examen':     params.nombreExamen || '',
+    'Nivel':             nivel,
+    'Curso':             curso,
+    'N_Retos':           retos.length,
+    'Timer_Min':         timerMin,
+    'Incluye_Zona_Gris': incluirZonaGris ? 'TRUE' : 'FALSE',
+    'Estado':            'activo',
+    'Fecha':             new Date().toISOString(),
+    'Retos_JSON':        JSON.stringify(retos)
+  });
+
+  // 6) Invalidar caché del PIN (por si había uno anterior)
+  try { CacheService.getScriptCache().remove('labexam_' + pin); } catch (e) {}
+
+  return { ok: true, pin: pin, nRetosReales: retos.length };
+}
+
+/**
+ * Endpoint 'getExamenLaboratorio'. El alumno entra con el PIN; lee la
+ * config pre-computada por createExamLaboratorio_ (cache → hoja). Patrón
+ * clonado de getExamenFormacion_ (Server/Formacion.gs).
+ * @param {{pin:string}} params
+ * @return {object} config del examen o error (ERR.BAD_PIN/ERR.PIN_NOT_FOUND/ERR.EXAM_INACTIVE).
+ */
+function getExamenLaboratorio_(params) {
+  const pin = String(params.pin || '').trim();
+  if (!pin || pin.length < 4) return gasError_('PIN inválido', ERR.BAD_PIN);
+
+  const cacheKey = 'labexam_' + pin;
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) {}
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_LABORATORIO_EXAMS);
+  if (!sheet || sheet.getLastRow() < 2) {
+    return gasError_('PIN no encontrado. Comprueba que has escrito los dígitos correctos.', ERR.PIN_NOT_FOUND);
+  }
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+
+  let pinExists = false;
+  for (let i = data.length - 1; i >= 0; i--) { // el más reciente primero
+    if (String(data[i][col['PIN']]).trim() !== pin) continue;
+    pinExists = true;
+    if (String(data[i][col['Estado']] || '').trim() !== 'activo') continue;
+    let retos = [];
+    try { retos = JSON.parse(data[i][col['Retos_JSON']] || '[]'); } catch (e) {}
+    if (!retos.length) continue;
+    const result = {
+      ok: true,
+      retos: retos,
+      nivel: String(data[i][col['Nivel']] || 'medio').trim(),
+      curso: String(data[i][col['Curso']]  || '*').trim(),
+      timer: parseInt(data[i][col['Timer_Min']]) || 0,
+      incluyeZonaGris: String(data[i][col['Incluye_Zona_Gris']] || '').trim().toUpperCase() === 'TRUE',
+      grupo: String(data[i][col['Grupo']] || ''),
+      evaluacion: String(data[i][col['Evaluacion']] || ''),
+      nombreExamen: String(data[i][col['Nombre_Examen']] || '')
+    };
+    try {
+      const json = JSON.stringify(result);
+      if (json.length < 90000) cache.put(cacheKey, json, 300);
+    } catch (e) {}
+    return result;
+  }
+  if (pinExists) {
+    return gasError_('Este PIN existe pero el examen no está activo. Pídele al profesor que lo cree de nuevo.', ERR.EXAM_INACTIVE);
+  }
+  return gasError_('PIN no encontrado. Comprueba que has escrito los dígitos correctos.', ERR.PIN_NOT_FOUND);
+}
+
+/**
+ * Endpoint 'saveLaboratorioResult' (POST). Guarda la nota de un examen del
+ * Laboratorio; dedup por email+PIN igual que saveResultadoFormacion_. La
+ * práctica libre no llama a este endpoint (esa es saveSesionLaboratorio_,
+ * analítica silenciosa sin nota).
+ * @param {{email?,name?,grupo?,nivel?,modo?,pin?,evaluacion?,examen?,nota?,itemsOk?,itemsErr?,itemsTotales?,erroresCategoria?}} p
+ * @return {{ok:true, duplicate?:boolean} | object} error (ERR.LOCK_TIMEOUT).
+ */
+function saveLaboratorioResult_(p) {
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) {
+    return gasError_('Servidor ocupado, inténtalo de nuevo.', ERR.LOCK_TIMEOUT);
+  }
+  try {
+    const sheet = ensureLaboratorioResultSheet_();
+    const col = getColMap_(sheet);
+    const email = String(p.email || '').trim().toLowerCase();
+    const pin   = String(p.pin || '').trim();
+    const emailIdx = col['Correo'], pinIdx = col['PIN'];
+    const lastRow = sheet.getLastRow();
+    if (email && pin && emailIdx !== undefined && pinIdx !== undefined && lastRow > 1) {
+      const c0 = Math.min(emailIdx, pinIdx), c1 = Math.max(emailIdx, pinIdx);
+      const data = sheet.getRange(2, c0 + 1, lastRow - 1, c1 - c0 + 1).getValues();
+      const eRel = emailIdx - c0, pRel = pinIdx - c0;
+      for (let i = 0; i < data.length; i++) {
+        if (String(data[i][eRel]).trim().toLowerCase() === email && String(data[i][pRel]).trim() === pin) {
+          return { ok: true, duplicate: true };
+        }
+      }
+    }
+    appendRowSafe_(sheet, LABORATORIO_RESULT_HEADER, {
+      'Fecha':                  new Date(),
+      'Correo':                 email,
+      'Nombre':                 p.name || '',
+      'Grupo':                  p.grupo || '',
+      'Nivel':                  p.nivel || '',
+      'Modo':                   p.modo || '',
+      'PIN':                    pin,
+      'Evaluacion':             p.evaluacion || '',
+      'Examen':                 p.examen || '',
+      'Nota':                   parseFloat(p.nota) || 0,
+      // Ok/Err son PUNTOS, no ítems contados: un `juicio` con el veredicto
+      // acertado y la causa fallada vale 0,4 (JUICIO_PARCIAL en
+      // js/modules/laboratorio/index.js). parseFloat, no parseInt, o ese
+      // 0,4 se perdería en silencio. Totales sí es entero siempre (suma de
+      // `peso`, que es 1 o 2).
+      'Items_Ok':               Math.round((parseFloat(p.itemsOk) || 0) * 100) / 100,
+      'Items_Err':              Math.round((parseFloat(p.itemsErr) || 0) * 100) / 100,
+      'Items_Totales':          parseInt(p.itemsTotales) || 0,
+      'Errores_Categoria_JSON': p.erroresCategoria || '{}'
+    });
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════
 //  DISPATCHERS — mismo patrón que dispatchFormacionGet_/dispatchFormacionPost_.
 //  Code_v6.gs los llama desde el fallback de doGet/doPost cuando la action
 //  no está en su cadena de if/else principal ni la reconocen
 //  dispatchCompuestasGet_/Post_ ni dispatchFormacionGet_/Post_.
-//
-//  El GET sigue siendo solo lectura del banco (F0·2). El examen con PIN
-//  (createExamLaboratorio_/saveLaboratorioResult_, §5.3-5.4 del plan) es
-//  sesión aparte (F3), igual que en Formación.
 // ════════════════════════════════════════════════════════════════════════
 
 function dispatchLaboratorioGet_(action, params) {
   switch (action) {
     case 'getRetosLaboratorio': return getRetosLaboratorio_(params);
+    case 'createExamLaboratorio': {
+      const na = (typeof requiereClaveProfesor_ === 'function') ? requiereClaveProfesor_(params) : null;
+      return na || createExamLaboratorio_(params);
+    }
+    case 'getExamenLaboratorio': return getExamenLaboratorio_(params);
     default: return null;
   }
 }
@@ -283,6 +587,7 @@ function dispatchLaboratorioGet_(action, params) {
 function dispatchLaboratorioPost_(action, payload) {
   switch (action) {
     case 'saveSesionLaboratorio': return saveSesionLaboratorio_(payload);
+    case 'saveLaboratorioResult': return saveLaboratorioResult_(payload);
     default: return null;
   }
 }

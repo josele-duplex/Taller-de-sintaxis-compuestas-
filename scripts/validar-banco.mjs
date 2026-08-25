@@ -184,9 +184,15 @@ const LAB_VALORES_SE = new Set([
 
 // Pares de funciones que discriminan de verdad (matriz de vecinos confundibles
 // del Banco_reflexion_metalinguistica.md). Sus ítems deberían pesar 2.
+// Los NUEVE pares — sincronizado 2026-08-25 con PARES_DISCRIMINANTES de
+// js/data/pruebas-sintaxis.js, que ya los tenía todos y llevaba semanas
+// desincronizado de este archivo (la nota "OJO, divergencia conocida" de
+// ese módulo quedó obsoleta sin que nadie la actualizara). Si se toca uno
+// de los dos archivos, hay que tocar el otro.
 const LAB_PARES_DISCRIMINANTES = [
   ['Atr.','CPvo'], ['C.Rég.','CC'], ['CI','CC Finalidad'], ['C.Ag.','CC Causa'],
   ['Marca.Pas.Ref.','Marca.Imp.'], ['Sujeto','CD'], ['CD','CI'],
+  ['CD','C.Rég.'], ['CPvo','CC Modo'], ['Vocat.','Sujeto'],
 ];
 const LAB_FUNC_DISCRIMINANTES = new Set(LAB_PARES_DISCRIMINANTES.flat());
 

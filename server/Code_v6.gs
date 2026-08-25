@@ -4987,6 +4987,7 @@ function getInformeProfesor_(params) {
     const filasSimplesEx = leerSimplesExamen_(ss,  from, to, grupoFilter);
     const filasSimplesPr = leerSimplesPractica_(ss, from, to, grupoFilter);
     const filasComp      = leerCompuestasRes_(ss,  from, to, grupoFilter);
+    const filasLab        = leerLaboratorioRes_(ss, from, to, grupoFilter);
     const examenesCfg    = leerExamenesConfig_(ss);
 
     // ── 3. Aplicar filtro de tipo ───────────────────────────────────────
@@ -4994,12 +4995,16 @@ function getInformeProfesor_(params) {
     const usarSimplesPr = (tipoFilter === 'todo' || tipoFilter === 'simples');
     const usarCompEx    = (tipoFilter === 'todo' || tipoFilter === 'compuestas' || tipoFilter === 'examen');
     const usarCompPr    = (tipoFilter === 'todo' || tipoFilter === 'compuestas');
+    // Laboratorio_Resultados solo guarda examen (ver leerLaboratorioRes_) —
+    // por eso cuenta también bajo el filtro "examen", igual que Simples/CP.
+    const usarLab        = (tipoFilter === 'todo' || tipoFilter === 'laboratorio' || tipoFilter === 'examen');
     const simplesEx = usarSimplesEx ? filasSimplesEx : [];
     const simplesPr = usarSimplesPr ? filasSimplesPr : [];
     const comp = filasComp.filter(r => {
       const modo = String(r.modo || '').toLowerCase();
       return (modo === 'examen' && usarCompEx) || (modo !== 'examen' && usarCompPr);
     });
+    const lab = usarLab ? filasLab : [];
 
     // ── 4. Agregar por alumno (clave: correo en minúsculas) ─────────────
     const alumnosMap = {};
@@ -5007,6 +5012,10 @@ function getInformeProfesor_(params) {
     // mapa `errores` de simples (que comparte etiquetas CD/CI…). El informe le
     // aplica los pesos Pilar×3 / Función×2 / Procedimental×1.
     const erroresGlobalCP = {};
+    // Errores del Laboratorio por "prueba fallada" (manipulación/juicio/
+    // frontera/etc. — ver leerLaboratorioRes_). Mismo criterio que
+    // erroresGlobalCP: global, no por alumno ni por grupo.
+    const erroresGlobalLab = {};
     function ensureAlumno_(correo, nombre, grupo) {
       const key = String(correo || '').trim().toLowerCase();
       if (!alumnosMap[key]) {
@@ -5024,6 +5033,7 @@ function getInformeProfesor_(params) {
           // notas de distinto alcance como si fueran comparables.
           simples_examen:   { intentos: 0, notas: [], porSubfase: {} },
           compuestas:       { intentos: 0, notas: [] },
+          laboratorio:      { intentos: 0, notas: [] },
           errores: {}   // funcion → count
         };
       } else {
@@ -5098,6 +5108,21 @@ function getInformeProfesor_(params) {
       });
     });
 
+    // Laboratorio de Oraciones (solo examen — leerLaboratorioRes_)
+    lab.forEach(r => {
+      if (!r.correo) return;
+      const a = ensureAlumno_(r.correo, r.nombre, r.grupo);
+      a.n_actividades++;
+      a.notas.push(r.nota);
+      a.laboratorio.intentos++;
+      a.laboratorio.notas.push(r.nota);
+      pushUltima_(a, r.fecha);
+      const elab = r.erroresLab || {};
+      Object.keys(elab).forEach(k => {
+        erroresGlobalLab[k] = (erroresGlobalLab[k] || 0) + (parseInt(elab[k]) || 0);
+      });
+    });
+
     // ── 5. Construir array final de alumnos con stats ───────────────────
     const alumnos = Object.keys(alumnosMap).map(k => {
       const a = alumnosMap[k];
@@ -5136,6 +5161,10 @@ function getInformeProfesor_(params) {
         compuestas: {
           intentos:   a.compuestas.intentos,
           nota_media: media_(a.compuestas.notas)
+        },
+        laboratorio: {
+          intentos:   a.laboratorio.intentos,
+          nota_media: media_(a.laboratorio.notas)
         },
         errores_top: erroresTop
       };
@@ -5223,6 +5252,14 @@ function getInformeProfesor_(params) {
       info: (r.completados || 0) + '/' + (r.totalEjercicios || 0) + ' ejercicios'
               + (r.pin && String(r.modo).toLowerCase() === 'examen' ? ' [PIN ' + r.pin + ']' : '')
     }));
+    lab.forEach(r => detalle.push({
+      fecha: r.fecha ? r.fecha.toISOString() : null,
+      correo: r.correo, nombre: r.nombre, grupo: r.grupo,
+      tipo: 'Laboratorio · examen',
+      nota: r.nota, tiempo_min: null,
+      info: r.itemsOk + '/' + r.itemsTotales + ' puntos'
+              + (r.pin ? ' [PIN ' + r.pin + ']' : '')
+    }));
     detalle.sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
 
     // ── 9. Exámenes (agrupar por PIN) ───────────────────────────────────
@@ -5232,9 +5269,13 @@ function getInformeProfesor_(params) {
       if (!pin) return;
       if (!examenesMap[pin]) {
         const cfg = examenesCfg[pin] || {};
+        // examenesCfg solo tiene los PIN de Simples (Examenes_Config); el
+        // resto de módulos no tienen esa hoja, pero Laboratorio sí guarda su
+        // propio nombre de examen en cada fila de resultado (r.examen) — se
+        // usa como segundo fallback antes del genérico.
         examenesMap[pin] = {
           pin: pin,
-          nombre: cfg.nombre || '(examen sin nombre)',
+          nombre: cfg.nombre || r.examen || '(examen sin nombre)',
           modulo: modulo,
           grupo: cfg.grupo || r.grupo || '',
           evaluacion: cfg.evaluacion || r.evaluacion || '',
@@ -5250,6 +5291,7 @@ function getInformeProfesor_(params) {
     }
     simplesEx.forEach(r => pushExamen_(r, 'Sintaxis simple'));
     comp.forEach(r => { if (String(r.modo).toLowerCase() === 'examen') pushExamen_(r, 'Oración compuesta'); });
+    lab.forEach(r => pushExamen_(r, 'Laboratorio de Oraciones'));
 
     const examenes = Object.keys(examenesMap).map(pin => {
       const ex = examenesMap[pin];
@@ -5298,6 +5340,10 @@ function getInformeProfesor_(params) {
         // Errores de compuestas por categoría (crudos). El informe los agrupa
         // en 3 bloques y aplica pesos Pilar×3 / Función×2 / Procedimental×1.
         errores_compuestas: erroresGlobalCP,
+        // Errores del Laboratorio por "prueba fallada" (crudos, sin bloques
+        // ponderados — no hay estructura Pilar/Función/Procedimental aquí,
+        // es un solo eje de qué experimento falla el alumno).
+        errores_laboratorio: erroresGlobalLab,
         recomendacion: construirRecomendacion_(diagnosticoGlobal)
       },
       detalle: detalle,
@@ -5491,6 +5537,50 @@ function leerCompuestasRes_(ss, from, to, grupoFilter) {
                          if (!raw) return {};
                          try { return JSON.parse(raw) || {}; } catch (e) { return {}; }
                        })()
+    });
+  });
+  return out;
+}
+
+// F3 (ago-2026): Laboratorio_Resultados solo guarda examen con PIN (la
+// práctica libre no toca esta hoja, ver Server/Laboratorio.gs) — a
+// diferencia de Compuestas_Resultados no hace falta distinguir modo.
+function leerLaboratorioRes_(ss, from, to, grupoFilter) {
+  const sheet = ss.getSheetByName('Laboratorio_Resultados');
+  if (!sheet) return [];
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  const out = [];
+  data.forEach(row => {
+    const fecha = _fechaCelda(row[col['Fecha']]);
+    if (!_enRango(fecha, from, to)) return;
+    const grupo = String(row[col['Grupo']] || '').trim();
+    if (grupoFilter && grupo !== grupoFilter) return;
+    out.push({
+      fecha:        fecha,
+      correo:       String(row[col['Correo']] || '').trim().toLowerCase(),
+      nombre:       String(row[col['Nombre']] || '').trim(),
+      grupo:        grupo,
+      nivel:        String(row[col['Nivel']] || '').trim(),
+      evaluacion:   String(row[col['Evaluacion']] || '').trim(),
+      pin:          String(row[col['PIN']] || '').trim(),
+      examen:       String(row[col['Examen']] || '').trim(),
+      nota:         parseFloat(row[col['Nota']]) || 0,
+      itemsOk:      parseFloat(row[col['Items_Ok']]) || 0,
+      itemsTotales: parseInt(row[col['Items_Totales']]) || 0,
+      // Errores por "prueba fallada" (sustituye/suprime/cambia_numero/mueve/
+      // transforma en manipulación; el propio tipo de ítem en el resto —
+      // ver _resolverItem en js/modules/laboratorio/index.js). Solo el
+      // examen puebla esta columna (mismo criterio que Errores_Categoria_JSON
+      // en Compuestas_Resultados).
+      erroresLab:   (function () {
+                       if (col['Errores_Categoria_JSON'] === undefined) return {};
+                       const raw = row[col['Errores_Categoria_JSON']];
+                       if (!raw) return {};
+                       try { return JSON.parse(raw) || {}; } catch (e) { return {}; }
+                     })()
     });
   });
   return out;
