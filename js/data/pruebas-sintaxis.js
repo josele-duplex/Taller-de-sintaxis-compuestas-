@@ -139,6 +139,52 @@ export const PRUEBAS_SINTAXIS = {
     no: '¿Seguro? Esa prueba consiste en mirar si el verbo cambia de número con lo que va detrás, como en «Se necesita camarero → Se necesitan camareros». ¿Es eso lo que hay que decidir aquí?'
   },
 
+  // ── Cascada de valores de «se» (docs/Cascada_Valores_del_SE_Laboratorio.md,
+  // PASO 1) — SE-02 a SE-05 son las cuatro pruebas de tronco que envuelven a
+  // SE-01: primero deciden a qué familia pertenece el «se», SE-01 solo
+  // resuelve la última frontera (pasiva refleja ↔ impersonal).
+  //
+  // Ninguna de las cuatro lleva `funcion`, salvo SE-04. No es un olvido: la
+  // prueba del paradigma (SE-02) y la del refuerzo (SE-03) deciden una RAMA
+  // de la cascada, no una función de FUNC_ORAC — no hay una sola etiqueta que
+  // resuman, así que forzarles un valor sería inventar un dato que nadie usa.
+  // SE-05 sí resuelve una función real (CI), pero esa función ya tiene su
+  // prueba general en PRU-SINT-CI-01; declarar aquí `funcion: 'CI'`
+  // sobrescribiría esa entrada en PRUEBA_DE_FUNCION (el objeto se recorre en
+  // orden de declaración) y CI-01 dejaría de encontrarse fuera del bloque de
+  // «se». Solo SE-04 declara `funcion` porque resuelve limpio entre dos
+  // etiquetas que hoy no tiene ninguna otra prueba (Marca.Pron. y Dativo),
+  // igual que SE-01 ya hace con Marca.Pas.Ref./Marca.Imp.
+
+  'PRU-SINT-SE-02': {
+    texto:  'Cambio la persona del sujeto: si el se se transforma en me/te/nos/os, es un pronombre que concuerda con el sujeto (Se lava → Me lavo, te lavas); si se queda fijo en se pase lo que pase, no concuerda con nadie (Se venden pisos → *Me vendo pisos no funciona).',
+    simple: 'Cambio quién hace la acción (yo, tú, nosotros...): si "se" se convierte en "me" o "te", va pegado al sujeto; si "se" no cambia nunca, no va con él.',
+    ok: 'Es la prueba que separa las dos familias antes de mirar nada más: si el se cambia con la persona, es un pronombre de verdad y toca decidir cuál de sus valores tiene; si no cambia nunca, es la marca fija de una pasiva refleja o una impersonal.',
+    no: '¿Seguro? Esa prueba consiste en cambiar la persona del sujeto y ver si el se la sigue, como en «Se lava → Me lavo». ¿Cambia con la persona en {trozo}?'
+  },
+
+  'PRU-SINT-SE-03': {
+    texto:  'Añado a sí mismo/a o el uno al otro / mutuamente detrás del verbo: si admite a sí mismo, el sujeto recae sobre sí mismo (reflexivo); si admite el uno al otro, son varios sujetos que se hacen la acción mutuamente (recíproco).',
+    simple: 'Añado "a sí mismo" o "el uno al otro" después del verbo: si funciona con "a sí mismo", una sola persona se lo hace a sí misma; si funciona con "el uno al otro", son varios y se lo hacen entre ellos.',
+    ok: 'El refuerzo decide solo: si «a sí mismo» suena redundante es porque ya estaba implícito (reflexivo); si lo que encaja es «el uno al otro», el sujeto tiene que ser plural y la acción va de uno a otro (recíproco).',
+    no: '¿Seguro? Esa prueba consiste en añadir «a sí mismo» o «el uno al otro» y comprobar cuál encaja, como en «Los hermanos se abrazaron el uno al otro». ¿Cuál de los dos funciona con {trozo}?'
+  },
+
+  'PRU-SINT-SE-04': {
+    texto:  'Quito el se: si la oración sigue funcionando y dice lo mismo (solo pierde el matiz de "entero, de una vez"), ese se era un dativo prescindible; si sin se la oración no existe o el verbo cambia de significado, el se es parte del verbo.',
+    simple: 'Quito "se" de la oración: si sigue funcionando y dice casi lo mismo, "se" era un añadido; si sin "se" la oración deja de tener sentido o cambia de significado, "se" es imprescindible.',
+    funcion: ['Marca.Pron.', 'Dativo'],
+    ok: 'La supresión es la prueba definitiva: «Se bebió el zumo → Bebió el zumo» sigue en pie con casi el mismo sentido, así que ese se sobra y es un dativo; «Alfonso se arrepintió → *Alfonso arrepintió» no existe sin él, así que ese se es parte del verbo.',
+    no: '¿Seguro? Esa prueba consiste en quitar el se y ver si la oración sobrevive con el mismo sentido, como en «Se bebió el café → Bebió el café». ¿Qué pasa si quitas el se de {trozo}?'
+  },
+
+  'PRU-SINT-SE-05': {
+    texto:  'Deshago el pronombre: sustituyo el CD (lo/la/los/las) por el sustantivo que representa y compruebo si el se reaparece como le o les delante («Se lo entregué» → «Entregué el premio a Ana» → «LE entregué el premio»).',
+    simple: 'Cambio "se" por "le" o "les" mentalmente y compruebo si la frase sigue teniendo sentido con ese cambio.',
+    ok: 'Ese se no es un pronombre reflexivo ni parte del verbo: es le o les disfrazado, porque el español no permite decir *le lo* y el se ocupa su lugar delante de lo/la/los/las.',
+    no: '¿Seguro? Esa prueba consiste en deshacer el pronombre y comprobar si reaparece un le o les, como en «Se lo dije a Ana» → «LE dije el secreto a Ana». ¿Reaparece le o les al deshacer {trozo}?'
+  },
+
   // ── Heurísticos RECHAZADOS (solo distractores; sin `ok`) ────────────────
   //
   // Los cinco primeros son preguntas al verbo: el método las rechaza porque no
@@ -202,6 +248,47 @@ export const PRUEBAS_SINTAXIS = {
     no: 'Por introduce las dos cosas: «El muro fue derribado por el viento» se puede dar la vuelta (el viento derribó el muro) y «Lo dejó por miedo» no. Lo decide la transformación, no la preposición.'
   }
 };
+
+// ── Cascada de valores de «se» (docs/Cascada_Valores_del_SE_Laboratorio.md,
+// §8.2, aprobada 21-ago-2026) — la ruta de peldaños que resuelve el ítem
+// `investigacion` de la estación 3. Cada paso señala su `pruebaId` (o `null`
+// si no tiene prueba propia) y, salvo el primero, de qué paso y valor
+// depende para poder mostrarse: es el mismo papel que `dependsOn` cumple en
+// `MORPH_CASCADES` (js/modules/maestro/index.js).
+
+export const CASCADA_SE = [
+  { id: 'sustitucion',  pruebaId: 'PRU-SINT-SE-05',
+    opts: ['si', 'no'] },                                    // P0 · ¿reaparece le/les?
+
+  { id: 'paradigma',    pruebaId: 'PRU-SINT-SE-02',
+    dependsOn: { paso: 'sustitucion', val: 'no' },
+    opts: ['cambia', 'no_cambia'] },                          // P1 · tronco
+
+  { id: 'concordancia', pruebaId: 'PRU-SINT-SE-01',
+    dependsOn: { paso: 'paradigma', val: 'no_cambia' },
+    opts: ['Marca.Pas.Ref.', 'Marca.Imp.'] },                 // A1 · reusa los valores que SE-01 ya declara
+
+  { id: 'refuerzo',     pruebaId: 'PRU-SINT-SE-03',
+    dependsOn: { paso: 'paradigma', val: 'cambia' },
+    opts: ['a_si_mismo', 'uno_al_otro', 'ninguno'] },          // B1
+
+  { id: 'funcion',      pruebaId: null,
+    dependsOn: { paso: 'refuerzo', val: ['a_si_mismo', 'uno_al_otro'] },
+    opts: ['CD', 'CI'] },                                     // subpaso · sin prueba propia, es «¿hay otro CD?»
+
+  { id: 'supresion',    pruebaId: 'PRU-SINT-SE-04',
+    dependsOn: { paso: 'refuerzo', val: 'ninguno' },
+    opts: ['Marca.Pron.', 'Dativo'] },                         // B2 · reusa los valores que SE-04 ya declara
+];
+
+// Los siete valores del ítem `investigacion` (§8.3 del documento de cascada),
+// lista cerrada nueva — no es un subconjunto de FUNC_ORAC: tres de los siete
+// SÍ son una función real de Simples (ver `funcion_final` en el schema), los
+// otros cuatro son marcas que no ocupan hueco de análisis (§5.2 del documento).
+export const VALORES_SE = Object.freeze([
+  'variante_le', 'reflexivo', 'reciproco', 'morfema_verbal',
+  'dativo_aspectual', 'pasiva_refleja', 'impersonal'
+]);
 
 // ── Matriz de vecinos confundibles (banco de reflexión, §2.4 del plan) ────
 //

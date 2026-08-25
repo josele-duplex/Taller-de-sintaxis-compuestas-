@@ -5138,6 +5138,94 @@ body.theme-new-ui #screen-laboratorio .lab-slot-rol{
 body.theme-new-ui #screen-laboratorio .lab-slot-body{flex:1;min-height:30px;display:flex;align-items:center}
 body.theme-new-ui #screen-laboratorio .lab-slot-vacio{font-size:.8rem;color:var(--ui-muted-2);font-style:italic}
 
+/* ── investigacion: la cascada de valores de «se» (F5·sesión 1) ──
+   El rastro de peldaños ya recorridos va DEBAJO de la oración y encima de la
+   pregunta viva: el alumno tiene que ver la cadena entera, porque el valor
+   final no sale del último peldaño sino de todos. Un peldaño fallado se queda
+   en el rastro marcado en rojo — con su respuesta BUENA, que es a donde se le
+   ha reconducido. */
+body.theme-new-ui #screen-laboratorio .lab-casc-trail{
+  display:flex;flex-direction:column;gap:4px;margin-top:10px;
+  padding-left:10px;border-left:2px solid var(--lab-border);
+}
+body.theme-new-ui #screen-laboratorio .lab-casc-paso{
+  display:flex;align-items:baseline;gap:7px;
+  font-size:.8rem;color:var(--ui-muted);line-height:1.35;
+}
+body.theme-new-ui #screen-laboratorio .lab-casc-marca{
+  font-weight:800;color:var(--ui-ok);flex:none;
+}
+body.theme-new-ui #screen-laboratorio .lab-casc-paso.is-fallado .lab-casc-marca{color:var(--ui-err)}
+body.theme-new-ui #screen-laboratorio .lab-casc-paso.is-fallado .lab-casc-txt{opacity:.9}
+body.theme-new-ui #screen-laboratorio .lab-casc-num{
+  display:block;font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--ui-muted-2);margin-bottom:5px;
+}
+/* Feedback de un peldaño: inline, dentro de lab-fichas y NO en lab-explicacion
+   — esa caja destapa el botón "Siguiente →", que salta al ítem siguiente, y
+   aquí todavía quedan peldaños del mismo ítem. */
+body.theme-new-ui #screen-laboratorio .lab-casc-micro{
+  margin-top:14px;padding:11px 15px;border-radius:var(--ui-r);
+  font-size:.86rem;line-height:1.5;
+}
+body.theme-new-ui #screen-laboratorio .lab-casc-micro.is-ok{
+  background:var(--ui-ok-tint);color:#14532D;
+}
+body.theme-new-ui #screen-laboratorio .lab-casc-micro.is-bad{
+  background:var(--ui-err-tint);color:#881337;
+}
+body.theme-new-ui #screen-laboratorio .lab-casc-reconduce{
+  margin-top:7px;font-weight:700;font-size:.82rem;opacity:.85;
+}
+/* Veredicto final: el valor descubierto, en grande. Es el punto de llegada de
+   todo el ítem, así que se lee como un título, no como una opción más. */
+body.theme-new-ui #screen-laboratorio .lab-casc-veredicto{
+  text-align:center;padding:18px 16px;border-radius:var(--ui-r);
+  background:var(--lab-tint-2);border:1.5px solid var(--lab-verde);
+}
+body.theme-new-ui #screen-laboratorio .lab-casc-valor{
+  font-family:'Fraunces',serif;font-size:1.35rem;font-weight:700;
+  color:var(--lab-verde-dk);line-height:1.2;
+}
+body.theme-new-ui #screen-laboratorio .lab-casc-funcion{
+  margin-top:8px;font-size:.85rem;color:var(--ui-muted);line-height:1.45;
+}
+/* El puente con Simples (§5.4 del documento de cascada): con qué etiqueta verá
+   el alumno ese mismo «se» en el otro módulo. Va separado por una línea porque
+   no es parte del descubrimiento — es la traducción de lo descubierto. */
+body.theme-new-ui #screen-laboratorio .lab-casc-puente{
+  margin-top:12px;padding-top:10px;border-top:1px dashed var(--lab-border);
+  font-size:.82rem;color:var(--ui-muted);line-height:1.45;
+}
+
+/* ── Tabla de equivalencias valor↔etiqueta (§5.4, al cerrar el RETO) ──
+   Siete filas fijas (VALOR_SE_UI), la(s) conquistada(s) por este alumno
+   resaltada(s). Va dentro de .lab-fin, así que hereda su ancho centrado. */
+body.theme-new-ui #screen-laboratorio .lab-equiv-tabla{
+  margin:16px 0;padding:14px 16px;border-radius:var(--ui-r);
+  background:var(--ui-surface);border:1.5px solid var(--lab-border);
+  text-align:left;
+}
+body.theme-new-ui #screen-laboratorio .lab-equiv-titulo{
+  font-size:.78rem;color:var(--ui-muted);line-height:1.4;margin-bottom:10px;
+  text-align:center;font-style:italic;
+}
+body.theme-new-ui #screen-laboratorio .lab-equiv-fila{
+  display:flex;align-items:center;gap:10px;padding:5px 6px;border-radius:var(--ui-r-sm);
+  font-size:.84rem;
+}
+body.theme-new-ui #screen-laboratorio .lab-equiv-valor{flex:1;color:var(--ui-ink)}
+body.theme-new-ui #screen-laboratorio .lab-equiv-flecha{color:var(--ui-muted-2);flex:none}
+body.theme-new-ui #screen-laboratorio .lab-equiv-etiqueta{
+  flex:1;font-family:'DM Sans',sans-serif;font-weight:700;color:var(--lab-verde-dk);
+}
+body.theme-new-ui #screen-laboratorio .lab-equiv-fila.is-destacada{
+  background:var(--lab-tint-2);
+}
+body.theme-new-ui #screen-laboratorio .lab-equiv-fila.is-destacada .lab-equiv-valor{
+  font-weight:800;
+}
+
 /* ── Caja de Pruebas del Detective (F2·sesión 3) ── */
 body.theme-new-ui #screen-laboratorio .lab-caja-lista{display:flex;flex-direction:column;gap:10px}
 body.theme-new-ui #screen-laboratorio .lab-caja-fila{

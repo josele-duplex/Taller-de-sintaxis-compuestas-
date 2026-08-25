@@ -94,6 +94,32 @@
             (§6), que hasta ahora ningún tipo aplicaba. La exclusión del
             examen NO se implementa aquí: es cosa del reto (zona_gris) y del
             modo examen con PIN, que es F3.
+     F5·1 (hecho, esta sesión) → investigacion (Estación 3), el DÉCIMO tipo
+            del schema y el ítem estrella del nivel avanzado: la cascada de
+            valores de «se» jugada peldaño a peldaño
+            (docs/Cascada_Valores_del_SE_Laboratorio.md, PASO 4). Único ítem
+            del módulo que encadena varias preguntas dentro de sí mismo, y
+            por eso el único que NO usa _mostrarExplicacion entre pasos —
+            esa caja destapa #lab-siguiente, que salta al ítem siguiente.
+            Los peldaños salen de CASCADA_SE (pruebas-sintaxis.js), no del
+            reto: el dato solo trae el `camino` correcto. Decisión pedagógica
+            de Josele (21-ago-2026) anotada junto a _renderInvestigacion:
+            al fallar un peldaño se reconduce al camino bueno.
+     F5·1 (enlace con la Caja, hecho esta sesión) → una investigación limpia
+            conquista la prueba que DECIDIÓ el valor (_pruebaDecisiva: el
+            último peldaño del camino con prueba propia, que no siempre es el
+            último jugado), la archiva en la Caja con la oración investigada
+            como ejemplo y fija LAB._cajaContexto, igual que etiqueta_prueba.
+            Con un solo peldaño fallado no se conquista nada. El cierre añade
+            además el puente de §5.4 del documento de cascada: con qué
+            etiqueta verá ese mismo «se» en Simples.
+     F5·1 (tabla de equivalencias, hecho esta sesión) → al cerrar el RETO
+            (_finReto, no el ítem), si conquistó alguna investigación limpia,
+            las SIETE filas valor↔etiqueta de §5.4 (_tablaEquivalenciasSE),
+            con la(s) conquistada(s) resaltada(s) — antes del botón de puente
+            a Simples, como pide el documento. LAB._investigacionValores se
+            resetea por reto en _siguienteReto y se rellena en
+            _cerrarInvestigacion, solo con lo acertado sin fallos.
    Pendiente:
      F2·3 (puente de ida, sin hacer TODAVÍA en el frontend) → botón al
             cerrar reto que abra Simples con la MISMA oración cargada.
@@ -115,14 +141,14 @@
    "sin retos disponibles" hasta que existan esos lotes (F4/F5). */
 
 // El canon de aceptabilidad (F2·1) es la fuente única de las tres marcas, los
-// cuatro veredictos y las 16 causas en lenguaje de alumno. Antes vivían
+// cuatro veredictos y las 22 causas en lenguaje de alumno. Antes vivían
 // escritos a mano aquí; se movieron al dato para que el motor, quien escribe
 // los lotes y el documento editorial digan exactamente lo mismo.
 import { VEREDICTOS as VEREDICTO_UI, ORDEN_VEREDICTOS as VEREDICTOS,
          etiquetaCausa, llevaAsterisco } from '../../data/canon-agramatical.js';
 // El repertorio de pruebas (F2·1) es la fuente única de la Estación 3: el
 // reto solo apunta a un prueba_id + sus distractores, el contenido vive aquí.
-import { textoPrueba, microPrueba } from '../../data/pruebas-sintaxis.js';
+import { textoPrueba, microPrueba, CASCADA_SE } from '../../data/pruebas-sintaxis.js';
 // Diario metalingüístico (F2·3): mismo patrón exacto que Fábrica de
 // Palabras (js/modules/fabrica/index.js, LS_FAB_DIARIO) — localStorage
 // puro, sin servidor. La afirmación del plan de producto §4.3 de que
@@ -136,7 +162,7 @@ import { LS_LAB_DIARIO } from '../../core/constants.js';
 let LAB = {}; // estado de la sesión (expuesto como window.LAB más abajo)
 
 // ── Mock offline (sin API configurada) ────────────────────────────────────
-// Un solo reto que cubre los nueve tipos del schema (para poder probar los
+// Un solo reto que cubre los diez tipos del schema (para poder probar los
 // tres renders reales de Estación 1 y el placeholder del resto sin depender
 // del Sheet). Contenido tomado de los ejemplos ya validados del lote semilla
 // F0·3 (LB_0001, LB_0011) y del propio Schema_Laboratorio_v1.0.md §2.
@@ -172,7 +198,14 @@ function _mockRetos() {
         explicacion: "Cada función tiene su propio pronombre: 'a Juan' pide 'le', no 'la'." },
       { tipo: 'etiqueta_prueba', oracion: 'Entregó un ramo a su profesora.',
         objetivo: { texto: 'a su profesora', funcion: 'CI' }, prueba_id: 'PRU-SINT-CI-01',
-        distractores: ['PRU-SINT-CD-01', 'HEUR-PARA-QUIEN'], enunciado: 'tecnico' }
+        distractores: ['PRU-SINT-CD-01', 'HEUR-PARA-QUIEN'], enunciado: 'tecnico' },
+      // El décimo tipo (F5·1). Es la fila f del ejercicio 5 de la fuente A2,
+      // el mismo ejemplo que documenta el §8.3 del documento de cascada.
+      { tipo: 'investigacion', oracion: 'Se cortó el flequillo sin ayuda.',
+        camino: { sustitucion: 'no', paradigma: 'cambia', refuerzo: 'a_si_mismo', funcion: 'CI' },
+        valor: 'reflexivo', funcion_final: 'CI',
+        explicacion: 'Admite «se cortó el flequillo a sí misma»: reflexivo. Y como ya hay otro CD en la oración («el flequillo»), el «se» no puede ser también CD — tiene que ser CI.',
+        fuente_id: 'A2-EJ5-f' }
     ],
     zona_gris: false,
     metadatos: { curso_min: '3E' }
@@ -206,7 +239,7 @@ async function _cargarRetos(nivel, apiUrl, funcion) {
 const LAB_TIPO_ESTACION = {
   valencia: 1, que_cambia: 1, intruso: 1,
   manipulacion: 2, juicio: 2, par_minimo: 2, analisis_inverso: 2, frontera: 2,
-  etiqueta_prueba: 3
+  etiqueta_prueba: 3, investigacion: 3
 };
 // Caso especial: analisis_inverso con destino "caja_pruebas" (ítem 3.3 del
 // plan, "Tu ejemplo para la caja") es de Estación 3 aunque su tipo de schema
@@ -294,7 +327,7 @@ function _colorearBotones(n, esCorrecta, idxElegido) {
 // puede saber qué EXPERIMENTO falla un grupo, no solo qué función.
 // `peso` (schema §6) es el único multiplicador que trae el dato: valen doble
 // los ítems que caen sobre una frontera discriminante (Atr.↔CPvo, CI↔CC
-// Finalidad, CD↔CI…). Se aplica aquí, a los nueve tipos por igual, no dentro
+// Finalidad, CD↔CI…). Se aplica aquí, a los diez tipos por igual, no dentro
 // del render de frontera: si mañana un `manipulacion` sobre CPvo lleva
 // peso:2 —el validador ya avisa cuando no lo lleva— pesará doble sin tocar
 // una línea. Por omisión 1, así que hoy solo cambia algo en el ítem frontera
@@ -406,6 +439,10 @@ function _siguienteReto() {
   LAB.items = LAB.reto.items;
   LAB.itemIdx = 0;
   LAB.estacionActual = 0;
+  // Valores de «se» conquistados en ESTE reto (investigacion acertada, sin
+  // ningún peldaño fallado) — se rellena en _cerrarInvestigacion y decide si
+  // _finReto muestra la tabla de equivalencias de §5.4 del documento de cascada.
+  LAB._investigacionValores = new Set();
   _mostrarPortadaReto();
 }
 
@@ -429,7 +466,8 @@ const ITEM_RENDERERS = {
   par_minimo: _renderContraste,
   analisis_inverso: _renderAnalisisInverso,
   frontera: _renderFrontera,
-  etiqueta_prueba: _renderEtiquetaPrueba
+  etiqueta_prueba: _renderEtiquetaPrueba,
+  investigacion: _renderInvestigacion
 };
 
 function renderItemLaboratorio() {
@@ -450,7 +488,7 @@ function renderItemLaboratorio() {
 
 function labSiguienteItem() { LAB.itemIdx++; renderItemLaboratorio(); }
 
-// Red de seguridad: los nueve tipos del schema ya tienen render, así que
+// Red de seguridad: los diez tipos del schema ya tienen render, así que
 // esto solo salta si un lote trae un `tipo` desconocido (o mal escrito). No
 // cuenta como acierto ni como fallo — el alumno simplemente lo salta, y no
 // se le penaliza por algo que la app no sabe jugar.
@@ -480,10 +518,16 @@ function _finReto() {
   const puenteBtn = origenTexto
     ? '<button type="button" class="lab-btn-sm" id="lab-btn-puente" onclick="labIrASimples()">🔗 Practica esta oración en Simples</button>'
     : '';
+  // §5.4 del documento de cascada: la tabla de equivalencias completa va
+  // ANTES del botón de puente — es la condición explícita del documento
+  // («el botón solo se ofrece después de esa tabla»).
+  const huboInvestigacion = LAB._investigacionValores && LAB._investigacionValores.size > 0;
+  const tablaEquiv = huboInvestigacion ? _tablaEquivalenciasSE(LAB._investigacionValores) : '';
   _setFichas('<div class="lab-fin">' +
     '<div class="lab-fin-icon">🧪</div>' +
     '<div class="lab-fin-tit">¡Reto completado!</div>' +
     '<div class="lab-fin-sub">Aciertos de la sesión: ' + LAB.aciertos + '/' + LAB.totalItems + ' (' + pct + '%)</div>' +
+    tablaEquiv +
     '<button type="button" class="lab-btn" onclick="labSiguienteReto()">Siguiente reto →</button>' +
     puenteBtn +
     '</div>');
@@ -692,7 +736,7 @@ function _renderManipulacion(item) {
 
 // Las cuatro opciones de veredicto se muestran siempre fijas (el veredicto es
 // un enum cerrado del schema, no viene con "opciones" en el dato — igual que
-// valencia). Sus etiquetas, y las de las 16 causas en lenguaje de alumno,
+// valencia). Sus etiquetas, y las de las 22 causas en lenguaje de alumno,
 // vienen del canon (import de arriba): estaban escritas aquí desde F1·3 y dos
 // de ellas se solapaban —«el pronombre no es el de esa función» valía igual
 // para pronombre_cruzado y para leismo_laismo, que en avanzado pueden salir
@@ -853,6 +897,14 @@ function labAiComprobar() {
   let html = todoBien
     ? '✓ ¡Construida! Cada pieza está donde tiene que estar.'
     : '✗ Alguna pieza no está donde tiene que estar. Revisa: ' + rolesFallados.map(escHtml).join(', ') + '.';
+  // El cierre pedagógico del ítem vive en `feedback` (schema §3.0, campo común
+  // a los diez tipos). Hasta aquí solo lo pintaban valencia e intruso, y este
+  // es el tipo que más lo necesita: es el único sin `explicacion` ni
+  // `opciones[].micro`, así que sin esto un fallo solo decía QUÉ hueco estaba
+  // mal, nunca por qué. Se pinta se acierte o se falle — quien cae en la
+  // trampa es justo quien necesita leerlo. Mismo patrón que `investigacion`
+  // con su `explicacion`: cabecera + <br><br> + texto.
+  if (item.feedback) html += '<br><br>' + escHtml(item.feedback);
   // destino: "caja_pruebas" (schema §3.7, ítem 3.3 del plan): si se
   // construye bien, el ejemplo del alumno se fija en su Caja de Pruebas del
   // Detective, junto a la función/prueba que acaba de conquistar (F2·2).
@@ -890,7 +942,7 @@ function labAiComprobar() {
 //      sepas por qué caben las dos. Mostrar solo la del botón pulsado
 //      convertiría el ítem en un acierto ciego.
 //   3. `peso` (2 en estos ítems, §6) cuenta de verdad: lo aplica
-//      _resolverItem para los nueve tipos, no solo aquí.
+//      _resolverItem para los diez tipos, no solo aquí.
 //
 // Lo que NO vive aquí: la exclusión del examen. La bandera es del reto
 // entero (`zona_gris: true`, obligatoria si hay un ítem frontera — el
@@ -995,6 +1047,330 @@ function labResponderPrueba(idx) {
   if (acierto) LAB._cajaContexto = { funcion: item.objetivo.funcion, pruebaId: item.prueba_id };
   const micro = microPrueba(elegido, { ok: acierto, trozo: item.objetivo.texto });
   _mostrarExplicacion(acierto, (acierto ? '✓ ' : '') + escHtml(micro));
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  ESTACIÓN 3 · INVESTIGACIÓN — investigacion (valores de «se»), F5·sesión 1
+// ════════════════════════════════════════════════════════════════════════
+// El décimo tipo del schema (§3.10) y el ítem estrella del nivel avanzado:
+// el alumno baja la cascada de docs/Cascada_Valores_del_SE_Laboratorio.md
+// peldaño a peldaño y clasifica el «se» POR COMPORTAMIENTO, sin que nadie le
+// haya dado antes los siete nombres. Es el Tipo 5 del marco (investigación
+// abierta), y la única mecánica del módulo que encadena varias preguntas
+// dentro de un mismo ítem.
+//
+// Los peldaños NO se redactan en el reto: el dato solo trae el `camino`
+// correcto ({paso: valor}) y CASCADA_SE (pruebas-sintaxis.js) dice qué
+// peldaños existen, en qué orden y qué prueba demuestra cada uno — el mismo
+// principio de "repertorio, no reto" que ya gobierna etiqueta_prueba (§7.3
+// del schema). Coste de contenido por reto: el camino y una explicación.
+//
+// DECISIÓN PEDAGÓGICA (Josele, 21-ago-2026): al fallar un peldaño se corrige
+// al momento y se RECONDUCE al camino bueno, en vez de dejar que el alumno
+// siga su propia rama falsa hasta el final. Motivo: un fallo en el primer
+// peldaño cortaría la investigación en seco y el alumno no llegaría a tocar
+// los otros tres — y aquí cada peldaño enseña una prueba distinta. El precio
+// es que el motor se aparta del precedente de morfología (maestro/index.js,
+// que sí sigue la respuesta del alumno aunque sea falsa), y es deliberado:
+// aquello es un diagnóstico tipo PAU, esto es descubrimiento guiado.
+// Consecuencia directa: los peldaños que se muestran son SIEMPRE los del
+// `camino` del dato, que el validador ya garantiza completo y sin sobras.
+
+// Enunciado de cada peldaño y etiqueta de cada opción, en lenguaje de alumno.
+// Vive aquí y no en el dato por lo mismo que MANIP_PREGUNTA o ETQ_PREGUNTA:
+// es presentación, es igual en los 14 ítems del lote y el reto no debe
+// redactarla. Los `opts` se nombran con la MISMA clave que CASCADA_SE declara
+// (incluidas las etiquetas de FUNC_ORAC como 'Marca.Pas.Ref.'), para que el
+// motor compare claves y no textos. Metalenguaje permitido sin reservas: la
+// estación 3 es «donde se gana» (§4.2 del schema).
+const CASC_SE_UI = {
+  sustitucion: {
+    pregunta: 'Deshaz el pronombre: ¿reaparece un «le» o un «les»?',
+    opts: {
+      si: 'Sí: al deshacerlo vuelve «le / les»',
+      no: 'No: ahí no había ningún «le» escondido'
+    },
+    // P0 es el único peldaño de sí/no puro, y por eso necesita `microOk`: el
+    // `.ok` de PRU-SINT-SE-05 está redactado para la rama «sí» («ese se es le
+    // disfrazado»), que es lo que esa prueba DEMUESTRA cuando se elige en un
+    // etiqueta_prueba. Servido tal cual al alumno que acierta respondiendo
+    // «no», le estaría diciendo lo contrario de lo que acaba de descubrir.
+    // Los otros cuatro peldaños no lo necesitan: sus pruebas son bifurcaciones
+    // y su `.ok` ya explica las dos salidas ("si concuerda…; si no…").
+    microOk: {
+      si: 'Eso es: ese «se» no es reflexivo ni parte del verbo — es «le» disfrazado. El español no admite *«le lo», así que el «se» le ocupa el sitio delante de lo/la/los/las. Aquí la investigación termina.',
+      no: 'Bien descartado: ahí no había ningún «le» escondido, así que este «se» no es el falso «le». Toca seguir bajando.'
+    }
+  },
+  paradigma: {
+    pregunta: 'Cambia la persona del sujeto (yo, tú, nosotros…). ¿Qué le pasa al «se»?',
+    opts: {
+      cambia:     'Cambia con ella: «me», «te», «nos»…',
+      no_cambia:  'No cambia: sigue siendo «se» pase lo que pase'
+    }
+  },
+  concordancia: {
+    pregunta: 'Pon en plural lo que va detrás del verbo. ¿El verbo cambia con ello?',
+    opts: {
+      'Marca.Pas.Ref.': 'Sí: el verbo se mueve con lo que va detrás',
+      'Marca.Imp.':     'No: el verbo se queda igual'
+    }
+  },
+  refuerzo: {
+    pregunta: 'Añade detrás del verbo «a sí mismo/a» o «el uno al otro». ¿Cuál encaja?',
+    opts: {
+      a_si_mismo:  'Encaja «a sí mismo/a»',
+      uno_al_otro: 'Encaja «el uno al otro» (mutuamente)',
+      ninguno:     'No encaja ninguno de los dos'
+    }
+  },
+  funcion: {
+    // Único peldaño sin prueba propia en CASCADA_SE: no es una manipulación,
+    // es mirar si el hueco de CD ya está ocupado. Por eso lleva su micro aquí.
+    pregunta: '¿Hay ya otro CD en la oración?',
+    opts: {
+      CD: 'No hay otro: el «se» es el CD',
+      CI: 'Sí lo hay: el «se» tiene que ser CI'
+    },
+    micro: {
+      ok: 'Exacto: el hueco de CD solo se ocupa una vez. Si ya está cogido, al «se» solo le queda ser CI.',
+      no: '¿Seguro? Mira si en la oración hay ya un trozo que sea CD. Si lo hay, el «se» no puede serlo también.'
+    }
+  },
+  supresion: {
+    pregunta: 'Quita el «se» de la oración. ¿Qué pasa?',
+    opts: {
+      'Marca.Pron.': 'Se rompe, o el verbo pasa a decir otra cosa',
+      'Dativo':      'Sigue en pie y dice casi lo mismo'
+    }
+  }
+};
+
+// Los siete valores en lenguaje de alumno. `etiqueta` es con qué nombre verá
+// ese mismo «se» en el módulo de Simples: es el mapa de convivencia de §5.2
+// del documento de cascada, y la respuesta a «el valor te dice qué ES ese se;
+// la etiqueta te dice qué HUECO ocupa».
+const VALOR_SE_UI = {
+  variante_le:      { nombre: 'Variante de «le»',           etiqueta: 'CI' },
+  reflexivo:        { nombre: 'Reflexivo',                   etiqueta: 'CD o CI' },
+  reciproco:        { nombre: 'Recíproco',                   etiqueta: 'CD o CI' },
+  morfema_verbal:   { nombre: 'Morfema del verbo',           etiqueta: 'Marca.Pron.' },
+  dativo_aspectual: { nombre: 'Dativo aspectual',            etiqueta: 'Dativo' },
+  pasiva_refleja:   { nombre: 'Marca de pasiva refleja',     etiqueta: 'Marca.Pas.Ref.' },
+  impersonal:       { nombre: 'Marca de impersonal',         etiqueta: 'Marca.Imp.' }
+};
+
+// La tabla de equivalencias de §5.4 del documento de cascada: las SIETE filas
+// completas, no solo la del valor de este alumno — es la respuesta al riesgo
+// que ese apartado señala («el mismo alumno usa los dos módulos y el puente
+// de ida puede llevarle a la misma oración con otro nombre encima»). Se
+// muestra al cerrar el RETO (no cada ítem), y solo si el alumno conquistó
+// alguna investigación limpia en él — es la frase que la abre, no una tabla
+// de referencia suelta. `destacados` resalta la fila (o filas, si el reto
+// trae más de un ítem investigacion) que ese alumno ha descubierto de verdad.
+// Coste de implementación: cero contenido por reto, tal como pedía el propio
+// documento — la tabla sale entera de VALOR_SE_UI.
+function _tablaEquivalenciasSE(destacados) {
+  const filas = Object.entries(VALOR_SE_UI).map(([valor, v]) =>
+    '<div class="lab-equiv-fila' + (destacados.has(valor) ? ' is-destacada' : '') + '">' +
+      '<div class="lab-equiv-valor">' + escHtml(v.nombre) + '</div>' +
+      '<div class="lab-equiv-flecha">→</div>' +
+      '<div class="lab-equiv-etiqueta">' + escHtml(v.etiqueta) + '</div>' +
+    '</div>'
+  ).join('');
+  return '<div class="lab-equiv-tabla">' +
+    '<div class="lab-equiv-titulo">El valor te dice qué ES ese «se». La etiqueta te dice qué HUECO ocupa en el Taller de Simples.</div>' +
+    filas +
+  '</div>';
+}
+
+// Resalta el primer «se» suelto de la oración. Deliberadamente el PRIMERO y
+// solo con límites de palabra: en «Se le han caído los cuadros» hay un «se» y
+// un «le», y es justo la trampa gemela que el documento (§2) quiere que el
+// alumno vea — marcar el «se» y dejar el «le» a la vista es el dibujo exacto
+// del problema. Si no encuentra ninguno, devuelve la oración tal cual: es
+// presentación, nunca puede romper el ítem.
+function _resaltarSe(oracion) {
+  const m = /(^|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(se)([^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]|$)/i.exec(oracion);
+  if (!m) return escHtml(oracion);
+  const i = m.index + m[1].length;
+  return escHtml(oracion.slice(0, i)) +
+    '<mark class="lab-marca">' + escHtml(oracion.slice(i, i + m[2].length)) + '</mark>' +
+    escHtml(oracion.slice(i + m[2].length));
+}
+
+// El rastro de peldaños ya resueltos, encima de la pregunta actual: el alumno
+// tiene que ver el camino que lleva recorrido, porque el valor final no sale
+// del último peldaño sino de la cadena entera.
+function _cascTrailHtml() {
+  const C = LAB._casc;
+  if (!C || !C.trail.length) return '';
+  return '<div class="lab-casc-trail">' + C.trail.map(t => {
+    const ui = CASC_SE_UI[t.pasoId] || { opts: {} };
+    return '<div class="lab-casc-paso' + (t.ok ? '' : ' is-fallado') + '">' +
+      '<span class="lab-casc-marca">' + (t.ok ? '✓' : '✗') + '</span>' +
+      '<span class="lab-casc-txt">' + escHtml(ui.opts[t.val] || t.val) + '</span>' +
+      '</div>';
+  }).join('') + '</div>';
+}
+
+function _renderInvestigacion(item) {
+  LAB._item = item;
+  const camino = item.camino || {};
+  // Los peldaños del ítem, en el orden canónico de CASCADA_SE. El validador
+  // (scripts/validar-banco.mjs) ya garantiza que `camino` trae exactamente los
+  // que le tocan, ni de más ni de menos, así que filtrar por presencia basta.
+  const pasos = CASCADA_SE.filter(p => camino[p.id] !== undefined);
+  if (!pasos.length) { _renderStub(item); return; }
+  LAB._casc = { pasos, idx: 0, fallos: 0, trail: [] };
+  _renderCascPaso();
+}
+
+function _renderCascPaso() {
+  const item = LAB._item, C = LAB._casc;
+  const paso = C.pasos[C.idx];
+  const ui = CASC_SE_UI[paso.id] || { pregunta: '¿Qué pasa aquí?', opts: {} };
+  // Las opciones se barajan como en el resto del módulo, pero se guarda la
+  // CLAVE de cada una (no el índice del dato): el acierto se decide comparando
+  // con camino[paso.id], igual que etiqueta_prueba compara con prueba_id.
+  const opts = shuffle(paso.opts.slice());
+  C._opts = opts;
+  _setCorpus(
+    '<div class="lab-frase">' + _resaltarSe(item.oracion) + '</div>' +
+    _cascTrailHtml()
+  );
+  _setPregunta(
+    '<span class="lab-casc-num">Peldaño ' + (C.idx + 1) + '/' + C.pasos.length + '</span>' +
+    ui.pregunta
+  );
+  _setFichas('<div class="lab-stack">' +
+    opts.map((val, i) => _btnOp(i, ui.opts[val] || val, 'labResponderCascada')).join('') +
+    '</div>');
+}
+
+// Un peldaño respondido. No usa _mostrarExplicacion a propósito: esa función
+// destapa el botón #lab-siguiente, que salta al ítem SIGUIENTE — y aquí
+// todavía quedan peldaños del mismo ítem. El feedback intermedio va inline,
+// con su propio botón, y _mostrarExplicacion se reserva para el cierre.
+function labResponderCascada(idx) {
+  const item = LAB._item, C = LAB._casc;
+  const paso = C.pasos[C.idx];
+  const ui = CASC_SE_UI[paso.id] || { opts: {} };
+  const elegido = C._opts[idx];
+  const correcta = item.camino[paso.id];
+  const acierto = elegido === correcta;
+  _colorearBotones(C._opts.length, i => C._opts[i] === correcta, idx);
+  if (!acierto) C.fallos++;
+  // Se apunta SIEMPRE el valor correcto, no el elegido: es la reconducción —
+  // el camino que queda dibujado en el rastro es el bueno, marcado como
+  // fallado si el alumno no dio con él.
+  C.trail.push({ pasoId: paso.id, val: correcta, ok: acierto });
+  // El feedback del peldaño sale del repertorio de pruebas (mismo texto que
+  // ya usa etiqueta_prueba, y por la misma razón: la prueba se redacta una
+  // vez), con dos excepciones declaradas en CASC_SE_UI:
+  //   · `microOk[valor]` — cuando el `.ok` de la prueba solo describe una de
+  //     las dos ramas y serviría un texto falso al alumno que acierta por la
+  //     otra (hoy solo P0/sustitucion, ver la nota allí).
+  //   · `micro` — para el peldaño `funcion`, que no tiene prueba propia.
+  // Al fallar se sirve siempre el `.no` de la prueba: va en interrogativo y
+  // vuelve a plantear la manipulación, así que vale para las dos ramas.
+  const microOk = ui.microOk && ui.microOk[correcta];
+  let micro;
+  if (acierto && microOk) micro = microOk;
+  else if (paso.pruebaId) micro = microPrueba(paso.pruebaId, { ok: acierto, trozo: item.oracion });
+  else micro = (ui.micro && (acierto ? ui.micro.ok : ui.micro.no)) || '';
+  const ultimo = C.idx >= C.pasos.length - 1;
+  const html =
+    '<div class="lab-casc-micro' + (acierto ? ' is-ok' : ' is-bad') + '">' +
+      (acierto ? '✓ ' : '✗ ') + escHtml(micro) +
+      (acierto ? '' : '<div class="lab-casc-reconduce">Seguimos por el camino bueno ↓</div>') +
+    '</div>' +
+    '<button type="button" class="lab-btn lab-btn-block" style="margin-top:14px" onclick="labCascContinuar()">' +
+      (ultimo ? 'Ver qué has descubierto →' : 'Siguiente peldaño →') +
+    '</button>';
+  const fichas = _el('lab-fichas');
+  if (fichas) fichas.insertAdjacentHTML('beforeend', html);
+}
+
+function labCascContinuar() {
+  const C = LAB._casc;
+  C.idx++;
+  if (C.idx < C.pasos.length) { _renderCascPaso(); return; }
+  _cerrarInvestigacion();
+}
+
+// El peldaño que DECIDIÓ el valor: el último del camino que tiene prueba
+// propia. No es siempre el último peldaño jugado — en las ramas de reflexivo
+// y recíproco el último es `funcion` ("¿hay ya otro CD?"), que no es una
+// manipulación y no tiene prueba: ahí quien decidió el valor fue `refuerzo`
+// («a sí mismo» / «el uno al otro»). Es lo que se conquista para la Caja.
+function _pruebaDecisiva(pasos) {
+  for (let i = pasos.length - 1; i >= 0; i--) if (pasos[i].pruebaId) return pasos[i].pruebaId;
+  return null;
+}
+
+// Cierre del ítem: aquí sí se puntúa, una sola vez, y aquí sí se usa
+// _mostrarExplicacion (el ítem ha terminado, el botón "Siguiente →" ya toca).
+// Acierta el ítem quien no falló NINGÚN peldaño: la cascada es una cadena y
+// un eslabón malo lleva a un valor falso — es el argumento de §2 del documento
+// («si se invierte el orden, la cascada fabrica falsos dativos aspectuales»).
+function _cerrarInvestigacion() {
+  const item = LAB._item, C = LAB._casc;
+  const acierto = C.fallos === 0;
+  _resolverItem(acierto, 'investigacion');
+  const v = VALOR_SE_UI[item.valor] || { nombre: item.valor, etiqueta: '—' };
+  // La etiqueta con la que verá ese mismo «se» en Simples. Es §5.4 del
+  // documento de cascada —«el valor te dice qué ES ese se; la etiqueta te dice
+  // qué HUECO ocupa»— y el seguro contra el riesgo real que ese apartado
+  // señala: el mismo alumno usa los dos módulos y puede encontrarse la misma
+  // oración con otro nombre encima. Los tres valores que SÍ son función usan
+  // funcion_final (la concreta de este ítem, no el «CD o CI» genérico).
+  const etiquetaSimples = item.funcion_final || v.etiqueta;
+  const cabecera = acierto
+    ? '✓ Investigación limpia: ni un peldaño fallado.'
+    : '⚠ Has llegado al final, pero con ' + C.fallos + (C.fallos === 1 ? ' peldaño fallado' : ' peldaños fallados') + '.';
+  _setCorpus(
+    '<div class="lab-frase">' + _resaltarSe(item.oracion) + '</div>' +
+    _cascTrailHtml()
+  );
+  _setPregunta('');
+  // Una investigación limpia CONQUISTA la prueba que decidió el valor, igual
+  // que un etiqueta_prueba acertado (F2·2). Dos efectos, como allí:
+  //   · LAB._cajaContexto, por si el reto trae después un analisis_inverso con
+  //     destino "caja_pruebas" — así el ejemplo que fabrique el alumno se
+  //     archiva bajo esta prueba y no bajo la del ítem anterior.
+  //   · la fila en la Caja, con la oración investigada como ejemplo. Aquí el
+  //     alumno no fabrica la frase (este tipo no tiene piezas), pero la ha
+  //     PROBADO peldaño a peldaño: es su ejemplo trabajado, no uno prestado.
+  let cajaHtml = '';
+  const pruebaId = _pruebaDecisiva(C.pasos);
+  if (acierto && pruebaId) {
+    LAB._cajaContexto = { funcion: etiquetaSimples, pruebaId };
+    // Alimenta la tabla de equivalencias de §5.4 al cerrar el reto (_finReto):
+    // solo cuenta lo conquistado LIMPIO, igual que la Caja de Pruebas.
+    if (LAB._investigacionValores) LAB._investigacionValores.add(item.valor);
+    _guardarEnCajaPruebas(LAB.email, {
+      funcion: etiquetaSimples,
+      pruebaId,
+      ejemplo: item.oracion,
+      valor: item.valor,
+      fecha: new Date().toISOString()
+    });
+    cajaHtml = '<div class="lab-caja-add">📇 Prueba conquistada y guardada en tu Caja de Pruebas del Detective.</div>';
+  }
+  _setFichas(
+    '<div class="lab-casc-veredicto">' +
+      '<div class="lab-casc-valor">' + escHtml(v.nombre) + '</div>' +
+      (item.funcion_final
+        ? '<div class="lab-casc-funcion">Y ocupa un hueco de verdad en el análisis: <strong>' + escHtml(item.funcion_final) + '</strong></div>'
+        : '<div class="lab-casc-funcion">Este «se» no ocupa ningún hueco del análisis: es una marca.</div>') +
+      // Sin punto final si la etiqueta ya lo trae: media lista de FUNC_ORAC
+      // acaba en punto (Marca.Imp., C.Rég., Atr.…) y «Marca.Imp..» canta.
+      '<div class="lab-casc-puente">En el Taller de Simples verás este «se» etiquetado como <strong>' +
+        escHtml(etiquetaSimples) + '</strong>' + (/\.$/.test(etiquetaSimples) ? '' : '.') + '</div>' +
+    '</div>' + cajaHtml
+  );
+  _mostrarExplicacion(acierto, cabecera + '<br><br>' + escHtml(item.explicacion || ''));
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -1185,7 +1561,8 @@ export {
   labResponderValencia, labResponderOpciones, labResponderIntruso,
   labResponderVeredicto, labResponderCausa, labResponderFrontera,
   labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
-  labResponderPrueba, labVerCajaPruebas, labVolverDesdeCaja,
+  labResponderPrueba, labResponderCascada, labCascContinuar,
+  labVerCajaPruebas, labVolverDesdeCaja,
   labGuardarDiario, labSaltarDiario
 };
 
@@ -1196,7 +1573,8 @@ if (typeof window !== 'undefined') {
     labResponderValencia, labResponderOpciones, labResponderIntruso,
     labResponderVeredicto, labResponderCausa, labResponderFrontera,
     labAiSeleccionar, labAiColocar, labAiQuitar, labAiComprobar,
-    labResponderPrueba, labVerCajaPruebas, labVolverDesdeCaja,
+    labResponderPrueba, labResponderCascada, labCascContinuar,
+    labVerCajaPruebas, labVolverDesdeCaja,
     labGuardarDiario, labSaltarDiario
   });
   Object.defineProperty(window, 'LAB', { get: () => LAB, configurable: true });
