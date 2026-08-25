@@ -145,6 +145,12 @@
             práctica y en examen, para que se entrene lo que se mide. Con
             ella LAB.aciertos deja de ser entero: es PUNTOS (peso §6 ×
             JUICIO_PARCIAL). Ver la nota larga junto a JUICIO_PARCIAL.
+     Sin reconducción en examen (26-ago-2026, decisión de Josele que cierra
+            el punto que quedaba abierto) → en `investigacion`, un peldaño
+            fallado en examen corta la cascada ahí mismo (labResponderCascada
+            llama a _cerrarInvestigacion sin jugar los peldaños restantes),
+            igual que `monta` no admite reintentos en el examen de Fábrica.
+            En práctica se sigue reconduciendo al camino bueno, sin cambios.
    Pendiente:
      F2·3 (puente de ida, sin hacer TODAVÍA en el frontend) → botón al
             cerrar reto que abra Simples con la MISMA oración cargada.
@@ -160,10 +166,6 @@
             única oración ya resuelta en vez de pedir el banco entero
             (investigar sint/index.js antes de tocarlo, regla 4 de
             CLAUDE.md).
-     Reintento tras fallo en `investigacion` → la cascada de «se» sigue
-            reconduciendo al camino correcto también en examen, igual que
-            en práctica. Decisión abierta, análoga a que `monta` no admite
-            reintentos en el examen de Fábrica.
    Sin selector de nivel más allá de basico/medio/avanzado: solo hay
    contenido en 'medio' por ahora (lote semilla F0·3), así que basico/
    avanzado mostrarán "sin retos disponibles" hasta que existan esos lotes
@@ -1547,6 +1549,17 @@ function labResponderCascada(idx) {
   const acierto = elegido === correcta;
   _colorearBotones(C._opts.length, i => C._opts[i] === correcta, idx);
   if (!acierto) C.fallos++;
+  // Examen: SIN reconducción (decisión de Josele, 26-ago-2026, cierra el
+  // punto que quedaba abierto en la cabecera del archivo) — un peldaño
+  // fallado corta la cascada ahí mismo, igual que `monta` no admite
+  // reintentos en el examen de Fábrica. Se apunta el valor ELEGIDO, no el
+  // correcto, para no revelar la respuesta en el rastro; el cierre ya se
+  // encarga de no enseñar nada más ("Respuesta registrada.").
+  if (!acierto && LAB.mode === 'exam') {
+    C.trail.push({ pasoId: paso.id, val: elegido, ok: false });
+    _cerrarInvestigacion();
+    return;
+  }
   // Se apunta SIEMPRE el valor correcto, no el elegido: es la reconducción —
   // el camino que queda dibujado en el rastro es el bueno, marcado como
   // fallado si el alumno no dio con él.
