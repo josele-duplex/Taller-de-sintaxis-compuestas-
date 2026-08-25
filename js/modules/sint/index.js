@@ -3535,6 +3535,12 @@ const LOGIN_PANELS = {
     <p style="font-weight:800;font-size:.9rem;color:var(--lab-verde-dk);margin-bottom:12px">🧪 El Laboratorio de Oraciones</p>
     <div style="background:var(--lab-tint);border:1px solid var(--lab-border);border-radius:12px;padding:14px 16px;margin-bottom:8px;font-size:.84rem;color:var(--lab-verde-dk);line-height:1.6">
       No analizas la oración entera: la <strong>rompes a propósito</strong> para ver qué la sostiene. Sustituye, suprime, mueve… y juzga si sigue funcionando. El nivel se elige al entrar.
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="toggleLaboratorioPinBlock()" style="font-size:.8rem;font-weight:700;padding:6px 10px;margin-bottom:4px">🔑 Tengo un PIN de examen</button>
+    <div id="pin-lab-block" class="field" style="display:none">
+      <label for="inp-lab-pin">PIN del examen</label>
+      <input id="inp-lab-pin" class="input input-pin" type="password" inputmode="numeric" maxlength="6" placeholder="····">
+      <p id="e-lab-pin" class="ferr" role="alert"></p>
     </div>`
 };
 
@@ -3560,6 +3566,17 @@ function setCpLoginMode(m){
 // enlace que revela el campo de PIN cuando el alumno sí tiene examen.
 function toggleFabricaPinBlock(){
   const block = document.getElementById('pin-fab-block');
+  if (!block) return;
+  const abierto = block.style.display === 'block';
+  block.style.display = abierto ? 'none' : 'block';
+}
+
+// Login del Laboratorio: mismo patrón que Fábrica (toggleFabricaPinBlock),
+// no el de tarjetas de modalidad de Compuestas — el Laboratorio tampoco
+// elige nivel en el login (lo fija el PIN en examen, o el selector del
+// propio módulo en práctica).
+function toggleLaboratorioPinBlock(){
+  const block = document.getElementById('pin-lab-block');
   if (!block) return;
   const abierto = block.style.display === 'block';
   block.style.display = abierto ? 'none' : 'block';
@@ -4018,6 +4035,16 @@ async function handleStartAll(){
     startFabrica({name,email,grupo:grupoCompartido});return;
   }
   if(currentModule==='laboratorio'){
+    ferr('e-lab-pin','');
+    const labPin = document.getElementById('inp-lab-pin')?.value?.trim() || '';
+    if(labPin){
+      if(!/^\d{4,6}$/.test(labPin)){ ferr('e-lab-pin','El PIN debe tener entre 4 y 6 dígitos numéricos.'); return; }
+      if(typeof iniciarExamenLaboratorio === 'function'){
+        iniciarExamenLaboratorio({ name, email, grupo: grupoCompartido, pin: labPin })
+          .catch(err => { ferr('e-lab-pin', String((err && err.message) || err || 'No se ha podido cargar el examen.')); });
+      }
+      return;
+    }
     startLaboratorio({name,email,grupo:grupoCompartido});return;
   }
   if(currentModule==='compuestas'){
