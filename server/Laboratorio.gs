@@ -33,20 +33,22 @@
 //  A diferencia de Formacion_Banco, el banco filtra por TRES parámetros
 //  (nivel / curso / funcion), fijado así en el plan de producto §5.3.
 //
-//  F3 · sesión 1 (25-ago-2026): modo examen con PIN, primera mitad
-//  (hojas + createExamLaboratorio_). Patrón clonado de
+//  F3 · sesión 1 (25-ago-2026): modo examen con PIN, completo por el lado
+//  del servidor — createExamLaboratorio_ (profesor crea PIN) /
+//  getExamenLaboratorio_ (alumno entra con PIN) / saveLaboratorioResult_
+//  (nota final, con deduplicación email+PIN). Patrón clonado de
 //  createExamFormacion_ / getExamenFormacion_ / saveResultadoFormacion_
 //  (Server/Formacion.gs) — mismo problema exacto: retos con ítems
 //  heterogéneos de varias estaciones, no ejercicios sueltos como en
-//  Compuestas/Simples. getExamenLaboratorio_/saveLaboratorioResult_ (la
-//  segunda mitad de F3·1) todavía NO existen — createExamLaboratorio_ deja
-//  el examen pre-computado en Laboratorio_Examenes, pero de momento nada
-//  puede leerlo. Ver docs/Laboratorio_Oraciones_Plan_Producto.md §5.4.
+//  Compuestas/Simples. Todavía SIN motor de cliente que use estos tres
+//  endpoints (eso es F3·sesión 2, en js/modules/laboratorio/index.js +
+//  el login compartido + el panel del profesor). Ver
+//  docs/Laboratorio_Oraciones_Plan_Producto.md §5.4.
 //
 //  DESPLIEGUE: después de pegar este archivo actualizado en Apps Script,
 //  hace falta Implementar → Gestionar implementaciones → lápiz → Nueva
 //  versión (NUNCA Nueva implementación) para que saveSesionLaboratorio y
-//  createExamLaboratorio empiecen a responder de verdad.
+//  el examen con PIN empiecen a responder de verdad.
 // ════════════════════════════════════════════════════════════════════════
 
 // ── Nombre de la hoja nueva ──────────────────────────────────────────────
@@ -448,16 +450,120 @@ function createExamLaboratorio_(params) {
   return { ok: true, pin: pin, nRetosReales: retos.length };
 }
 
+/**
+ * Endpoint 'getExamenLaboratorio'. El alumno entra con el PIN; lee la
+ * config pre-computada por createExamLaboratorio_ (cache → hoja). Patrón
+ * clonado de getExamenFormacion_ (Server/Formacion.gs).
+ * @param {{pin:string}} params
+ * @return {object} config del examen o error (ERR.BAD_PIN/ERR.PIN_NOT_FOUND/ERR.EXAM_INACTIVE).
+ */
+function getExamenLaboratorio_(params) {
+  const pin = String(params.pin || '').trim();
+  if (!pin || pin.length < 4) return gasError_('PIN inválido', ERR.BAD_PIN);
+
+  const cacheKey = 'labexam_' + pin;
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) {}
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_LABORATORIO_EXAMS);
+  if (!sheet || sheet.getLastRow() < 2) {
+    return gasError_('PIN no encontrado. Comprueba que has escrito los dígitos correctos.', ERR.PIN_NOT_FOUND);
+  }
+  const col = getColMap_(sheet);
+  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+
+  let pinExists = false;
+  for (let i = data.length - 1; i >= 0; i--) { // el más reciente primero
+    if (String(data[i][col['PIN']]).trim() !== pin) continue;
+    pinExists = true;
+    if (String(data[i][col['Estado']] || '').trim() !== 'activo') continue;
+    let retos = [];
+    try { retos = JSON.parse(data[i][col['Retos_JSON']] || '[]'); } catch (e) {}
+    if (!retos.length) continue;
+    const result = {
+      ok: true,
+      retos: retos,
+      nivel: String(data[i][col['Nivel']] || 'medio').trim(),
+      curso: String(data[i][col['Curso']]  || '*').trim(),
+      timer: parseInt(data[i][col['Timer_Min']]) || 0,
+      incluyeZonaGris: String(data[i][col['Incluye_Zona_Gris']] || '').trim().toUpperCase() === 'TRUE',
+      grupo: String(data[i][col['Grupo']] || ''),
+      evaluacion: String(data[i][col['Evaluacion']] || ''),
+      nombreExamen: String(data[i][col['Nombre_Examen']] || '')
+    };
+    try {
+      const json = JSON.stringify(result);
+      if (json.length < 90000) cache.put(cacheKey, json, 300);
+    } catch (e) {}
+    return result;
+  }
+  if (pinExists) {
+    return gasError_('Este PIN existe pero el examen no está activo. Pídele al profesor que lo cree de nuevo.', ERR.EXAM_INACTIVE);
+  }
+  return gasError_('PIN no encontrado. Comprueba que has escrito los dígitos correctos.', ERR.PIN_NOT_FOUND);
+}
+
+/**
+ * Endpoint 'saveLaboratorioResult' (POST). Guarda la nota de un examen del
+ * Laboratorio; dedup por email+PIN igual que saveResultadoFormacion_. La
+ * práctica libre no llama a este endpoint (esa es saveSesionLaboratorio_,
+ * analítica silenciosa sin nota).
+ * @param {{email?,name?,grupo?,nivel?,modo?,pin?,evaluacion?,examen?,nota?,itemsOk?,itemsErr?,itemsTotales?,erroresCategoria?}} p
+ * @return {{ok:true, duplicate?:boolean} | object} error (ERR.LOCK_TIMEOUT).
+ */
+function saveLaboratorioResult_(p) {
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) {
+    return gasError_('Servidor ocupado, inténtalo de nuevo.', ERR.LOCK_TIMEOUT);
+  }
+  try {
+    const sheet = ensureLaboratorioResultSheet_();
+    const col = getColMap_(sheet);
+    const email = String(p.email || '').trim().toLowerCase();
+    const pin   = String(p.pin || '').trim();
+    const emailIdx = col['Correo'], pinIdx = col['PIN'];
+    const lastRow = sheet.getLastRow();
+    if (email && pin && emailIdx !== undefined && pinIdx !== undefined && lastRow > 1) {
+      const c0 = Math.min(emailIdx, pinIdx), c1 = Math.max(emailIdx, pinIdx);
+      const data = sheet.getRange(2, c0 + 1, lastRow - 1, c1 - c0 + 1).getValues();
+      const eRel = emailIdx - c0, pRel = pinIdx - c0;
+      for (let i = 0; i < data.length; i++) {
+        if (String(data[i][eRel]).trim().toLowerCase() === email && String(data[i][pRel]).trim() === pin) {
+          return { ok: true, duplicate: true };
+        }
+      }
+    }
+    appendRowSafe_(sheet, LABORATORIO_RESULT_HEADER, {
+      'Fecha':                  new Date(),
+      'Correo':                 email,
+      'Nombre':                 p.name || '',
+      'Grupo':                  p.grupo || '',
+      'Nivel':                  p.nivel || '',
+      'Modo':                   p.modo || '',
+      'PIN':                    pin,
+      'Evaluacion':             p.evaluacion || '',
+      'Examen':                 p.examen || '',
+      'Nota':                   parseFloat(p.nota) || 0,
+      'Items_Ok':               parseInt(p.itemsOk) || 0,
+      'Items_Err':              parseInt(p.itemsErr) || 0,
+      'Items_Totales':          parseInt(p.itemsTotales) || 0,
+      'Errores_Categoria_JSON': p.erroresCategoria || '{}'
+    });
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 // ════════════════════════════════════════════════════════════════════════
 //  DISPATCHERS — mismo patrón que dispatchFormacionGet_/dispatchFormacionPost_.
 //  Code_v6.gs los llama desde el fallback de doGet/doPost cuando la action
 //  no está en su cadena de if/else principal ni la reconocen
 //  dispatchCompuestasGet_/Post_ ni dispatchFormacionGet_/Post_.
-//
-//  getExamenLaboratorio_ (el alumno entra con el PIN) y
-//  saveLaboratorioResult_ (guardar la nota) son la segunda mitad de F3·1 —
-//  todavía no existen, así que createExamLaboratorio deja el examen
-//  pre-computado pero de momento nadie puede leerlo ni enviar nota.
 // ════════════════════════════════════════════════════════════════════════
 
 function dispatchLaboratorioGet_(action, params) {
@@ -467,6 +573,7 @@ function dispatchLaboratorioGet_(action, params) {
       const na = (typeof requiereClaveProfesor_ === 'function') ? requiereClaveProfesor_(params) : null;
       return na || createExamLaboratorio_(params);
     }
+    case 'getExamenLaboratorio': return getExamenLaboratorio_(params);
     default: return null;
   }
 }
@@ -474,6 +581,7 @@ function dispatchLaboratorioGet_(action, params) {
 function dispatchLaboratorioPost_(action, payload) {
   switch (action) {
     case 'saveSesionLaboratorio': return saveSesionLaboratorio_(payload);
+    case 'saveLaboratorioResult': return saveLaboratorioResult_(payload);
     default: return null;
   }
 }
