@@ -310,7 +310,7 @@ export const CAUSAS = {
     etiqueta: 'El verbo pide aquí otra forma',
     rompe: 'Indicativo donde el verbo principal exige subjuntivo.',
     ejemplo: { mal: 'Prefiero que viajas en tren.', bien: 'Prefiero que viajes en tren.' },
-    criterio: 'Solo verbos que imponen el modo sin discusión (querer, preferir, pedir, esperar, dudar…). Quedan fuera los que admiten los dos con cambio de significado (creo que viene / no creo que venga; entiendo que viene / entiendo que venga): con esos hay par mínimo, no error. Fuente: PM-SINT-49.'
+    criterio: 'Solo verbos que imponen el modo sin discusión (querer, preferir, pedir, ordenar…). Quedan fuera los que admiten los dos con cambio de significado (creo que viene / no creo que venga; entiendo que viene / entiendo que venga): con esos hay par mínimo, no error. Ojo con esperar, dudar y negar: la NGLE documenta indicativo con los tres en usos reales (espero que vendrá; no dudo que tiene razón; no niego que tiene razón), así que no imponen el subjuntivo sin discusión y no sirven para este ítem. Fuente: PM-SINT-49.'
   },
 
   gradabilidad: {
