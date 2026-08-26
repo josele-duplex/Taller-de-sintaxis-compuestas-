@@ -462,3 +462,113 @@ function getResultadosFormacion_(params) {
   });
   return { ok: true, results: results, total: results.length };
 }
+
+// ════════════════════════════════════════════════════════════════════════
+//  MANTENIMIENTO DE UN SOLO USO — 2026-08-10
+//  Corrige en Formacion_Banco los items "agrupa" cuya cesta "no pertenece
+//  a la familia" era siempre el mismo par literal coche/mesa (Josele lo
+//  reportó jugando: sin variedad). Mismo pool y misma lógica que ya se
+//  aplicó al TSV semilla del repo (docs/lotes/Formacion_Banco_*_seed.tsv,
+//  commit f78cb4d) — esto hace lo mismo directamente sobre la hoja en vivo.
+//
+//  CÓMO EJECUTARLO: pegar este archivo entero en el proyecto de Apps
+//  Script (sustituyendo Formacion.gs) → en el desplegable de arriba
+//  elegir "fixIntrusosAgrupaFormacion" → pulsar ▶ Ejecutar. NO hace falta
+//  redesplegar (no toca doGet/doPost). HAZ UNA COPIA DEL SHEET ANTES
+//  (Archivo → Hacer una copia) — modifica celdas de Formacion_Banco.
+//  Es idempotente: si se ejecuta dos veces, la segunda no encuentra ya
+//  ningún coche/mesa y no cambia nada. El detalle fila a fila queda en
+//  Ver → Registros de ejecución (Logger.log).
+// ════════════════════════════════════════════════════════════════════════
+
+function fixIntrusosAgrupaFormacion() {
+  // Mismo pool de 30 palabras corrientes del fix del TSV: sin raíz
+  // compartida con familias típicas del banco (legal, posible, triste,
+  // rojo, mudo, comunicar, confiar, biología, Europa...).
+  var POOL = [
+    'silla', 'ventana', 'nube', 'jardín', 'camino', 'botella', 'espejo',
+    'gato', 'río', 'montaña', 'azúcar', 'paraguas', 'cuchara', 'semáforo',
+    'almohada', 'tenedor', 'papel', 'reloj', 'jabón', 'tijeras', 'manta',
+    'escalera', 'pájaro', 'arena', 'piedra', 'lápiz', 'zapato', 'plátano',
+    'bicicleta', 'tambor'
+  ];
+
+  function raiz4_(w) {
+    return w.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').slice(0, 4);
+  }
+
+  var sheet = ensureFormacionBancoSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    SpreadsheetApp.getActive().toast('Formacion_Banco está vacía: nada que corregir.');
+    return;
+  }
+  var lastCol = sheet.getLastColumn();
+  var col = getColMap_(sheet);
+  var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+  var globalIdx = 0;
+  var cambios = 0;
+  var log = [];
+
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+    var id = String(row[col['ID']] || '').trim();
+    var rawJson = String(row[col['JSON_Reto']] || '');
+    if (!id || !rawJson) continue;
+
+    var reto = safeParseJSON(rawJson);
+    if (!reto || !Array.isArray(reto.items)) {
+      log.push(id + ': JSON_Reto ilegible, se salta.');
+      continue;
+    }
+
+    var filaBaja = rawJson.toLowerCase();
+    var tocado = false;
+
+    reto.items.forEach(function (it) {
+      if (it.tipo !== 'agrupa' || !Array.isArray(it.cestas)) return;
+      it.cestas.forEach(function (c) {
+        if (!c || !Array.isArray(c.palabras) || c.palabras.length !== 2) return;
+        var clave = c.palabras.slice().sort().join('|');
+        if (clave !== 'coche|mesa') return;
+
+        // Elige 2 palabras del pool (rotando) que no compartan raíz con
+        // ninguna palabra ya presente en la fila, para no crear sin
+        // querer una familia falsa con el propio intruso.
+        var elegidas = [];
+        var intentos = 0;
+        while (elegidas.length < 2 && intentos < POOL.length * 2) {
+          var cand = POOL[globalIdx % POOL.length];
+          globalIdx++; intentos++;
+          if (elegidas.indexOf(cand) >= 0) continue;
+          var r = raiz4_(cand);
+          if (r.length >= 4 && filaBaja.indexOf(r) >= 0) continue;
+          elegidas.push(cand);
+        }
+        while (elegidas.length < 2) {
+          var cand2 = POOL[globalIdx % POOL.length];
+          globalIdx++;
+          if (elegidas.indexOf(cand2) < 0) elegidas.push(cand2);
+        }
+
+        log.push(id + ': coche, mesa -> ' + elegidas.join(', '));
+        c.palabras = elegidas;
+        tocado = true;
+      });
+    });
+
+    if (tocado) {
+      sheet.getRange(2 + i, col['JSON_Reto'] + 1).setValue(JSON.stringify(reto));
+      cambios++;
+    }
+  }
+
+  try { CacheService.getScriptCache().remove('formacion_all'); } catch (e) {}
+
+  Logger.log(log.join('\n'));
+  SpreadsheetApp.getActive().toast(
+    cambios + ' fila(s) de Formacion_Banco actualizada(s). Detalle: Ver → Registros de ejecución.',
+    'Intrusos diversificados', 10
+  );
+}

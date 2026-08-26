@@ -264,7 +264,7 @@ const FP_PIEZAS = {
   vocal_cierre:'avanzado',
 };
 
-// Las 13 causas de error morfológico, con nivel mínimo y veredicto esperado.
+// Las 14 causas de error morfológico, con nivel mínimo y veredicto esperado.
 // La distinción no_existe / norma_culta es el principio rector del marco §2.3
 // aplicado a morfología: *rojecer no existe; ONGs se dice y se entiende, y lo
 // que falla es la norma de escritura.
@@ -282,7 +282,13 @@ const FP_CAUSAS = {
   alomorfo_incorrecto:     { nivelMin:'avanzado', veredicto:'no_existe' },
   prestamo_adaptacion:     { nivelMin:'avanzado', veredicto:'norma_culta' },
   doble_analisis:          { nivelMin:'avanzado', veredicto:'dudosa' },
+  no_lexicalizada:         { nivelMin:'avanzado', veredicto:'dudosa' },
 };
+
+// Causas en las que NO hay nada que corregir: la forma está bien fabricada y
+// lo que se juzga es otra cosa (que no esté acuñada, o que admita dos análisis).
+// Exigirles `forma_correcta` obligaría a inventar un error que no existe.
+const FP_CAUSAS_SIN_CORRECCION = new Set(['no_lexicalizada']);
 
 // Vecinos confundibles: sus ítems deberían pesar 2 (§7 del schema).
 const FP_DISCRIMINANTES = new Set([
@@ -1358,10 +1364,21 @@ function validarFormacion(cabecera, filas, R){
         case 'intruso': {
           const pal = Array.isArray(it.palabras) ? it.palabras : [];
           if(pal.length<3) R.error(id, `${ref}: "palabras" necesita al menos 3 para que haya serie.`);
-          if(typeof it.respuesta!=='string')
-            R.error(id, `${ref}: "respuesta" debe ser el TEXTO de la palabra intrusa, no su posición.`);
-          else if(!pal.includes(it.respuesta))
-            R.error(id, `${ref}: la "respuesta" no está entre las "palabras".`);
+          // sin_intruso (§13): exactamente una de las dos cosas — o hay
+          // trampa ("respuesta" en "palabras"), o no la hay ("sin_intruso":true
+          // y sin "respuesta"). El botón «No hay intrusa» lo pinta el motor
+          // siempre, tenga o no trampa el ítem.
+          if(it.sin_intruso===true){
+            if(it.respuesta!==undefined)
+              R.error(id, `${ref}: "sin_intruso":true no debe llevar "respuesta".`);
+          } else {
+            if(it.sin_intruso!==undefined)
+              R.error(id, `${ref}: "sin_intruso" solo puede ser "true" (o no aparecer); usa "respuesta" para el caso con trampa.`);
+            if(typeof it.respuesta!=='string')
+              R.error(id, `${ref}: "respuesta" debe ser el TEXTO de la palabra intrusa, no su posición (o "sin_intruso":true si no la hay).`);
+            else if(!pal.includes(it.respuesta))
+              R.error(id, `${ref}: la "respuesta" no está entre las "palabras".`);
+          }
           if(typeof it.feedback!=='string' || !it.feedback.trim())
             R.error(id, `${ref}: "feedback" es obligatorio en intruso.`);
           if(it.opciones!==undefined) validarOpciones(R, id, ref, it.opciones, 1);
@@ -1479,6 +1496,10 @@ function validarFormacion(cabecera, filas, R){
         case 'juicio': {
           nJuicios++;
           if(typeof it.forma!=='string' || !it.forma.trim()) R.error(id, `${ref}: falta "forma".`);
+          // contexto (§13): opcional, convierte el juicio suelto en diagnóstico
+          // de una operación concreta ("un alumno quería fabricar X y escribió...").
+          if(it.contexto!==undefined && (typeof it.contexto!=='string' || !it.contexto.trim()))
+            R.error(id, `${ref}: "contexto" debe ser texto no vacío si aparece.`);
           if(!FP_VEREDICTOS.has(it.veredicto)){
             R.error(id, `${ref}: "veredicto" inválido ("${it.veredicto}"); debe ser ${[...FP_VEREDICTOS].join('/')}.`);
             break;
@@ -1492,14 +1513,17 @@ function validarFormacion(cabecera, filas, R){
           } else {
             const spec = FP_CAUSAS[it.causa];
             if(!it.causa) R.error(id, `${ref}: falta "causa" (obligatoria salvo en veredicto "correcta").`);
-            else if(!spec) R.error(id, `${ref}: causa "${it.causa}" no está entre las 13 del schema.`);
+            else if(!spec) R.error(id, `${ref}: causa "${it.causa}" no está entre las 14 del schema.`);
             else {
               if(FP_ORDEN_NIVEL[spec.nivelMin] > nivelNum)
                 R.error(id, `${ref}: causa "${it.causa}" es de nivel ${spec.nivelMin} y el reto es ${nivel}.`);
               if(spec.veredicto!==it.veredicto)
                 R.error(id, `${ref}: causa "${it.causa}" corresponde al veredicto "${spec.veredicto}", no a "${it.veredicto}".`);
             }
-            if(typeof it.forma_correcta!=='string' || !it.forma_correcta.trim())
+            if(FP_CAUSAS_SIN_CORRECCION.has(it.causa)){
+              if(it.forma_correcta!==undefined)
+                R.error(id, `${ref}: causa "${it.causa}" no debe llevar "forma_correcta": la forma no está mal fabricada, así que no hay nada que corregir.`);
+            } else if(typeof it.forma_correcta!=='string' || !it.forma_correcta.trim())
               R.error(id, `${ref}: veredicto "${it.veredicto}" exige "forma_correcta" (nunca el error solo en pantalla).`);
             const opc = Array.isArray(it.opciones_causa) ? it.opciones_causa : [];
             if(opc.length<2) R.error(id, `${ref}: "opciones_causa" necesita al menos 2 causas.`);

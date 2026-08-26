@@ -81,7 +81,8 @@ const CAUSA_LABEL = {
   abreviatura_sin_punto: 'Abreviatura sin su punto', sigla_minuscula: 'Sigla no lexicalizada en minúscula',
   acortamiento_mal: 'Recorte que no respeta la sílaba', restriccion_sufijo: 'El sufijo no admite esa base',
   alomorfo_incorrecto: 'Alomorfo del afijo mal elegido', prestamo_adaptacion: 'Préstamo sin adaptar a la grafía española',
-  doble_analisis: 'Zona gris: dos segmentaciones posibles'
+  doble_analisis: 'Zona gris: dos segmentaciones posibles',
+  no_lexicalizada: 'Se podría fabricar, pero no se usa'
 };
 
 // §4 del schema — nombre de cara al alumno de cada procedimiento (solo se
@@ -1058,21 +1059,56 @@ function _colorearBotones(n, esCorrecta, idxElegido) {
 }
 
 // ── 1. intruso ──────────────────────────────────────────────────────────
+// El botón «No hay intrusa» aparece SIEMPRE, tenga o no trampa el ítem
+// (si solo saliera cuando no hay intrusa, el propio botón delataría la
+// respuesta — schema v1.2 §13).
 function _renderIntruso(item) {
   const opciones = shuffle(item.palabras);
   _setOracion('');
   _setPregunta('¿Cuál es el intruso?');
   _setFichas('<div class="fab-stack">' +
-    opciones.map((p, i) => _btnFicha(i, p, 'fabResponderIntruso')).join('') + '</div>');
+    opciones.map((p, i) => _btnFicha(i, p, 'fabResponderIntruso')).join('') +
+    '<button type="button" class="fab-op fab-op-sin" onclick="fabResponderSinIntrusa()" id="fab-op-sin">🚫 No hay intrusa</button>' +
+    '</div>');
   FAB._opciones = opciones;
   FAB._item = item;
 }
 function fabResponderIntruso(idx) {
   const opciones = FAB._opciones, item = FAB._item;
-  const acierto = opciones[idx] === item.respuesta;
-  _colorearBotones(opciones.length, i => opciones[i] === item.respuesta, idx);
+  const acierto = !item.sin_intruso && opciones[idx] === item.respuesta;
+  _colorearIntrusoResultado(idx);
   _resolverItem('intruso', acierto);
   _mostrarExplicacion(acierto, (acierto ? '✓ ' : '✗ ') + escHtml(item.feedback || ''));
+}
+function fabResponderSinIntrusa() {
+  const item = FAB._item;
+  const acierto = item.sin_intruso === true;
+  _colorearIntrusoResultado(null);
+  _resolverItem('intruso', acierto);
+  _mostrarExplicacion(acierto, (acierto ? '✓ ' : '✗ ') + escHtml(item.feedback || ''));
+}
+// Colorea las palabras y el botón «No hay intrusa» a la vez, sean cual
+// sean el elegido y la respuesta real (haya o no haya trampa).
+function _colorearIntrusoResultado(idxPalabraElegida) {
+  const opciones = FAB._opciones, item = FAB._item;
+  for (let i = 0; i < opciones.length; i++) {
+    const btn = _el('fab-op-' + i);
+    if (!btn) continue;
+    btn.style.pointerEvents = 'none';
+    if (FAB.mode === 'exam') continue;
+    if (!item.sin_intruso && opciones[i] === item.respuesta) btn.classList.add('is-ok');
+    else if (i === idxPalabraElegida) btn.classList.add('is-bad');
+    else btn.classList.add('is-dim');
+  }
+  const btnSin = _el('fab-op-sin');
+  if (btnSin) {
+    btnSin.style.pointerEvents = 'none';
+    if (FAB.mode !== 'exam') {
+      if (item.sin_intruso === true) btnSin.classList.add('is-ok');
+      else if (idxPalabraElegida === null) btnSin.classList.add('is-bad');
+      else btnSin.classList.add('is-dim');
+    }
+  }
 }
 
 // ── 2. agrupa ───────────────────────────────────────────────────────────
@@ -1409,7 +1445,11 @@ function fabComprobarCadena() {
 function _renderJuicio(item) {
   FAB._item = item;
   FAB._juicioFase = 'veredicto';
-  _setPalabraFoco(item.forma);
+  if (item.contexto) {
+    _setOracion('<div class="fab-contexto">' + escHtml(item.contexto) + '</div><div class="fab-foco">' + escHtml(item.forma) + '</div>');
+  } else {
+    _setPalabraFoco(item.forma);
+  }
   _setPregunta('¿Está bien formada?');
   const veredictos = ['correcta', 'norma_culta', 'no_existe', 'dudosa'];
   _setFichas('<div class="fab-stack">' +
@@ -1561,7 +1601,7 @@ const ITEM_RENDERERS = {
 export {
   startFabrica, exitFabrica, fabCambiarNivel, iniciarFabricaNivel, iniciarFabricaExamenDesdeLogin,
   fabEmpezarReto, fabSiguienteItem, fabSiguienteReto,
-  fabResponderIntruso, fabAgruparSeleccionar, fabAgruparQuitar, fabAgruparColocar, fabAgruparComprobar,
+  fabResponderIntruso, fabResponderSinIntrusa, fabAgruparSeleccionar, fabAgruparQuitar, fabAgruparColocar, fabAgruparComprobar,
   fabToggleCorte, fabComprobarCorte, fabEtiquetarPieza, fabComprobarEtiquetas,
   fabCapaAnadir, fabCapaDeshacer, fabComprobarCapas,
   fabMontarTocar, fabMontarLimpiar, fabMontarConstruir,
@@ -1581,7 +1621,7 @@ if (typeof window !== 'undefined') {
   Object.assign(window, {
     startFabrica, exitFabrica, fabCambiarNivel, iniciarFabricaNivel, iniciarFabricaExamenDesdeLogin,
     fabEmpezarReto, fabSiguienteItem, fabSiguienteReto,
-    fabResponderIntruso, fabAgruparSeleccionar, fabAgruparQuitar, fabAgruparColocar, fabAgruparComprobar,
+    fabResponderIntruso, fabResponderSinIntrusa, fabAgruparSeleccionar, fabAgruparQuitar, fabAgruparColocar, fabAgruparComprobar,
     fabToggleCorte, fabComprobarCorte, fabEtiquetarPieza, fabComprobarEtiquetas,
     fabCapaAnadir, fabCapaDeshacer, fabComprobarCapas,
     fabMontarTocar, fabMontarLimpiar, fabMontarConstruir,

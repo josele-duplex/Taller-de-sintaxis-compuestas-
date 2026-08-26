@@ -4741,6 +4741,21 @@ body.theme-new-ui #screen-fabrica .fab-op.is-sel{
   box-shadow:0 2px 0 var(--fab-oliva);
 }
 
+/* Botón «No hay intrusa» (intruso, schema v1.2 §13): siempre presente,
+   separado visualmente del resto para no leerse como una palabra más. */
+body.theme-new-ui #screen-fabrica .fab-op-sin{
+  margin-top:6px;border-style:dashed;font-family:'DM Sans',sans-serif;
+  font-size:.88rem;font-weight:700;color:var(--ui-muted);
+}
+body.theme-new-ui #screen-fabrica .fab-op-sin:hover{color:var(--fab-oliva-dk)}
+
+/* Contexto del juicio de gramaticalidad (v1.2 §13): frase breve antes de
+   la forma en foco, para diagnosticar una operación concreta. */
+body.theme-new-ui #screen-fabrica .fab-contexto{
+  text-align:center;font-family:'DM Sans',sans-serif;font-style:italic;
+  font-size:.88rem;color:var(--ui-muted);margin-bottom:6px;
+}
+
 /* La palabra en foco: par mínimo, juicio, frontera y cascada presentan
    una forma y preguntan por ella. Va sola, grande y centrada — es el
    objeto de estudio, no un título de sección. */
