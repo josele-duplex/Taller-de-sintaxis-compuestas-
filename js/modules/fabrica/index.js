@@ -81,7 +81,8 @@ const CAUSA_LABEL = {
   abreviatura_sin_punto: 'Abreviatura sin su punto', sigla_minuscula: 'Sigla no lexicalizada en minúscula',
   acortamiento_mal: 'Recorte que no respeta la sílaba', restriccion_sufijo: 'El sufijo no admite esa base',
   alomorfo_incorrecto: 'Alomorfo del afijo mal elegido', prestamo_adaptacion: 'Préstamo sin adaptar a la grafía española',
-  doble_analisis: 'Zona gris: dos segmentaciones posibles'
+  doble_analisis: 'Zona gris: dos segmentaciones posibles',
+  no_lexicalizada: 'Se podría fabricar, pero no se usa'
 };
 
 // §4 del schema — nombre de cara al alumno de cada procedimiento (solo se

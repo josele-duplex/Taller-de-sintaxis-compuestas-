@@ -135,7 +135,7 @@ const FP_PIEZAS = {
   vocal_cierre:'avanzado',
 };
 
-// Las 13 causas de error morfológico, con nivel mínimo y veredicto esperado.
+// Las 14 causas de error morfológico, con nivel mínimo y veredicto esperado.
 // La distinción no_existe / norma_culta es el principio rector del marco §2.3
 // aplicado a morfología: *rojecer no existe; ONGs se dice y se entiende, y lo
 // que falla es la norma de escritura.
@@ -153,7 +153,13 @@ const FP_CAUSAS = {
   alomorfo_incorrecto:     { nivelMin:'avanzado', veredicto:'no_existe' },
   prestamo_adaptacion:     { nivelMin:'avanzado', veredicto:'norma_culta' },
   doble_analisis:          { nivelMin:'avanzado', veredicto:'dudosa' },
+  no_lexicalizada:         { nivelMin:'avanzado', veredicto:'dudosa' },
 };
+
+// Causas en las que NO hay nada que corregir: la forma está bien fabricada y
+// lo que se juzga es otra cosa (que no esté acuñada, o que admita dos análisis).
+// Exigirles `forma_correcta` obligaría a inventar un error que no existe.
+const FP_CAUSAS_SIN_CORRECCION = new Set(['no_lexicalizada']);
 
 // Vecinos confundibles: sus ítems deberían pesar 2 (§7 del schema).
 const FP_DISCRIMINANTES = new Set([
@@ -845,14 +851,17 @@ function validarFormacion(cabecera, filas, R){
           } else {
             const spec = FP_CAUSAS[it.causa];
             if(!it.causa) R.error(id, `${ref}: falta "causa" (obligatoria salvo en veredicto "correcta").`);
-            else if(!spec) R.error(id, `${ref}: causa "${it.causa}" no está entre las 13 del schema.`);
+            else if(!spec) R.error(id, `${ref}: causa "${it.causa}" no está entre las 14 del schema.`);
             else {
               if(FP_ORDEN_NIVEL[spec.nivelMin] > nivelNum)
                 R.error(id, `${ref}: causa "${it.causa}" es de nivel ${spec.nivelMin} y el reto es ${nivel}.`);
               if(spec.veredicto!==it.veredicto)
                 R.error(id, `${ref}: causa "${it.causa}" corresponde al veredicto "${spec.veredicto}", no a "${it.veredicto}".`);
             }
-            if(typeof it.forma_correcta!=='string' || !it.forma_correcta.trim())
+            if(FP_CAUSAS_SIN_CORRECCION.has(it.causa)){
+              if(it.forma_correcta!==undefined)
+                R.error(id, `${ref}: causa "${it.causa}" no debe llevar "forma_correcta": la forma no está mal fabricada, así que no hay nada que corregir.`);
+            } else if(typeof it.forma_correcta!=='string' || !it.forma_correcta.trim())
               R.error(id, `${ref}: veredicto "${it.veredicto}" exige "forma_correcta" (nunca el error solo en pantalla).`);
             const opc = Array.isArray(it.opciones_causa) ? it.opciones_causa : [];
             if(opc.length<2) R.error(id, `${ref}: "opciones_causa" necesita al menos 2 causas.`);

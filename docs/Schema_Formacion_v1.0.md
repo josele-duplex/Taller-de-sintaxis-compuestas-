@@ -312,9 +312,9 @@ Es la mecánica 2.3 («¿nueva o la misma?»), la pregunta exacta de la sesión 
 | Campo | Obligatorio | Reglas |
 |---|---|---|
 | `veredicto` | ✔ | `correcta` \| `no_existe` \| `norma_culta` \| `dudosa` |
-| `causa` | según veredicto | Una de las 13 de §6. Obligatoria salvo si `veredicto: "correcta"`, donde **no debe aparecer**. |
+| `causa` | según veredicto | Una de las 14 de §6. Obligatoria salvo si `veredicto: "correcta"`, donde **no debe aparecer**. |
 | `opciones_causa` | según veredicto | 2-4 causas, una de ellas la correcta. |
-| `forma_correcta` | según veredicto | Obligatoria salvo en `correcta`, donde está prohibida. |
+| `forma_correcta` | según veredicto | Obligatoria salvo en `correcta` y en la causa `no_lexicalizada`, donde está **prohibida** (§6.1: no hay nada que corregir). |
 | `explicacion` | ✔ | Qué se rompe, en lenguaje de alumno. |
 | `contexto` | — | **Ampliación v1.2 (§13.2).** Texto libre opcional, antes de la forma en foco: convierte el juicio suelto en el diagnóstico de una operación concreta («Un alumno quería fabricar el contrario de *hacer* y escribió…»). |
 
@@ -432,7 +432,7 @@ Es el riesgo nº 1 de la tabla del plan (§7.1). La UD de 3.º ESO deja abiertas
 
 ---
 
-## 6. Las trece causas de error morfológico
+## 6. Las catorce causas de error morfológico
 
 Lista cerrada del campo `causa`, gemela de las 16 causas del Laboratorio.
 
@@ -451,8 +451,28 @@ Lista cerrada del campo `causa`, gemela de las 16 causas del Laboratorio.
 | `alomorfo_incorrecto` | Alomorfo del afijo mal seleccionado | *\*solecito* por *solito* | avanzado | no_existe |
 | `prestamo_adaptacion` | Préstamo sin adaptar a la grafía española | *selfie* | avanzado | norma_culta |
 | `doble_analisis` | Zona gris: dos segmentaciones posibles | *inmovilizable* | avanzado | dudosa |
+| `no_lexicalizada` | Bien fabricada, pero la lengua no la ha acuñado | *desrobotizar* | avanzado | dudosa |
 
 **Fuera del corpus, sin excepción:** ortografía general (tildes, *b/v*, *h*), incorrección de origen social (*haiga*, *cocretas*) y rasgos dialectales. Solo entra la **ortografía morfológica** —siglas, acrónimos, abreviaturas—, que es la que depende del procedimiento de formación y por tanto es materia de esta unidad. La ortografía general se trabaja en la sesión 6 de la UD de 1.º ESO, que queda fuera del alcance de la Fábrica.
+
+### 6.1 `no_lexicalizada` — la causa que no señala ningún error
+
+**Ampliación v1.3 · 26-ago-2026 · aprobada por Josele.** Sale de la auditoría `docs/Auditoria_Fabrica_Reflexion_2026-08.md` §3.1.
+
+Hasta aquí el banco solo sabía decir dos cosas de una forma: o está bien fabricada, o está mal. Falta el escalón donde vive la **productividad morfológica**: *desrobotizar* no aparece en el diccionario y cualquier hablante la entiende y la aceptaría; *\*panidad* no. Enseñar esa diferencia es enseñar que la formación de palabras es un sistema con reglas vivas y no una lista cerrada de resultados.
+
+| | `no_existe` | `no_lexicalizada` |
+|---|---|---|
+| Qué pasa | El sistema **rechaza** la forma | El sistema **la admite**; el uso no la ha fijado |
+| Marca | ✗ con asterisco | ⚖ |
+| Ejemplo | *\*panidad*, *\*rojecer* | *desrobotizar*, *reciclabilidad* |
+| `forma_correcta` | obligatoria | **prohibida** |
+
+**Por qué `forma_correcta` está prohibida aquí** (lo comprueba el validador): la forma no está mal, así que cualquier «forma correcta» que se escribiera sería un error inventado. Lo que el alumno tiene que llevarse no es un arreglo, sino la distinción. Esa distinción va en `explicacion`.
+
+**Regla de redacción:** la `explicacion` nunca puede decir «no existe» a secas. Dice qué la hace posible (la pieza es productiva y la base la admite) y por qué no está acuñada (la lengua ya tiene otra palabra para eso, o el concepto no hace falta). Es el mismo matiz que la revisión de agosto aplicó a *\*blandar*.
+
+**Precaución de contenido:** «no aparece en el diccionario» no equivale a «imposible». Ningún ítem con esta causa puede apoyarse en la ausencia en el diccionario como único argumento.
 
 ---
 
