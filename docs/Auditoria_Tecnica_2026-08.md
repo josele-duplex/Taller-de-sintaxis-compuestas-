@@ -33,7 +33,7 @@ commit, y haz `git push`.
 | M4 | Museo sin poda | 🟡 Mejora | 10 min | Sonnet | ⬜ Pendiente |
 | A3 | Fuga de `AudioContext` en Arcade | 🟠 Advertencia | 30 min | Sonnet | ⬜ Pendiente |
 | A7 | Verificador de `SHELL_ASSETS` | 🟠 Advertencia | 30 min | Sonnet | ✅ HECHA |
-| M3 | Duplicación (`escCSV`, `_el`, sendBeacon) | 🟡 Mejora | 1 h | Sonnet | ⬜ Pendiente |
+| M3 | Duplicación (`escCSV`, `_el`, sendBeacon) | 🟡 Mejora | 1 h | Sonnet | 🟨 PARCIAL — `_el`/sendBeacon hechos, `escCSV` en C5 |
 | M1 | 77 `console.*` en producción | 🟡 Mejora | 30 min | Sonnet | ✅ HECHA |
 | A1 | `getOraciones_` sin caché | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
 | A2 | `validatePin_`: O(n) + sin límite de intentos | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
@@ -846,19 +846,19 @@ es una decisión legítima, no deuda.
 
 ---
 
-## M3 · Duplicación (DRY)
+## M3 · Duplicación (DRY) 🟨 PARCIAL
 
 - `escCSV` definida **dos veces en el mismo archivo**: `js/modules/teacher/index.js:892`
-  y `:1170` → resuelto en **C5** (extraer a `core/escape.js`).
-- `_el(id)` idéntica en `js/modules/fabrica/index.js:208` y
-  `js/modules/laboratorio/index.js:309` → a `core/`.
-- El patrón de analíticas por `sendBeacon` repetido casi literal en tres módulos:
-  `js/modules/chispa/index.js:541`, `js/modules/sintagmas/index.js:424`,
-  `js/modules/laboratorio/index.js:1823`.
-
-Un `js/core/analitica.js` con `enviarSesion(action, datos)` los unifica — y evita que
-el próximo módulo repita el bug de `sendBeacon` sin cuerpo que ya se tragó meses de
-datos (documentado en `server/Code_v6.gs:2636`).
+  y `:1170` → **pendiente, se resuelve en C5** (extraer a `core/escape.js`; C5 es crítico
+  de seguridad, no solo DRY, así que no se toca desde aquí).
+- ✅ `_el(id)` idéntica en `js/modules/fabrica/index.js:208` y
+  `js/modules/laboratorio/index.js:309` → extraída a `js/core/dom.js`.
+- ✅ El patrón de analíticas por `sendBeacon` repetido casi literal en tres módulos:
+  `js/modules/chispa/index.js`, `js/modules/sintagmas/index.js`,
+  `js/modules/laboratorio/index.js` → unificado en `js/core/analitica.js`
+  (`enviarSesion(action, datos)`), evitando que el próximo módulo repita el bug de
+  `sendBeacon` sin cuerpo que ya se tragó meses de datos (documentado en
+  `server/Code_v6.gs:2636`).
 
 ---
 

@@ -191,6 +191,8 @@ import { textoPrueba, microPrueba, CASCADA_SE } from '../../data/pruebas-sintaxi
 import { LS_LAB_DIARIO } from '../../core/constants.js';
 import { registrarLimpieza } from '../../core/timers.js';
 import { log } from '../../core/log.js';
+import { _el } from '../../core/dom.js';
+import { enviarSesion } from '../../core/analitica.js';
 
 let LAB = {}; // estado de la sesión (expuesto como window.LAB más abajo)
 
@@ -308,7 +310,6 @@ function shuffle(arr) {
 
 // ── DOM helpers (misma idea que fab-oracion/fab-pregunta/fab-fichas) ──────
 
-function _el(id) { return document.getElementById(id); }
 function _setCorpus(html) { const el = _el('lab-corpus'); if (el) el.innerHTML = html; }
 function _setPregunta(html) { const el = _el('lab-pregunta'); if (el) el.innerHTML = html; }
 function _setFichas(html) { const el = _el('lab-fichas'); if (el) el.innerHTML = html; }
@@ -1826,25 +1827,16 @@ function labSaltarDiario() { exitLaboratorio(); }
 // nada (ni error visible ni dato guardado: sendBeacon no informa de la
 // respuesta).
 function _enviarAnaliticaLaboratorio() {
-  try {
-    if (!LAB || !LAB.totalItems) return; // nada respondido en este nivel
-    if (LAB.mode === 'exam') return; // el examen manda su nota aparte (_enviarResultadoLaboratorio)
-    const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
-    if (apiUrl && LAB.email) {
-      const params = new URLSearchParams({
-        action: 'saveSesionLaboratorio',
-        email: LAB.email, name: LAB.name || '', grupo: LAB.grupo || '',
-        nivel: LAB.nivel || '',
-        retosCompletados: String(LAB.retosCompletadosSesion || 0),
-        aciertos: String(Math.round((LAB.aciertos || 0) * 100) / 100), totalItems: String(LAB.totalItems || 0),
-        rachaMax: String(LAB.rachaMax || 0),
-        errores: JSON.stringify(LAB.erroresPorTipo || {})
-      });
-      const url = apiUrl + '?' + params.toString();
-      if (navigator.sendBeacon) navigator.sendBeacon(url);
-      else fetch(url, { method: 'GET', keepalive: true }).catch(() => {});
-    }
-  } catch (e) { log.warn('[laboratorio analytics]', e); }
+  if (!LAB || !LAB.totalItems) return; // nada respondido en este nivel
+  if (LAB.mode === 'exam') return; // el examen manda su nota aparte (_enviarResultadoLaboratorio)
+  enviarSesion('saveSesionLaboratorio', {
+    email: LAB.email, name: LAB.name || '', grupo: LAB.grupo || '',
+    nivel: LAB.nivel || '',
+    retosCompletados: String(LAB.retosCompletadosSesion || 0),
+    aciertos: String(Math.round((LAB.aciertos || 0) * 100) / 100), totalItems: String(LAB.totalItems || 0),
+    rachaMax: String(LAB.rachaMax || 0),
+    errores: JSON.stringify(LAB.erroresPorTipo || {})
+  });
   // Reset del segmento pase lo que pase (también sin API: no acumular).
   LAB.retosCompletadosSesion = 0; LAB.aciertos = 0; LAB.totalItems = 0; LAB.rachaMax = 0; LAB.erroresPorTipo = {};
 }

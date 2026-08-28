@@ -20,6 +20,7 @@
 // "se" llegó aquí es porque el propio banco lo tiene como CD/CI genuino
 // (p. ej. "se lo dio" → CI), no como marca_pas_ref/marca_imp.
 import { log } from '../../core/log.js';
+import { enviarSesion } from '../../core/analitica.js';
 
 const CHISPA_PRONOMBRES_CD_CI = ['lo', 'la', 'los', 'las', 'le', 'les', 'me', 'te', 'nos', 'os', 'se'];
 
@@ -541,24 +542,15 @@ function _nombreTemaChispa(id){
 }
 
 function _enviarSesionChispa(){
-  try{
-    if(!CHI || !CHI.totalRondas) return;           // nada jugado en el segmento
-    const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
-    if(apiUrl && CHI.email){
-      const params = new URLSearchParams({
-        action: 'saveSesionChispa',
-        email: CHI.email, name: CHI.name || '', grupo: CHI.grupo || '',
-        tema: _nombreTemaChispa(CHI.temaSeleccionado),
-        rondas: String(CHI.totalRondas), aciertos: String(CHI.aciertos),
-        rachaMax: String(CHI.rachaMax || 0),
-        tiempoMin: String(Math.round((Date.now() - (CHI.segmentoStart || Date.now())) / 60000)),
-        errores: JSON.stringify(CHI.erroresPorFunc || {})
-      });
-      const url = apiUrl + '?' + params.toString();
-      if(navigator.sendBeacon) navigator.sendBeacon(url);
-      else fetch(url, { method: 'GET', keepalive: true }).catch(()=>{});
-    }
-  }catch(e){ log.warn('[chispa analytics]', e); }
+  if(!CHI || !CHI.totalRondas) return;           // nada jugado en el segmento
+  enviarSesion('saveSesionChispa', {
+    email: CHI.email, name: CHI.name || '', grupo: CHI.grupo || '',
+    tema: _nombreTemaChispa(CHI.temaSeleccionado),
+    rondas: String(CHI.totalRondas), aciertos: String(CHI.aciertos),
+    rachaMax: String(CHI.rachaMax || 0),
+    tiempoMin: String(Math.round((Date.now() - (CHI.segmentoStart || Date.now())) / 60000)),
+    errores: JSON.stringify(CHI.erroresPorFunc || {})
+  });
   // Reset del segmento pase lo que pase (también sin API: no acumular).
   CHI.totalRondas = 0; CHI.aciertos = 0; CHI.rachaMax = 0;
   CHI.erroresPorFunc = {}; CHI.segmentoStart = Date.now();

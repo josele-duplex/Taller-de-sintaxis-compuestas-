@@ -16,6 +16,7 @@
    playSuccess, playError, awardXP, trackError. */
 
 import { log } from '../../core/log.js';
+import { enviarSesion } from '../../core/analitica.js';
 
 // ════════════════════════════════════════════════════════
 // SINTAGMAS ENGINE v5.0 — Step-by-step recursive analysis
@@ -424,28 +425,19 @@ function sintSkipNew(){SIN.idx++;if(SIN.idx>=SIN.sintagmas.length){endSint();ret
 // el backend. `_sesionEnviada` evita duplicar la fila si el alumno pasa por
 // endSint() y luego pulsa "Inicio" (que tambien dispara el envio).
 function _enviarSesionSintagmas(){
-  try{
-    if(!SIN || SIN._sesionEnviada) return;
-    const total=(SIN.correct||0)+(SIN.errors||0);
-    if(total===0) return; // nada jugado en esta sesion
-    const apiUrl=(typeof getApiUrl==='function')?getApiUrl():'';
-    if(apiUrl && SIN.email){
-      const pct=Math.round((SIN.correct/total)*100);
-      const params=new URLSearchParams({
-        action:'saveSesionSintagmas',
-        email:SIN.email, name:SIN.name||'', grupo:SIN.grupo||'',
-        sintagmasCompletados:String(SIN.idx||0),
-        totalSintagmas:String(SIN.total||(SIN.sintagmas||[]).length||0),
-        aciertos:String(SIN.correct||0), errores:String(SIN.errors||0),
-        precisionPct:String(pct),
-        tiempoMin:String(Math.round((Date.now()-(SIN.startTime||Date.now()))/60000)),
-        erroresFunc:JSON.stringify(SIN.erroresPorFunc||{})
-      });
-      const url=apiUrl+'?'+params.toString();
-      if(navigator.sendBeacon) navigator.sendBeacon(url);
-      else fetch(url,{method:'GET',keepalive:true}).catch(()=>{});
-    }
-  }catch(e){ log.warn('[sintagmas analytics]', e); }
+  if(!SIN || SIN._sesionEnviada) return;
+  const total=(SIN.correct||0)+(SIN.errors||0);
+  if(total===0) return; // nada jugado en esta sesion
+  const pct=Math.round((SIN.correct/total)*100);
+  enviarSesion('saveSesionSintagmas', {
+    email:SIN.email, name:SIN.name||'', grupo:SIN.grupo||'',
+    sintagmasCompletados:String(SIN.idx||0),
+    totalSintagmas:String(SIN.total||(SIN.sintagmas||[]).length||0),
+    aciertos:String(SIN.correct||0), errores:String(SIN.errors||0),
+    precisionPct:String(pct),
+    tiempoMin:String(Math.round((Date.now()-(SIN.startTime||Date.now()))/60000)),
+    erroresFunc:JSON.stringify(SIN.erroresPorFunc||{})
+  });
   SIN._sesionEnviada=true;
 }
 

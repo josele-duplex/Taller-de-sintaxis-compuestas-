@@ -50,6 +50,7 @@ import { LS_FAB_MESA, LS_FAB_DIARIO, LS_FAB_MUSEO } from '../../core/constants.j
 import { pickFabMission, syncFabMission, fabMissionCardHtml } from '../../gamification/missions-fabrica.js';
 import { registrarLimpieza } from '../../core/timers.js';
 import { log } from '../../core/log.js';
+import { _el } from '../../core/dom.js';
 
 // ── Catálogos de etiquetas legibles (para no repetir texto ni volver a
 //    inventar terminología — todo sale de las listas cerradas del schema) ──
@@ -207,7 +208,6 @@ function _arrSameSet(a, b) {
 
 // ── DOM helpers (misma idea que chi-oracion/chi-pregunta/chi-fichas) ──────
 
-function _el(id) { return document.getElementById(id); }
 function _setOracion(html) { const el = _el('fab-oracion'); if (el) el.innerHTML = html; }
 // La forma que se está estudiando (par mínimo, juicio, frontera, cascada).
 function _setPalabraFoco(txt) { _setOracion('<div class="fab-foco">' + escHtml(txt) + '</div>'); }
