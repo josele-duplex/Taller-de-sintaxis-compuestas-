@@ -25,7 +25,7 @@ commit, y haz `git push`.
 | ID | Hallazgo | Prioridad | Esfuerzo | Modelo | Estado |
 |----|----------|-----------|----------|--------|--------|
 | C3 | `trackError` sin `try/catch` | 🔴 Crítico | 15 min | Sonnet | ✅ HECHO — `11b4480` |
-| A5 | `regenerarMorfologia` sin guarda de clave | 🟠 Advertencia | 5 min | Sonnet | ⬜ Pendiente |
+| A5 | `regenerarMorfologia` sin guarda de clave | 🟠 Advertencia | 5 min | Sonnet | ✅ HECHA |
 | C4 | SheetJS desde CDN sin SRI | 🔴 Crítico | 30 min | Sonnet | ⬜ Pendiente |
 | C5 | Inyección de fórmulas en CSV | 🔴 Crítico | 30 min | Sonnet | ⬜ Pendiente |
 | M5 | Worktree huérfano | 🟡 Mejora | 5 min | Sonnet | ⬜ Pendiente |

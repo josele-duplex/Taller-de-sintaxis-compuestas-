@@ -940,7 +940,7 @@ function doGet(e) {
     else if (action === 'getResultsByGroup')       { const na=requiereClaveProfesor_(params); result = na || getResultsByGroup_(params); }
     else if (action === 'getResultadosMorfologia') { const na=requiereClaveProfesor_(params); result = na || getResultadosMorfologia_(params); } // F3 Fábrica: cierra el hueco de Maestro
     else if (action === 'getRankingArcade')        result = getRankingArcade_(params);
-    else if (action === 'regenerarMorfologia')     result = regenerarMorfologia_();
+    else if (action === 'regenerarMorfologia')     { const na=requiereClaveProfesor_(params); result = na || regenerarMorfologia_(); }
     else if (action === 'saveArcadeScore')         result = saveArcadeScore_(params);
     else if (action === 'getInformeProfesor')      { const na=requiereClaveProfesor_(params); result = na || getInformeProfesor_(params); }
     else if (action === 'getMisGrupos')            { const na=requiereClaveProfesor_(params); result = na || getMisGrupos_(); }
