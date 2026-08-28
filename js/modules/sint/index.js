@@ -1389,6 +1389,7 @@ async function handleStart(){
   const grupo = (document.getElementById('inp-grupo')?.value||'').trim();
   let ok = true;
   if (!name)  { ferr('e-name','Escribe tu nombre completo.'); ok = false; }
+  else if (!NOMBRE_RE.test(name)) { ferr('e-name','El nombre solo puede llevar letras, espacios y guiones (máx. 60).'); ok = false; }
   if (!email) { ferr('e-email','El correo es obligatorio.'); ok = false; }
   else if (!EMAIL_RE.test(email)) { ferr('e-email','Correo inválido. Usa @murciaeduca.es, @alu.murciaeduca.es o @gmail.com'); ok = false; }
   if (!selectedMode) { ferr('e-mode','Selecciona un modo de sesión.'); ok = false; }
@@ -3986,6 +3987,7 @@ async function handleStartAll(){
   ferr('e-name','');ferr('e-email','');ferr('e-grupo','');
   let ok=true;
   if(!name){ferr('e-name','Escribe tu nombre completo.');ok=false;}
+  else if(!NOMBRE_RE.test(name)){ferr('e-name','El nombre solo puede llevar letras, espacios y guiones (máx. 60).');ok=false;}
   if(!email){ferr('e-email','El correo es obligatorio.');ok=false;}
   else if(!EMAIL_RE.test(email)){ferr('e-email','Correo inválido. Usa @murciaeduca.es, @alu.murciaeduca.es o @gmail.com');ok=false;}
   // Grupo obligatorio para todos los modulos academicos. Arcade usa su

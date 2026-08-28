@@ -27,13 +27,13 @@ commit, y haz `git push`.
 | C3 | `trackError` sin `try/catch` | 🔴 Crítico | 15 min | Sonnet | ✅ HECHO — `11b4480` |
 | A5 | `regenerarMorfologia` sin guarda de clave | 🟠 Advertencia | 5 min | Sonnet | ✅ HECHA |
 | C4 | SheetJS desde CDN sin SRI | 🔴 Crítico | 30 min | Sonnet | ⬜ Pendiente |
-| C5 | Inyección de fórmulas en CSV | 🔴 Crítico | 30 min | Sonnet | ⬜ Pendiente |
+| C5 | Inyección de fórmulas en CSV | 🔴 Crítico | 30 min | Sonnet | ✅ HECHA |
 | M5 | Worktree huérfano | 🟡 Mejora | 5 min | Sonnet | ⬜ Pendiente |
 | M2 | Código muerto (422 líneas) | 🟡 Mejora | 20 min | Sonnet | ⬜ Pendiente |
 | M4 | Museo sin poda | 🟡 Mejora | 10 min | Sonnet | ⬜ Pendiente |
 | A3 | Fuga de `AudioContext` en Arcade | 🟠 Advertencia | 30 min | Sonnet | ⬜ Pendiente |
 | A7 | Verificador de `SHELL_ASSETS` | 🟠 Advertencia | 30 min | Sonnet | ✅ HECHA |
-| M3 | Duplicación (`escCSV`, `_el`, sendBeacon) | 🟡 Mejora | 1 h | Sonnet | 🟨 PARCIAL — `_el`/sendBeacon hechos, `escCSV` en C5 |
+| M3 | Duplicación (`escCSV`, `_el`, sendBeacon) | 🟡 Mejora | 1 h | Sonnet | ✅ HECHA (escCSV resuelta en C5) |
 | M1 | 77 `console.*` en producción | 🟡 Mejora | 30 min | Sonnet | ✅ HECHA |
 | A1 | `getOraciones_` sin caché | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
 | A2 | `validatePin_`: O(n) + sin límite de intentos | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
@@ -301,7 +301,7 @@ Y en `sw.js`, dentro de `SHELL_ASSETS`: `'./vendor/xlsx.bundle.js',`
 
 ---
 
-## C5 · Inyección de fórmulas en los CSV que abre el profesor
+## C5 · Inyección de fórmulas en los CSV que abre el profesor ✅ HECHA
 
 **Archivos:** `js/modules/teacher/index.js:892` y `:1170` (`escCSV`, duplicada) · `index.html:178` · `js/modules/sint/index.js:1385`
 
@@ -846,11 +846,11 @@ es una decisión legítima, no deuda.
 
 ---
 
-## M3 · Duplicación (DRY) 🟨 PARCIAL
+## M3 · Duplicación (DRY) ✅ HECHA
 
-- `escCSV` definida **dos veces en el mismo archivo**: `js/modules/teacher/index.js:892`
-  y `:1170` → **pendiente, se resuelve en C5** (extraer a `core/escape.js`; C5 es crítico
-  de seguridad, no solo DRY, así que no se toca desde aquí).
+- ✅ `escCSV` definida **dos veces en el mismo archivo**: `js/modules/teacher/index.js:892`
+  y `:1170` → resuelta en **C5** (extraída a `core/escape.js`, con el arranque de
+  fórmula ya neutralizado).
 - ✅ `_el(id)` idéntica en `js/modules/fabrica/index.js:208` y
   `js/modules/laboratorio/index.js:309` → extraída a `js/core/dom.js`.
 - ✅ El patrón de analíticas por `sendBeacon` repetido casi literal en tres módulos:

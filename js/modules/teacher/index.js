@@ -21,6 +21,7 @@
    del resto de la app, por eso esta entrelazado en el original).*/
 
 import { log } from '../../core/log.js';
+import { escCSV } from '../../core/escape.js';
 
 // ════════════════════════════════════════════════════════
 // TEACHER PANEL
@@ -891,11 +892,6 @@ function exportCpCSV(){
                    'Total_Ejercicios','Completados','Nota',
                    'Fase0_Pts','Fase1_Pts','Fase2_Pts','Fase3_Pts',
                    'Fase4_Pts','Fase5_Pts','Fase6_Pts','Detalle_JSON'];
-  const escCSV = v => {
-    if(v == null) return '';
-    const s = String(v).replace(/"/g, '""');
-    return `"${s}"`;
-  };
   let csv = HEADERS.join(',') + '\n';
   _cpDashData.forEach(r => {
     csv += HEADERS.map(h => escCSV(r[h])).join(',') + '\n';
@@ -1169,11 +1165,6 @@ function exportMixCSV(){
   }
   const HEADERS = ['PIN', 'NombreExamen', 'Grupo_Examen', 'Evaluacion', 'Peso_Simples', 'Peso_Compuestas',
                    'email', 'nombre', 'grupo', 'notaSimples', 'notaCompuestas', 'notaGlobal', 'estado'];
-  const escCSV = v => {
-    if(v == null) return '';
-    const s = String(v).replace(/"/g, '""');
-    return `"${s}"`;
-  };
   let csv = HEADERS.join(',') + '\n';
   _mixDashData.forEach(r => { csv += HEADERS.map(h => escCSV(r[h])).join(',') + '\n'; });
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });

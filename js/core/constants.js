@@ -22,6 +22,14 @@ export const LS_LAB_DIARIO     = 'taller_lab_diario';      // Diario metalingü�
 // ───── Validación de email ─────
 export const EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@(murciaeduca\.es|alu\.murciaeduca\.es|gmail\.com)$/i;
 
+// ───── Validación de nombre (C5, auditoría técnica ago-2026) ─────
+// Solo letras (con acentos y ñ), espacios, guiones y apóstrofos, 2-60
+// caracteres. Sin esto el campo Nombre acepta cualquier cosa y acaba tal
+// cual en la Hoja y en el CSV que abre el profesor: un nombre que empiece
+// por = + - @ es una fórmula que Excel/LibreOffice ejecutan al abrir el
+// CSV (ver escCSV en core/escape.js, que neutraliza igualmente en destino).
+export const NOMBRE_RE = /^[\p{L}\p{M}\s'’.\-]{2,60}$/u;
+
 // ───── PIN del modo examen ─────
 export const PIN_LEN = 4;
 

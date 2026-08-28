@@ -12,3 +12,17 @@ export function escHtml(s) {
 export function escAttr(s) {
   return escHtml(s);
 }
+
+/* Escapa un valor para CSV neutralizando además el arranque de fórmula
+   (C5, auditoría técnica ago-2026). Excel y LibreOffice ejecutan cualquier
+   celda que empiece por = + - @ (o por tab / CR), así que un nombre de
+   alumno puede convertirse en código que se ejecuta en el ordenador del
+   profesor al abrir el CSV exportado. El prefijo ' la marca como texto sin
+   que se vea al abrirla. Sustituye a las dos copias locales idénticas que
+   había en teacher/index.js (solo entrecomillaban, sin neutralizar). */
+export function escCSV(v) {
+  if (v == null) return '""';
+  let s = String(v).replace(/\r\n?/g, ' ');
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return '"' + s.replace(/"/g, '""') + '"';
+}
