@@ -1401,7 +1401,7 @@ async function handleStart(){
   // ── 1b. Mission selector for practice mode ──
   if(selectedMode==='practice' && currentModule==='sint'){
     const misiones=await getMisionesForMode('sintaxis');
-    const errorHist=JSON.parse(localStorage.getItem('taller_error_history')||'{}');
+    const errorHist=_loadErrorHistory();
     const hasErrors=Object.keys(errorHist.sintaxis||{}).length>0;
     if(misiones.length>0||hasErrors){
       showMissionSelector({modo:'sintaxis',_continue:()=>_doHandleStart(name,email,pin,examSubfase)});
@@ -3228,7 +3228,7 @@ async function goResults(){
 }
 
 function practiceMyErrors(){
-  const errorHist=JSON.parse(localStorage.getItem('taller_error_history')||'{}');
+  const errorHist=_loadErrorHistory();
   const sintErrors=errorHist.sintaxis||{};
   const topErrors=Object.entries(sintErrors).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]);
   if(topErrors.length>0){

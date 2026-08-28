@@ -16,12 +16,30 @@ let _sessionFuncErrors = {};
 // trabajo activo, no acumular para siempre.
 let _sessionFuncSuccess = {};
 
+// Lectura defensiva del historial de errores persistido en localStorage.
+// Si el valor está corrupto o localStorage no está disponible (cuota llena,
+// Safari privado), no debe abortar el procesado de la respuesta del alumno
+// — se descarta y se sigue con historial vacío. Expuesta en window (vía el
+// Object.assign de app.js) para que los módulos que aún leen esta clave
+// directamente (sint, compuestas, teacher) reusen la misma protección.
+export function _loadErrorHistory() {
+  try {
+    return JSON.parse(localStorage.getItem('taller_error_history') || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function _saveErrorHistory(hist) {
+  try { localStorage.setItem('taller_error_history', JSON.stringify(hist)); } catch {}
+}
+
 // Track errors by function for adaptive missions
 export function trackError(modo, funcion) {
-  const hist = JSON.parse(localStorage.getItem('taller_error_history') || '{}');
+  const hist = _loadErrorHistory();
   if (!hist[modo]) hist[modo] = {};
   hist[modo][funcion] = (hist[modo][funcion] || 0) + 1;
-  localStorage.setItem('taller_error_history', JSON.stringify(hist));
+  _saveErrorHistory(hist);
   // Session counter for micro-lessons
   if (!_sessionFuncErrors[funcion]) _sessionFuncErrors[funcion] = 0;
   _sessionFuncErrors[funcion]++;
@@ -94,10 +112,8 @@ export function getMastery() { return _loadMastery(); }
 // producto §1: "cuando un alumno falla tres veces la misma función en
 // Simples..."), que se refiere al histórico, no a los fallos de hoy.
 export function getErrorHistoryCount(modo, funcion) {
-  try {
-    const hist = JSON.parse(localStorage.getItem('taller_error_history') || '{}');
-    return (hist[modo] && hist[modo][funcion]) || 0;
-  } catch (e) { return 0; }
+  const hist = _loadErrorHistory();
+  return (hist[modo] && hist[modo][funcion]) || 0;
 }
 
 /**

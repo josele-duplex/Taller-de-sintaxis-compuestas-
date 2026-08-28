@@ -1301,7 +1301,7 @@ async function showMissionSelector(launchParams){
   const modo = launchParams.modo || 'sintaxis';
   const misiones = await getMisionesForMode(modo);
   // Also add auto-generated reinforcement mission based on error history
-  const errorHist = JSON.parse(localStorage.getItem('taller_error_history')||'{}');
+  const errorHist = _loadErrorHistory();
   const modoErrors = errorHist[modo]||{};
   const sortedErrors = Object.entries(modoErrors).sort((a,b)=>b[1]-a[1]);
 
@@ -1405,7 +1405,7 @@ function launchReinforcement(){
   _capturarReflexionToggle();
   window._activeReto = null;
   const modo = window._pendingMissionLaunch?.modo||'sintaxis';
-  const errorHist = JSON.parse(localStorage.getItem('taller_error_history')||'{}');
+  const errorHist = _loadErrorHistory();
   const modoErrors = errorHist[modo]||{};
   const topErrors = Object.entries(modoErrors).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]);
   window._activeMission = {id:'REFUERZO',nombre:'Refuerzo personalizado',modo,funciones:topErrors,nOraciones:5};
