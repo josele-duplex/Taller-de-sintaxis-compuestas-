@@ -29,7 +29,7 @@ commit, y haz `git push`.
 | C4 | SheetJS desde CDN sin SRI | 🔴 Crítico | 30 min | Sonnet | ✅ HECHA (opción B: vendorizado) |
 | C5 | Inyección de fórmulas en CSV | 🔴 Crítico | 30 min | Sonnet | ✅ HECHA |
 | M5 | Worktree huérfano | 🟡 Mejora | 5 min | Sonnet | ✅ HECHA |
-| M2 | Código muerto (422 líneas) | 🟡 Mejora | 20 min | Sonnet | ⬜ Pendiente |
+| M2 | Código muerto (422 líneas) | 🟡 Mejora | 20 min | Sonnet | ✅ HECHA |
 | M4 | Museo sin poda | 🟡 Mejora | 10 min | Sonnet | ✅ HECHA |
 | A3 | Fuga de `AudioContext` en Arcade | 🟠 Advertencia | 30 min | Sonnet | ⬜ Pendiente |
 | A7 | Verificador de `SHELL_ASSETS` | 🟠 Advertencia | 30 min | Sonnet | ✅ HECHA |
@@ -832,7 +832,7 @@ export const log = {
 
 ---
 
-## M2 · Código muerto: 422 líneas + un bloque inactivo
+## M2 · Código muerto: 422 líneas + un bloque inactivo ✅ HECHA (los dos borrables)
 
 | Archivo | Líneas | Estado |
 |---|---|---|
