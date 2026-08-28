@@ -960,6 +960,12 @@ function fabCreativoDeclarar(proc) {
   );
 }
 
+// M4 (auditoría técnica ago-2026): tope suave — el museo es una vitrina,
+// no un archivo. Sin esto, un alumno constante acumula cientos de entradas
+// en localStorage (cuota total ~5 MB compartida con el resto de claves de
+// la app) y la Fábrica acaba desalojando el progreso de otros módulos.
+const MUSEO_MAX = 200;
+
 function _loadMuseo() {
   try { const m = JSON.parse(localStorage.getItem(LS_FAB_MUSEO) || '[]'); return Array.isArray(m) ? m : []; }
   catch (e) { return []; }
@@ -979,6 +985,7 @@ function fabCreativoGuardar() {
     nivel: FAB.nivel,
     fecha: new Date().toISOString().slice(0, 10)
   });
+  if (museo.length > MUSEO_MAX) museo.splice(0, museo.length - MUSEO_MAX);
   _saveMuseo(museo);
   FAB.museoNuevas = (FAB.museoNuevas || 0) + 1;
   _sincronizarMision();

@@ -30,7 +30,7 @@ commit, y haz `git push`.
 | C5 | Inyección de fórmulas en CSV | 🔴 Crítico | 30 min | Sonnet | ✅ HECHA |
 | M5 | Worktree huérfano | 🟡 Mejora | 5 min | Sonnet | ✅ HECHA |
 | M2 | Código muerto (422 líneas) | 🟡 Mejora | 20 min | Sonnet | ⬜ Pendiente |
-| M4 | Museo sin poda | 🟡 Mejora | 10 min | Sonnet | ⬜ Pendiente |
+| M4 | Museo sin poda | 🟡 Mejora | 10 min | Sonnet | ✅ HECHA |
 | A3 | Fuga de `AudioContext` en Arcade | 🟠 Advertencia | 30 min | Sonnet | ⬜ Pendiente |
 | A7 | Verificador de `SHELL_ASSETS` | 🟠 Advertencia | 30 min | Sonnet | ✅ HECHA |
 | M3 | Duplicación (`escCSV`, `_el`, sendBeacon) | 🟡 Mejora | 1 h | Sonnet | ✅ HECHA (escCSV resuelta en C5) |
@@ -862,7 +862,7 @@ es una decisión legítima, no deuda.
 
 ---
 
-## M4 · Museo sin poda
+## M4 · Museo sin poda ✅ HECHA
 
 **Archivo:** `js/modules/fabrica/index.js:966` (`fabCreativoGuardar`)
 
