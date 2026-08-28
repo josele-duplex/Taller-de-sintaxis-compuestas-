@@ -31,6 +31,7 @@ import * as audio from './core/audio.js';
 import * as api from './core/api.js';
 import * as navigation from './core/navigation.js';
 import * as profile from './core/profile.js';
+import * as timers from './core/timers.js';
 import { registerServiceWorker } from './core/pwa.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -74,7 +75,7 @@ import * as fPistaFlotante from './feedback/pista-flotante.js';
 // referirlas libremente, igual que hacía el monolito.
 // ─────────────────────────────────────────────────────────────
 Object.assign(window,
-  constants, auth, escape, storage, audio, api, navigation, profile,
+  constants, auth, escape, storage, audio, api, navigation, profile, timers,
   dictMorf, dictSintax, dictSintag, haberForms,
   glosTags, glosData, glosRender,
   gLevels, gMissions, gStreak, gXp, gDashboard,

@@ -22,6 +22,8 @@
    trackError, showCombo, showLevelUp. escHtml/escAttr se definen
    internamente al final del modulo. */
 
+  import { registrarLimpieza } from '../../core/timers.js';
+
   let _examTimerInterval = null;
 
   const state = {
@@ -689,6 +691,10 @@
     if(_examTimerInterval){ clearInterval(_examTimerInterval); _examTimerInterval = null; }
     state.examTimerRunning = false;
   }
+  // A6 (auditoría técnica ago-2026): antes, salir del examen por la
+  // navegación general (no por CP.salirTrasEnvio) dejaba el temporizador
+  // vivo — cleanAllTimers (sint) no conocía CP.
+  registrarLimpieza(stopExamTimer);
 
   function _updateTimerDisplay(){
     const el = document.getElementById('cp-exam-timer');

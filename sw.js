@@ -55,6 +55,7 @@ const SHELL_ASSETS = [
   './js/core/api.js',
   './js/core/navigation.js',
   './js/core/profile.js',
+  './js/core/timers.js',
   './js/core/pwa.js',
   './js/data/diccionario-morfologia.js',
   './js/data/diccionario-sintaxis.js',

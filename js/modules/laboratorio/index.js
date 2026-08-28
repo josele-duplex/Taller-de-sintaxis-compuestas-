@@ -189,6 +189,7 @@ import { textoPrueba, microPrueba, CASCADA_SE } from '../../data/pruebas-sintaxi
 // Fase C en Simples, un dato distinto. El precedente real de un diario
 // metalingüístico de texto libre es el de Fábrica, y es puramente local.
 import { LS_LAB_DIARIO } from '../../core/constants.js';
+import { registrarLimpieza } from '../../core/timers.js';
 
 let LAB = {}; // estado de la sesión (expuesto como window.LAB más abajo)
 
@@ -789,6 +790,9 @@ function _updateLaboratorioTimerDisplay() {
 function _clearLaboratorioTimer() {
   if (LAB.timerInterval) { clearInterval(LAB.timerInterval); LAB.timerInterval = null; }
 }
+// A6 (auditoría técnica ago-2026): LAB llegó después de que cleanAllTimers
+// (sint) se escribiera a mano y nunca entró en esa lista.
+registrarLimpieza(_clearLaboratorioTimer);
 
 // Nota = aciertos/totalItems (puntos ya ponderados por `peso`, §6) — ver la
 // nota junto a iniciarExamenLaboratorio sobre por qué `juicio` no aplica

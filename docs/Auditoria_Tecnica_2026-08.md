@@ -38,7 +38,7 @@ commit, y haz `git push`.
 | A1 | `getOraciones_` sin caché | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
 | A2 | `validatePin_`: O(n) + sin límite de intentos | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
 | A4 | Escapado ausente en `sint` (46 `innerHTML`) | 🟠 Advertencia | 1-2 h | Opus | ⬜ Pendiente |
-| A6 | Acoplamiento por `window.*` (timers, navegación) | 🟠 Advertencia | 2 h | Opus | ⬜ Pendiente |
+| A6 | Acoplamiento por `window.*` (timers, navegación) | 🟠 Advertencia | 2 h | Opus | ✅ HECHA |
 | A8 | Datos lingüísticos dentro de los módulos de UI | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
 | C1 | Clave de profesor *fail-open* → datos de menores | 🔴 Crítico | 30 min | Opus | ⏸ AL CIERRE DE EVALUACIÓN |
 | C2 | Nota de examen calculada y firmada por el cliente | 🔴 Crítico | 3-4 h | Opus | ⏸ AL CIERRE DE EVALUACIÓN |
@@ -654,7 +654,7 @@ dejarlo, documentarlo como deuda asumida, y cerrar solo `regenerarMorfologia`.
 
 ---
 
-## A6 · Acoplamiento por `window.*`: cada módulo conoce el estado de los demás
+## A6 · Acoplamiento por `window.*`: cada módulo conoce el estado de los demás ✅ HECHA
 
 **Archivos:** `js/modules/sint/index.js:112` (`cleanAllTimers`) · `js/core/navigation.js:13-28`
 

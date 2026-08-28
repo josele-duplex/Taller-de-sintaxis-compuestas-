@@ -9,8 +9,12 @@
    se extraigan (Pasos 6-9). */
 
 import { applyProfileToLogin } from './profile.js';
+import { limpiarTodo } from './timers.js';
 
 export function showScreen(id) {
+  // A6 (auditoría técnica ago-2026): centraliza la limpieza de temporizadores
+  // de todos los módulos registrados (antes solo cubría sint/arcade/maestro).
+  limpiarTodo();
   document.querySelectorAll('.screen').forEach(s => {
     s.style.display = 'none';
     s.classList.remove('active');
@@ -21,9 +25,14 @@ export function showScreen(id) {
     el.style.display = 'flex';
     el.classList.add('active');
   }
-  // Start/stop loading tips rotator based on screen
-  if (id === 'loading' || id === 'screen-loading') startLoadingTips();
-  else stopLoadingTips();
+  // Start/stop loading tips rotator based on screen.
+  // Guarda: si sint/index.js no llegó a cargar (p.ej. el Service Worker falló
+  // en un módulo), startLoadingTips/stopLoadingTips no existen y no deben
+  // tumbar la navegación entera.
+  try {
+    if (id === 'loading' || id === 'screen-loading') { if (typeof startLoadingTips === 'function') startLoadingTips(); }
+    else if (typeof stopLoadingTips === 'function') stopLoadingTips();
+  } catch (e) {}
   document.body.style.overflow = '';
 }
 

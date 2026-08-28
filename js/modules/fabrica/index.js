@@ -48,6 +48,7 @@
 import { textoPrueba, microPrueba } from '../../data/pruebas-morfologia.js';
 import { LS_FAB_MESA, LS_FAB_DIARIO, LS_FAB_MUSEO } from '../../core/constants.js';
 import { pickFabMission, syncFabMission, fabMissionCardHtml } from '../../gamification/missions-fabrica.js';
+import { registrarLimpieza } from '../../core/timers.js';
 
 // ── Catálogos de etiquetas legibles (para no repetir texto ni volver a
 //    inventar terminología — todo sale de las listas cerradas del schema) ──
@@ -652,6 +653,9 @@ function _updateFabricaTimerDisplay() {
 function _clearFabricaTimer() {
   if (FAB.timerInterval) { clearInterval(FAB.timerInterval); FAB.timerInterval = null; }
 }
+// A6 (auditoría técnica ago-2026): FAB llegó después de que cleanAllTimers
+// (sint) se escribiera a mano y nunca entró en esa lista.
+registrarLimpieza(_clearFabricaTimer);
 
 function _finalizarExamenFabrica() {
   _clearFabricaTimer();

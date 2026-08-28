@@ -122,6 +122,11 @@ function cleanAllTimers(){
     MC.active=false;
   }
 }
+// A6 (auditoría técnica ago-2026): registro en el limpiador central de
+// js/core/timers.js para que navigation.js la llame en cada cambio de
+// pantalla, no solo desde dentro de sint. app.js expone registrarLimpieza
+// en window antes de que este <script> classic (defer) se ejecute.
+if(typeof window.registrarLimpieza==='function') window.registrarLimpieza(cleanAllTimers);
 
 /** Resets per-sentence state for navigation between oraciones */
 function resetSentenceState(){
