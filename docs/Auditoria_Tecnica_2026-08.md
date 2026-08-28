@@ -35,7 +35,7 @@ commit, y haz `git push`.
 | A7 | Verificador de `SHELL_ASSETS` | 🟠 Advertencia | 30 min | Sonnet | ✅ HECHA |
 | M3 | Duplicación (`escCSV`, `_el`, sendBeacon) | 🟡 Mejora | 1 h | Sonnet | ✅ HECHA (escCSV resuelta en C5) |
 | M1 | 77 `console.*` en producción | 🟡 Mejora | 30 min | Sonnet | ✅ HECHA |
-| A1 | `getOraciones_` sin caché | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
+| A1 | `getOraciones_` sin caché | 🟠 Advertencia | 1 h | Opus | ✅ HECHA (caché troceada; requiere redespliegue) |
 | A2 | `validatePin_`: O(n) + sin límite de intentos | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
 | A4 | Escapado ausente en `sint` (46 `innerHTML`) | 🟠 Advertencia | 1-2 h | Opus | ⬜ Pendiente |
 | A6 | Acoplamiento por `window.*` (timers, navegación) | 🟠 Advertencia | 2 h | Opus | ✅ HECHA |
@@ -420,6 +420,31 @@ function invalidarCacheOraciones_() {
   try { CacheService.getScriptCache().removeAll(keys); } catch (e) {}
 }
 ```
+
+### ✅ Resuelto (ago-2026) — con dos cambios sobre la receta de arriba
+
+Lo implementado en `server/Code_v6.gs` sigue la idea (caché de 5 min + función de
+invalidación) pero se aparta del snippet en dos puntos, y conviene saber por qué:
+
+1. **Caché troceada, no una sola clave.** `CacheService` admite ~100 KB por clave y el
+   banco serializado ronda **1,3 MB** (658 oraciones con sus bloques y sintagmas). Con
+   el `if (json.length < 100000)` del snippet, el `put` no se habría hecho *nunca* y la
+   caché habría quedado de adorno. Se guarda partido en trozos de 40 000 caracteres
+   (≈25 claves) más una clave «índice» con cuántos hay; si al leer falta cualquier
+   trozo, se descarta todo y se recalcula — nunca se sirve medio banco.
+2. **Una entrada por modo, no diez por (modo × subfase).** El filtro de subfase es una
+   comparación de índices sobre objetos ya construidos, así que se aplica *después* de
+   leer la caché (`_filtrarPorSubfase_`). Dos entradas (`practice`, `exam`) sirven a las
+   cuatro subfases, sin multiplicar por cinco lo que ocupa en caché.
+
+El cuerpo caro se movió tal cual a `_computeOraciones_(mode)`. `invalidarCacheOraciones_()`
+se llama ya desde los seis puntos del menú que tocan el banco: activar/desactivar
+seleccionadas, activar/desactivar todas, eliminar duplicados, reparar JSON roto,
+reparar oraciones y rellenar etiquetas.
+
+**Queda un caso sin invalidación explícita:** si el profesor edita una celda a mano en
+la Hoja, los alumnos ven el cambio cuando caduque el TTL, es decir, **hasta 5 minutos
+después**. Es el precio de la caché y está acotado.
 
 ---
 

@@ -989,6 +989,39 @@ function doGet(e) {
  * @return {{oraciones:object[], total:number, mode:string, subfase?:string, subfaseRelajada?:boolean} | object} error (ERR.NO_SHEET) si falta la hoja del banco.
  */
 function getOraciones_(mode, subfase) {
+  const cache = CacheService.getScriptCache();
+  const key   = ORACIONES_CACHE_PREFIX + (mode === 'exam' ? 'exam' : 'practice');
+
+  // 1. Caché (A1, ago-2026). El banco solo cambia cuando el profesor edita la
+  //    Hoja, no entre dos alumnos: recalcularlo 30 veces en el mismo minuto
+  //    —la entrada a clase— era el cuello de botella real del servidor.
+  let oraciones = _cacheLeerTroceado_(cache, key);
+
+  // 2. Fallo de caché: cálculo completo desde la Hoja.
+  if (!oraciones) {
+    const calculo = _computeOraciones_(mode);
+    if (calculo && calculo.ok === false) return calculo;   // error: no se cachea
+    oraciones = calculo.oraciones || [];
+    // Un banco vacío casi siempre significa "hoja a medio pegar": no lo
+    // guardamos, para que el siguiente alumno vuelva a mirar la Hoja de verdad.
+    if (oraciones.length === 0) return { oraciones: [] };
+    _cacheEscribirTroceado_(cache, key, oraciones, ORACIONES_CACHE_TTL);
+  }
+
+  // 3. El filtro por subfase se aplica SIEMPRE sobre el resultado cacheado:
+  //    es una comparación de índices, cuesta microsegundos, y así una sola
+  //    entrada de caché por modo sirve a las cuatro subfases.
+  return _filtrarPorSubfase_(oraciones, mode, subfase);
+}
+
+/**
+ * Cuerpo de cálculo de getOraciones_: lee la hoja del banco y construye los
+ * objetos de oración. Es la parte cara (safeParseJSON + buildOracionObject
+ * por fila); getOraciones_ la envuelve en caché.
+ * @param {string} mode - 'practice' (incluye borradores) | 'exam' (solo Activo='Sí').
+ * @return {{oraciones:object[]} | object} error (ERR.NO_SHEET) si falta la hoja del banco.
+ */
+function _computeOraciones_(mode) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_BANCO);
   if (!sheet) return gasError_('Hoja "' + SHEET_BANCO + '" no encontrada.', ERR.NO_SHEET);
@@ -998,10 +1031,6 @@ function getOraciones_(mode, subfase) {
 
   const data = sheet.getRange(2, 1, lastRow - 1, 8).getValues(); // v4.7: 8 columns
   const oraciones = [];
-  const filtradas = [];   // subconjunto que además pasa el filtro de subfase
-  const MIN_POOL_SUBFASE = 5;
-  const subfaseOrder = ['solo_np', 'np_sujeto', 'completo', 'profundo'];
-  const selIdx = subfase ? subfaseOrder.indexOf(String(subfase).trim()) : -1;
 
   for (let i = 0; i < data.length; i++) {
     const row    = data[i];
@@ -1019,17 +1048,32 @@ function getOraciones_(mode, subfase) {
     const obj = buildOracionObject(row, i + 2); // +2 because row 1 is header
     if (!obj) continue;
     oraciones.push(obj);
-
-    if (selIdx >= 0) {
-      // v6.5: subfase_minima ya viene calculada en caliente por buildOracionObject
-      // (_analizarDificultadOracion_) — no se lee la columna H estática.
-      const reqIdx = subfaseOrder.indexOf(obj.subfase_minima || 'completo');
-      if (selIdx >= reqIdx) filtradas.push(obj);
-    }
   }
+
+  return { oraciones: oraciones };
+}
+
+/**
+ * Aplica el filtro de subfase con relajación anti-sesión-vacía. Separado de
+ * _computeOraciones_ para que la caché guarde el banco una sola vez por modo.
+ * @param {object[]} oraciones - banco ya construido (cacheado o recién calculado).
+ * @param {string} mode - se devuelve tal cual en la respuesta.
+ * @param {string} [subfase] - 'solo_np'|'np_sujeto'|'completo'|'profundo'.
+ * @return {{oraciones:object[], total:number, mode:string, subfase?:string, subfaseRelajada?:boolean}}
+ */
+function _filtrarPorSubfase_(oraciones, mode, subfase) {
+  const MIN_POOL_SUBFASE = 5;
+  const subfaseOrder = ['solo_np', 'np_sujeto', 'completo', 'profundo'];
+  const selIdx = subfase ? subfaseOrder.indexOf(String(subfase).trim()) : -1;
 
   // Sin filtro pedido (o valor no reconocido): comportamiento de siempre.
   if (selIdx < 0) return { oraciones: oraciones, total: oraciones.length, mode: mode };
+
+  // v6.5: subfase_minima ya viene calculada en caliente por buildOracionObject
+  // (_analizarDificultadOracion_) — no se lee la columna H estática.
+  const filtradas = oraciones.filter(function (obj) {
+    return selIdx >= subfaseOrder.indexOf(obj.subfase_minima || 'completo');
+  });
 
   if (filtradas.length >= MIN_POOL_SUBFASE) {
     return { oraciones: filtradas, total: filtradas.length, mode: mode, subfase: subfase };
@@ -1037,6 +1081,89 @@ function getOraciones_(mode, subfase) {
   // Banco insuficiente para esa subfase: mejor todo el pool que una sesión vacía.
   return { oraciones: oraciones, total: oraciones.length, mode: mode,
            subfase: subfase, subfaseRelajada: true };
+}
+
+// ── Caché troceada del banco de oraciones (A1, ago-2026) ────────────────
+// CacheService admite unos 100 KB por clave y el banco entero (658 oraciones
+// con sus bloques y sintagmas) pasa del megabyte: en una sola clave no cabría
+// y el `put` se perdería en silencio. Por eso se guarda partido en trozos más
+// una clave «índice» con cuántos hay. Si al leer falta cualquier trozo (han
+// caducado a destiempo o los ha desalojado Google), se descarta todo y se
+// recalcula: nunca se sirve medio banco.
+const ORACIONES_CACHE_PREFIX = 'oraciones_v1_';
+const ORACIONES_CACHE_TTL    = 300;    // 5 min, igual que la caché de morfología
+const _CACHE_TROZO_CHARS     = 40000;  // margen: las tildes ocupan 2 bytes en UTF-8
+const _CACHE_MAX_TROZOS      = 80;     // ~3 MB; por encima, mejor no cachear
+const _CACHE_LOTE_PUT        = 25;     // claves por putAll
+
+function _cacheEscribirTroceado_(cache, key, valor, ttl) {
+  let json;
+  try { json = JSON.stringify(valor); } catch (e) { return false; }
+
+  const trozos = [];
+  let i = 0;
+  while (i < json.length) {
+    let fin = Math.min(i + _CACHE_TROZO_CHARS, json.length);
+    // No partir un par suplente (emoji) por la mitad: al recomponer daría un
+    // carácter roto y JSON.parse fallaría.
+    if (fin < json.length) {
+      const c = json.charCodeAt(fin - 1);
+      if (c >= 0xD800 && c <= 0xDBFF) fin--;
+    }
+    trozos.push(json.slice(i, fin));
+    i = fin;
+  }
+  if (trozos.length === 0 || trozos.length > _CACHE_MAX_TROZOS) return false;
+
+  try {
+    for (let b = 0; b < trozos.length; b += _CACHE_LOTE_PUT) {
+      const lote  = {};
+      const hasta = Math.min(b + _CACHE_LOTE_PUT, trozos.length);
+      for (let j = b; j < hasta; j++) lote[key + '_' + j] = trozos[j];
+      cache.putAll(lote, ttl);
+    }
+    // El índice se escribe el último: si algo falla antes, la lectura no
+    // encuentra índice y recalcula, en vez de recomponer un banco a medias.
+    cache.put(key, String(trozos.length), ttl);
+  } catch (e) {
+    console.warn('[getOraciones] No se pudo cachear el banco: ' + e.message);
+    return false;
+  }
+  return true;
+}
+
+function _cacheLeerTroceado_(cache, key) {
+  let n;
+  try { n = Number(cache.get(key) || 0); } catch (e) { return null; }
+  if (!n || n < 1) return null;
+
+  const claves = [];
+  for (let i = 0; i < n; i++) claves.push(key + '_' + i);
+  let partes;
+  try { partes = cache.getAll(claves); } catch (e) { return null; }
+
+  let json = '';
+  for (let i = 0; i < n; i++) {
+    const p = partes[key + '_' + i];
+    if (p === null || p === undefined) return null;   // falta un trozo: recalcular
+    json += p;
+  }
+  try { return JSON.parse(json); } catch (e) { return null; }
+}
+
+/**
+ * Invalida la caché del banco de oraciones (ambos modos). Llamar tras cualquier
+ * cambio en Oraciones_Banco para que los alumnos vean la versión nueva sin
+ * esperar a que caduquen los 5 minutos.
+ */
+function invalidarCacheOraciones_() {
+  const claves = [];
+  ['practice', 'exam'].forEach(function (m) {
+    const key = ORACIONES_CACHE_PREFIX + m;
+    claves.push(key);
+    for (let i = 0; i < _CACHE_MAX_TROZOS; i++) claves.push(key + '_' + i);
+  });
+  try { CacheService.getScriptCache().removeAll(claves); } catch (e) {}
 }
 
 /**
@@ -3348,6 +3475,7 @@ function _toggleSeleccionadas_(valor) {
   });
   if (rows.size === 0) { ui.alert('Sin selección', 'Selecciona las filas primero.', ui.ButtonSet.OK); return; }
   rows.forEach(r => sheet.getRange(r, COL_ACTIVO).setValue(valor));
+  invalidarCacheOraciones_();   // A1: si no, el cambio tardaría hasta 5 min en verse
   ui.alert(`✓ ${rows.size} oraciones ${valor==='Sí'?'activadas':'desactivadas'}`,
     'Los cambios ya están disponibles para tus alumnos.', ui.ButtonSet.OK);
 }
@@ -3531,6 +3659,7 @@ function activarTodas() {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
   sheet.getRange(2, COL_ACTIVO, lastRow - 1, 1).setValue('Sí');
+  invalidarCacheOraciones_();   // A1: si no, el cambio tardaría hasta 5 min en verse
   SpreadsheetApp.getUi().alert('✅ ' + (lastRow - 1) + ' oraciones activadas.');
 }
 
@@ -3541,6 +3670,7 @@ function desactivarTodas() {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
   sheet.getRange(2, COL_ACTIVO, lastRow - 1, 1).setValue('No');
+  invalidarCacheOraciones_();   // A1: si no, el cambio tardaría hasta 5 min en verse
   SpreadsheetApp.getUi().alert('✅ Todas las oraciones desactivadas.');
 }
 
@@ -3609,6 +3739,8 @@ function generarEtiquetas() {
     sheet.getRange(rowNum, COL_SUBFASE).setValue(obj.subfase_minima);
     filled++;
   }
+
+  if (filled > 0) invalidarCacheOraciones_();   // A1: las etiquetas viajan al alumno
 
   SpreadsheetApp.getUi().alert(
     'Etiquetado completado\n' +
@@ -4240,6 +4372,7 @@ function menuEliminarDuplicadosBanco() {
   // Borrar de abajo arriba para no desplazar índices
   aBorrar.sort(function(a, b){ return b - a; });
   aBorrar.forEach(function(fila){ sheet.deleteRow(fila); });
+  invalidarCacheOraciones_();   // A1: han cambiado las filas del banco
 
   ui.alert('✅ Hecho', 'Borradas ' + aBorrar.length + ' filas duplicadas.' +
     (paraRevisar.length ? '\n\nQuedan ' + paraRevisar.length + ' grupos con diferencias para revisar a mano.' : ''),
@@ -4270,7 +4403,7 @@ function menuRepararJSONRoto() {
       irreparables.push('fila ' + (i + 2));
     }
   }
-  if (reparados > 0) rango.setValues(vals);
+  if (reparados > 0) { rango.setValues(vals); invalidarCacheOraciones_(); } // A1
 
   let msg = 'JSON rotos encontrados: ' + rotos + '\n' +
             'Reparados automáticamente: ' + reparados + '\n';
@@ -4559,6 +4692,7 @@ function repararOracionesBanco_() {
 
   // Clear cache so next student reads fresh data
   try { CacheService.getScriptCache().remove('morfologia_all'); } catch(e) {}
+  invalidarCacheOraciones_();   // A1: acabamos de reescribir filas del banco
 
   return { corregidas, marcadas, ok: okCount, backupName };
 }
