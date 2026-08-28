@@ -28,7 +28,7 @@ commit, y haz `git push`.
 | A5 | `regenerarMorfologia` sin guarda de clave | 🟠 Advertencia | 5 min | Sonnet | ✅ HECHA |
 | C4 | SheetJS desde CDN sin SRI | 🔴 Crítico | 30 min | Sonnet | ✅ HECHA (opción B: vendorizado) |
 | C5 | Inyección de fórmulas en CSV | 🔴 Crítico | 30 min | Sonnet | ✅ HECHA |
-| M5 | Worktree huérfano | 🟡 Mejora | 5 min | Sonnet | ⬜ Pendiente |
+| M5 | Worktree huérfano | 🟡 Mejora | 5 min | Sonnet | ✅ HECHA |
 | M2 | Código muerto (422 líneas) | 🟡 Mejora | 20 min | Sonnet | ⬜ Pendiente |
 | M4 | Museo sin poda | 🟡 Mejora | 10 min | Sonnet | ⬜ Pendiente |
 | A3 | Fuga de `AudioContext` en Arcade | 🟠 Advertencia | 30 min | Sonnet | ⬜ Pendiente |
@@ -879,7 +879,7 @@ _saveMuseo(museo);
 
 ---
 
-## M5 · Worktree huérfano en el repositorio
+## M5 · Worktree huérfano en el repositorio ✅ HECHA
 
 `.claude/worktrees/cool-elbakyan-bd7562` — 8,8 MB, copia completa del proyecto en `HEAD`
 desasociado, último commit del 17-ago-2026. Está en `.gitignore`, así que no ensucia el
@@ -889,6 +889,13 @@ y puede llevar a editar el archivo equivocado.
 ```bash
 git worktree remove .claude/worktrees/cool-elbakyan-bd7562
 ```
+
+**Nota (ago-2026):** en Windows `git worktree remove` falló con "Filename too long" —
+algunas rutas dentro del worktree superaban los 260 caracteres de MAX_PATH. Se
+verificó primero que el commit del worktree (`2262989`) ya era antepasado de `main`
+y que su árbol de trabajo estaba limpio (nada que perder), y se borró con el truco de
+`robocopy <carpeta-vacía> <destino> /MIR` (soporta rutas largas) seguido de
+`git worktree prune` para limpiar los metadatos de git.
 
 ---
 
