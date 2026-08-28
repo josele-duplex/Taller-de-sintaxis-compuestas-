@@ -32,7 +32,7 @@ commit, y haz `git push`.
 | M2 | Código muerto (422 líneas) | 🟡 Mejora | 20 min | Sonnet | ⬜ Pendiente |
 | M4 | Museo sin poda | 🟡 Mejora | 10 min | Sonnet | ⬜ Pendiente |
 | A3 | Fuga de `AudioContext` en Arcade | 🟠 Advertencia | 30 min | Sonnet | ⬜ Pendiente |
-| A7 | Verificador de `SHELL_ASSETS` | 🟠 Advertencia | 30 min | Sonnet | ⬜ Pendiente |
+| A7 | Verificador de `SHELL_ASSETS` | 🟠 Advertencia | 30 min | Sonnet | ✅ HECHA |
 | M3 | Duplicación (`escCSV`, `_el`, sendBeacon) | 🟡 Mejora | 1 h | Sonnet | ⬜ Pendiente |
 | M1 | 77 `console.*` en producción | 🟡 Mejora | 30 min | Sonnet | ⬜ Pendiente |
 | A1 | `getOraciones_` sin caché | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
@@ -734,7 +734,7 @@ Y en cada módulo, una línea:
 
 ---
 
-## A7 · `SHELL_ASSETS` mantenida a mano: dos caídas de producción ya documentadas
+## A7 · `SHELL_ASSETS` mantenida a mano: dos caídas de producción ya documentadas ✅ HECHA
 
 **Archivo:** `sw.js:39-92`
 
