@@ -5,13 +5,15 @@
    No hace nada bajo file:// (los Service Workers exigen http/https) ni si
    el navegador no los soporta — en ambos casos la app sigue funcionando
    igual que hasta ahora, solo que sin instalación ni modo offline. */
+import { log } from './log.js';
+
 export function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   if (window.location.protocol !== 'http:' && window.location.protocol !== 'https:') return;
 
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then((reg) => console.log('[pwa] Service Worker registrado.', reg.scope))
-      .catch((err) => console.warn('[pwa] No se pudo registrar el Service Worker.', err));
+      .then((reg) => log.debug('[pwa] Service Worker registrado.', reg.scope))
+      .catch((err) => log.warn('[pwa] No se pudo registrar el Service Worker.', err));
   });
 }

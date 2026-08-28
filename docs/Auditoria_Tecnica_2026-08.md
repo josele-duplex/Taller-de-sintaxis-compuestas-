@@ -34,7 +34,7 @@ commit, y haz `git push`.
 | A3 | Fuga de `AudioContext` en Arcade | 🟠 Advertencia | 30 min | Sonnet | ⬜ Pendiente |
 | A7 | Verificador de `SHELL_ASSETS` | 🟠 Advertencia | 30 min | Sonnet | ✅ HECHA |
 | M3 | Duplicación (`escCSV`, `_el`, sendBeacon) | 🟡 Mejora | 1 h | Sonnet | ⬜ Pendiente |
-| M1 | 77 `console.*` en producción | 🟡 Mejora | 30 min | Sonnet | ⬜ Pendiente |
+| M1 | 77 `console.*` en producción | 🟡 Mejora | 30 min | Sonnet | ✅ HECHA |
 | A1 | `getOraciones_` sin caché | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
 | A2 | `validatePin_`: O(n) + sin límite de intentos | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
 | A4 | Escapado ausente en `sint` (46 `innerHTML`) | 🟠 Advertencia | 1-2 h | Opus | ⬜ Pendiente |
@@ -806,7 +806,7 @@ La separación datos/lógica hace además que un futuro `import()` perezoso sea 
 
 # 🟡 MEJORAS
 
-## M1 · 77 `console.*` en producción
+## M1 · 77 `console.*` en producción ✅ HECHA
 
 `sint` (26), `compuestas` (13), `maestro` (10), `arcade` (7), `laboratorio` (5),
 `teacher` (4), `chispa` (3), `sw.js` (2), `sintagmas` (2), `fabrica` (2), `pwa` (2),

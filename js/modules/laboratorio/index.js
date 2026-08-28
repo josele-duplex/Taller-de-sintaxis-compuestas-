@@ -190,6 +190,7 @@ import { textoPrueba, microPrueba, CASCADA_SE } from '../../data/pruebas-sintaxi
 // metalingüístico de texto libre es el de Fábrica, y es puramente local.
 import { LS_LAB_DIARIO } from '../../core/constants.js';
 import { registrarLimpieza } from '../../core/timers.js';
+import { log } from '../../core/log.js';
 
 let LAB = {}; // estado de la sesión (expuesto como window.LAB más abajo)
 
@@ -258,7 +259,7 @@ async function _cargarRetos(nivel, apiUrl, funcion) {
     if (d && d.ok && Array.isArray(d.retos) && d.retos.length > 0) return { retos: d.retos, usingMock: false };
     return { retos: [], usingMock: false };
   } catch (e) {
-    console.warn('[laboratorio] getRetosLaboratorio no disponible:', e);
+    log.warn('[laboratorio] getRetosLaboratorio no disponible:', e);
     return { retos: _mockRetos(), usingMock: true };
   }
 }
@@ -658,7 +659,7 @@ function _renderStub(item) {
     '<button type="button" class="lab-btn lab-btn-block" onclick="labSiguienteItem()">Saltar →</button>' +
     '</div>'
   );
-  console.info('[laboratorio] ítem sin render todavía:', item.tipo, item);
+  log.info('[laboratorio] ítem sin render todavía:', item.tipo, item);
 }
 
 function _finReto() {
@@ -728,7 +729,7 @@ async function labIrASimples() {
     });
     if (!ok) btnReset();
   } catch (e) {
-    console.error('[laboratorio] labIrASimples', e);
+    log.error('[laboratorio] labIrASimples', e);
     alert('No se ha podido cargar la oración en Simples: ' + (e.message || 'error desconocido'));
     btnReset();
   }
@@ -1705,7 +1706,7 @@ function _guardarEnCajaPruebas(email, entrada) {
       caja.push(entrada);
       localStorage.setItem(_cajaKey(email), JSON.stringify(caja));
     }
-  } catch (e) { console.warn('[laboratorio] no se pudo guardar en la Caja de Pruebas:', e); }
+  } catch (e) { log.warn('[laboratorio] no se pudo guardar en la Caja de Pruebas:', e); }
 }
 
 // Reconstruye la frase del alumno a partir de las piezas colocadas, en el
@@ -1843,7 +1844,7 @@ function _enviarAnaliticaLaboratorio() {
       if (navigator.sendBeacon) navigator.sendBeacon(url);
       else fetch(url, { method: 'GET', keepalive: true }).catch(() => {});
     }
-  } catch (e) { console.warn('[laboratorio analytics]', e); }
+  } catch (e) { log.warn('[laboratorio analytics]', e); }
   // Reset del segmento pase lo que pase (también sin API: no acumular).
   LAB.retosCompletadosSesion = 0; LAB.aciertos = 0; LAB.totalItems = 0; LAB.rachaMax = 0; LAB.erroresPorTipo = {};
 }

@@ -32,6 +32,7 @@ import * as api from './core/api.js';
 import * as navigation from './core/navigation.js';
 import * as profile from './core/profile.js';
 import * as timers from './core/timers.js';
+import * as logModule from './core/log.js';
 import { registerServiceWorker } from './core/pwa.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -75,7 +76,7 @@ import * as fPistaFlotante from './feedback/pista-flotante.js';
 // referirlas libremente, igual que hacía el monolito.
 // ─────────────────────────────────────────────────────────────
 Object.assign(window,
-  constants, auth, escape, storage, audio, api, navigation, profile, timers,
+  constants, auth, escape, storage, audio, api, navigation, profile, timers, logModule,
   dictMorf, dictSintax, dictSintag, haberForms,
   glosTags, glosData, glosRender,
   gLevels, gMissions, gStreak, gXp, gDashboard,
@@ -97,7 +98,7 @@ import './modules/chispa/index.js';
 import './modules/fabrica/index.js';
 import './modules/laboratorio/index.js';
 
-console.log('[app.js] Módulos ES6 cargados y expuestos en window.');
+logModule.log.debug('[app.js] Módulos ES6 cargados y expuestos en window.');
 
 // Bandera de "el bootstrap llegó hasta el final".
 // Si CUALQUIER import de arriba falla (el navegador o el Service Worker no

@@ -20,6 +20,8 @@
    _launchGame, normalizeOracion, etc. (Teacher Panel toca muchas cosas
    del resto de la app, por eso esta entrelazado en el original).*/
 
+import { log } from '../../core/log.js';
+
 // ════════════════════════════════════════════════════════
 // TEACHER PANEL
 // ════════════════════════════════════════════════════════
@@ -1247,7 +1249,7 @@ async function viewMisiones(){
       const r=await fetchWithTimeout(apiUrl+'?action=getMisiones',{},6000);
       const d=await r.json();
       if(d.misiones) misiones=d.misiones.filter(m=>m.estado==='activa');
-    }catch(e){console.warn('[viewMisiones]',e);}
+    }catch(e){log.warn('[viewMisiones]',e);}
   }
   // Also check localStorage as fallback
   const local=JSON.parse(localStorage.getItem('taller_misiones')||'[]').filter(m=>m.estado==='activa');
@@ -1288,7 +1290,7 @@ async function getMisionesForMode(modo){
         _misionesCacheTime=now;
         return d.misiones;
       }
-    }catch(e){console.warn('[getMisiones] API error:',e);}
+    }catch(e){log.warn('[getMisiones] API error:',e);}
   }
   if(_cachedMisiones) return _cachedMisiones.filter(m=>m.modo===modo);
   // Fallback: localStorage (professor's browser)
@@ -1543,11 +1545,11 @@ async function generarInformeProfesor(){
       _infStatus(`✓ Informe descargado: ${data.alumnos.length} alumnos · ${data.resumen.total_actividades} actividades.`, 'var(--green)');
     } else {
       _infStatus('⚠ Generador de Excel aún no cargado (pendiente de D3). Datos recibidos correctamente.', 'var(--amber)');
-      console.log('[Informe] Datos recibidos:', data);
+      log.debug('[Informe] Datos recibidos:', data);
     }
   } catch (e){
     _infStatus('✕ ' + (e.message || 'Error inesperado'), 'var(--red)');
-    console.error('[generarInformeProfesor]', e);
+    log.error('[generarInformeProfesor]', e);
   } finally {
     if (btn) btn.disabled = false;
   }

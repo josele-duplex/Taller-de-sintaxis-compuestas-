@@ -247,7 +247,7 @@ const CC_SUBTIPOS = Array.isArray(window.CC_SUBTIPOS) && window.CC_SUBTIPOS.leng
   ? window.CC_SUBTIPOS
   : CC_SUBTIPOS_RESPALDO;
 if (!Array.isArray(window.CC_SUBTIPOS)) {
-  console.warn('[sint] CC_SUBTIPOS no llegó desde app.js — usando la copia de respaldo. ' +
+  log.warn('[sint] CC_SUBTIPOS no llegó desde app.js — usando la copia de respaldo. ' +
                'Señal de que algún módulo ES no cargó: la app puede estar incompleta.');
 }
 
@@ -772,7 +772,7 @@ function sendPracticeAnalytics(opts){
       fetch(url, {method:'GET', keepalive:true}).catch(()=>{});
     }
     _practiceAnalyticsSent = true;
-  } catch(e){ console.warn('[analytics]', e); }
+  } catch(e){ log.warn('[analytics]', e); }
 }
 
 // Save analytics if user closes tab or navigates away during practice
@@ -1205,9 +1205,9 @@ function reflexionResponder(itemIdx, optIdx){
 
 // ── loadOraciones — separated from UI, always resolves ──────────────
 async function loadOraciones(mode, apiUrl, subfase) {
-  console.log('[loadOraciones] mode:', mode, 'apiUrl:', apiUrl ? '(set)' : '(none)', 'subfase:', subfase || '(ninguna)');
+  log.debug('[loadOraciones] mode:', mode, 'apiUrl:', apiUrl ? '(set)' : '(none)', 'subfase:', subfase || '(ninguna)');
   if (!apiUrl) {
-    console.log('[loadOraciones] No API URL — using mock data');
+    log.debug('[loadOraciones] No API URL — using mock data');
     return { oraciones: getMock().map(normalizeOracion).filter(Boolean), usingMock: true, apiError: '' };
   }
   try {
@@ -1231,14 +1231,14 @@ async function loadOraciones(mode, apiUrl, subfase) {
         if (savedFilters.dificultad) params.set('dificultad', String(savedFilters.dificultad));
         if (examSubfase) params.set('subfase', examSubfase);
         fetchUrl = `${apiUrl}?${params.toString()}`;
-        console.log('[loadOraciones] Using filtered endpoint:', fetchUrl);
+        log.debug('[loadOraciones] Using filtered endpoint:', fetchUrl);
       }
     }
-    console.log('[loadOraciones] Fetching:', fetchUrl);
+    log.debug('[loadOraciones] Fetching:', fetchUrl);
     const r = await fetchWithRetry(fetchUrl, {}, {
       timeoutMs: 12000,
       retries: 2,
-      onRetry: (n) => console.log('[loadOraciones] Retry '+n+'/2…')
+      onRetry: (n) => log.debug('[loadOraciones] Retry '+n+'/2…')
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
@@ -1246,15 +1246,15 @@ async function loadOraciones(mode, apiUrl, subfase) {
     if (!raw) throw new Error('Respuesta vacía o sin array "oraciones"');
     const oraciones = raw.map(o => {
       try { return normalizeOracion(o); }
-      catch(e) { console.error('[normalizeOracion] Error:', e.message, o?.id || ''); return null; }
+      catch(e) { log.error('[normalizeOracion] Error:', e.message, o?.id || ''); return null; }
     }).filter(Boolean);
     if (oraciones.length === 0) throw new Error('Todas las oraciones fallaron normalización');
-    if (d.subfaseRelajada) console.warn('[loadOraciones] Banco insuficiente para la subfase "'+(d.subfase||'')+'" — el GAS devolvió el banco completo.');
-    console.log('[loadOraciones] OK —', oraciones.length, 'oraciones', d.subfase?('· subfase '+d.subfase+(d.subfaseRelajada?' (relajada)':'')):'');
+    if (d.subfaseRelajada) log.warn('[loadOraciones] Banco insuficiente para la subfase "'+(d.subfase||'')+'" — el GAS devolvió el banco completo.');
+    log.debug('[loadOraciones] OK —', oraciones.length, 'oraciones', d.subfase?('· subfase '+d.subfase+(d.subfaseRelajada?' (relajada)':'')):'');
     return { oraciones, usingMock: false, apiError: '' };
   } catch (e) {
     const msg = e.message?.includes('aborted') ? 'Tiempo de espera agotado.' : (e.message || 'Error desconocido');
-    console.error('[loadOraciones] Error:', msg, e);
+    log.error('[loadOraciones] Error:', msg, e);
     return { oraciones: getMock().map(normalizeOracion).filter(Boolean), usingMock: true, apiError: msg };
   }
 }
@@ -1491,7 +1491,7 @@ async function _doHandleStart(name,email,pin,examSubfase){
       }
       const timerSec = (parseInt(d.timer)||0) * 60;
       const subfase = d.subfase || examSubfase || 'completo';
-      console.log('[Exam] PIN:',pin,'oraciones:',oraciones.length,'timer:',d.timer,'min subfase:',subfase);
+      log.debug('[Exam] PIN:',pin,'oraciones:',oraciones.length,'timer:',d.timer,'min subfase:',subfase);
       clearTimeout(slowTimer);
       // El grupo del alumno (formulario) tiene prioridad sobre el del PIN
       // config para permitir reutilizar el mismo examen entre grupos.
@@ -1548,7 +1548,7 @@ async function _doHandleStart(name,email,pin,examSubfase){
   if(_activeReto){
     const filtradas = filtrarPorReto(oraciones, _activeReto.id);
     if(filtradas.length > 0) oraciones = filtradas;
-    else console.warn('[reto] Banco insuficiente para', _activeReto.id, '— se usa el banco completo.');
+    else log.warn('[reto] Banco insuficiente para', _activeReto.id, '— se usa el banco completo.');
   }
   // Apply mission nOraciones limit
   if(_activeMission && _activeMission.nOraciones > 0 && oraciones.length > _activeMission.nOraciones){
@@ -1566,10 +1566,10 @@ async function _doHandleStart(name,email,pin,examSubfase){
 
 function _launchGame({ name, email, pin, subfase, oraciones, usingMock, timerDuration, examGrupo, examEval, examName, praGrupo, reflexionActiva, examReflexion }) {
   timerDuration = timerDuration || 0;
-  console.log('[_launchGame] oraciones:', oraciones.length, 'mode:', selectedMode, 'usingMock:', usingMock, 'subfase:', subfase, 'timer:', timerDuration+'s');
+  log.debug('[_launchGame] oraciones:', oraciones.length, 'mode:', selectedMode, 'usingMock:', usingMock, 'subfase:', subfase, 'timer:', timerDuration+'s');
   // Update daily streak on practice start
   if(selectedMode === 'practice'){
-    try{ updateDailyStreak(); }catch(e){console.warn('[streak]',e);}
+    try{ updateDailyStreak(); }catch(e){log.warn('[streak]',e);}
   }
   initState({ name, email, mode: selectedMode, examPin: pin,
     subfase, oraciones, usingMock, timerDuration,
@@ -1607,7 +1607,7 @@ async function iniciarSintDesdeOracion({ name, email, grupo, oracion }) {
   let norm = null;
   try { norm = normalizeOracion(oracion); } catch (e) { norm = null; }
   if (!norm) {
-    console.error('[iniciarSintDesdeOracion] normalizeOracion falló', oracion);
+    log.error('[iniciarSintDesdeOracion] normalizeOracion falló', oracion);
     alert('No se ha podido cargar esta oración en el Taller de Simples.');
     return false;
   }
@@ -1687,7 +1687,7 @@ function renderSentDots(){
 function renderGame(){
   try{
     updateTopBar();renderSentDots();
-  }catch(e){console.error('[updateTopBar]',e);}
+  }catch(e){log.error('[updateTopBar]',e);}
   const el=document.getElementById('game-phase');
   el.innerHTML='';el.className='au';void el.offsetWidth;
   // Guard: if G was reset or belongs to wrong module, bail
@@ -1701,7 +1701,7 @@ function renderGame(){
     else if(G.phase===3)renderPhase3(el,o);
     else showSuccessScreen(o);
   }catch(e){
-    console.error(`[renderPhase${G.phase}]`,e);
+    log.error(`[renderPhase${G.phase}]`,e);
     el.innerHTML=errorCard(`Error en Fase ${G.phase}`,e.message);
   }
   // Show skip button in practice and exam (in exam it asks confirmation)
@@ -2092,7 +2092,7 @@ function renderPhase3(el,o){
   // student can advance to the next sentence instead of being stuck on a
   // blank screen with PV/PN buttons that lead nowhere.
   if(!o.fase3 || !Array.isArray(o.fase3.bloques) || o.fase3.bloques.length===0){
-    console.warn('[renderPhase3] Sentence has no fase3 data — auto-advancing', o?.id);
+    log.warn('[renderPhase3] Sentence has no fase3 data — auto-advancing', o?.id);
     setTimeout(()=>showSuccessScreen(o), 50);
     return;
   }
@@ -2108,7 +2108,7 @@ function renderPhase3(el,o){
         G.phase3Results[b.id]={id:`pre${i}`,label:b.solucion,tipo,func,preResolved:true};
       }
     });
-    console.log('[renderPhase3] No interactive blocks — auto-completing fase 3 for', o?.id);
+    log.debug('[renderPhase3] No interactive blocks — auto-completing fase 3 for', o?.id);
     setTimeout(()=>showSuccessScreen(o), 50);
     return;
   }
@@ -2535,7 +2535,7 @@ function showSuccessScreen(o){
   // Progression: award XP, update streak/mission, trigger celebrations
   // (only in practice mode; exam mode doesn't give XP to prevent gaming)
   if(G.mode === 'practice'){
-    try{ onSentenceCompleted(o, totalSentErrs); }catch(e){console.warn('[progress]',e);}
+    try{ onSentenceCompleted(o, totalSentErrs); }catch(e){log.warn('[progress]',e);}
   }
   const isLast=G.idx+1>=G.oraciones.length;
   const completedMsg = G.mode==='exam' ? '¡Examen completado!' : '¡Análisis completado!';
@@ -2869,7 +2869,7 @@ function practiceFocusOn(funcion){
     renderGame();
     flashPracticeMsg('🎯 Filtrando por '+funcion, 'var(--blue)');
   }catch(e){
-    console.warn('[practiceFocusOn]', e);
+    log.warn('[practiceFocusOn]', e);
   }
 }
 
@@ -3942,21 +3942,21 @@ document.addEventListener('keydown',e=>{
 // INIT
 // ════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded',async()=>{
-  console.log('[App] DOMContentLoaded — v6.2');
+  log.debug('[App] DOMContentLoaded — v6.2');
   try {
     initSoundBtn();
     const savedUrl = getApiUrl();
     if (savedUrl) {
       document.getElementById('loading-txt').textContent = 'Verificando conexión…';
       // Real ping (GET ?action=ping) — executes doGet so the GAS warms up
-      fetch(savedUrl + '?action=ping', {cache:'no-store'}).catch(e => console.warn('[App] Warmup ping failed:', e.message));
+      fetch(savedUrl + '?action=ping', {cache:'no-store'}).catch(e => log.warn('[App] Warmup ping failed:', e.message));
     }
     await delay(300);
     showScreen('screen-portada');
     try{ addDashboardButton(); }catch(e){}
-    console.log('[App] Portada shown OK');
+    log.debug('[App] Portada shown OK');
   } catch(e) {
-    console.error('[App] Init error:', e);
+    log.error('[App] Init error:', e);
     // Last resort: force portada visible
     document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
     const portada = document.getElementById('screen-portada');

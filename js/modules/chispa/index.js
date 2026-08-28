@@ -19,6 +19,8 @@
 // se compara contra bloques que el banco YA etiquetó como CD o CI — si
 // "se" llegó aquí es porque el propio banco lo tiene como CD/CI genuino
 // (p. ej. "se lo dio" → CI), no como marca_pas_ref/marca_imp.
+import { log } from '../../core/log.js';
+
 const CHISPA_PRONOMBRES_CD_CI = ['lo', 'la', 'los', 'las', 'le', 'les', 'me', 'te', 'nos', 'os', 'se'];
 
 // Traduce el código interno de Compuestas (analisis_interno.funciones[].tipo)
@@ -59,7 +61,7 @@ async function _cargarPoolSimples(apiUrl){
   try{
     const r = await loadOraciones('practice', apiUrl);
     return (r.oraciones || []).filter(o => !r.usingMock);
-  }catch(e){ console.warn('[chispa] Simples no disponible:', e); return []; }
+  }catch(e){ log.warn('[chispa] Simples no disponible:', e); return []; }
 }
 
 async function _cargarPoolCompuestas(apiUrl){
@@ -72,7 +74,7 @@ async function _cargarPoolCompuestas(apiUrl){
               : Array.isArray(d?.data)       ? d.data
               : Array.isArray(d) ? d : [];
     return arr.filter(ej => ej && typeof ej.texto === 'string' && Array.isArray(ej.tokens) && Array.isArray(ej.proposiciones));
-  }catch(e){ console.warn('[chispa] Compuestas no disponible:', e); return []; }
+  }catch(e){ log.warn('[chispa] Compuestas no disponible:', e); return []; }
 }
 
 // ── Adaptadores: de cada banco a "fichas" {func, texto} ─────────────────
@@ -556,7 +558,7 @@ function _enviarSesionChispa(){
       if(navigator.sendBeacon) navigator.sendBeacon(url);
       else fetch(url, { method: 'GET', keepalive: true }).catch(()=>{});
     }
-  }catch(e){ console.warn('[chispa analytics]', e); }
+  }catch(e){ log.warn('[chispa analytics]', e); }
   // Reset del segmento pase lo que pase (también sin API: no acumular).
   CHI.totalRondas = 0; CHI.aciertos = 0; CHI.rachaMax = 0;
   CHI.erroresPorFunc = {}; CHI.segmentoStart = Date.now();

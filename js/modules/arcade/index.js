@@ -15,6 +15,8 @@
    funcTagCss, tagContent, playSuccess, playError, playClick,
    awardXP, trackError. */
 
+import { log } from '../../core/log.js';
+
 // ════════════════════════════════════════════════════════
 // LEADERBOARD (localStorage)
 // ════════════════════════════════════════════════════════
@@ -229,7 +231,7 @@ async function startArcade({name,email,nickname,grupo,arcadeMode,ghostDuel,radar
         ARC.alive = false;
         try { endArcade(); }
         catch(e){
-          console.error('[arcade] endArcade falló:', e);
+          log.error('[arcade] endArcade falló:', e);
           // Fallback mínimo: al menos mostramos la pantalla final aunque
           // sin ranking, para que el alumno sepa que el juego ha acabado.
           try { showScreen('gameover'); } catch(_){}
@@ -314,7 +316,7 @@ function startArcadeMusic(){
       src.start();
     }, 600);
     _arcMusicNodes = { bassInterval, hatInterval, master, ctx };
-  }catch(e){console.warn('[arcMusic]',e);}
+  }catch(e){log.warn('[arcMusic]',e);}
 }
 
 function stopArcadeMusic(){
@@ -372,7 +374,7 @@ function renderArcade(){
         </button>`).join('')}
     </div>`;
   }catch(e){
-    console.error('[renderArcade]',e);
+    log.error('[renderArcade]',e);
     document.getElementById('arc-wrap').innerHTML=errorCard('Error en Arcade',e.message);
   }
 }
@@ -444,7 +446,7 @@ function renderRadar(){
       <button type="button" class="radar-noerr" onclick="radarPick(-1)">✓ No hay ningún error</button>
     </div>`;
   }catch(e){
-    console.error('[renderRadar]',e);
+    log.error('[renderRadar]',e);
     document.getElementById('arc-wrap').innerHTML=errorCard('Error en Radar',e.message);
   }
 }
@@ -560,7 +562,7 @@ function _radarLose(reveal, consejo, correctLabel){
     ARC.alive=false;
     setTimeout(()=>{
       try{ endArcade(); }
-      catch(e){ console.error('[arcade] endArcade falló (radar):', e); try{ showScreen('gameover'); }catch(_){} }
+      catch(e){ log.error('[arcade] endArcade falló (radar):', e); try{ showScreen('gameover'); }catch(_){} }
     },600);
     return;
   }
@@ -673,7 +675,7 @@ function arcadeAnswer(chosen,correct,consejo){
           catch(e){
             // Blindaje (2026-05-28): si endArcade fallara, al menos forzamos
             // la pantalla final para que el alumno sepa que perdió.
-            console.error('[arcade] endArcade falló (survival):', e);
+            log.error('[arcade] endArcade falló (survival):', e);
             try { showScreen('gameover'); } catch(_){}
           }
         }, 600);
@@ -1000,7 +1002,7 @@ async function endArcade(){
       const r = await fetchWithTimeout(apiUrl+'?action=getRankingArcade&arcadeMode='+encodeURIComponent(ARC.arcadeMode)+'&grupo='+encodeURIComponent(ARC.grupo||''), {}, 8000);
       const d = await r.json();
       renderArcadeRanking(d, entry);
-    }catch(e){console.warn('[Arcade ranking]',e); renderArcadeLocalFallback(lb, entry);}
+    }catch(e){log.warn('[Arcade ranking]',e); renderArcadeLocalFallback(lb, entry);}
   } else {
     renderArcadeLocalFallback(lb, entry);
   }

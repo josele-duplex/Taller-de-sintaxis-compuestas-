@@ -24,6 +24,8 @@
 //    getStepWeight_/examAttrCurve_ y confirmToken. DESPLEGAR AL CIERRE DE
 //    EVALUACION + avisar a los alumnos de la escala (requisito del
 //    documento Investigacion_evaluacion.md, igual que B1/B2 de Simples).
+import { log } from '../../core/log.js';
+
 const VERSION_CALIFICACION_MORFO = '2026-07-14';
 
 // ── MORPH CHALLENGES ─────────────────────────────────────────────────
@@ -65,7 +67,7 @@ async function startMorphChallenge({name, email, challenge}) {
           });
         }
       }
-    }catch(e){console.warn('[startMorphChallenge] Sheets error, using fallback:',e);}
+    }catch(e){log.warn('[startMorphChallenge] Sheets error, using fallback:',e);}
   }
   // Tokens mantienen el orden del texto para que el alumno lea con coherencia
   MC = {
@@ -118,7 +120,7 @@ function renderChallengeGame() {
   document.getElementById('mm-cascade-wrap').innerHTML = '';
   renderChallengeTokens();
   }catch(e){
-    console.error('[renderChallengeGame]',e);
+    log.error('[renderChallengeGame]',e);
     document.getElementById('mm-paper-wrap').innerHTML=errorCard('Error en Reto',e.message);
   }
 }
@@ -1104,7 +1106,7 @@ function startMaestro({name,email,grupo}){
     return;
   }
   // Streak + daily mission: trigger on morphology entry (same as syntax)
-  try{ updateDailyStreak(); }catch(e){console.warn('[streak morph]',e);}
+  try{ updateDailyStreak(); }catch(e){log.warn('[streak morph]',e);}
   if(selectedMaestroMode === 'exam'){
     _loadMaestroExamByPin(name,email,grupo,morfoPin);
     return;
@@ -1150,7 +1152,7 @@ async function _loadMaestroExamByPin(name,email,grupo,pin){
           .map(tk => tk.cat==='Verbo' ? {...tk, atrs: normalizePerifrasTokenAtrs(tk.atrs)} : tk);
         if(safeTokens.length===0) return;
         analyzed.push({ title: t.texto.slice(0,50)+'…', tokens: safeTokens, allTokens: t.tokens });
-      }catch(tokErr){ console.warn('[examMorfologia] Texto saltado (tokens corruptos):', t.id||'?', tokErr); }
+      }catch(tokErr){ log.warn('[examMorfologia] Texto saltado (tokens corruptos):', t.id||'?', tokErr); }
     });
     if(analyzed.length===0){
       showScreen('login');
@@ -1187,7 +1189,7 @@ async function _loadMaestroTexts(name,email,grupo){
       const nivelContenido = MORPH_NIVEL_CONTENIDO[selectedMaestroNivel] || 'n3';
       const r = await fetchWithTimeout(apiUrl+'?action=getTextosMorfologia&nivel='+nivelContenido,{},6000);
       const d = await r.json();
-      if(d.nivelRelajado) console.warn('[loadMaestroTexts] Banco insuficiente para el nivel "'+d.nivelSolicitado+'" — servido nivel "'+d.nivelServido+'".');
+      if(d.nivelRelajado) log.warn('[loadMaestroTexts] Banco insuficiente para el nivel "'+d.nivelSolicitado+'" — servido nivel "'+d.nivelServido+'".');
       if(d.textos && d.textos.length>0){
         // Accept each text, skip silently the ones with corrupt tokens
         const analyzed = [];
@@ -1205,13 +1207,13 @@ async function _loadMaestroTexts(name,email,grupo){
               allTokens: t.tokens,
             });
           } catch(tokErr) {
-            console.warn('[loadMaestroTexts] Texto saltado (tokens corruptos):', t.id||'?', tokErr);
+            log.warn('[loadMaestroTexts] Texto saltado (tokens corruptos):', t.id||'?', tokErr);
           }
         });
         if(analyzed.length>0) textsToUse = analyzed;
-        else console.warn('[loadMaestroTexts] Ningún texto del Sheet usable, usando fallback');
+        else log.warn('[loadMaestroTexts] Ningún texto del Sheet usable, usando fallback');
       }
-    }catch(e){console.warn('[loadMaestroTexts] Sheets error, usando fallback:',e);}
+    }catch(e){log.warn('[loadMaestroTexts] Sheets error, usando fallback:',e);}
   }
   // Shuffle texts randomly
   const shuffled = shuffle(textsToUse);
@@ -1284,7 +1286,7 @@ function renderMaestroSentence(){
   document.getElementById('mm-cascade-wrap').innerHTML = '';
   updateMaestroHeader();
   }catch(e){
-    console.error('[renderMaestroSentence]',e);
+    log.error('[renderMaestroSentence]',e);
     document.getElementById('mm-paper-wrap').innerHTML=errorCard('Error en Morfología',e.message);
   }
 }
@@ -1748,7 +1750,7 @@ function confirmToken(){
       const textErrors = Object.values(MM.selections||{}).reduce((a,s)=>a+Math.max(0,(s.rawPossible||0)-(s.rawEarned||0)),0);
       const sentObj = { funciones_presentes: [] }; // morphology has no function tags
       onSentenceCompleted(sentObj, textErrors);
-    }catch(e){console.warn('[morph progress]',e);}
+    }catch(e){log.warn('[morph progress]',e);}
     setTimeout(()=>{
       MM.idx++;
       if(MM.idx>=MM.sentences.length) showMaestroResults();

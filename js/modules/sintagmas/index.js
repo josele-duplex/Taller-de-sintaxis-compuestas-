@@ -15,6 +15,8 @@
    Paso 10): showScreen, getApiUrl, fetchWithTimeout, shuffle, escHtml,
    playSuccess, playError, awardXP, trackError. */
 
+import { log } from '../../core/log.js';
+
 // ════════════════════════════════════════════════════════
 // SINTAGMAS ENGINE v5.0 — Step-by-step recursive analysis
 // ════════════════════════════════════════════════════════
@@ -157,7 +159,7 @@ function renderSintMain(){
     </div>`;
   _sintStartLevel();
   }catch(e){
-    console.error('[renderSintMain]',e);
+    log.error('[renderSintMain]',e);
     document.getElementById('sint-wrap').innerHTML=errorCard('Error en Sintagmas',e.message);
   }
 }
@@ -443,7 +445,7 @@ function _enviarSesionSintagmas(){
       if(navigator.sendBeacon) navigator.sendBeacon(url);
       else fetch(url,{method:'GET',keepalive:true}).catch(()=>{});
     }
-  }catch(e){ console.warn('[sintagmas analytics]', e); }
+  }catch(e){ log.warn('[sintagmas analytics]', e); }
   SIN._sesionEnviada=true;
 }
 

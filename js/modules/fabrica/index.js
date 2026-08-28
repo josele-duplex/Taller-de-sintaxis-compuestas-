@@ -49,6 +49,7 @@ import { textoPrueba, microPrueba } from '../../data/pruebas-morfologia.js';
 import { LS_FAB_MESA, LS_FAB_DIARIO, LS_FAB_MUSEO } from '../../core/constants.js';
 import { pickFabMission, syncFabMission, fabMissionCardHtml } from '../../gamification/missions-fabrica.js';
 import { registrarLimpieza } from '../../core/timers.js';
+import { log } from '../../core/log.js';
 
 // ── Catálogos de etiquetas legibles (para no repetir texto ni volver a
 //    inventar terminología — todo sale de las listas cerradas del schema) ──
@@ -152,7 +153,7 @@ async function _cargarRetos(nivel, apiUrl) {
     if (d && d.ok && Array.isArray(d.retos) && d.retos.length > 0) return { retos: d.retos, usingMock: false };
     return { retos: [], usingMock: false };
   } catch (e) {
-    console.warn('[fabrica] getFormacion no disponible:', e);
+    log.warn('[fabrica] getFormacion no disponible:', e);
     return { retos: _mockRetos(), usingMock: true };
   }
 }
@@ -469,7 +470,7 @@ function renderItemFabrica() {
   _actualizarProgreso();
   const renderer = ITEM_RENDERERS[item.tipo];
   if (!renderer) {
-    console.warn('[fabrica] tipo de ítem desconocido:', item.tipo);
+    log.warn('[fabrica] tipo de ítem desconocido:', item.tipo);
     fabSiguienteItem();
     return;
   }

@@ -23,6 +23,7 @@
    internamente al final del modulo. */
 
   import { registrarLimpieza } from '../../core/timers.js';
+  import { log } from '../../core/log.js';
 
   let _examTimerInterval = null;
 
@@ -220,7 +221,7 @@
     state.examEnviado    = false;
     state.examEnviando   = false;
     state.examErrorEnvio = '';
-    console.log('[CP examen] PIN', pin, '·', validos.length, 'ejercicios cargados · grupo:', state.examGrupo, '· eval:', state.examEval);
+    log.debug('[CP examen] PIN', pin, '·', validos.length, 'ejercicios cargados · grupo:', state.examGrupo, '· eval:', state.examEval);
     showExamenBanner();
     iniciarPractica();
   }
@@ -254,17 +255,17 @@
     try{
       const url = `${apiUrl}?action=getOracionesCompuestas&mode=practice`;
       diag.url = url;
-      console.log('[CP] fetching:', url);
+      log.debug('[CP] fetching:', url);
       const r = await fetchWithRetry(url, {}, {timeoutMs:12000, retries:2});
       diag.status = r.status;
       diag.contentType = r.headers ? (r.headers.get('content-type')||'') : '';
-      console.log('[CP] response status:', r.status, 'content-type:', diag.contentType);
+      log.debug('[CP] response status:', r.status, 'content-type:', diag.contentType);
       if(!r.ok) throw new Error(`HTTP ${r.status}`);
 
       // Leemos como texto y lo parseamos a mano, así si viene HTML o algo raro lo veremos
       const rawText = await r.text();
       diag.rawText = rawText.slice(0, 500);
-      console.log('[CP] raw response (first 500 chars):', diag.rawText);
+      log.debug('[CP] raw response (first 500 chars):', diag.rawText);
 
       let d = null;
       try{ d = JSON.parse(rawText); }
@@ -273,8 +274,8 @@
       }
       diag.parsedKeys = Object.keys(d||{});
       try{ diag.parsedSample = JSON.stringify(d).slice(0, 300); }catch(e){}
-      console.log('[CP] parsed keys:', diag.parsedKeys);
-      console.log('[CP] parsed sample:', diag.parsedSample);
+      log.debug('[CP] parsed keys:', diag.parsedKeys);
+      log.debug('[CP] parsed sample:', diag.parsedSample);
 
       if(d && d.ok === false){
         throw new Error(d.error || 'El servidor respondió ok:false');
@@ -288,12 +289,12 @@
       if(!arr){
         throw new Error('No encuentro array de ejercicios. Claves recibidas: ' + diag.parsedKeys.join(', '));
       }
-      console.log('[CP] arr.length antes de validar:', arr.length);
+      log.debug('[CP] arr.length antes de validar:', arr.length);
       if(arr.length === 0){
         throw new Error('El servidor devolvió un array de ejercicios vacío. Revisa Compuestas_Banco.');
       }
       const validados = arr.filter(isValidEjercicio);
-      console.log('[CP] arr.length después de validar:', validados.length);
+      log.debug('[CP] arr.length después de validar:', validados.length);
       if(validados.length === 0){
         // Muestra qué falla con el primer ejercicio para diagnóstico
         const sample = arr[0];
@@ -313,13 +314,13 @@
       state.ejercicios = validados;
       state.loaded = true;
       state.loadError = '';
-      console.log('[CP] Banco cargado correctamente:', state.ejercicios.length, 'ejercicios.');
+      log.debug('[CP] Banco cargado correctamente:', state.ejercicios.length, 'ejercicios.');
     } catch(e){
       state.loadError = (e.message || String(e));
       // Anexar diagnóstico para que se vea en pantalla
       state.loadDiagnostic = diag;
-      console.error('[CP] Error cargando banco:', e);
-      console.error('[CP] Diagnóstico:', diag);
+      log.error('[CP] Error cargando banco:', e);
+      log.error('[CP] Diagnóstico:', diag);
       state.loaded = false;
     }
   }
@@ -584,7 +585,7 @@
     const apiUrl = getApiUrl();
     if(!apiUrl) throw new Error('No hay URL de API configurada. Avisa al profesor.');
     const url = `${apiUrl}?action=getExamenCompuesta&pin=${encodeURIComponent(pin)}`;
-    console.log('[CP examen] fetching:', url);
+    log.debug('[CP examen] fetching:', url);
     const r = await fetchWithRetry(url, {}, { timeoutMs: 12000, retries: 1 });
     if(!r.ok) throw new Error(`HTTP ${r.status}`);
     const text = await r.text();
@@ -4210,7 +4211,7 @@
             }
           }
         } catch(e){}
-        console.log('[CP examen] Resultado agregado enviado', json.duplicate ? '(duplicado, ignorado por backend)' : '');
+        log.debug('[CP examen] Resultado agregado enviado', json.duplicate ? '(duplicado, ignorado por backend)' : '');
       } else {
         state.examEnviando   = false;
         state.examErrorEnvio = (json && json.error) || 'Respuesta no válida del servidor';

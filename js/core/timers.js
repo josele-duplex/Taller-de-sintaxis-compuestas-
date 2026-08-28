@@ -6,6 +6,7 @@
 
    Cada módulo con un temporizador activo se registra aquí; navigation.js
    llama a limpiarTodo() en cualquier cambio de pantalla. */
+import { log } from './log.js';
 
 const _limpiadores = new Set();
 
@@ -16,6 +17,6 @@ export function registrarLimpieza(fn) {
 
 export function limpiarTodo() {
   _limpiadores.forEach(fn => {
-    try { fn(); } catch (e) { console.warn('[timers] limpiador falló', e); }
+    try { fn(); } catch (e) { log.warn('[timers] limpiador falló', e); }
   });
 }
