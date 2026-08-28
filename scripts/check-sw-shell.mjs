@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* check-sw-shell.mjs — Verifica que SHELL_ASSETS de sw.js cubre todo el
- * JS/CSS versionado.
+ * JS/CSS versionado (incluido vendor/, añadido en C5 para xlsx.bundle.js).
  *
  * Existe porque esta lista se ha desincronizado DOS veces (jul-2026 y
  * ago-2026) y en ambas la app dejó de arrancar en frío, sin ningún error
@@ -20,7 +20,7 @@ const ini = sw.indexOf('const SHELL_ASSETS');
 const lista = sw.slice(ini, sw.indexOf('];', ini));
 const declarados = new Set([...lista.matchAll(/'\.\/([^']+)'/g)].map(m => m[1]));
 
-const versionados = execSync('git ls-files js css', { encoding: 'utf8' })
+const versionados = execSync('git ls-files js css vendor', { encoding: 'utf8' })
   .split('\n')
   .filter(f => /\.(js|css)$/.test(f) && !f.includes('/_legacy/'));
 

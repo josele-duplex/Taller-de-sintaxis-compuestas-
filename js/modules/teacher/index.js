@@ -1467,11 +1467,19 @@ function _loadSheetJS(){
   if (typeof XLSX !== 'undefined') return Promise.resolve();
   // xlsx-js-style: fork open-source de SheetJS con soporte de colores y estilos.
   // 100% compatible con la API de XLSX. Imprescindible para el factor WOW del informe.
+  //
+  // C5 (auditoría técnica ago-2026): antes venía de cdn.jsdelivr.net sin
+  // 'integrity' ni 'crossorigin', ejecutándose con todos los permisos de la
+  // página justo cuando el panel del profesor tiene en memoria las notas,
+  // correos de todo el grupo y la contraseña del profesor. Copia local
+  // (vendor/xlsx.bundle.js, xlsx-js-style@1.2.0 tal cual se descarga de npm,
+  // sin modificar) para eliminar el CDN de la cadena de suministro: de paso,
+  // el informe funciona sin conexión (ver SHELL_ASSETS en sw.js).
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+    s.src = './vendor/xlsx.bundle.js';
     s.onload = () => resolve();
-    s.onerror = () => reject(new Error('No se pudo cargar la librería de Excel desde el CDN.'));
+    s.onerror = () => reject(new Error('No se pudo cargar la librería de Excel.'));
     document.head.appendChild(s);
   });
 }

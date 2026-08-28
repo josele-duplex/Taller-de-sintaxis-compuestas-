@@ -26,7 +26,7 @@ commit, y haz `git push`.
 |----|----------|-----------|----------|--------|--------|
 | C3 | `trackError` sin `try/catch` | 🔴 Crítico | 15 min | Sonnet | ✅ HECHO — `11b4480` |
 | A5 | `regenerarMorfologia` sin guarda de clave | 🟠 Advertencia | 5 min | Sonnet | ✅ HECHA |
-| C4 | SheetJS desde CDN sin SRI | 🔴 Crítico | 30 min | Sonnet | ⬜ Pendiente |
+| C4 | SheetJS desde CDN sin SRI | 🔴 Crítico | 30 min | Sonnet | ✅ HECHA (opción B: vendorizado) |
 | C5 | Inyección de fórmulas en CSV | 🔴 Crítico | 30 min | Sonnet | ✅ HECHA |
 | M5 | Worktree huérfano | 🟡 Mejora | 5 min | Sonnet | ⬜ Pendiente |
 | M2 | Código muerto (422 líneas) | 🟡 Mejora | 20 min | Sonnet | ⬜ Pendiente |
@@ -219,7 +219,7 @@ también en los otros puntos que repetían el mismo `JSON.parse` sin red
 
 ---
 
-## C4 · Librería externa cargada sin verificación de integridad, en la sesión del profesor
+## C4 · Librería externa cargada sin verificación de integridad, en la sesión del profesor ✅ HECHA
 
 **Archivo:** `js/modules/teacher/index.js:1473-1484` (`_loadSheetJS`)
 

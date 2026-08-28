@@ -60,6 +60,7 @@ const SHELL_ASSETS = [
   './js/core/dom.js',
   './js/core/analitica.js',
   './js/core/pwa.js',
+  './vendor/xlsx.bundle.js',
   './js/data/diccionario-morfologia.js',
   './js/data/diccionario-sintaxis.js',
   './js/data/diccionario-sintagmas.js',
