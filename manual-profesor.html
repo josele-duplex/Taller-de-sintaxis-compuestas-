@@ -258,7 +258,7 @@ body.searching .no-result.show{display:block}
         <p>La aplicación tiene <strong>dos caras</strong>: la del alumno (los seis modos de la portada) y la del profesor (un panel oculto donde creas exámenes, consultas resultados y generas informes). Empezaremos por entender la del alumno, porque es lo que vivirán tus estudiantes, y luego entraremos en el panel.</p>
         <div class="box info">
           <div class="bx-h"><span class="em">🧭</span> El camino más corto</div>
-          <p>Trastea la app como alumno (5–10 min) → desbloquea el panel del profesor (3 toques en el icono <strong>✒️</strong> del pie, contraseña <code>profe123</code>) → crea un examen y dáselo a probar a un alumno. El resto son matices.</p>
+          <p>Trastea la app como alumno (5–10 min) → desbloquea el panel del profesor (3 toques en el icono <strong>✒️</strong> del pie, con la contraseña que hayas fijado desde el menú de la hoja de cálculo) → crea un examen y dáselo a probar a un alumno. El resto son matices.</p>
         </div>
       </section>
 
@@ -348,7 +348,7 @@ body.searching .no-result.show{display:block}
         <ol class="steps">
           <li>Baja hasta el <b>pie de página</b>. Verás un texto pequeño con el icono <b>✒️</b> (una plumilla).</li>
           <li>Toca o haz clic <b>tres veces seguidas</b> sobre la plumilla.</li>
-          <li>Aparece un cuadro de contraseña. Escribe <code>profe123</code> (la contraseña por defecto) y pulsa «Acceder».</li>
+          <li>Aparece un cuadro de contraseña. Escribe la clave que hayas fijado desde el menú de la hoja de cálculo (<b>🔐 Fijar clave de profesor</b>) y pulsa «Acceder».</li>
         </ol>
         <div class="capture" role="img" aria-label="Representación del panel del profesor con sus secciones">
           <div class="cap-bar"><i class="cap-dot1"></i><i class="cap-dot2"></i><i class="cap-dot3"></i><span class="cap-url">taller-de-sintaxis · panel</span></div>
@@ -364,8 +364,8 @@ body.searching .no-result.show{display:block}
           <div class="cap-caption">El panel reúne configuración, creación de exámenes, resultados e informes.</div>
         </div>
         <div class="box warn">
-          <div class="bx-h"><span class="em">⚠️</span> Cambia la contraseña</div>
-          <p>Una vez dentro, cambia <code>profe123</code> por otra propia desde el propio panel. Así evitas que un alumno curioso adivine la entrada.</p>
+          <div class="bx-h"><span class="em">⚠️</span> La contraseña se fija en la hoja de cálculo</div>
+          <p>No hay contraseña por defecto: la fijas tú desde el menú de la hoja de Google Sheets (<b>🔐 Fijar clave de profesor</b>), mínimo 6 caracteres. Es la misma que teclearás aquí, en el panel, para entrar.</p>
         </div>
       </section>
 
@@ -586,7 +586,7 @@ body.searching .no-result.show{display:block}
         <h2><span class="n">23</span> Preguntas frecuentes</h2>
         <div class="faq">
           <details><summary>¿Necesito instalar algo o crear cuentas para mis alumnos?</summary><div class="a"><p>No. Ni instalación ni cuentas. Los alumnos solo necesitan el enlace y escribir su nombre, correo y grupo al entrar.</p></div></details>
-          <details><summary>¿Cuál es la contraseña del panel del profesor?</summary><div class="a"><p>Por defecto <code>profe123</code>, tras tocar tres veces el icono ✒️ del pie. Cámbiala desde el propio panel en cuanto entres.</p></div></details>
+          <details><summary>¿Cuál es la contraseña del panel del profesor?</summary><div class="a"><p>No hay una por defecto: la fijas tú desde el menú de la hoja de cálculo (<b>🔐 Fijar clave de profesor</b>). Tras tocar tres veces el icono ✒️ del pie, teclea esa misma clave.</p></div></details>
           <details><summary>¿Dónde se guardan las notas?</summary><div class="a"><p>En una hoja de Google Sheets a través del servidor (Apps Script). Puedes descargarlas en CSV o generar el informe en Excel.</p></div></details>
           <details><summary>¿Qué módulos permiten examen con nota?</summary><div class="a"><p>Análisis Sintáctico, Oración Compuesta y Morfología. Sintagmas, Arcade y Chispa son de práctica/juego (sin examen con PIN).</p></div></details>
           <details><summary>¿Cómo doy un examen a mi clase?</summary><div class="a"><p>En el panel, crea el examen (PIN, grupo, filtros, timer), pulsa «Activar», y reparte el PIN. Los alumnos entran en el módulo, eligen «Examen» e introducen el PIN.</p></div></details>
@@ -603,7 +603,7 @@ body.searching .no-result.show{display:block}
           <details><summary>¿Un alumno puede repetir el examen para subir nota?</summary><div class="a"><p>No por su cuenta: el sistema conserva el primer intento con ese PIN. Si quieres permitir un reintento, crea un examen nuevo con otro PIN.</p></div></details>
           <details><summary>¿Puedo reutilizar el mismo PIN para varios grupos?</summary><div class="a"><p>Sí. El grupo del alumno prevalece sobre el del PIN, así que puedes usar el mismo examen en clases distintas. Para exámenes en dos partes, mejor un PIN nuevo por examen.</p></div></details>
           <details><summary>¿Qué es un examen «en dos partes»?</summary><div class="a"><p>Un examen que combina, con el mismo PIN, una parte de oraciones simples y otra de oración compuesta. La nota global pondera ambas con los pesos que fijes. Requiere el backend actualizado.</p></div></details>
-          <details><summary>¿Cómo cambio la contraseña del profesor?</summary><div class="a"><p>Desde el panel, una vez dentro, hay una opción para fijar una contraseña propia distinta de <code>profe123</code>.</p></div></details>
+          <details><summary>¿Cómo cambio la contraseña del profesor?</summary><div class="a"><p>Desde el menú de la hoja de cálculo, con la opción <b>🔐 Fijar clave de profesor</b>. No se cambia desde el panel de la app.</p></div></details>
           <details><summary>¿Puedo enviar a cada alumno su resultado por correo?</summary><div class="a"><p>Sí, de forma automática (marcando la casilla al crear el examen) o manual (desde el menú de la hoja). Requiere autorizar el envío con la cuenta de Google de la hoja.</p></div></details>
           <details><summary>¿Necesito saber programar?</summary><div class="a"><p>No para el uso diario. Solo para tareas puntuales de mantenimiento (actualizar el backend), y para eso están las secciones 19 y 20 con los pasos exactos.</p></div></details>
           <details><summary>¿Qué diferencia hay entre práctica y examen?</summary><div class="a"><p>La práctica no guarda nota, permite pistas y reintentos. El examen (con PIN) guarda la nota, limita pistas y no deja reintentar.</p></div></details>

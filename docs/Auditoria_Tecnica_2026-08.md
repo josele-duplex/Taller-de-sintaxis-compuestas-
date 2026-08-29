@@ -40,18 +40,20 @@ commit, y haz `git push`.
 | A4 | Escapado ausente en `sint` (46 `innerHTML`) | 🟠 Advertencia | 1-2 h | Opus | ✅ HECHA (solo cliente) |
 | A6 | Acoplamiento por `window.*` (timers, navegación) | 🟠 Advertencia | 2 h | Opus | ✅ HECHA |
 | A8 | Datos lingüísticos dentro de los módulos de UI | 🟠 Advertencia | 1 h | Opus | ✅ HECHA (solo cliente) |
-| C1 | Clave de profesor *fail-open* → datos de menores | 🔴 Crítico | 30 min | Opus | ⏸ AL CIERRE DE EVALUACIÓN |
+| C1 | Clave de profesor *fail-open* → datos de menores | 🔴 Crítico | 30 min | Opus | ✅ HECHO — `b5b98a3` + `26240c8` (aplicado antes del cierre de evaluación: curso sin empezar aún) |
 | C2 | Nota de examen calculada y firmada por el cliente | 🔴 Crítico | 3-4 h | Opus | ⏸ AL CIERRE DE EVALUACIÓN |
 
-**⏸ = no desplegar en mitad de una evaluación.** C1 y C2 tocan acceso y calificación:
-van al cierre de evaluación, con aviso previo a los alumnos, igual que el rediseño de
-calificación y la ponderación F9.
+**⏸ = no desplegar en mitad de una evaluación.** C1 y C2 tocan acceso y calificación,
+así que por defecto van al cierre de evaluación, con aviso previo a los alumnos, igual
+que el rediseño de calificación y la ponderación F9. Excepción: C1 se adelantó el
+29-ago-2026 porque el curso aún no había empezado (exponía datos de alumnos ya
+matriculados, no solo de exámenes en curso) — C2 sigue esperando al cierre.
 
 ---
 
 # 🔴 CRÍTICOS
 
-## C1 · La contraseña del profesor falla *abierta*: exposición de datos personales de menores
+## C1 · La contraseña del profesor falla *abierta*: exposición de datos personales de menores ✅ HECHO (`b5b98a3` + `26240c8`)
 
 **Archivos:** `server/Code_v6.gs:162` (`requiereClaveProfesor_`) · `js/core/auth.js:7` · `js/core/constants.js:33`
 

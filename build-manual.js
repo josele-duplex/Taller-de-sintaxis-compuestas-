@@ -172,7 +172,7 @@ children.push(new Paragraph({
 }));
 
 children.push(callout(
-  'Lo importante: trastear la app como alumno (los 4 módulos), luego desbloquear el panel del profesor (3 toques en el icono ✒️ del pie de página, contraseña «profe123»), y desde ahí crear un examen para tus alumnos. El resto son detalles.',
+  'Lo importante: trastear la app como alumno (los 4 módulos), luego desbloquear el panel del profesor (3 toques en el icono ✒️ del pie de página, con la contraseña fijada desde el menú de la hoja de cálculo), y desde ahí crear un examen para tus alumnos. El resto son detalles.',
   COLOR_FONDO_TIP
 ));
 children.push(p(''));
@@ -259,14 +259,14 @@ children.push(stepMix([
   new TextRun({ text: ' sobre la pluma.' }),
 ]));
 children.push(stepMix([
-  new TextRun({ text: 'Aparece un cuadro de contraseña. Introduce: ' }),
-  new TextRun({ text: 'profe123', bold: true }),
-  new TextRun({ text: ' (la contraseña por defecto). Pulsa «Acceder».' }),
+  new TextRun({ text: 'Aparece un cuadro de contraseña. Introduce la clave que hayas fijado desde el menú de la hoja de cálculo ' }),
+  new TextRun({ text: '(🔐 Fijar clave de profesor)', bold: true }),
+  new TextRun({ text: '. Pulsa «Acceder».' }),
 ]));
 children.push(p('Verás un panel con varias secciones: URL del backend, crear examen de simples, crear examen de compuestas, resultados, misiones, informe del profesor en Excel.'));
 
 children.push(callout(
-  'Una vez dentro, puedes cambiar la contraseña en cualquier momento desde el propio panel para que no sea «profe123». Eso evita que un alumno curioso adivine la entrada.',
+  'No hay contraseña por defecto: la fijas tú desde el menú de la hoja de Google Sheets (🔐 Fijar clave de profesor), mínimo 6 caracteres. Es la misma que teclearás en el panel para entrar.',
   COLOR_FONDO_TIP
 ));
 children.push(p(''));
