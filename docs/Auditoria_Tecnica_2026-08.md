@@ -947,6 +947,29 @@ Sheet (10 textos, 184 palabras, nivel Maestro): la cascada PAU de «casa» sale 
 marcar «común»)— y confirmar la palabra da 5/5 puntos y «Respuesta PAU: sustantivo, común,
 femenino, singular». Sin errores de consola.
 
+**Segunda pasada (ago-2026): banco de respaldo (`MAESTRO_DEMO`/`MAESTRO_TEXTS`).** Con la
+capa de cascadas ya fuera, quedaban en `maestro/index.js` los 33 tokens fijos del texto
+«El viejo desván» (`MAESTRO_DEMO`), su envoltorio `MAESTRO_TEXTS` y las dos funciones que
+lo construyen (`normalizePerifrasTokenAtrs`, `buildMaestroText`) — el mismo patrón de dato
+incrustado que A8 ya había corregido para las cascadas. Se movieron los cuatro a
+`js/data/maestro-demo.js` (nuevo, con la misma cabecera explicativa que
+`cascadas-morfologia.js`); `maestro/index.js` los importa y los sigue reexportando para no
+romper a quien los importe desde el módulo. `normalizePerifrasTokenAtrs` viajó también
+—no solo lo que hacía falta para construir `MAESTRO_TEXTS`— porque el motor la reutiliza
+para normalizar los textos que sí llegan del Sheet (`js/modules/maestro/index.js:601` y
+`651`), y dejarla partida en dos archivos habría obligado a reimportarla de vuelta sin
+necesidad. `sw.js` ya lleva `./js/data/maestro-demo.js` en `SHELL_ASSETS`
+(`node scripts/check-sw-shell.mjs` → ✓ 52 archivos).
+
+Verificado en el navegador con el fetch al Sheet bloqueado a propósito (para forzar la
+ruta de banco de respaldo, no la de red): Maestro arranca con el texto «El viejo
+desván — Texto de demostración» (1 texto, 33 tokens) y analizar «Encontré» como verbo da
+10/10 puntos con «Respuesta PAU: verbo, primera, primera persona, singular, pretérito
+perfecto simple, indicativo, perfectivo, activa» — confirma que
+`normalizePerifrasTokenAtrs` sigue leyendo bien el rasgo `perífrasis: "no"`. El Morph
+Challenge, en la misma condición sin red, arranca con los 28 tokens no-puntuación de
+`MAESTRO_DEMO`. Sin errores de consola en ninguno de los dos casos.
+
 No toca `server/Code_v6.gs`: **no requiere redespliegue**, solo publicar el frontend.
 
 **Lo que queda dentro del módulo, a propósito:** `MAESTRO_DEMO` (el banco de respaldo de

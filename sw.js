@@ -69,6 +69,7 @@ const SHELL_ASSETS = [
   './js/data/pruebas-sintaxis.js',
   './js/data/pruebas-morfologia.js',
   './js/data/cascadas-morfologia.js',
+  './js/data/maestro-demo.js',
   './js/glosario/tags.js',
   './js/glosario/data.js',
   './js/glosario/render.js',
