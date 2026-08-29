@@ -37,7 +37,7 @@ commit, y haz `git push`.
 | M1 | 77 `console.*` en producción | 🟡 Mejora | 30 min | Sonnet | ✅ HECHA |
 | A1 | `getOraciones_` sin caché | 🟠 Advertencia | 1 h | Opus | ✅ HECHA (caché troceada; requiere redespliegue) |
 | A2 | `validatePin_`: O(n) + sin límite de intentos | 🟠 Advertencia | 1 h | Opus | ✅ HECHA (freno 8/5 min; requiere redespliegue) |
-| A4 | Escapado ausente en `sint` (46 `innerHTML`) | 🟠 Advertencia | 1-2 h | Opus | ⬜ Pendiente |
+| A4 | Escapado ausente en `sint` (46 `innerHTML`) | 🟠 Advertencia | 1-2 h | Opus | ✅ HECHA (solo cliente) |
 | A6 | Acoplamiento por `window.*` (timers, navegación) | 🟠 Advertencia | 2 h | Opus | ✅ HECHA |
 | A8 | Datos lingüísticos dentro de los módulos de UI | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
 | C1 | Clave de profesor *fail-open* → datos de menores | 🔴 Crítico | 30 min | Opus | ⏸ AL CIERRE DE EVALUACIÓN |
@@ -621,7 +621,7 @@ function stopArcadeMusic(){
 
 ---
 
-## A4 · Texto del banco interpolado en atributos HTML sin escapar
+## A4 · Texto del banco interpolado en atributos HTML sin escapar ✅ HECHA
 
 **Archivo:** `js/modules/sint/index.js:2254` y `:2260` (dentro de `renderPhase3`)
 
@@ -662,6 +662,39 @@ div.innerHTML = `<div class="blk-words" title="${wordsEsc}">${wordsEsc}</div>${s
 Pasada sistemática por los 46 `innerHTML` de `js/modules/sint/index.js` buscando `${`
 con datos procedentes del banco (`o.palabras`, `bloque.solucion`, `consejo`, `words`).
 Los que interpolan solo constantes internas o números no necesitan cambio.
+
+### ✅ Resuelto (ago-2026) — la pasada completa, con un helper de más
+
+Hecha la revisión de los 46 `innerHTML`. **17 reciben datos del banco** —directamente o a
+través de un helper como `renderContextStrip`, `buildPoolSection` o `errorCard`— y se han
+escapado; el resto solo mete constantes internas (`SUBFASE_CONFIGS`, `PHASE_NAMES`,
+`CC_SUBTIPOS`, `GRUPOS`, `PRONOUNS`) o números, y se han dejado como estaban.
+
+Dos decisiones que se apartan de la receta de arriba:
+
+1. **`escHtml` con copia de respaldo, igual que `CC_SUBTIPOS`.** Llega por `window` desde
+   `core/escape.js`, y `app.js` es un módulo ES: si un import de su grafo falla, `escHtml`
+   no existe y *todas* las fases de Simples reventarían al primer render. El módulo lleva
+   ahora su propia copia de reserva (mismo patrón, y misma razón, que
+   `CC_SUBTIPOS_RESPALDO`).
+2. **Un segundo helper, `escJsAttr`, para los manejadores en línea.** Los ids de bloque del
+   banco viajan dentro de `onclick="p3SlotClick('…')"`. Ahí `escHtml` **no protege**: el
+   navegador deshace las entidades *antes* de que el motor de JS lea el atributo, así que
+   una comilla simple seguiría cerrando la cadena. `escJsAttr` escapa primero para JS
+   (`\` y `'`) y después para HTML.
+
+Sitios tocados: `errorCard`, overlay del examen mixto, `renderContextStrip`, `renderPhase1`,
+`renderPhase2`, `buildP3Blocks`, `buildTag3HTML`, `buildPoolSection`, los chips de funciones
+practicadas, la sugerencia ZDP, el desglose por función de resultados, el detalle por oración
+del examen y el selector del proyector.
+
+Verificado en el navegador con una oración hostil (`Dijo "no <b>vengas</b>" a su hermana.` y
+un bloque cuyo id contiene comillas): el marcado aguanta, el `<b>` se ve como texto y la
+etiqueta se sigue colocando en el hueco correcto.
+
+**Queda fuera, a propósito:** `tagContent()` (en `js/glosario/tags.js`) mete la etiqueta de
+solución en HTML sin escapar. Es el mismo fallo, pero vive en un módulo compartido con
+Compuestas, Sintagmas y Arcade — se trata aparte para no mezclar dos cambios.
 
 ---
 

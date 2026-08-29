@@ -188,8 +188,8 @@ function showHesitationHint(text){
 function errorCard(title, detail){
   return `<div class="card" style="padding:24px;text-align:center;border-left:5px solid var(--red);margin:20px auto;max-width:560px">
     <div style="font-size:1.5rem;margin-bottom:8px">⚠️</div>
-    <div style="font-weight:800;color:var(--red);margin-bottom:6px">${title}</div>
-    <div style="font-size:.82rem;color:var(--muted);margin-bottom:14px;word-break:break-word">${detail||'Error desconocido'}</div>
+    <div style="font-weight:800;color:var(--red);margin-bottom:6px">${escHtml(title)}</div>
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:14px;word-break:break-word">${escHtml(detail||'Error desconocido')}</div>
     <button type="button" class="btn btn-ghost btn-sm" onclick="goLogin()">← Volver al inicio</button>
   </div>`;
 }
@@ -249,6 +249,31 @@ const CC_SUBTIPOS = Array.isArray(window.CC_SUBTIPOS) && window.CC_SUBTIPOS.leng
 if (!Array.isArray(window.CC_SUBTIPOS)) {
   log.warn('[sint] CC_SUBTIPOS no llegó desde app.js — usando la copia de respaldo. ' +
                'Señal de que algún módulo ES no cargó: la app puede estar incompleta.');
+}
+
+// ── Escapado de HTML (A4, auditoría técnica ago-2026) ─────────────────────
+// Todo lo que llega del banco de la Hoja —palabras de la oración, consejos,
+// etiquetas de solución, ids de bloque— se interpola en plantillas que acaban
+// en innerHTML. Una oración con comillas dobles cerraba el atributo antes de
+// tiempo y rompía el marcado; con < > podía inyectar etiquetas. Es la misma
+// familia que el bug del `consejo` de C.Ag. en arcade.
+//
+// escHtml vive en core/escape.js y llega por window (app.js hace el
+// Object.assign). La copia de respaldo está por la misma razón que
+// CC_SUBTIPOS_RESPALDO: si app.js no llega a ejecutarse, este módulo tiene que
+// seguir escapando igual — si no, llamaríamos a undefined y se caería entero.
+var escHtml = (typeof window.escHtml === 'function') ? window.escHtml : function(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+};
+
+// Para valores que van DENTRO de un manejador en línea: onclick="f('AQUÍ')".
+// escHtml por sí solo no basta ahí: el navegador deshace las entidades antes
+// de que el motor de JS lea el atributo, así que una comilla simple seguiría
+// cerrando la cadena. Primero se escapa para JS y después para HTML.
+function escJsAttr(s){
+  return escHtml(String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
 }
 
 // T alone is only used internally for intermediate level; not a draggable label
@@ -1309,7 +1334,7 @@ function _mostrarMixtoOverlay(kind, marker){
       `<p style="margin:0 0 10px">Este examen tiene <strong>dos partes</strong>:</p>
        <p style="margin:0 0 6px">📗 <strong>Parte 1 · Oraciones simples</strong> — ${nOr} ${nOr!==1?'oraciones':'oración'}${timerTxt}</p>
        <p style="margin:0 0 10px">🧩 <strong>Parte 2 · Oración compuesta</strong> — empezará cuando termines y envíes la Parte 1</p>
-       <p style="margin:0;font-size:.82rem;color:var(--muted)">La Parte 1 cuenta un ${m.pesoSimples}% de la nota global y la Parte 2 un ${m.pesoCompuestas}%.</p>`;
+       <p style="margin:0;font-size:.82rem;color:var(--muted)">La Parte 1 cuenta un ${escHtml(m.pesoSimples)}% de la nota global y la Parte 2 un ${escHtml(m.pesoCompuestas)}%.</p>`;
     acts.innerHTML = `<button type="button" class="btn btn-primary" style="padding:12px 22px" onclick="mixtoEmpezarParte1()">🚀 Empezar la Parte 1 →</button>`;
   } else {
     const m = marker || {};
@@ -1780,7 +1805,7 @@ function renderContextStrip(o,showBlocks=false){
     const used=new Set(bloques.flatMap(b=>b.indices));
     let html=`<div class="ctx-strip ctx-sticky"><div class="ctx-label">Análisis oracional — funciones</div><div class="ctx-scroll"><div class="ctx-words">`;
     if(isTacito&&G.sujetoTacito){
-      html+=`<span class="ctx-tacito-tag" aria-label="Sujeto tácito">Ø&nbsp;<em>${G.sujetoTacito}</em></span>`;
+      html+=`<span class="ctx-tacito-tag" aria-label="Sujeto tácito">Ø&nbsp;<em>${escHtml(G.sujetoTacito)}</em></span>`;
     }
     bloques.filter(b=>!isTacitoBlock(b)).forEach(b=>{
       const res=G.phase3Results[b.id];
@@ -1791,12 +1816,12 @@ function renderContextStrip(o,showBlocks=false){
       const blockCls=resolved?`ctx-block ctx-block-resolved ${tagCls}`:'ctx-block ctx-block-pending';
       html+=`<div class="${blockCls}">
         <div class="ctx-blk-words">${b.indices.map(i=>{const isV=npSet.has(i),isS=sIdxs.has(i);
-          return`<span class="ctx-w ${isV?'ctx-verb':isS?'ctx-subj':''}"><span class="ctx-wt">${words[i]}</span>${isV?'<span class="ctx-wb">NP</span>':isS?'<span class="ctx-wb">Suj.</span>':''}</span>`;
+          return`<span class="ctx-w ${isV?'ctx-verb':isS?'ctx-subj':''}"><span class="ctx-wt">${escHtml(words[i])}</span>${isV?'<span class="ctx-wb">NP</span>':isS?'<span class="ctx-wb">Suj.</span>':''}</span>`;
         }).join('')}</div>
-        <div class="ctx-blk-badge-below">${resolved?func:'?'}</div>
+        <div class="ctx-blk-badge-below">${resolved?escHtml(func):'?'}</div>
       </div>`;
     });
-    words.forEach((w,i)=>{if(!used.has(i))html+=`<span class="ctx-w"><span class="ctx-wt">${w}</span></span>`;});
+    words.forEach((w,i)=>{if(!used.has(i))html+=`<span class="ctx-w"><span class="ctx-wt">${escHtml(w)}</span></span>`;});
     return html+`</div></div></div>`;
   }
 
@@ -1805,7 +1830,7 @@ function renderContextStrip(o,showBlocks=false){
   const subjectIdentified=G.subjectIdxs.length>0||(isTacito&&G.sujetoTacito);
   let html=`<div class="ctx-strip ctx-sticky"><div class="ctx-label">Oración — NP${subjectIdentified?', Sujeto y Predicado':''} identificados</div><div class="ctx-scroll"><div class="ctx-words">`;
   if(isTacito&&G.sujetoTacito){
-    html+=`<span class="ctx-tacito-tag">Ø&nbsp;<em>${G.sujetoTacito}</em></span>`;
+    html+=`<span class="ctx-tacito-tag">Ø&nbsp;<em>${escHtml(G.sujetoTacito)}</em></span>`;
   }
   words.forEach((w,i)=>{
     const isV=npSet.has(i),isS=sIdxs.has(i);
@@ -1817,7 +1842,7 @@ function renderContextStrip(o,showBlocks=false){
     else if(isS) cls+=' ctx-subj';
     if(isPred&&!isV) cls+=' ctx-pred';
     html+=`<span class="${cls}">
-      <span class="ctx-wt">${w}</span>
+      <span class="ctx-wt">${escHtml(w)}</span>
       ${isV?'<span class="ctx-wb">NP</span>':isS?'<span class="ctx-wb">Suj.</span>':''}
     </span>`;
   });
@@ -1837,7 +1862,7 @@ function renderPhase1(el,o){
     npIndices.length>1
       ? `El NP de esta oración es un <strong>${tipLabel}</strong>. Haz clic sobre cualquiera de sus palabras para seleccionar todo el núcleo.`
       : `Haz clic en la palabra que es el <strong>verbo principal conjugado</strong> de la oración.`,
-    o.fase1.consejo
+    escHtml(o.fase1.consejo)
   )+`<div class="sent-card folio-sheet">
     <div class="sent-scroll"><div class="sent-wrap" id="p1-sent" role="list" aria-label="Palabras de la oración"></div></div>
   </div>
@@ -1847,7 +1872,7 @@ function renderPhase1(el,o){
   o.palabras.forEach((w,i)=>{
     const div=document.createElement('div');
     div.className='wu'+(isPunct(w)?' is-punct':'');
-    div.innerHTML=`<span class="wu-badge" aria-hidden="true">NP</span><span class="wu-text">${w}</span>`;
+    div.innerHTML=`<span class="wu-badge" aria-hidden="true">NP</span><span class="wu-text">${escHtml(w)}</span>`;
     if(!isPunct(w)){
       div.setAttribute('role','button');div.setAttribute('tabindex','0');
       div.setAttribute('aria-label',`Seleccionar "${w}" como parte del NP`);
@@ -1902,7 +1927,7 @@ function renderPhase2(el,o){
     hasExplicit
       ? 'Haz clic en <strong>todas las palabras</strong> que forman el Sujeto y pulsa "Confirmar".'
       : 'Observa la desinencia del verbo y determina si hay un sujeto tácito o si la oración es impersonal.',
-    o.fase2.consejo
+    escHtml(o.fase2.consejo)
   )+`<div class="sent-card folio-sheet">
     <div class="sent-scroll"><div class="sent-wrap" id="p2-sent" role="list" aria-label="Palabras de la oración"></div></div>
   </div>`;
@@ -1945,7 +1970,7 @@ function renderPhase2(el,o){
     const div=document.createElement('div');
     div.className='wu'+(isPunct(w)?' is-punct':'')+(isVerb?' wu-verb':(offerChoice?'':' wu-select'));
     div.id=`p2w${i}`;
-    div.innerHTML=`<span class="wu-badge" aria-hidden="true">${isVerb?'NP':'Suj.'}</span><span class="wu-text">${w}</span>`;
+    div.innerHTML=`<span class="wu-badge" aria-hidden="true">${isVerb?'NP':'Suj.'}</span><span class="wu-text">${escHtml(w)}</span>`;
     if(!isPunct(w)&&!isVerb&&!offerChoice){
       div.setAttribute('role','button');div.setAttribute('tabindex','0');div.setAttribute('aria-pressed','false');
       div.onclick=()=>toggleP2(i,div);
@@ -2248,33 +2273,39 @@ function buildP3Blocks(o){
     div.className='blk-card'+(isOk?' blk-done':'')+(isPre?' blk-pre':'')+(isTac?' blk-tacito':'');
     div.setAttribute('role','listitem');
 
+    // words, el id del bloque y la etiqueta de solución salen del banco: se
+    // escapan una vez aquí y se usan ya escapados (idJs, además, para los
+    // manejadores en línea, donde escHtml solo no protege — ver escJsAttr).
+    const wordsEsc=escHtml(words);
+    const idAttr=escHtml(b.id), idJs=escJsAttr(b.id);
     let slotHTML;
     if(isPre||isTac){
       const css=funcTagCss(slot?.label||'');
-      slotHTML=`<div class="dslot ds-pre" aria-label="Pre-resuelto: ${slot?.label||''}">
+      slotHTML=`<div class="dslot ds-pre" aria-label="Pre-resuelto: ${escHtml(slot?.label||'')}">
         <span class="tag ${css} tag-pre">${tagContent(slot?.label||'—')}<span class="tag-pre-badge">✓</span></span>
       </div>`;
     }else{
-      slotHTML=`<div class="dslot ${isOk?'ds-ok':''}" id="ds${b.id}"
-        role="button" tabindex="${isOk?'-1':'0'}" aria-label="Hueco para ${words}"
-        ondragover="p3Over(event,'${b.id}')" ondragleave="p3Leave('${b.id}')" ondrop="p3Drop(event,'${b.id}')"
-        onclick="p3SlotClick('${b.id}')"
-        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();p3SlotClick('${b.id}')}">
+      slotHTML=`<div class="dslot ${isOk?'ds-ok':''}" id="ds${idAttr}"
+        role="button" tabindex="${isOk?'-1':'0'}" aria-label="Hueco para ${wordsEsc}"
+        ondragover="p3Over(event,'${idJs}')" ondragleave="p3Leave('${idJs}')" ondrop="p3Drop(event,'${idJs}')"
+        onclick="p3SlotClick('${idJs}')"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();p3SlotClick('${idJs}')}">
         ${slot?buildTag3HTML(slot,b.id,isOk):'<span class="dslot-hint">← selecciona una etiqueta</span>'}
       </div>`;
     }
-    div.innerHTML=`<div class="blk-words" title="${words}">${words}</div>${slotHTML}`;
+    div.innerHTML=`<div class="blk-words" title="${wordsEsc}">${wordsEsc}</div>${slotHTML}`;
     cont.appendChild(div);
   });
 }
 function buildTag3HTML(box,slotId,isOk){
   const css=funcTagCss(box.label);
-  return`<span class="tag ${css}" id="tg${box.id}" data-id="${box.id}"
-    role="button" tabindex="${isOk?'-1':'0'}" aria-label="${box.label}"
+  const idAttr=escHtml(box.id), idJs=escJsAttr(box.id);
+  return`<span class="tag ${css}" id="tg${idAttr}" data-id="${idAttr}"
+    role="button" tabindex="${isOk?'-1':'0'}" aria-label="${escHtml(box.label)}"
     draggable="${isOk?'false':'true'}"
-    ondragstart="tagDragStart(event,'${box.id}')"
-    onclick="tagClick3(event,'${box.id}')"
-    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();tagClick3(event,'${box.id}')}">
+    ondragstart="tagDragStart(event,'${idJs}')"
+    onclick="tagClick3(event,'${idJs}')"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();tagClick3(event,'${idJs}')}">
     ${tagContent(box.label)}
   </span>`;
 }
@@ -2294,12 +2325,13 @@ function buildPoolSection(pool){
     const displayLabel=isCC(bFunc)?(b.tipo?b.tipo+' | CC':'CC'):b.label;
     const css=funcTagCss(displayLabel);
     const ccHint=isCC(bFunc)?'<span class="cc-sub-badge">▸ tipo</span>':'';
-    return`<span class="tag ${css}" id="tg${b.id}" data-id="${b.id}"
-      role="button" tabindex="0" aria-label="${displayLabel}" aria-grabbed="false"
+    const idAttr=escHtml(b.id), idJs=escJsAttr(b.id);
+    return`<span class="tag ${css}" id="tg${idAttr}" data-id="${idAttr}"
+      role="button" tabindex="0" aria-label="${escHtml(displayLabel)}" aria-grabbed="false"
       draggable="true"
-      ondragstart="tagDragStart(event,'${b.id}')"
-      onclick="tagClick3(event,'${b.id}')"
-      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();tagClick3(event,'${b.id}')}">
+      ondragstart="tagDragStart(event,'${idJs}')"
+      onclick="tagClick3(event,'${idJs}')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();tagClick3(event,'${idJs}')}">
       ${tagContent(displayLabel)}${ccHint}
     </span>`;
   }).join('');
@@ -2568,7 +2600,7 @@ function showSuccessScreen(o){
       });
     }
     if(funcs.size > 0){
-      funcsList.innerHTML = [...funcs].map(f=>'<span class="succ-func-chip">'+f+'</span>').join('');
+      funcsList.innerHTML = [...funcs].map(f=>'<span class="succ-func-chip">'+escHtml(f)+'</span>').join('');
       funcsBox.style.display = 'block';
     } else {
       funcsBox.style.display = 'none';
@@ -2834,14 +2866,15 @@ function _buildZdpSuggestionHtml(){
     .sort((a, b) => b[1] - a[1]);
   if(candidatos.length === 0) return '';
   const [func, nErr] = candidatos[0];
-  const safeFunc = String(func).replace(/'/g,'\\\'');
+  const safeFunc = escJsAttr(func);
+  const funcEsc  = escHtml(func);
   return ''
     + '<div style="margin:14px 0 4px;padding:14px 16px;background:linear-gradient(135deg,#FFF7ED 0%,#FED7AA 100%);border:1.5px solid #F59E0B;border-radius:12px;text-align:left">'
     +   '<div style="font-size:.72rem;font-weight:800;color:#9A3412;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">🎯 Sugerencia adaptativa</div>'
-    +   '<div style="font-size:.88rem;color:#7C2D12;margin-bottom:10px;line-height:1.5">Parece que <b>'+func+'</b> te está costando ('+nErr+' errores en esta sesión). ¿Quieres practicar oraciones con esa función?</div>'
+    +   '<div style="font-size:.88rem;color:#7C2D12;margin-bottom:10px;line-height:1.5">Parece que <b>'+funcEsc+'</b> te está costando ('+nErr+' errores en esta sesión). ¿Quieres practicar oraciones con esa función?</div>'
     +   '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'
     +     '<button type="button" onclick="document.getElementById(\'succ-zdp\').style.display=\'none\'" style="background:transparent;color:#9A3412;border:1.5px solid #C2410C;border-radius:10px;padding:6px 14px;font-weight:700;font-size:.82rem;cursor:pointer">Ahora no</button>'
-    +     '<button type="button" onclick="practiceFocusOn(\''+safeFunc+'\')" style="background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:10px;padding:6px 14px;font-weight:800;font-size:.82rem;cursor:pointer;box-shadow:0 2px 6px rgba(217,119,6,.3)">Sí, filtrar por '+func+' →</button>'
+    +     '<button type="button" onclick="practiceFocusOn(\''+safeFunc+'\')" style="background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:10px;padding:6px 14px;font-weight:800;font-size:.82rem;cursor:pointer;box-shadow:0 2px 6px rgba(217,119,6,.3)">Sí, filtrar por '+funcEsc+' →</button>'
     +   '</div>'
     + '</div>';
 }
@@ -3047,7 +3080,7 @@ async function goResults(){
       const icon=pct>=80?'✓':pct>=50?'△':'✗';
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.05)">
         <span style="font-size:.85rem;font-weight:800;color:${color};min-width:20px">${icon}</span>
-        <span style="flex:1;font-size:.85rem;font-weight:600">${f}</span>
+        <span style="flex:1;font-size:.85rem;font-weight:600">${escHtml(f)}</span>
         <div style="width:80px;height:6px;background:#E5E7EB;border-radius:3px;overflow:hidden">
           <div style="width:${pct}%;height:100%;background:${color};border-radius:3px"></div></div>
         <span style="font-size:.78rem;color:var(--muted);min-width:45px;text-align:right">${ok}/${total}</span></div>`;
@@ -3085,7 +3118,7 @@ async function goResults(){
         const histTag = (histN && histN >= 5)
           ? '<span style="display:inline-block;margin-left:6px;padding:1px 8px;background:#FEE2E2;color:#991B1B;border-radius:99px;font-size:.72rem;font-weight:700;letter-spacing:.02em">⚠ patrón recurrente</span>'
           : '';
-        return '<li style="margin-bottom:6px"><strong>'+f+'</strong> ('+n+' error'+(n>1?'es':'')+' en esta sesión)'+histTag
+        return '<li style="margin-bottom:6px"><strong>'+escHtml(f)+'</strong> ('+n+' error'+(n>1?'es':'')+' en esta sesión)'+histTag
           + (pista ? '<br><span style="color:#78350F;font-size:.82rem">'+pista+'</span>' : '')
           + '</li>';
       }).join('');
@@ -3107,7 +3140,7 @@ async function goResults(){
     if(historicalOnly.length > 0){
       const trendItems = historicalOnly.map(h => {
         const pista = DICCIONARIO_BASE_SINTAXIS[h.func]?.pista || '';
-        return '<li style="margin-bottom:4px"><strong>'+h.func+'</strong> '
+        return '<li style="margin-bottom:4px"><strong>'+escHtml(h.func)+'</strong> '
           + '<span style="color:#475569;font-size:.78rem">— '+h.count+' errores acumulados a lo largo del tiempo</span>'
           + (pista ? '<br><span style="color:#334155;font-size:.8rem">'+pista+'</span>' : '')
           + '</li>';
@@ -3169,7 +3202,7 @@ async function goResults(){
     document.getElementById('res-detail').innerHTML=completedInfo+(G.sentenceErrors||[]).map((se,i)=>{
       const o=G.oraciones.find(x=>x.id===se.id);
       const ps=perSentence[i]||{avail:1,earned:0,completed:false};
-      const prev=(o?.oracion_completa||`Oración ${i+1}`).slice(0,50)+'…';
+      const prev=escHtml((o?.oracion_completa||`Oración ${i+1}`).slice(0,50)+'…');
       if(!ps.completed){
         return`<div class="res-row" style="opacity:.6">
           <span style="font-family:monospace;font-size:.73rem;color:var(--muted);min-width:22px">${i+1}.</span>
@@ -3905,7 +3938,7 @@ function openProjSelector(){
   sub.textContent=`${G.oraciones.length} oraciones · Oración actual: ${G.idx+1}`;
   list.innerHTML=G.oraciones.map((o,i)=>{
     const isCur=i===G.idx;
-    const preview=(o.oracion_completa||o.palabras?.join(' ')||'').replace(/[¡¿]/g,'').slice(0,72)+'…';
+    const preview=escHtml((o.oracion_completa||o.palabras?.join(' ')||'').replace(/[¡¿]/g,'').slice(0,72)+'…');
     return`<button type="button" class="proj-sent-row ${isCur?'psr-current':''}"
       onclick="jumpToSentence(${i})" aria-label="Saltar a oración ${i+1}">
       <span class="psr-num">${i+1}</span>
