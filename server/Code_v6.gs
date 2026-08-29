@@ -82,6 +82,14 @@ const SHEET_MISIONES = 'Misiones';
 const SHEET_MIS_RES  = 'Misiones_Resultados';
 const SHEET_EXAMS    = 'Examenes_Config';
 
+// ── Freno de fuerza bruta del PIN de examen (A2) ──────────────────────
+// El PIN son 4 dígitos: 10.000 combinaciones. Se cuentan los fallos por
+// correo en CacheService y se bloquea al llegar al tope durante la ventana.
+// Margen amplio a propósito: un alumno que se equivoca tecleando no debe
+// quedarse fuera del examen.
+const PIN_MAX_FALLOS  = 8;
+const PIN_VENTANA_SEG = 300;
+
 // ── Códigos de error (campo `code` en respuestas {error:...}) ─────────
 const ERR = {
   NO_SHEET:        'NO_SHEET',
@@ -1295,12 +1303,24 @@ function getOracionByTexto_(texto) {
 /**
  * Endpoint 'validatePin'. Comprueba el PIN de examen contra la hoja Config
  * y detecta si ese email+PIN ya tiene un resultado guardado (duplicado).
+ * Freno de fuerza bruta por correo (8 fallos / 5 min) y lectura del dedup
+ * limitada a las dos columnas necesarias.
  * @param {string} pin
  * @param {string} email
  * @return {{valid:boolean, reason?:string, message?:string}}
  */
 function validatePin_(pin, email) {
   if (!pin) return { valid: false, reason: 'no_pin', message: 'PIN no proporcionado.' };
+
+  // Freno de fuerza bruta: un PIN de 4 dígitos son 10.000 combinaciones.
+  // Sin esto, un script las prueba todas en minutos y empieza el examen antes de tiempo.
+  const cache      = CacheService.getScriptCache();
+  const idIntentos = 'pinfail_' + String(email || 'anon').trim().toLowerCase();
+  const fallos     = Number(cache.get(idIntentos) || 0);
+  if (fallos >= PIN_MAX_FALLOS) {
+    return { valid: false, reason: 'too_many',
+             message: 'Demasiados intentos. Espera 5 minutos y avisa al profesor.' };
+  }
 
   const ss     = SpreadsheetApp.getActiveSpreadsheet();
   const config = ss.getSheetByName(SHEET_CONFIG);
@@ -1316,25 +1336,34 @@ function validatePin_(pin, email) {
   }
 
   if (!storedPin) return { valid: false, reason: 'no_pin_set', message: 'No hay PIN configurado. Genéralo en el panel del profesor.' };
-  if (String(pin).trim() !== storedPin) return { valid: false, reason: 'wrong_pin', message: 'PIN incorrecto.' };
+  if (String(pin).trim() !== storedPin) {
+    try { cache.put(idIntentos, String(fallos + 1), PIN_VENTANA_SEG); } catch (e) {}
+    return { valid: false, reason: 'wrong_pin', message: 'PIN incorrecto.' };
+  }
 
   // Check duplicate: same email + same pin in results sheet.
   // Columnas POR NOMBRE (no índices fijos): si se reordena Alumnos_Resultados,
   // los índices [1]/[4] comparaban columnas equivocadas sin avisar.
+  // Se leen SOLO esas dos columnas: getDataRange() traía también Detalle_JSON
+  // de cada fila (kilobytes por alumno) para comparar dos celdas.
   const results = ss.getSheetByName(SHEET_RESULTS);
   if (results && email && results.getLastRow() > 1) {
     const rcol = getColMap_(results);
     const iCorreo = rcol['Correo'], iPin = rcol['PIN'];
     if (iCorreo !== undefined && iPin !== undefined) {
-      const rData = results.getDataRange().getValues();
-      for (let i = 1; i < rData.length; i++) {
-        if (String(rData[i][iCorreo]).trim().toLowerCase() === email.toLowerCase() &&
-            String(rData[i][iPin]).trim() === storedPin) {
+      const n       = results.getLastRow() - 1;
+      const correos = results.getRange(2, iCorreo + 1, n, 1).getValues();
+      const pins    = results.getRange(2, iPin    + 1, n, 1).getValues();
+      const em      = String(email).trim().toLowerCase();
+      for (let i = 0; i < n; i++) {
+        if (String(correos[i][0]).trim().toLowerCase() === em &&
+            String(pins[i][0]).trim() === storedPin) {
           return { valid: false, reason: 'duplicate', message: 'Ya has realizado este examen con este PIN.' };
         }
       }
     }
   }
+  try { cache.remove(idIntentos); } catch (e) {}
   return { valid: true };
 }
 

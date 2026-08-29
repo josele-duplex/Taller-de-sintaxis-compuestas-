@@ -36,7 +36,7 @@ commit, y haz `git push`.
 | M3 | Duplicación (`escCSV`, `_el`, sendBeacon) | 🟡 Mejora | 1 h | Sonnet | ✅ HECHA (escCSV resuelta en C5) |
 | M1 | 77 `console.*` en producción | 🟡 Mejora | 30 min | Sonnet | ✅ HECHA |
 | A1 | `getOraciones_` sin caché | 🟠 Advertencia | 1 h | Opus | ✅ HECHA (caché troceada; requiere redespliegue) |
-| A2 | `validatePin_`: O(n) + sin límite de intentos | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
+| A2 | `validatePin_`: O(n) + sin límite de intentos | 🟠 Advertencia | 1 h | Opus | ✅ HECHA (freno 8/5 min; requiere redespliegue) |
 | A4 | Escapado ausente en `sint` (46 `innerHTML`) | 🟠 Advertencia | 1-2 h | Opus | ⬜ Pendiente |
 | A6 | Acoplamiento por `window.*` (timers, navegación) | 🟠 Advertencia | 2 h | Opus | ✅ HECHA |
 | A8 | Datos lingüísticos dentro de los módulos de UI | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
@@ -523,6 +523,33 @@ function validatePin_(pin, email) {
   return { valid: true };
 }
 ```
+
+### ✅ Resuelto (ago-2026) — con dos matices sobre la receta de arriba
+
+Implementado en `server/Code_v6.gs` siguiendo el snippet, con dos detalles:
+
+1. **El tope y la ventana son constantes con nombre** (`PIN_MAX_FALLOS = 8`,
+   `PIN_VENTANA_SEG = 300`, junto a los nombres de hoja en §1), no números sueltos
+   dentro de la función: así se ajustan sin releer la lógica. El margen es amplio a
+   propósito — un alumno que teclea mal el PIN dos o tres veces no puede quedarse
+   fuera del examen.
+2. **Los accesos a caché van en `try/catch`.** Si `CacheService` falla (cuota, error
+   transitorio), el PIN sigue validándose: el freno es un extra, nunca un motivo para
+   bloquear un examen que ya ha empezado.
+
+El dedup pasa de `getDataRange()` (la hoja entera, `Detalle_JSON` incluido) a leer
+**solo las columnas `Correo` y `PIN`**, por nombre vía `getColMap_`. Con 1.000 filas eso
+es leer dos columnas en vez de treinta y tantas, la mayoría con kilobytes de JSON dentro.
+
+**Límite conocido, a sabiendas:** el contador de fallos es *por correo*. Un atacante que
+vaya cambiando el correo en cada intento lo esquiva. Frenarlo del todo pediría un
+contador global, y un contador global puede dejar a una clase entera fuera del examen
+justo al empezar — mal negocio. El freno por correo corta el ataque realista (un alumno
+probando PINes desde su sesión) sin ese riesgo.
+
+**Nota:** ningún módulo del cliente llama hoy a `validatePin`; el endpoint solo es
+alcanzable llamando directamente a la URL del Apps Script — que es justo el escenario
+que el freno cubre.
 
 ---
 
