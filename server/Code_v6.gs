@@ -169,14 +169,26 @@ function setMisGrupos_(params) {
  */
 function requiereClaveProfesor_(params) {
   const guardada = PropertiesService.getScriptProperties().getProperty(PROP_CLAVE_PROFESOR);
-  // Si el profesor aún no ha fijado clave, NO bloqueamos (evita dejar la app
-  // inservible tras desplegar). Pero avisamos en el log para que la configure.
+
+  // C1 (ago-2026) — FAIL-CLOSED: sin clave configurada, los endpoints de profesor
+  // NO responden. Antes esto devolvía null (dejaba pasar) para "no romper el
+  // despliegue"; el precio era servir Alumnos_Resultados a cualquiera con la URL.
   if (!guardada) {
-    logToSheet_('WARN', 'auth', 'CLAVE_PROFESOR no configurada: endpoints de profesor SIN protección. Usa el menú "Fijar clave de profesor".', ERR.NO_AUTORIZADO, '');
-    return null;
+    logToSheet_('ERROR', 'auth',
+      'CLAVE_PROFESOR no configurada: endpoints de profesor BLOQUEADOS. ' +
+      'Usa el menú "Fijar clave de profesor".', ERR.NO_AUTORIZADO, '');
+    return gasError_('El servidor no tiene configurada la contraseña del profesor. ' +
+                     'Fíjala desde el menú de la Hoja.', ERR.NO_AUTORIZADO);
   }
+
   const enviada = String((params && params.clave) || '');
-  if (enviada !== guardada) {
+  // Comparación de tiempo constante (no distingue "casi correcta" por tiempo).
+  if (enviada.length !== guardada.length) {
+    return gasError_('No autorizado. Revisa la contraseña del profesor.', ERR.NO_AUTORIZADO);
+  }
+  let diff = 0;
+  for (let i = 0; i < guardada.length; i++) diff |= enviada.charCodeAt(i) ^ guardada.charCodeAt(i);
+  if (diff !== 0) {
     return gasError_('No autorizado. Revisa la contraseña del profesor.', ERR.NO_AUTORIZADO);
   }
   return null;
@@ -3638,7 +3650,7 @@ function verPin() {
 function menuFijarClaveProfesor() {
   const ui = SpreadsheetApp.getUi();
   const actual = PropertiesService.getScriptProperties().getProperty(PROP_CLAVE_PROFESOR);
-  const estado = actual ? 'Ya hay una clave configurada.' : 'Todavía NO hay clave (la API está SIN proteger).';
+  const estado = actual ? 'Ya hay una clave configurada.' : 'Todavía NO hay clave: los endpoints de profesor están BLOQUEADOS (C1, fail-closed).';
   const resp = ui.prompt(
     '🔐 Clave de profesor',
     estado + '\n\nEscribe la nueva clave (mínimo 6 caracteres).\n' +
