@@ -50,6 +50,7 @@ proyecto_taller-sintaxis/
 │   │   ├── diccionario-morfologia.js
 │   │   ├── diccionario-sintaxis.js
 │   │   ├── diccionario-sintagmas.js
+│   │   ├── cascadas-morfologia.js      ← MORPH_CASCADES (+ESO34/MAESTRO), getCascadeForNivel
 │   │   └── haber-forms.js
 │   ├── feedback/
 │   │   ├── micro-lecciones.js          ← MICRO_LECCIONES + ERROR_TO_LECCION (Sint)
@@ -152,6 +153,9 @@ la clase `active`. Solo una pantalla está visible a la vez. La función
   Contrarreloj, Duelo Fantasma, Radar de Errores).
 - **Sintagmas (Sint4)**: `js/modules/sintagmas/index.js`.
 - **Maestro**: `js/modules/maestro/index.js` (morfología, con cascadas por nivel).
+  Las cascadas en sí (qué rasgos se preguntan de cada categoría, en los tres
+  niveles) son datos y viven en `js/data/cascadas-morfologia.js` desde ago-2026
+  (hallazgo A8); el módulo solo las pinta.
 - **Teacher**: `js/modules/teacher/index.js` y `informe-excel.js` (panel del
   profesor, dashboard de Compuestas, export CSV/XLSX).
 - **Chispa**: `js/modules/chispa/index.js` (spot-the-function, mezcla

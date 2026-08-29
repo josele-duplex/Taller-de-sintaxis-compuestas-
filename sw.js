@@ -68,6 +68,7 @@ const SHELL_ASSETS = [
   './js/data/canon-agramatical.js',
   './js/data/pruebas-sintaxis.js',
   './js/data/pruebas-morfologia.js',
+  './js/data/cascadas-morfologia.js',
   './js/glosario/tags.js',
   './js/glosario/data.js',
   './js/glosario/render.js',

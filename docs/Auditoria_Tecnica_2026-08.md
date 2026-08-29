@@ -39,7 +39,7 @@ commit, y haz `git push`.
 | A2 | `validatePin_`: O(n) + sin límite de intentos | 🟠 Advertencia | 1 h | Opus | ✅ HECHA (freno 8/5 min; requiere redespliegue) |
 | A4 | Escapado ausente en `sint` (46 `innerHTML`) | 🟠 Advertencia | 1-2 h | Opus | ✅ HECHA (solo cliente) |
 | A6 | Acoplamiento por `window.*` (timers, navegación) | 🟠 Advertencia | 2 h | Opus | ✅ HECHA |
-| A8 | Datos lingüísticos dentro de los módulos de UI | 🟠 Advertencia | 1 h | Opus | ⬜ Pendiente |
+| A8 | Datos lingüísticos dentro de los módulos de UI | 🟠 Advertencia | 1 h | Opus | ✅ HECHA (solo cliente) |
 | C1 | Clave de profesor *fail-open* → datos de menores | 🔴 Crítico | 30 min | Opus | ⏸ AL CIERRE DE EVALUACIÓN |
 | C2 | Nota de examen calculada y firmada por el cliente | 🔴 Crítico | 3-4 h | Opus | ⏸ AL CIERRE DE EVALUACIÓN |
 
@@ -879,7 +879,7 @@ a mano antes de cada `git push` ya evita el fallo.
 
 ---
 
-## A8 · Datos lingüísticos incrustados en los módulos de interfaz
+## A8 · Datos lingüísticos incrustados en los módulos de interfaz ✅ HECHA
 
 **Archivo:** `js/modules/maestro/index.js:342-790` (`MORPH_CASCADES`)
 
@@ -901,6 +901,58 @@ mezcla cambios de datos con cambios de lógica.
 3. Añadirlo a `SHELL_ASSETS` de `sw.js`.
 
 La separación datos/lógica hace además que un futuro `import()` perezoso sea trivial.
+
+### ✅ Resuelto (ago-2026) — se movió la capa entera, no solo la tabla
+
+`js/data/cascadas-morfologia.js` (609 líneas) recoge ahora **toda la capa de cascadas**,
+no únicamente `MORPH_CASCADES`: las tres tablas de nivel (`MORPH_CASCADES`,
+`MORPH_CASCADES_ESO34`, `MORPH_CASCADES_MAESTRO`), `FORMACION_STEP`,
+`TIPO_DET_POR_CATEGORIA`, `TIPO_DET_STEP_`, `MAESTRO_DISPATCH_CATS` y los cuatro
+selectores puros que las leen (`getFuncionToken_`, `getEffectiveCorrectAtrs_`,
+`buildMaestroDispatchCascade_`, `getCascadeForNivel`). `js/modules/maestro/index.js` pasa
+de **1.991 a 1.427 líneas**: se queda con el motor de interfaz y nada más.
+
+Tres decisiones que se apartan de la receta de arriba:
+
+1. **Se llevó también lo derivado, no solo la tabla base.** `MORPH_CASCADES_ESO34` y
+   `MORPH_CASCADES_MAESTRO` se construyen filtrando y extendiendo `MORPH_CASCADES` (`ESO34`
+   quita el paso `tipo` del artículo, `MAESTRO` añade `formación`…). Dejarlas en el módulo
+   habría partido en dos un dato que solo se entiende junto, y habría obligado a importar
+   la tabla base para volver a derivarla en el archivo de interfaz.
+
+2. **También se movieron los selectores puros**, incluido `buildMaestroDispatchCascade_`
+   —que son otras 110 líneas de cascadas escritas dentro de un `if`, no lógica de
+   renderizado—. No es una excepción a «`js/data/` es para datos»: es la convención que ya
+   siguen `canon-agramatical.js` (6 funciones exportadas) y `pruebas-sintaxis.js` (8). La
+   frontera real es *depender del DOM o del estado del módulo*, y ninguna de estas cuatro
+   funciones lo hace.
+
+3. **No se importa desde `app.js`, sino directamente desde `maestro/index.js`.** Es la
+   convención nueva del proyecto (`pruebas-morfologia.js`, `pruebas-sintaxis.js`,
+   `canon-agramatical.js` se importan desde su módulo consumidor). Pasar por `app.js` solo
+   añadiría las cascadas a `window`, donde nadie las busca. `maestro/index.js` sigue
+   reexportando `MORPH_CASCADES`, `MORPH_CASCADES_ESO34` y `getCascadeForNivel` para no
+   romper a quien los importe desde el módulo.
+
+`sw.js` ya lo lleva en `SHELL_ASSETS` (`node scripts/check-sw-shell.mjs` → ✓ 52 archivos)
+y `arquitectura.md` está actualizado.
+
+**Verificación de que no cambia nada.** Se extrajo la versión anterior del bloque desde
+`git show HEAD:…` y se comparó contra la nueva ejecutando **648 combinaciones** de
+`getCascadeForNivel` (17 categorías + una inexistente × 4 niveles × 9 formas de
+`atrs.función` / `atrs.función_sint`) y **162** de `getEffectiveCorrectAtrs_`, más las 7
+tablas serializadas: **0 diferencias**. Después, en el navegador con el banco real del
+Sheet (10 textos, 184 palabras, nivel Maestro): la cascada PAU de «casa» sale correcta
+—Clase → Género → Número, con `dependsOn` respetado (Género y Número solo aparecen tras
+marcar «común»)— y confirmar la palabra da 5/5 puntos y «Respuesta PAU: sustantivo, común,
+femenino, singular». Sin errores de consola.
+
+No toca `server/Code_v6.gs`: **no requiere redespliegue**, solo publicar el frontend.
+
+**Lo que queda dentro del módulo, a propósito:** `MAESTRO_DEMO` (el banco de respaldo de
+García Márquez, una línea de ~9 KB) y `MAESTRO_TEXTS`. Son datos lingüísticos igual que las
+cascadas y merecen el mismo tratamiento, pero son otro cambio: se anotan aquí para no
+perderlos de vista.
 
 ---
 

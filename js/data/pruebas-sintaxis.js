@@ -254,7 +254,7 @@ export const PRUEBAS_SINTAXIS = {
 // `investigacion` de la estación 3. Cada paso señala su `pruebaId` (o `null`
 // si no tiene prueba propia) y, salvo el primero, de qué paso y valor
 // depende para poder mostrarse: es el mismo papel que `dependsOn` cumple en
-// `MORPH_CASCADES` (js/modules/maestro/index.js).
+// `MORPH_CASCADES` (js/data/cascadas-morfologia.js).
 
 export const CASCADA_SE = [
   { id: 'sustitucion',  pruebaId: 'PRU-SINT-SE-05',
