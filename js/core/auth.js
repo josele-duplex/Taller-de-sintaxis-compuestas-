@@ -4,10 +4,12 @@
 
 import { LS_TEACHER_PW } from './constants.js';
 
-export const DEFAULT_TEACHER_PW = 'profe123';
-
+// C1 (ago-2026): sin valor por defecto. Una contraseña "de fábrica" publicada
+// en el código del cliente equivale a no tener contraseña. Si no hay nada
+// guardado, el panel pedirá al profesor que la teclee y el servidor rechazará
+// la petición (requiereClaveProfesor_ ya falla cerrado).
 export function getTeacherPw() {
-  return localStorage.getItem(LS_TEACHER_PW) || DEFAULT_TEACHER_PW;
+  return localStorage.getItem(LS_TEACHER_PW) || '';
 }
 
 // Guarda la clave de profesor que se enviará al GAS en cada endpoint
