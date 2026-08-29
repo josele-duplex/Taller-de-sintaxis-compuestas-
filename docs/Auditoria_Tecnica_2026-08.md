@@ -442,9 +442,11 @@ se llama ya desde los seis puntos del menú que tocan el banco: activar/desactiv
 seleccionadas, activar/desactivar todas, eliminar duplicados, reparar JSON roto,
 reparar oraciones y rellenar etiquetas.
 
-**Queda un caso sin invalidación explícita:** si el profesor edita una celda a mano en
-la Hoja, los alumnos ven el cambio cuando caduque el TTL, es decir, **hasta 5 minutos
-después**. Es el precio de la caché y está acotado.
+**Para las ediciones a mano** (cambiar una celda directamente en la Hoja, sin pasar por
+el menú) hay un botón nuevo en 🔧 Mantenimiento: **«♻️ Refrescar banco para los alumnos»**
+(`menuRefrescarBancoOraciones`). Borra la caché y la reconstruye en el acto, así que el
+cambio se ve al instante y encima el primer alumno que entre ya no paga el recálculo.
+Sin pulsarlo, el cambio tarda como mucho el TTL: 5 minutos.
 
 ---
 

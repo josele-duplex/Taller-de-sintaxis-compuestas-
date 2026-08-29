@@ -3316,6 +3316,7 @@ function onOpen() {
   // BLOQUE 2 — MANTENIMIENTO (colapsado en submenú)
   const mantenimiento = ui.createMenu('🔧 Mantenimiento');
   mantenimiento.addItem('🔄 Actualizar datos de alumnos',         'menuRegenerarMorfologia');
+  mantenimiento.addItem('♻️ Refrescar banco para los alumnos',     'menuRefrescarBancoOraciones');
   mantenimiento.addItem('🧬 Promover textos de Morfología revisados', 'menuPromoverTextosMorfologia');
   mantenimiento.addItem('🧬 Reclasificar textos de Morfología (F1b)', 'menuReclasificarMorfologia');
   mantenimiento.addItem('🧬 Etiquetar formación de palabras (F7)', 'menuEtiquetarFormacionN3');
@@ -3747,6 +3748,37 @@ function generarEtiquetas() {
     '• Filas etiquetadas: ' + filled + '\n' +
     '• Filas omitidas (ya tenían etiquetas): ' + skipped
   );
+}
+
+// A1 (ago-2026): escape hatch de la caché del banco. Las ediciones hechas desde
+// el menú ya invalidan solas, pero si el profesor cambia una celda a mano en
+// Oraciones_Banco los alumnos tardarían hasta 5 minutos (el TTL) en verlo. Este
+// botón borra la caché y la vuelve a construir en el acto, así que además el
+// primer alumno que entre ya no paga el recálculo.
+function menuRefrescarBancoOraciones() {
+  const ui = SpreadsheetApp.getUi();
+  try {
+    invalidarCacheOraciones_();
+    // Reconstruimos las dos entradas (práctica y examen) aquí y ahora.
+    const practica = getOraciones_('practice');
+    if (practica && practica.ok === false) {
+      ui.alert('Error', practica.error, ui.ButtonSet.OK);
+      return;
+    }
+    const examen = getOraciones_('exam');
+    const nPractica = (practica.oraciones || []).length;
+    const nExamen   = (examen && examen.oraciones ? examen.oraciones : []).length;
+
+    ui.alert('♻️ Banco refrescado',
+      'Oraciones disponibles en práctica: ' + nPractica + '\n' +
+      'Oraciones activas para examen: ' + nExamen + '\n\n' +
+      (nPractica === 0
+        ? '⚠ El banco está vacío. Revisa la hoja Oraciones_Banco.'
+        : 'Tus alumnos ya cargan la versión nueva, sin esperar.'),
+      ui.ButtonSet.OK);
+  } catch (e) {
+    ui.alert('Error', e.message, ui.ButtonSet.OK);
+  }
 }
 
 function menuRegenerarMorfologia() {
