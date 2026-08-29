@@ -73,3 +73,8 @@ export function playTone(freq, dur, type = 'sine', vol = 0.13) { _tone(freq, dur
 // Accessor para módulos externos (p.ej. arcade) que necesitan saber si el sonido está activo.
 // Cuando se modularicen todos los módulos, sustituirán las referencias a _soundOn por isSoundOn().
 export function isSoundOn() { return _soundOn; }
+
+// Accesor del contexto compartido, para módulos que construyen sus propios
+// grafos de audio (arcade). Que haya UN solo AudioContext en toda la app no es
+// cosmético: los navegadores limitan cuántos puede abrir una página.
+export function getAudioCtx() { return _soundOn ? _getCtx() : null; }

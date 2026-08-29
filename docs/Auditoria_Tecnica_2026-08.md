@@ -31,7 +31,7 @@ commit, y haz `git push`.
 | M5 | Worktree huérfano | 🟡 Mejora | 5 min | Sonnet | ✅ HECHA |
 | M2 | Código muerto (422 líneas) | 🟡 Mejora | 20 min | Sonnet | ✅ HECHA |
 | M4 | Museo sin poda | 🟡 Mejora | 10 min | Sonnet | ✅ HECHA |
-| A3 | Fuga de `AudioContext` en Arcade | 🟠 Advertencia | 30 min | Sonnet | ⬜ Pendiente |
+| A3 | Fuga de `AudioContext` en Arcade | 🟠 Advertencia | 30 min | Sonnet | ✅ HECHA |
 | A7 | Verificador de `SHELL_ASSETS` | 🟠 Advertencia | 30 min | Sonnet | ✅ HECHA |
 | M3 | Duplicación (`escCSV`, `_el`, sendBeacon) | 🟡 Mejora | 1 h | Sonnet | ✅ HECHA (escCSV resuelta en C5) |
 | M1 | 77 `console.*` en producción | 🟡 Mejora | 30 min | Sonnet | ✅ HECHA |
@@ -553,7 +553,7 @@ que el freno cubre.
 
 ---
 
-## A3 · Fuga de `AudioContext` en Arcade
+## A3 · Fuga de `AudioContext` en Arcade ✅ HECHA
 
 **Archivo:** `js/modules/arcade/index.js:275-327` (`startArcadeMusic` / `stopArcadeMusic`)
 
@@ -618,6 +618,19 @@ function stopArcadeMusic(){
   _arcMusicNodes = null;
 }
 ```
+
+### ✅ Resuelto (ago-2026) — tal cual la receta de arriba
+
+Implementado en `js/core/audio.js` y `js/modules/arcade/index.js` sin desviaciones: `getAudioCtx()`
+nuevo en `core/audio.js` reexpone el `_audioCtx` privado (el mismo que ya usan `playSuccess` /
+`playError` / `playClick`) solo cuando el sonido está activo; `startArcadeMusic` lo reutiliza en
+vez de instanciar `new AudioContext()`, y hace `ctx.resume()` si venía suspendido. `stopArcadeMusic`
+ya tenía las guardas de `_arcMusicNodes` — no se tocó, solo se dejó explícito en el comentario que
+el `master.disconnect()` no cierra el contexto compartido a propósito.
+
+Verificado en el navegador: 10 arranques/paradas seguidos de música de Arcade (simulando 10
+partidas) crean **un solo** `AudioContext`, reutilizado en todas — antes eran 10 contextos sin
+cerrar nunca. Sin errores de consola. No toca `server/Code_v6.gs`, no requiere redespliegue.
 
 ---
 

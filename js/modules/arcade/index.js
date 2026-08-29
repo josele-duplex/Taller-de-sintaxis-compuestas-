@@ -13,7 +13,7 @@
    Paso 10): showScreen, delay, getApiUrl, fetchWithTimeout, getMock,
    normalizeOracion, shuffle, _tone, _audioCtx, _soundOn, escHtml,
    funcTagCss, tagContent, playSuccess, playError, playClick,
-   awardXP, trackError. */
+   awardXP, trackError, isSoundOn, getAudioCtx. */
 
 import { log } from '../../core/log.js';
 
@@ -275,8 +275,12 @@ let _arcMusicNodes = null;
 function startArcadeMusic(){
   if(!isSoundOn() || _arcMusicNodes) return;
   try{
-    const ctx = window.AudioContext ? new AudioContext() : null;
+    // Reutilizamos el contexto único de core/audio.js. Antes creábamos uno por
+    // partida sin cerrarlo nunca: Chrome corta en ~6 AudioContext vivos y a
+    // partir de ahí la música desaparecía en silencio el resto de la sesión.
+    const ctx = getAudioCtx();
     if(!ctx) return;
+    if(ctx.state === 'suspended') ctx.resume();
     // Bass pattern (repeating arpeggio)
     const bassNotes = [110, 110, 82.4, 98, 110, 110, 146.8, 123.5]; // A2 A2 E2 G2 A2 A2 D3 B2
     let idx = 0;
@@ -324,6 +328,8 @@ function stopArcadeMusic(){
   try{
     clearInterval(_arcMusicNodes.bassInterval);
     clearInterval(_arcMusicNodes.hatInterval);
+    // Solo desconectamos NUESTRO master: el contexto es compartido y lo sigue
+    // usando playSuccess/playError. Cerrarlo dejaría la app muda.
     if(_arcMusicNodes.master) _arcMusicNodes.master.disconnect();
   }catch(e){}
   _arcMusicNodes = null;
