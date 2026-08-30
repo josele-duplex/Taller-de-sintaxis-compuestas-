@@ -41,15 +41,14 @@ commit, y haz `git push`.
 | A6 | Acoplamiento por `window.*` (timers, navegación) | 🟠 Advertencia | 2 h | Opus | ✅ HECHA |
 | A8 | Datos lingüísticos dentro de los módulos de UI | 🟠 Advertencia | 1 h | Opus | ✅ HECHA (solo cliente) |
 | C1 | Clave de profesor *fail-open* → datos de menores | 🔴 Crítico | 30 min | Opus | ✅ HECHO — `b5b98a3` + `26240c8` (aplicado antes del cierre de evaluación: curso sin empezar aún) |
-| C2 | Nota de examen calculada y firmada por el cliente | 🔴 Crítico | 3-4 h | Opus | ✅ CÓDIGO LISTO — `dedfc4f` + `a84584d` · ⏸ PENDIENTE DE REDESPLIEGUE |
+| C2 | Nota de examen calculada y firmada por el cliente | 🔴 Crítico | 3-4 h | Opus | ✅ HECHO — `dedfc4f` + `a84584d` (desplegado y verificado en producción, PIN 3600, 30-ago-2026) |
 
 **⏸ = no desplegar en mitad de una evaluación.** C1 y C2 tocan acceso y calificación,
 así que por defecto van al cierre de evaluación, con aviso previo a los alumnos, igual
-que el rediseño de calificación y la ponderación F9. Excepción: C1 se adelantó el
-29-ago-2026 porque el curso aún no había empezado (exponía datos de alumnos ya
-matriculados, no solo de exámenes en curso). **C2 tiene el código ya escrito y
-verificado (ago-2026), pero el redespliegue de Apps Script sigue esperando al cierre
-de evaluación** — ver nota de despliegue al final de la sección C2.
+que el rediseño de calificación y la ponderación F9. Excepción: tanto C1 (29-ago-2026)
+como C2 (30-ago-2026) se adelantaron porque el curso aún no había empezado — no había
+ninguna evaluación en curso que interrumpir, y ninguna de las dos correcciones cambia
+la nota de un alumno que entrega con normalidad.
 
 ---
 
@@ -143,7 +142,7 @@ Al revés, el panel del profesor deja de funcionar hasta que la fijes.
 
 ---
 
-## C2 · La nota del examen la calcula y la firma el cliente ✅ CÓDIGO LISTO (`dedfc4f` + `a84584d`) · ⏸ PENDIENTE DE REDESPLIEGUE
+## C2 · La nota del examen la calcula y la firma el cliente ✅ HECHO (`dedfc4f` + `a84584d`)
 
 **Archivos:** `js/modules/sint/index.js` (`submitResult`, `_doHandleStart`, `_launchGame`, `initState`) ·
 `server/Code_v6.gs` (`saveResult_`, `getExamConfig_`, `_recalcularNota_`, `_availExamen_`,
@@ -215,26 +214,19 @@ El vale detecta y deja rastro; no bloquea la entrega el día del examen.
 esta corrección es el ataque de un minuto — entregar con el correo de otro sin más
 esfuerzo que cambiar un campo de un formulario.
 
-### Redespliegue (pendiente, al cierre de evaluación)
+### Desplegado y verificado en producción (30-ago-2026)
 
-El código ya está en `main` (commits `dedfc4f`, `a84584d`), pero **no tiene efecto en
-producción** hasta que se redespliegue Apps Script — y eso, como con C1, se hace en el
-cierre de evaluación con aviso previo a los alumnos, no en mitad de un examen en curso.
-Pasos cuando llegue el momento:
+Redesplegado como Nueva versión de la implementación existente, antes de empezar el
+curso (mismo razonamiento que C1: sin evaluación en curso que interrumpir). Verificado
+con un examen real de prueba (PIN 3600, 5 oraciones, subfase completo):
 
-1. Abrir el proyecto de Apps Script vinculado al Sheet del profesor.
-2. Pegar el contenido actualizado de `server/Code_v6.gs`.
-3. **Implementar → Gestionar implementaciones → lápiz (editar) → Nueva versión.**
-   Nunca "Nueva implementación": generaría una URL distinta y rompería la app en
-   producción para todos los alumnos que ya la tienen guardada.
-4. Guardar. La URL del web app no cambia.
-5. Avisar a los alumnos de que la calificación de los próximos exámenes la valida el
-   servidor (mismo aviso que se dio para el rediseño de calificación y la ponderación
-   F9): no deberían notar ninguna diferencia si entregan con normalidad.
-6. Hacer un examen de prueba con un PIN de prueba tras el despliegue para confirmar que
-   `getExamConfig` devuelve `token` y que `saveResult` guarda la nota recalculada (no
-   la que muestra la pantalla del alumno, aunque en una entrega normal deberían
-   coincidir).
+- `getExamConfig` devolvió un `token` nuevo al pedir el examen con correo.
+- La entrega con ese vale se aceptó sin errores ("Resultado enviado correctamente").
+- Los puntos totales calculados en pantalla (77 = 15 Sujeto + 57 Funciones + 5 NP)
+  coinciden con lo que predice `_availExamen_()` para 5 oraciones en subfase completo.
+- La fila guardada en `Alumnos_Resultados` trae `Nota = 0` (examen dejado sin terminar
+  a propósito para la prueba) y **`Logs_GAS` no registró ningún `WARN`** — el vale se
+  emitió, viajó y se consumió correctamente en un ciclo real de principio a fin.
 
 ---
 
