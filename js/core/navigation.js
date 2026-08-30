@@ -9,6 +9,7 @@
    se extraigan (Pasos 6-9). */
 
 import { applyProfileToLogin } from './profile.js';
+import { pintarDistintivoCuaderno } from './cuadernos.js';
 import { limpiarTodo } from './timers.js';
 
 export function showScreen(id) {
@@ -61,6 +62,9 @@ export function goModule(mod) {
     // Build subfase grid after panel renders
     setTimeout(buildSubfaseGrid, 0);
   }
+  // Distintivo del cuaderno de destino: se pinta ANTES de mostrar la
+  // pantalla para que no aparezca de golpe con el login ya a la vista.
+  try { pintarDistintivoCuaderno(); } catch (e) {}
   showScreen('login');
   // Pre-rellenar nombre/email/grupo si hay perfil guardado de una sesion
   // anterior. Si no hay, applyProfileToLogin() es un no-op silencioso.

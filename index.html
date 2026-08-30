@@ -166,6 +166,14 @@ if(window.location.protocol === 'file:') {
       font-family:'Nunito',sans-serif;font-weight:700;margin-bottom:18px;padding:0">
       ← Volver
     </button>
+    <!-- Distintivo del cuaderno de destino (paso 3 del protocolo de
+         departamento, ago-2026). Solo aparece si este dispositivo apunta
+         al cuaderno de OTRO profesor: los alumnos de Josele no ven nada
+         nuevo. Lo pinta pintarDistintivoCuaderno() en core/cuadernos.js. -->
+    <div id="login-cuaderno" class="login-cuaderno" style="display:none">
+      <span class="lc-icon" aria-hidden="true">📓</span>
+      <span class="lc-text">Cuaderno de <strong id="login-cuaderno-nombre"></strong><span class="lc-sub">Tus ejercicios y tus notas se guardan ahí.</span></span>
+    </div>
     <!-- Banner "Hola, [nombre]" — visible solo si hay perfil guardado.
          Permite resetear identidad con un click. -->
     <div id="login-greeting" class="login-greeting" style="display:none">

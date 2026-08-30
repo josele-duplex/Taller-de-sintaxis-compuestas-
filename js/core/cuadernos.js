@@ -185,6 +185,29 @@ export function getCuadernoActivo() {
   return cuaderno;
 }
 
+/* Pinta —o esconde— el distintivo del cuaderno en la pantalla de inicio
+   de sesión, esa en la que el alumno escribe su nombre, su correo y su
+   grupo. Se llama cada vez que se entra en esa pantalla.
+
+   Se muestra SOLO cuando el dispositivo apunta al cuaderno de otro
+   profesor. Los alumnos de Josele —la inmensa mayoría— no ven ningún
+   elemento nuevo, y quien sí lo ve tiene delante, justo antes de dar su
+   nombre, a qué profesor van sus ejercicios y sus notas. */
+export function pintarDistintivoCuaderno() {
+  const caja = document.getElementById('login-cuaderno');
+  if (!caja) return;
+
+  const cuaderno = getCuadernoActivo();
+  if (!cuaderno || cuaderno.id === CUADERNO_POR_DEFECTO) {
+    caja.style.display = 'none';
+    return;
+  }
+
+  const nombre = document.getElementById('login-cuaderno-nombre');
+  if (nombre) nombre.textContent = cuaderno.nombre;
+  caja.style.display = 'flex';
+}
+
 /* {anterior, nuevo} si esta carga de la página cambió de cuaderno;
    null en caso contrario. Para el aviso del paso 4. */
 export function getCambioDeCuaderno() {
