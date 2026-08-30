@@ -2250,6 +2250,8 @@ function createExam_(params) {
 function getExamConfig_(params) {
   const pin = String(params.pin || '').trim();
   if (!pin || pin.length < 4) return gasError_('PIN inválido', ERR.BAD_PIN);
+  // C2b: el correo de quien pide el examen, para ligarle su vale de entrega.
+  const emailPide = String(params.email || '').trim().toLowerCase();
 
   // Check cache first (serves repeated reads instantly)
   const cache = CacheService.getScriptCache();
@@ -2257,7 +2259,14 @@ function getExamConfig_(params) {
   const cached = cache.get(cacheKey);
   if (cached) {
     console.log('[getExamConfig] Cache hit for PIN', pin);
-    try { return JSON.parse(cached); } catch(e) { console.error('[getExamConfig] Cache JSON corrupto, recargando'); }
+    // C2b: el vale se emite SIEMPRE fuera de la caché. Si viajara dentro,
+    // los 30 alumnos que arrancan el examen en el mismo minuto recibirían
+    // todos el mismo vale y dejaría de identificar a nadie.
+    try {
+      const rc = JSON.parse(cached);
+      rc.token = _emitirTokenExamen_(pin, emailPide);
+      return rc;
+    } catch(e) { console.error('[getExamConfig] Cache JSON corrupto, recargando'); }
   }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -2364,6 +2373,8 @@ function getExamConfig_(params) {
       if (json.length < 90000) cache.put(cacheKey, json, 300);
     } catch(e) {}
 
+    // C2b: después de cachear, nunca antes (ver comentario del cache hit).
+    result.token = _emitirTokenExamen_(pin, emailPide);
     return result;
   }
   // No active exam matched. Give the student a useful hint about what's wrong.
@@ -2961,6 +2972,80 @@ function _recalcularNota_(p) {
   return { nota: nota, recalculada: true, motivo: '', pts: pts };
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  C2b (ago-2026) — VALE DE ENTREGA DE UN SOLO USO
+//  El correo del alumno es autodeclarado: nada impedía entregar con el
+//  correo de un compañero (y, de paso, dejarle sin poder entregar él, por
+//  el dedup correo+PIN). Ahora, cuando la app pide el examen de un PIN,
+//  el servidor devuelve además un "vale" aleatorio y se guarda una copia
+//  junto al correo que lo pidió. Al entregar, la app devuelve ese vale:
+//  el servidor comprueba que existe, que es de ese examen y que lo pidió
+//  ese mismo correo, y lo destruye — un vale, una entrega.
+//
+//  POLÍTICA (decidida ago-2026): una entrega SIN vale NO se rechaza, se
+//  guarda con un aviso en el registro. Motivo pedagógico: un alumno con la
+//  app vieja en la caché del navegador no puede quedarse sin entregar el
+//  día del examen. El vale detecta y deja rastro; no bloquea.
+//
+//  Como esto no es más que un vale de papel, no cierra todo el fraude
+//  posible (nada puede en una app estática): elimina el ataque de un
+//  minuto, que es de lo que iba el hallazgo.
+// ════════════════════════════════════════════════════════════════════════
+const TOKEN_EXAMEN_PREFIJO = 'extok_';
+const TOKEN_EXAMEN_TTL     = 21600; // 6 h — el máximo que aguanta CacheService
+
+/**
+ * Crea un vale de entrega para este PIN y este correo, y lo guarda.
+ * Devuelve '' si no hay correo (p. ej. el panel del profesor comprobando un
+ * PIN): sin correo no hay nada que ligar, y no ensuciamos la caché.
+ * @param {string} pin PIN del examen.
+ * @param {string} email Correo que pide el examen.
+ * @return {string} El vale, o '' si no se ha emitido.
+ */
+function _emitirTokenExamen_(pin, email) {
+  const em = String(email || '').trim().toLowerCase();
+  if (!em) return '';
+  try {
+    const token = Utilities.getUuid().replace(/-/g, '');
+    CacheService.getScriptCache().put(
+      TOKEN_EXAMEN_PREFIJO + token,
+      JSON.stringify({ pin: String(pin || ''), email: em, ts: Date.now() }),
+      TOKEN_EXAMEN_TTL);
+    return token;
+  } catch (e) {
+    // Sin vale se sigue pudiendo entregar (ver política arriba): no rompemos
+    // el arranque del examen por un fallo de caché.
+    return '';
+  }
+}
+
+/**
+ * Comprueba un vale de entrega y lo destruye (un solo uso).
+ * @param {string} token Vale que envía la app.
+ * @param {string} pin PIN con el que entrega.
+ * @param {string} email Correo con el que entrega (ya en minúsculas).
+ * @return {{ok:boolean, motivo:string}}
+ */
+function _consumirTokenExamen_(token, pin, email) {
+  const t = String(token || '').trim();
+  if (!t) return { ok: false, motivo: 'la entrega no traía vale' };
+  const clave = TOKEN_EXAMEN_PREFIJO + t;
+  const cache = CacheService.getScriptCache();
+  let raw = null;
+  try { raw = cache.get(clave); } catch (e) { return { ok: false, motivo: 'no se pudo leer el vale' }; }
+  if (!raw) return { ok: false, motivo: 'vale desconocido, ya usado o caducado' };
+  try { cache.remove(clave); } catch (e) {}
+  let dato = null;
+  try { dato = JSON.parse(raw); } catch (e) { return { ok: false, motivo: 'vale ilegible' }; }
+  if (String(dato.pin || '') !== String(pin || '')) {
+    return { ok: false, motivo: 'el vale es de otro examen (PIN ' + dato.pin + ')' };
+  }
+  if (String(dato.email || '') !== String(email || '').trim().toLowerCase()) {
+    return { ok: false, motivo: 'el vale lo pidió ' + dato.email };
+  }
+  return { ok: true, motivo: '' };
+}
+
 /**
  * Endpoint 'saveResult'. Guarda un resultado de examen de sintaxis simple en
  * Alumnos_Resultados; dedup por email+PIN. Usa lock porque hace lectura de
@@ -3007,6 +3092,16 @@ function saveResult_(p) {
         }
       }
     }
+    // C2b (ago-2026): vale de entrega de un solo uso. Va DESPUÉS del dedup
+    // para no quemar el vale en un reenvío que ni siquiera se va a guardar.
+    // Una entrega sin vale se acepta, pero deja rastro en el registro.
+    const vale = _consumirTokenExamen_(p.token, pin, email);
+    if (!vale.ok) {
+      logToSheet_('WARN', 'saveResult',
+        'Entrega sin verificar (' + vale.motivo + ') de ' + (email || '?') +
+        ' [PIN ' + pin + ']', ERR.BAD_PARAM, '');
+    }
+
     // C2 (ago-2026): la nota NO es la que manda el cliente. El servidor la
     // recalcula con las oraciones que repartió para este PIN; `p.score` se
     // conserva solo para detectar (y registrar) los envíos que no cuadran.

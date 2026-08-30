@@ -820,6 +820,7 @@ function initState(opts){
   G={
     name:opts.name, email:opts.email,
     mode:opts.mode, examPin:opts.examPin||'',
+    examToken:opts.examToken||'', // C2b: vale de entrega de un solo uso
     subfase:opts.subfase||'completo',
     oraciones:opts.oraciones,
     idx:0, phase:1,
@@ -1484,7 +1485,10 @@ async function _doHandleStart(name,email,pin,examSubfase){
       }, 5000);
       // Retry with exponential backoff (3 attempts: 25s, then 8s, then 8s)
       let d = null;
-      const examUrl = apiUrl+'?action=getExamConfig&pin='+encodeURIComponent(pin);
+      // C2b: el correo viaja también al pedir el examen. El servidor devuelve
+      // un vale de entrega ligado a él, que se le devuelve al entregar.
+      const examUrl = apiUrl+'?action=getExamConfig&pin='+encodeURIComponent(pin)
+        +'&email='+encodeURIComponent(email||'');
       for(let attempt=0; attempt<3; attempt++){
         try{
           const timeout = attempt===0 ? 25000 : 8000; // first attempt gets more time (may need on-the-fly computation)
@@ -1524,7 +1528,7 @@ async function _doHandleStart(name,email,pin,examSubfase){
       const studentGrupo = (document.getElementById('inp-grupo')?.value||'').trim();
       const launchArgs = { name, email, pin, subfase, oraciones, usingMock:false, timerDuration:timerSec,
         examGrupo: studentGrupo || d.grupo || '', examEval:d.evaluacion||'', examName:d.nombreExamen||'',
-        examReflexion: !!d.reflexion };
+        examReflexion: !!d.reflexion, examToken: d.token || '' };
       // ── B4: examen en dos partes — el flag lo pone getExamConfig_ si el
       // PIN se creó con crearExamenMixto. Guardamos el marcador y avisamos
       // ANTES de arrancar (el timer de la Parte 1 no corre mientras lee).
@@ -1590,7 +1594,7 @@ async function _doHandleStart(name,email,pin,examSubfase){
     reflexionActiva: !!window._reflexionActiva });
 }
 
-function _launchGame({ name, email, pin, subfase, oraciones, usingMock, timerDuration, examGrupo, examEval, examName, praGrupo, reflexionActiva, examReflexion }) {
+function _launchGame({ name, email, pin, subfase, oraciones, usingMock, timerDuration, examGrupo, examEval, examName, praGrupo, reflexionActiva, examReflexion, examToken }) {
   timerDuration = timerDuration || 0;
   log.debug('[_launchGame] oraciones:', oraciones.length, 'mode:', selectedMode, 'usingMock:', usingMock, 'subfase:', subfase, 'timer:', timerDuration+'s');
   // Update daily streak on practice start
@@ -1600,7 +1604,7 @@ function _launchGame({ name, email, pin, subfase, oraciones, usingMock, timerDur
   initState({ name, email, mode: selectedMode, examPin: pin,
     subfase, oraciones, usingMock, timerDuration,
     examGrupo: examGrupo||'', examEval: examEval||'', examName: examName||'',
-    praGrupo: praGrupo||'',
+    praGrupo: praGrupo||'', examToken: examToken||'',
     // Fase C: en examen la decide el profesor (casilla del PIN); en práctica
     // la decide el alumno (checkbox del selector de misiones). Independientes.
     reflexionActiva: selectedMode==='exam' ? !!examReflexion : !!reflexionActiva });
@@ -3312,6 +3316,7 @@ async function submitResult(score,totalAvail,totalEarned,totals){
   const errByFunc=computeErrByFunc_();
   _pendingResult = {
     action:'saveResult',name:G.name||'',email:G.email||'',pin:G.examPin||'',
+    token:G.examToken||'', // C2b: vale que emitió el servidor al dar el examen
     grupo:G.examGrupo||'',evaluacion:G.examEval||'',examen:G.examName||'',
     score:String(score||0),versionCalificacion:VERSION_CALIFICACION,
     subfase:G.subfase||'completo', // Fase 2 (jul-2026): para no mezclar notas de distinta profundidad en el informe
