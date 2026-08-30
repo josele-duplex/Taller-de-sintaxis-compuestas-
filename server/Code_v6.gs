@@ -2851,6 +2851,116 @@ function doPost(e) {
   return out;
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  C2 (ago-2026) — LA NOTA DEL EXAMEN LA RECALCULA EL SERVIDOR
+//  Hasta ahora la nota viajaba como un parámetro más de la URL (`score=…`)
+//  y se escribía tal cual en la hoja: el cliente era la autoridad sobre la
+//  calificación. Un alumno con las herramientas del navegador abiertas
+//  podía enviarse un 10 sin haber hecho el examen.
+//
+//  Ahora el servidor no se fía de `score`. Recupera las oraciones que él
+//  mismo repartió para ese PIN (Examenes_Config → Oraciones_JSON) y
+//  reconstruye el denominador exacto de la nota — los puntos que ESE examen
+//  concreto podía dar — con las mismas reglas que usa la app:
+//    · NP ......... 1 punto por oración.
+//    · Sujeto ..... 3 puntos por oración (solo si la subfase juega la fase 2).
+//    · Funciones .. 3 puntos por el bloque PN/PV + 3 × peso pedagógico de
+//                   cada función interactiva (solo si juega la fase 3).
+//  Los puntos ganados siguen llegando del cliente, pero se recortan a ese
+//  tope: nadie puede sumar más de lo que su examen podía dar. Si la nota
+//  recalculada no cuadra con la enviada, se guarda la del servidor y queda
+//  constancia en el registro.
+//
+//  OJO: los pesos de abajo son un ESPEJO de js/modules/sint/index.js
+//  (W, FUNC_WEIGHT, SUBFASE_CONFIGS, PRE_RESOLVED_FUNCS). Si allí cambian,
+//  hay que cambiarlos aquí también o las notas empezarán a discrepar.
+// ════════════════════════════════════════════════════════════════════════
+const NOTA_W = { NP: 1, SUJETO: 3, FUNCION: 3 };
+const NOTA_FUNC_WEIGHT = {
+  'Sujeto':2,'CD':1.5,'CI':1.5,'Atr.':1.5,'Atr. Loc.':1.5,'CPvo':1.5,'C.Rég.':1.5,'C.Ag.':1.5,
+  'Marca.Pas.Ref.':1,'Marca.Imp.':1,'Marca.Pron.':1,'Dativo':1,
+  'CC Tiempo':1,'CC Lugar':1,'CC Modo':1,'CC Causa':1,'CC Cantidad':1,'CC Compañía':1,
+  'CC Finalidad':1,'CC Instrumento':1,'CC Benef.':1
+};
+const NOTA_SUBFASE_PHASES = { solo_np: [1], np_sujeto: [1, 2], completo: [1, 2, 3] };
+const NOTA_PRE_RESOLVED = ['Sujeto', 'NP'];
+
+/**
+ * Puntos que un examen podía dar, desglosados por bloque. Espejo del cálculo
+ * de `avail` de la app (calcScore, js/modules/sint/index.js).
+ * @param {Array<object>} oraciones Oraciones repartidas para ese PIN.
+ * @param {string} subfase 'solo_np' | 'np_sujeto' | 'completo'.
+ * @return {{np:number, sujeto:number, funciones:number, total:number}}
+ */
+function _availExamen_(oraciones, subfase) {
+  const phases = NOTA_SUBFASE_PHASES[subfase] || NOTA_SUBFASE_PHASES.completo;
+  const juegaSujeto    = phases.indexOf(2) !== -1;
+  const juegaFunciones = phases.indexOf(3) !== -1;
+  const av = { np: 0, sujeto: 0, funciones: 0, total: 0 };
+  (oraciones || []).forEach(function(o) {
+    av.np     += NOTA_W.NP;
+    av.sujeto += juegaSujeto ? NOTA_W.SUJETO : 0;
+    if (!juegaFunciones) return;
+    av.funciones += NOTA_W.FUNCION; // el bloque PN/PV, presente en toda oración
+    const bloques = (o && o.fase3 && o.fase3.bloques) ? o.fase3.bloques : [];
+    bloques.forEach(function(b) {
+      const sol  = String((b && b.solucion) || '');
+      const func = sol.split(' | ')[1] || '';
+      // Los bloques pre-resueltos (Sujeto, NP) y los tácitos ("Ø | …") vienen
+      // dados: no puntúan porque el alumno no los responde.
+      if (NOTA_PRE_RESOLVED.indexOf(func) !== -1 || sol.indexOf('Ø |') === 0) return;
+      av.funciones += NOTA_W.FUNCION * (NOTA_FUNC_WEIGHT[func] || 1);
+    });
+  });
+  av.total = av.np + av.sujeto + av.funciones;
+  return av;
+}
+
+/**
+ * Recalcula la nota de un examen de simples a partir de los puntos por bloque
+ * y de las oraciones que el servidor repartió para ese PIN. Si no puede leer
+ * el examen (PIN cerrado, hoja caída…) devuelve la nota del cliente marcada
+ * como no recalculada, para no bloquear una entrega legítima.
+ * @param {object} p Parámetros del envío (pin, score, sujeto, funciones, np…).
+ * @return {{nota:number, recalculada:boolean, motivo:string,
+ *           pts:{sujeto:number, funciones:number, np:number}}}
+ */
+function _recalcularNota_(p) {
+  const notaCliente = parseFloat(p.score) || 0;
+  const pb = p.phaseBreakdown || {};
+  const pts = {
+    sujeto:    Math.max(0, parseFloat(p.sujeto)    || (pb.sujeto||{}).earned    || 0),
+    funciones: Math.max(0, parseFloat(p.funciones) || (pb.funciones||{}).earned || 0),
+    np:        Math.max(0, parseFloat(p.np)        || (pb.np||{}).earned        || 0)
+  };
+  const pin = String(p.pin || '').trim();
+  if (!pin) return { nota: notaCliente, recalculada: false, motivo: 'envío sin PIN', pts: pts };
+
+  let cfg = null;
+  try { cfg = getExamConfig_({ pin: pin }); } catch (e) { cfg = null; }
+  if (!cfg || !cfg.ok || !cfg.oraciones || !cfg.oraciones.length) {
+    return { nota: notaCliente, recalculada: false,
+             motivo: 'no se pudo leer el examen de ese PIN', pts: pts };
+  }
+
+  // La subfase que vale es la del examen, no la que declare el cliente.
+  const av = _availExamen_(cfg.oraciones, String(cfg.subfase || p.subfase || 'completo'));
+  if (av.total <= 0) {
+    return { nota: notaCliente, recalculada: false,
+             motivo: 'el examen no reparte puntos', pts: pts };
+  }
+
+  // Recorte: nadie puede ganar más puntos de los que su examen podía dar.
+  pts.np        = Math.min(pts.np,        av.np);
+  pts.sujeto    = Math.min(pts.sujeto,    av.sujeto);
+  pts.funciones = Math.min(pts.funciones, av.funciones);
+
+  // Mismo redondeo que la app (0..10 con un decimal): una entrega honrada
+  // da exactamente la misma nota que el alumno vio en pantalla.
+  const nota = Math.round(((pts.np + pts.sujeto + pts.funciones) / av.total) * 100) / 10;
+  return { nota: nota, recalculada: true, motivo: '', pts: pts };
+}
+
 /**
  * Endpoint 'saveResult'. Guarda un resultado de examen de sintaxis simple en
  * Alumnos_Resultados; dedup por email+PIN. Usa lock porque hace lectura de
@@ -2897,10 +3007,23 @@ function saveResult_(p) {
         }
       }
     }
-    const pb = p.phaseBreakdown || {};
-    const sujetoPts   = parseFloat(p.sujeto)    || (pb.sujeto||{}).earned    || 0;
-    const funcionesPts= parseFloat(p.funciones)  || (pb.funciones||{}).earned || 0;
-    const npPts       = parseFloat(p.np)         || (pb.np||{}).earned       || 0;
+    // C2 (ago-2026): la nota NO es la que manda el cliente. El servidor la
+    // recalcula con las oraciones que repartió para este PIN; `p.score` se
+    // conserva solo para detectar (y registrar) los envíos que no cuadran.
+    const notaCliente  = parseFloat(p.score) || 0;
+    const calc         = _recalcularNota_(p);
+    const sujetoPts    = calc.pts.sujeto;
+    const funcionesPts = calc.pts.funciones;
+    const npPts        = calc.pts.np;
+    if (calc.recalculada && Math.abs(notaCliente - calc.nota) > 0.05) {
+      logToSheet_('WARN', 'saveResult',
+        'Nota del cliente (' + notaCliente + ') no cuadra con la recalculada (' +
+        calc.nota + ') para ' + (email || '?') + ' [PIN ' + pin + ']', ERR.BAD_PARAM, '');
+    } else if (!calc.recalculada) {
+      logToSheet_('WARN', 'saveResult',
+        'Nota sin recalcular (' + calc.motivo + '): se guarda la del cliente (' +
+        notaCliente + ') para ' + (email || '?') + ' [PIN ' + pin + ']', ERR.BAD_PARAM, '');
+    }
 
     appendRowSafe_(sheet, RESULT_HEADER, {
       'Fecha': new Date(),
@@ -2910,7 +3033,7 @@ function saveResult_(p) {
       'Evaluacion': p.evaluacion||'',
       'Examen': p.examen||'',
       'PIN': pin,
-      'Nota': parseFloat(p.score)||0,
+      'Nota': calc.nota,
       'Completadas': parseInt(p.completadas)||0,
       'Total_Oraciones': parseInt(p.totalOraciones)||0,
       'Sujeto_Pts': sujetoPts,
