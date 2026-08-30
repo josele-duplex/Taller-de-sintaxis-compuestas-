@@ -54,7 +54,78 @@ https://<tu-usuario-github>.github.io/proyecto_taller-sintaxis/index.html
 
 ---
 
-## 3. Cómo arrancar la app en local (para probarla tú)
+## 3. Compartir la app con OTRO PROFESOR (cada uno con su cuaderno)
+
+Lo de arriba sirve para que alguien **use** tu app. Esto es otra cosa: que un
+compañero de departamento la use **con sus alumnos**, y que las notas de sus
+alumnos vayan a **su** cuaderno, no al tuyo.
+
+Llamamos **cuaderno** a la pareja «Google Sheet + su Apps Script publicado».
+El tuyo es el que la app usa por defecto.
+
+### Lo que tiene que tener tu compañero (una sola vez)
+
+1. **Su copia del Sheet** — que la haga desde el tuyo: *Archivo → Hacer una copia*.
+2. **Su Apps Script publicado** sobre esa copia, con su propia URL terminada en `/exec`.
+3. **Su clave de profesor**, con el menú *Fijar clave de profesor*.
+
+Sin esas tres cosas no hay cuaderno que enlazar. Es trabajo suyo (o tuyo
+ayudándole), pero se hace una vez y no se vuelve a tocar.
+
+### Cómo lo das de alta (tu parte: un minuto)
+
+1. Pídele **la URL de su despliegue** (*Implementar → Gestionar implementaciones*;
+   es la que acaba en `/exec`).
+2. Abre `js/core/cuadernos.js` y añade un bloque como el que ya hay:
+
+   ```javascript
+   {
+     id: 'lucia',                      // minúsculas, sin acentos ni espacios
+     nombre: 'Prof.ª Lucía Martínez',  // lo que verán ella y sus alumnos
+     url: 'https://script.google.com/macros/s/…/exec'
+   }
+   ```
+
+3. `git commit` y `git push`. En un minuto está publicado.
+4. Dile que entre en su panel del profesor → caja **🎒 Enlace para mis alumnos**
+   → botón **Copiar**. Ese es el enlace que reparte en su Classroom:
+   `…/index.html?prof=lucia`.
+
+**El `id` no se cambia nunca** una vez repartido el enlace: los dispositivos ya
+asignados dejarían de reconocerlo.
+
+### Qué ve el alumno
+
+- La primera vez que entra por el enlace de su profesora, un aviso en ámbar:
+  «Has entrado con el enlace de Prof.ª Lucía Martínez», con un botón para
+  volver atrás si se ha equivocado de enlace.
+- A partir de ahí, un distintivo discreto en la pantalla de nombre y correo:
+  «📓 Cuaderno de Prof.ª Lucía Martínez».
+- **Tus alumnos no ven nada de esto**: con el cuaderno de casa no se pinta nada.
+
+### Problemas típicos y su solución
+
+| Situación | Qué hacer |
+|---|---|
+| Un iPad quedó apuntando al cuaderno equivocado | Que abra el enlace correcto (el de su profesor). El enlace más reciente siempre manda. |
+| «A mí no me sale ningún distintivo» | Entonces está en el cuaderno de casa. Si debía estar en otro, que abra el enlace de su profesor. |
+| Un ordenador compartido por dos clases | Se queda con el del último enlace abierto. Que cada clase abra su enlace al empezar. |
+| Un compañero se va del centro | Borra su bloque de la lista y sube. Los dispositivos que lo tuvieran vuelven solos al cuaderno de casa. |
+
+**Sobre el iPad con la app instalada**: comprobado en agosto de 2026 que la
+asignación sobrevive a instalar la app en la pantalla de inicio. Si aun así
+algún dispositivo apareciera sin su distintivo, la solución es siempre la
+misma: volver a abrir el enlace del profesor.
+
+### Lo que NO hace falta
+
+- **No hay que redesplegar tu Apps Script**: todo esto vive en el navegador.
+- **No hay que tocar nada de las notas ni de los exámenes.**
+- El compañero **no necesita GitHub** ni saber nada técnico.
+
+---
+
+## 4. Cómo arrancar la app en local (para probarla tú)
 
 Abre una terminal en la carpeta del proyecto y ejecuta:
 

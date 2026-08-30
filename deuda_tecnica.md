@@ -264,6 +264,25 @@ No quema hoy porque los otros siete llevan su carga pedagógica en `explicacion`
 
 **Riesgo real**: quien escriba un lote nuevo puede poner `feedback` en un `manipulacion` o un `par_minimo` fiándose del schema, y ese texto no se verá nunca. El validador tampoco avisa. Arreglo posible cuando toque: o pintarlo en los siete restantes, o que el validador avise de `feedback` en un tipo que no lo lee.
 
+### 2.14 Los cuadernos de profesor comparten la lista de grupos
+
+`GRUPOS` (`js/modules/sint/index.js`) es una lista única y cerrada —1ºA … 2ºBachD—
+que ven todos los alumnos, sea cual sea el cuaderno al que apunte su dispositivo.
+Sirve porque los compañeros de departamento son del mismo centro y usan la misma
+nomenclatura; **un profesor de otro centro** con otros nombres de clase no podría
+usar la app sin tocar esa lista, y tocarla se la cambia a todos a la vez.
+
+No quema hoy (ago-2026: un solo cuaderno en la lista blanca). Si algún día se
+comparte fuera del centro, la salida natural es mover los grupos al propio
+cuaderno: `{id, nombre, url, grupos?}` en `js/core/cuadernos.js`, con la lista
+actual como valor por defecto.
+
+**Relacionado, menor**: la asignación de cuaderno es por dispositivo y navegador,
+así que un ordenador de aula compartido por dos clases se queda con el del
+último enlace abierto. Documentado en `GUIA_SESIONES_Y_COMPARTIR.md` §3; se
+arregla abriendo el enlace correcto, y el distintivo de la pantalla de login lo
+hace visible antes de que el alumno escriba su nombre.
+
 ## 3. Riesgos por orden de gravedad (actualizado mayo 2026)
 
 | Riesgo | Probabilidad | Impacto | Prioridad |

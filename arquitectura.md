@@ -42,6 +42,7 @@ proyecto_taller-sintaxis/
 │   │   ├── audio.js                    ← playSuccess/Error/Complete/Click
 │   │   ├── auth.js                     ← getTeacherPw, DEFAULT_TEACHER_PW
 │   │   ├── constants.js                ← LS_*, EMAIL_RE, PIN_LEN, DEFAULT_API_URL, LS_PROFILE
+│   │   ├── cuadernos.js                ← Lista blanca de cuadernos de profesor + ?prof= (ago-2026)
 │   │   ├── escape.js                   ← escHtml, escAttr
 │   │   ├── navigation.js               ← showScreen, showPortada, goModule
 │   │   ├── profile.js                  ← Perfil persistente (load/save/clear/apply/reset)
@@ -209,6 +210,7 @@ Plan de corrección por fases: `docs/Informe_examen_modos_secundarios.md`.
 | `taller_hints_practice` | 'on' \| 'off' |
 | `taller_hints_exam` | 'none' \| 'first_only' |
 | `taller_profile` | {name, email, grupo, savedAt} — perfil persistente (mayo 2026) |
+| `taller_cuaderno` | id del cuaderno de profesor asignado a este dispositivo (ago-2026) |
 
 ### 5.4 Estado servidor (Google Sheets)
 
@@ -239,6 +241,30 @@ Todas las funciones del Core son `export` y se exponen en `window` desde
 
 - `getApiUrl()`, `fetchWithTimeout()`, `fetchWithRetry()`, `warmupApi()`
   → `js/core/api.js`.
+
+**Cuaderno de destino (multi-profesor, ago-2026)** → `js/core/cuadernos.js`.
+Permite que varios profesores compartan UNA sola app publicada, cada uno con su
+propio Sheet + Apps Script («su cuaderno»), sin duplicar el repositorio.
+
+- `CUADERNOS` — lista blanca cerrada `{id, nombre, url}`. Solo se aceptan los
+  cuadernos escritos ahí: si la app admitiera una URL libre en el enlace, un
+  enlace inventado podría desviar las notas de una clase a un servidor ajeno.
+- `aplicarCuadernoDelEnlace()` — se llama UNA vez desde `app.js`, antes de que
+  ningún módulo pregunte por la dirección del servidor. Lee `?prof=<id>` y, si
+  está en la lista, escribe `LS_CUADERNO` (quién) y `LS_API` (dónde). Como todo
+  el resto de la app sigue leyendo `getApiUrl()`, ningún módulo pedagógico se
+  entera del cambio.
+- Reglas: (1) un enlace válido manda aunque el dispositivo ya estuviera
+  asignado; (2) un enlace SIN parámetro no reinicia nada; (3) un `?prof=` que no
+  esté en la lista se ignora; (4) si el id guardado ya no está en la lista
+  (compañero dado de baja), el dispositivo vuelve solo al cuaderno de casa.
+- `getCuadernoActivo()` no anuncia el cuaderno si `getApiUrl()` ya no coincide
+  con su URL (el profesor escribió otra a mano en su panel).
+- UI: distintivo y aviso de cambio en la pantalla de login
+  (`pintarDistintivoCuaderno`, `pintarAvisoDeCambio`, `volverAlCuadernoAnterior`,
+  llamados desde `navigation.js`); generador del enlace en el panel del profesor
+  (`renderEnlaceAlumnos`, `copiarEnlaceAlumnos` en `modules/teacher/index.js`).
+- Guía operativa para dar de alta a un compañero: `GUIA_SESIONES_Y_COMPARTIR.md` §3.
 
 ### 6.2 Enrutamiento
 

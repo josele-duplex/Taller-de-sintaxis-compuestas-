@@ -23,6 +23,10 @@ Trabajo completado que en su día estaba en este roadmap o surgió después:
 - ✅ **Grupo obligatorio** en todos los módulos académicos.
 - ✅ **Separación `Compuestas_Resultados` / `Compuestas_Practica_Log`** + estética azul.
 - ✅ **Resumen del banco de compuestas** (menú profesor).
+- ✅ **Compartir la app con el departamento** (ago-2026, no estaba en el roadmap):
+  una sola app publicada y un cuaderno (Sheet + Apps Script) por profesor,
+  elegido con `?prof=<id>` contra una lista blanca. Ver `js/core/cuadernos.js`
+  y `GUIA_SESIONES_Y_COMPARTIR.md` §3.
 - ✅ **Micro-lecciones nuevas**: CC Finalidad, CC Causa, CC Cantidad, Vocativo,
   ampliación de Sujeto. Normalización `Vocativo → Vocat.`.
 
