@@ -1487,6 +1487,52 @@ body.theme-new-ui #screen-login:not(.login-arcade) .login-greeting .lg-reset:hov
   background: rgba(15,42,67,0.06);
 }
 
+/* Aviso de cambio de cuaderno: el enlace acaba de mover este dispositivo
+   al cuaderno de otro profesor. Ambar de "atencion", no rojo de error: no
+   ha pasado nada malo, pero el alumno tiene que enterarse y poder salir. */
+body.theme-new-ui #screen-login .login-cambio{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  background: rgba(180,120,20,0.09);
+  border: 1px solid rgba(180,120,20,0.28);
+  border-radius: 12px;
+  font-family: 'DM Sans','Nunito',sans-serif;
+  font-size: .86rem;
+  color: var(--portada-navy);
+}
+body.theme-new-ui #screen-login .login-cambio .lcam-text strong{
+  color: #92400E;
+  font-weight: 700;
+}
+body.theme-new-ui #screen-login .login-cambio .lcam-sub{
+  display: block;
+  font-size: .78rem;
+  color: var(--portada-muted);
+  margin-top: 3px;
+}
+body.theme-new-ui #screen-login .login-cambio .lcam-btn{
+  align-self: stretch;
+  min-height: 44px;
+  background: rgba(255,255,255,0.75);
+  border: 1px solid rgba(180,120,20,0.35);
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: .8rem;
+  font-weight: 700;
+  color: #92400E;
+  padding: 8px 12px;
+  transition: background .2s, border-color .2s;
+}
+body.theme-new-ui #screen-login .login-cambio .lcam-btn:hover{
+  background: #fff;
+  border-color: rgba(180,120,20,0.55);
+}
+
 /* Distintivo del cuaderno de destino — solo visible cuando el dispositivo
    apunta al cuaderno de otro profesor (ver core/cuadernos.js). Sin scope
    :not(.login-arcade): en el login de Arcade tambien se envian datos, asi
@@ -4620,6 +4666,25 @@ body.theme-new-ui #screen-login.login-arcade .input:focus{
   box-shadow:0 0 0 3px rgba(255,47,185,.25), 0 0 16px rgba(255,47,185,.40) !important;
   outline:none !important;
 }
+/* Aviso de cambio de cuaderno, en clave neon (mismo motivo que abajo:
+   el texto oscuro del tema academico no se lee sobre el morado). */
+body.theme-new-ui #screen-login.login-arcade .login-cambio{
+  background:rgba(0,0,0,.42) !important;
+  border:1px solid rgba(251,191,36,.45) !important;
+  color:#e2e8f0 !important;
+}
+body.theme-new-ui #screen-login.login-arcade .login-cambio .lcam-text strong{
+  color:#fbbf24 !important;
+}
+body.theme-new-ui #screen-login.login-arcade .login-cambio .lcam-sub{
+  color:rgba(226,232,240,.62) !important;
+}
+body.theme-new-ui #screen-login.login-arcade .login-cambio .lcam-btn{
+  background:rgba(251,191,36,.12) !important;
+  border:1px solid rgba(251,191,36,.45) !important;
+  color:#fde68a !important;
+}
+
 /* Distintivo del cuaderno, en clave neon: en el login del Arcade el texto
    oscuro del tema academico se volvia ilegible sobre el fondo morado. */
 body.theme-new-ui #screen-login.login-arcade .login-cuaderno{

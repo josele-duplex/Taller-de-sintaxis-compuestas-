@@ -166,6 +166,13 @@ if(window.location.protocol === 'file:') {
       font-family:'Nunito',sans-serif;font-weight:700;margin-bottom:18px;padding:0">
       ← Volver
     </button>
+    <!-- Aviso de cambio de cuaderno (paso 4). Solo la primera vez que el
+         alumno llega aqui despues de que un enlace haya cambiado el
+         cuaderno de este dispositivo. Lo pinta pintarAvisoDeCambio(). -->
+    <div id="login-cambio" class="login-cambio" role="status" style="display:none">
+      <span class="lcam-text">Has entrado con el enlace de <strong id="login-cambio-nuevo"></strong>.<span class="lcam-sub">A partir de ahora, tus ejercicios y tus notas se guardan en su cuaderno.</span></span>
+      <button type="button" class="lcam-btn" onclick="volverAlCuadernoAnterior()">No era esto · Volver a <span id="login-cambio-anterior"></span></button>
+    </div>
     <!-- Distintivo del cuaderno de destino (paso 3 del protocolo de
          departamento, ago-2026). Solo aparece si este dispositivo apunta
          al cuaderno de OTRO profesor: los alumnos de Josele no ven nada

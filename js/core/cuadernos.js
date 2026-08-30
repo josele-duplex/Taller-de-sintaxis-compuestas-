@@ -92,6 +92,18 @@ export const PARAM_CUADERNO = 'prof';
 // aquí solo se toma nota, no se avisa a nadie todavía.
 let _cambio = null;
 
+// Queda a true cuando hay un cambio que el alumno todavía no ha visto.
+// Se apaga en cuanto se le enseña el aviso: se avisa una vez, no se da
+// la lata en cada pantalla.
+let _avisoPendiente = false;
+
+// No tener cuaderno asignado y tener asignado el de casa son la misma
+// cosa. Sin esto, abrir el enlace de casa contaría como "cambio" y
+// saltaría un aviso donde no ha cambiado nada.
+function _efectivo(id) {
+  return id || CUADERNO_POR_DEFECTO;
+}
+
 // localStorage puede fallar (modo privado, cookies bloqueadas): que no
 // tumbe el arranque de la app. Mismo criterio que core/storage.js.
 function _leer(clave) {
@@ -154,7 +166,10 @@ export function aplicarCuadernoDelEnlace() {
   }
 
   const anterior = _leer(LS_CUADERNO) || null;
-  if (anterior !== cuaderno.id) _cambio = { anterior: anterior, nuevo: cuaderno.id };
+  if (_efectivo(anterior) !== cuaderno.id) {
+    _cambio = { anterior: anterior, nuevo: cuaderno.id };
+    _avisoPendiente = true;
+  }
 
   // Se guardan DOS cosas, a propósito:
   //  · LS_CUADERNO recuerda DE QUIÉN es el cuaderno — para el
@@ -206,6 +221,66 @@ export function pintarDistintivoCuaderno() {
   const nombre = document.getElementById('login-cuaderno-nombre');
   if (nombre) nombre.textContent = cuaderno.nombre;
   caja.style.display = 'flex';
+}
+
+/* Aviso de que ESTE enlace ha cambiado el cuaderno del dispositivo, con
+   botón para deshacerlo. Se pinta en la pantalla de inicio de sesión,
+   junto al distintivo, y solo la primera vez que el alumno llega a ella.
+
+   Es la contrapartida de la regla 1 (un enlace válido manda aunque el
+   dispositivo ya estuviera asignado): el cambio se hace sin preguntar,
+   para no plantarle un diálogo a un chaval de 13 años antes de empezar,
+   pero se cuenta y se puede deshacer de un toque.
+
+   Mientras se ve el aviso, el distintivo se esconde: dicen lo mismo y
+   el aviso además ofrece la salida. */
+export function pintarAvisoDeCambio() {
+  const caja = document.getElementById('login-cambio');
+  if (!caja) return;
+
+  const nuevo    = _cambio ? buscarCuaderno(_cambio.nuevo) : null;
+  const anterior = _cambio ? buscarCuaderno(_efectivo(_cambio.anterior)) : null;
+  if (!_avisoPendiente || !nuevo || !anterior) {
+    caja.style.display = 'none';
+    return;
+  }
+
+  const elNuevo    = document.getElementById('login-cambio-nuevo');
+  const elAnterior = document.getElementById('login-cambio-anterior');
+  if (elNuevo)    elNuevo.textContent    = nuevo.nombre;
+  if (elAnterior) elAnterior.textContent = anterior.nombre;
+
+  const distintivo = document.getElementById('login-cuaderno');
+  if (distintivo) distintivo.style.display = 'none';
+
+  caja.style.display = 'flex';
+  _avisoPendiente = false;
+}
+
+/* Deshace el cambio: devuelve el dispositivo al cuaderno en el que
+   estaba y recarga la app. Lo llama el botón del aviso (window.*). */
+export function volverAlCuadernoAnterior() {
+  const destino = buscarCuaderno(_efectivo(_cambio && _cambio.anterior));
+  try {
+    if (!destino || destino.id === CUADERNO_POR_DEFECTO) {
+      localStorage.removeItem(LS_CUADERNO);
+      localStorage.removeItem(LS_API);
+    } else {
+      localStorage.setItem(LS_CUADERNO, destino.id);
+      localStorage.setItem(LS_API, destino.url);
+    }
+  } catch (e) {}
+
+  // Recargar QUITANDO el ?prof= de la barra de direcciones. Si se quedara,
+  // la recarga volvería a aplicarlo y el alumno no podría salir nunca del
+  // cuaderno equivocado: el botón no serviría de nada.
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete(PARAM_CUADERNO);
+    window.location.replace(url.toString());
+  } catch (e) {
+    window.location.reload();
+  }
 }
 
 /* {anterior, nuevo} si esta carga de la página cambió de cuaderno;
