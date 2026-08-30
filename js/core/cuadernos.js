@@ -59,15 +59,6 @@ export const CUADERNOS = [
     id: 'josele',
     nombre: 'Prof. Josele Asensio',
     url: DEFAULT_API_URL
-  },
-  // ⚠ TEMPORAL (paso 6, comprobación en producción). Apunta al MISMO
-  // cuaderno de casa: sirve para probar el mecanismo entero —aviso,
-  // distintivo, botón de volver, iPad instalado— sin que ningún dato
-  // pueda irse a otro sitio. SE QUITA EN CUANTO JOSELE TERMINE.
-  {
-    id: 'demo',
-    nombre: 'Prof.ª Lucía Ejemplo (prueba)',
-    url: DEFAULT_API_URL
   }
   // ── Plantilla para el siguiente compañero (copia, descomenta y
   //    rellena; no olvides la coma del bloque anterior) ──
