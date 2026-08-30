@@ -29,6 +29,7 @@ import * as escape from './core/escape.js';
 import * as storage from './core/storage.js';
 import * as audio from './core/audio.js';
 import * as api from './core/api.js';
+import * as cuadernos from './core/cuadernos.js';
 import * as navigation from './core/navigation.js';
 import * as profile from './core/profile.js';
 import * as timers from './core/timers.js';
@@ -71,12 +72,22 @@ import * as fPistaUi from './feedback/pista-ui.js';
 import * as fPistaFlotante from './feedback/pista-flotante.js';
 
 // ─────────────────────────────────────────────────────────────
+// CUADERNO DE DESTINO (paso 2 del protocolo de departamento, ago-2026)
+// Lo PRIMERO que se ejecuta: si el enlace trae ?prof=…, deja el
+// dispositivo apuntando al cuaderno de ese profesor antes de que
+// ningún módulo pregunte por la dirección del servidor.
+// Sin parámetro no hace nada, así que para los alumnos de Josele el
+// arranque es exactamente el mismo de siempre. Ver core/cuadernos.js.
+// ─────────────────────────────────────────────────────────────
+cuadernos.aplicarCuadernoDelEnlace();
+
+// ─────────────────────────────────────────────────────────────
 // Exponer todas las exportaciones en window para los onclick=""
 // del HTML estático y para que Sint (regular <script>) pueda
 // referirlas libremente, igual que hacía el monolito.
 // ─────────────────────────────────────────────────────────────
 Object.assign(window,
-  constants, auth, escape, storage, audio, api, navigation, profile, timers, logModule,
+  constants, auth, escape, storage, audio, api, cuadernos, navigation, profile, timers, logModule,
   dictMorf, dictSintax, dictSintag, haberForms,
   glosTags, glosData, glosRender,
   gLevels, gMissions, gStreak, gXp, gDashboard,

@@ -35,10 +35,15 @@
    Para dar de baja a un compañero, borra su bloque. Los dispositivos
    que lo tuvieran asignado vuelven solos al cuaderno por defecto.
 
-   OJO — este archivo es solo la LISTA. Todavía no lo lee nadie: quien
-   la use será el paso 2 del plan (leer el parámetro del enlace). */
+   ─── QUÉ HACE ESTE ARCHIVO, ADEMÁS DE LA LISTA ────────────────────
+   Al arrancar la app mira si el enlace trae `?prof=…`. Si el nombre
+   está en la lista, deja el dispositivo apuntando a ese cuaderno y lo
+   recuerda; si no lo está, no hace nada y la app sigue como estaba.
+   El distintivo en pantalla que avisa de todo esto llega en el paso 3. */
 
-import { DEFAULT_API_URL } from './constants.js';
+import { DEFAULT_API_URL, LS_API, LS_CUADERNO } from './constants.js';
+import { getApiUrl } from './api.js';
+import { log } from './log.js';
 
 // Identificador del cuaderno que usa la app cuando el enlace no trae
 // parámetro (o trae uno que no está en la lista). Es el de casa.
@@ -72,4 +77,116 @@ export function buscarCuaderno(id) {
   const clave = String(id || '').trim().toLowerCase();
   if (!clave) return null;
   return CUADERNOS.find(c => c.id === clave) || null;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// EL PARÁMETRO DEL ENLACE  (paso 2)
+// ════════════════════════════════════════════════════════════════════
+
+// Nombre del parámetro:  …/index.html?prof=lucia
+export const PARAM_CUADERNO = 'prof';
+
+// Anota si ESTA carga de la página ha cambiado el cuaderno del
+// dispositivo: {anterior:'josele'|null, nuevo:'lucia'}, o null si no ha
+// cambiado nada. Lo leerá el paso 4 para mostrar el aviso en pantalla;
+// aquí solo se toma nota, no se avisa a nadie todavía.
+let _cambio = null;
+
+// localStorage puede fallar (modo privado, cookies bloqueadas): que no
+// tumbe el arranque de la app. Mismo criterio que core/storage.js.
+function _leer(clave) {
+  try { return localStorage.getItem(clave) || ''; } catch (e) { return ''; }
+}
+function _escribir(clave, valor) {
+  try { localStorage.setItem(clave, valor); } catch (e) {}
+}
+
+/* Si el dispositivo tiene asignado un cuaderno que ya NO está en la
+   lista (el compañero se fue del centro y borraste su bloque), vuelve
+   al cuaderno de casa. Sin esto seguiría mandando los ejercicios a un
+   despliegue que quizá ya ni existe, y nadie se enteraría.
+
+   Contrapartida asumida: si en ESE dispositivo alguien había escrito
+   además una URL a mano desde el panel del profesor, se pierde y hay
+   que volver a escribirla. Pasa solo en el ordenador de un profesor,
+   no en el de un alumno. */
+function _volverAlCuadernoDeCasa() {
+  const guardado = _leer(LS_CUADERNO);
+  if (!guardado || buscarCuaderno(guardado)) return;
+  log.warn('[cuadernos] El cuaderno asignado ya no está en la lista:', guardado,
+           '— este dispositivo vuelve al cuaderno por defecto.');
+  try {
+    localStorage.removeItem(LS_CUADERNO);
+    localStorage.removeItem(LS_API);
+  } catch (e) {}
+}
+
+/* Lee `?prof=…` del enlace y, si es un cuaderno de la lista, deja el
+   dispositivo apuntando a él. Se llama UNA vez al arrancar (app.js).
+   Devuelve el cuaderno aplicado, o null si no había que hacer nada.
+
+   Las tres reglas acordadas con Josele:
+
+   1. Un enlace válido MANDA, aunque el dispositivo ya estuviera
+      asignado a otro profesor. Es el acto más reciente de un profesor
+      y es también la forma de arreglar un iPad mal asignado: se abre
+      el enlace bueno y listo.
+   2. Un enlace SIN parámetro no reinicia nada. Si reiniciara, un
+      alumno de otra profesora que entrase por el enlace pelado
+      (favoritos, app instalada, buscador) volvería en silencio al
+      cuaderno de casa y sus notas acabarían donde no deben.
+   3. Un `?prof=` que no esté en la lista se ignora por completo. */
+export function aplicarCuadernoDelEnlace() {
+  _volverAlCuadernoDeCasa();
+
+  let pedido = '';
+  try {
+    pedido = new URLSearchParams(window.location.search).get(PARAM_CUADERNO) || '';
+  } catch (e) {
+    return null;
+  }
+  if (!pedido) return null;                      // regla 2
+
+  const cuaderno = buscarCuaderno(pedido);
+  if (!cuaderno) {                               // regla 3
+    log.warn('[cuadernos] El enlace pide un cuaderno que no está en la lista:', pedido);
+    return null;
+  }
+
+  const anterior = _leer(LS_CUADERNO) || null;
+  if (anterior !== cuaderno.id) _cambio = { anterior: anterior, nuevo: cuaderno.id };
+
+  // Se guardan DOS cosas, a propósito:
+  //  · LS_CUADERNO recuerda DE QUIÉN es el cuaderno — para el
+  //    distintivo en pantalla y para el panel del profesor.
+  //  · LS_API es la dirección que ya consultaba toda la app a través de
+  //    getApiUrl() (core/api.js). Al escribirla aquí, los exámenes, las
+  //    analíticas y los bancos de oraciones cambian de destino sin
+  //    tocar ni una línea de ningún módulo pedagógico.
+  _escribir(LS_CUADERNO, cuaderno.id);
+  _escribir(LS_API, cuaderno.url);
+
+  log.debug('[cuadernos] Cuaderno activo:', cuaderno.id, '(' + cuaderno.nombre + ')');
+  return cuaderno;
+}
+
+/* Devuelve el cuaderno al que apunta este dispositivo, o null si va al
+   de casa (que es el caso de todos los alumnos de Josele).
+
+   Comprueba además que la dirección guardada siga siendo la de ese
+   cuaderno: si un profesor escribió otra URL a mano en su panel, la
+   asignación por enlace ya no está mandando y no se debe seguir
+   anunciando su nombre en pantalla — un distintivo que miente es peor
+   que no tener distintivo. */
+export function getCuadernoActivo() {
+  const cuaderno = buscarCuaderno(_leer(LS_CUADERNO));
+  if (!cuaderno) return null;
+  if (getApiUrl() !== cuaderno.url) return null;
+  return cuaderno;
+}
+
+/* {anterior, nuevo} si esta carga de la página cambió de cuaderno;
+   null en caso contrario. Para el aviso del paso 4. */
+export function getCambioDeCuaderno() {
+  return _cambio;
 }

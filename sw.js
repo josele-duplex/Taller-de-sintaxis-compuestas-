@@ -53,6 +53,7 @@ const SHELL_ASSETS = [
   './js/core/storage.js',
   './js/core/audio.js',
   './js/core/api.js',
+  './js/core/cuadernos.js',
   './js/core/navigation.js',
   './js/core/profile.js',
   './js/core/timers.js',

@@ -4,6 +4,7 @@
 
 // ───── Claves de localStorage ─────
 export const LS_API            = 'taller_api_url';
+export const LS_CUADERNO       = 'taller_cuaderno';    // id del cuaderno de profesor asignado a este dispositivo (ver cuadernos.js)
 export const LS_PIN            = 'taller_pin';
 export const LS_TIMER          = 'taller_timer';
 export const LS_SOUND          = 'taller_sound';
