@@ -41,13 +41,15 @@ commit, y haz `git push`.
 | A6 | Acoplamiento por `window.*` (timers, navegación) | 🟠 Advertencia | 2 h | Opus | ✅ HECHA |
 | A8 | Datos lingüísticos dentro de los módulos de UI | 🟠 Advertencia | 1 h | Opus | ✅ HECHA (solo cliente) |
 | C1 | Clave de profesor *fail-open* → datos de menores | 🔴 Crítico | 30 min | Opus | ✅ HECHO — `b5b98a3` + `26240c8` (aplicado antes del cierre de evaluación: curso sin empezar aún) |
-| C2 | Nota de examen calculada y firmada por el cliente | 🔴 Crítico | 3-4 h | Opus | ⏸ AL CIERRE DE EVALUACIÓN |
+| C2 | Nota de examen calculada y firmada por el cliente | 🔴 Crítico | 3-4 h | Opus | ✅ CÓDIGO LISTO — `dedfc4f` + `a84584d` · ⏸ PENDIENTE DE REDESPLIEGUE |
 
 **⏸ = no desplegar en mitad de una evaluación.** C1 y C2 tocan acceso y calificación,
 así que por defecto van al cierre de evaluación, con aviso previo a los alumnos, igual
 que el rediseño de calificación y la ponderación F9. Excepción: C1 se adelantó el
 29-ago-2026 porque el curso aún no había empezado (exponía datos de alumnos ya
-matriculados, no solo de exámenes en curso) — C2 sigue esperando al cierre.
+matriculados, no solo de exámenes en curso). **C2 tiene el código ya escrito y
+verificado (ago-2026), pero el redespliegue de Apps Script sigue esperando al cierre
+de evaluación** — ver nota de despliegue al final de la sección C2.
 
 ---
 
@@ -141,11 +143,13 @@ Al revés, el panel del profesor deja de funcionar hasta que la fijes.
 
 ---
 
-## C2 · La nota del examen la calcula y la firma el cliente
+## C2 · La nota del examen la calcula y la firma el cliente ✅ CÓDIGO LISTO (`dedfc4f` + `a84584d`) · ⏸ PENDIENTE DE REDESPLIEGUE
 
-**Archivos:** `js/modules/sint/index.js:3275-3295` · `server/Code_v6.gs:2690` (`saveResult_`) · `server/Code_v6.gs:908` (`doGet`)
+**Archivos:** `js/modules/sint/index.js` (`submitResult`, `_doHandleStart`, `_launchGame`, `initState`) ·
+`server/Code_v6.gs` (`saveResult_`, `getExamConfig_`, `_recalcularNota_`, `_availExamen_`,
+`_emitirTokenExamen_`, `_consumirTokenExamen_`)
 
-### Qué falla
+### Qué fallaba
 
 ```javascript
 _pendingResult = {
@@ -155,53 +159,82 @@ _pendingResult = {
 const r = await fetchWithTimeout(apiUrl + '?' + new URLSearchParams(_pendingResult), {}, 12000);
 ```
 
-La nota viaja como un parámetro más de una URL `GET`, y el servidor la escribe tal cual.
-Un alumno con las herramientas del navegador abiertas (o simplemente pegando una URL) puede:
+La nota viajaba como un parámetro más de una URL `GET`, y el servidor la escribía tal cual.
+Un alumno con las herramientas del navegador abiertas (o simplemente pegando una URL) podía:
 
 1. Enviarse un 10 sin hacer el examen.
-2. Enviarlo **con el correo de un compañero** — el correo es autodeclarado y nada lo
-   verifica. `validatePin_` comprueba que ese correo no haya entregado ya con ese PIN,
-   así que basta con adelantarse para dejar a otro sin poder entregar.
+2. Enviarlo **con el correo de un compañero** — el correo era autodeclarado y nada lo
+   verificaba. El dedup por correo+PIN comprueba que ese correo no haya entregado ya con
+   ese PIN, así que bastaba con adelantarse para dejar a otro sin poder entregar.
 
-Es un problema de integridad de la calificación: el cliente es la autoridad sobre la nota.
+Era un problema de integridad de la calificación: el cliente era la autoridad sobre la nota.
 
-### Corrección (a) — el servidor recalcula la nota
+### Aviso sobre la corrección (a) tal como se propuso originalmente aquí
 
-```javascript
-// server/Code_v6.gs — dentro de saveResult_(p), antes de construir la fila
-//
-// El cliente sigue mandando `score` (compatibilidad con la app ya instalada),
-// pero es informativo: la nota que se guarda se recalcula aquí a partir de los
-// puntos por bloque, que sí son verificables contra el banco.
-function _recalcularNota_(p) {
-  const suj = Number(p.sujeto)    || 0;
-  const fun = Number(p.funciones) || 0;
-  const np  = Number(p.np)        || 0;
-  const tot = Number(p.totalOraciones) || 0;
-  if (tot <= 0) return 0;
-  const maxPorOracion = PESO_SUJETO + PESO_FUNCIONES + PESO_NP; // constantes ya existentes
-  const bruto = (suj + fun + np) / (tot * maxPorOracion);
-  return Math.round(Math.max(0, Math.min(1, bruto)) * 1000) / 100; // 0..10, 2 decimales
-}
+La primera versión de este documento proponía recalcular la nota con
+`(suj + fun + np) / (totalOraciones × (PESO_SUJETO + PESO_FUNCIONES + PESO_NP))`,
+usando unas constantes `PESO_*` "ya existentes". **Esas constantes no existen en el
+repo, y la fórmula está mal:** los puntos que puede dar una oración no son un número
+fijo — dependen de cuántas funciones tenga y de su peso pedagógico real
+(`W = {NP:1, SUJETO:3, FUNCION:3}` en `js/modules/sint/index.js:346`, multiplicado por
+`FUNC_WEIGHT`, donde un CD pesa 1,5 veces un CC). Implementar la fórmula del documento
+tal cual habría convertido un examen real de 6,0 en un 10 — verificado con un caso
+simulado antes de escribir una sola línea de código de producción. Queda aquí como
+aviso: si algún día se retoca esta pieza, no reintroducir esa fórmula.
 
-const notaCliente  = Number(p.score) || 0;
-const notaServidor = _recalcularNota_(p);
-if (Math.abs(notaCliente - notaServidor) > 0.05) {
-  logToSheet_('WARN', 'saveResult',
-    'Nota del cliente (' + notaCliente + ') no cuadra con la recalculada (' +
-    notaServidor + ') para ' + (p.email || '?'), ERR.BAD_PARAM, '');
-}
-// A partir de aquí se usa SIEMPRE notaServidor para la columna Nota.
-```
+### Corrección (a) implementada — el servidor recalcula la nota desde el banco real
 
-### Corrección (b) — ligar la entrega a un identificador que el alumno no elige
+En vez de una fórmula con pesos fijos, `saveResult_` recupera las oraciones que el
+propio servidor repartió para ese PIN (`getExamConfig_` → `Oraciones_JSON`) y
+reconstruye el denominador exacto con las mismas reglas que usa la app —
+`_availExamen_()` replica `calcScore()` del cliente: NP = 1 punto/oración, Sujeto = 3
+puntos/oración (solo si la subfase juega la fase 2), Funciones = 3 × peso pedagógico de
+cada bloque interactivo (solo fase 3, pre-resueltos y tácitos excluidos). Los puntos
+que manda el alumno se recortan a ese tope antes de calcular la nota
+(`_recalcularNota_`), y si la nota resultante no cuadra con la que mandó el cliente
+queda un `WARN` en `Logs_GAS` con su correo y PIN.
 
-`getExamConfig_` devuelve un `token` de un solo uso (aleatorio, guardado en
-`CacheService` junto al correo que lo pidió); `saveResult_` lo exige y lo consume.
-No impide todo el fraude, pero rompe el caso trivial de "entrego con el correo de otro".
+Verificado que reproduce al decimal la nota que ve el alumno en pantalla, en las tres
+subfases (`solo_np`, `np_sujeto`, `completo`) y en casos borde (oraciones sin bloques,
+funciones fuera de la tabla de pesos, puntos inflados a un valor absurdo).
+
+### Corrección (b) implementada — vale de entrega de un solo uso
+
+`getExamConfig_` emite un vale aleatorio (`Utilities.getUuid()`) cada vez que un alumno
+pide el examen, ligado a su correo y guardado en `CacheService` (6 h). El vale se emite
+**siempre fuera** de la respuesta cacheada de 5 minutos — si viajara dentro, los 30
+alumnos que arrancan el examen en el mismo minuto recibirían todos el mismo vale y
+dejaría de identificar a nadie. Al entregar, `saveResult_` exige ese vale
+(`_consumirTokenExamen_`), comprueba que es de ese PIN y de ese correo, y lo destruye.
+
+**Política decidida con Josele:** una entrega sin vale (app vieja en la caché del
+navegador del alumno) **no se rechaza** — se guarda igual, con un aviso en `Logs_GAS`.
+El vale detecta y deja rastro; no bloquea la entrega el día del examen.
 
 **Nota honesta:** ninguna app estática puede garantizar esto del todo. Lo que elimina
-esta corrección es el ataque de un minuto.
+esta corrección es el ataque de un minuto — entregar con el correo de otro sin más
+esfuerzo que cambiar un campo de un formulario.
+
+### Redespliegue (pendiente, al cierre de evaluación)
+
+El código ya está en `main` (commits `dedfc4f`, `a84584d`), pero **no tiene efecto en
+producción** hasta que se redespliegue Apps Script — y eso, como con C1, se hace en el
+cierre de evaluación con aviso previo a los alumnos, no en mitad de un examen en curso.
+Pasos cuando llegue el momento:
+
+1. Abrir el proyecto de Apps Script vinculado al Sheet del profesor.
+2. Pegar el contenido actualizado de `server/Code_v6.gs`.
+3. **Implementar → Gestionar implementaciones → lápiz (editar) → Nueva versión.**
+   Nunca "Nueva implementación": generaría una URL distinta y rompería la app en
+   producción para todos los alumnos que ya la tienen guardada.
+4. Guardar. La URL del web app no cambia.
+5. Avisar a los alumnos de que la calificación de los próximos exámenes la valida el
+   servidor (mismo aviso que se dio para el rediseño de calificación y la ponderación
+   F9): no deberían notar ninguna diferencia si entregan con normalidad.
+6. Hacer un examen de prueba con un PIN de prueba tras el despliegue para confirmar que
+   `getExamConfig` devuelve `token` y que `saveResult` guarda la nota recalculada (no
+   la que muestra la pantalla del alumno, aunque en una entrega normal deberían
+   coincidir).
 
 ---
 
