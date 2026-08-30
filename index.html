@@ -644,6 +644,16 @@ if(window.location.protocol === 'file:') {
       <p id="tp-api-test" style="font-size:.8rem;display:none" role="status"></p>
     </div>
     <div class="s-box">
+      <div class="s-title">🎒 Enlace para mis alumnos</div>
+      <div class="s-desc">El enlace que repartes en Classroom. Deja los dispositivos de tus alumnos apuntando a tu cuaderno, aunque antes estuvieran en el de otro profesor.</div>
+      <p style="font-size:.84rem;margin:0 0 8px">Cuaderno de este dispositivo: <strong id="tp-cuaderno-activo">—</strong></p>
+      <div id="tp-enlace-box" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <input id="tp-enlace" class="input mono" type="text" readonly style="flex:1;min-width:180px;font-size:.79rem">
+        <button type="button" class="btn btn-primary btn-sm" onclick="copiarEnlaceAlumnos()">📋 Copiar</button>
+      </div>
+      <p id="tp-enlace-status" style="font-size:.8rem;display:none" role="status"></p>
+    </div>
+    <div class="s-box">
       <div class="s-title">🔑 PIN de Examen</div>
       <div class="s-desc">4 dígitos que comunicas oralmente a los alumnos.</div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">

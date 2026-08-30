@@ -50,6 +50,7 @@ function loadTeacherPanel(){
   }
   updateFilterPreview();
   renderMisGruposChecks();
+  renderEnlaceAlumnos();
 }
 
 // ── MIS GRUPOS (jul-2026) — filtra la hoja Evolucion_Alumnos del Sheet ──
@@ -148,7 +149,15 @@ function saveExamFilters(){
   localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:checks,dificultad:dif,examCount}));
   flashTp('✓ Filtros guardados.','var(--green)');
 }
-function saveApiUrl(){localStorage.setItem(LS_API,document.getElementById('tp-apiurl').value.trim());flashTp('✓ URL guardada.','var(--green)');}
+function saveApiUrl(){
+  localStorage.setItem(LS_API,document.getElementById('tp-apiurl').value.trim());
+  // Una URL escrita a mano deja de ser "el cuaderno de Fulano": se borra la
+  // etiqueta para que el distintivo del alumno no anuncie a quien ya no es,
+  // y para que una futura baja de la lista no arrastre esta URL al limpiar.
+  try{ localStorage.removeItem(LS_CUADERNO); }catch(e){}
+  renderEnlaceAlumnos();
+  flashTp('✓ URL guardada.','var(--green)');
+}
 async function testApiUrl(){
   const url=getApiUrl();if(!url){flashTp('⚠ Guarda la URL primero.','var(--amber)');return;}
   flashTp('Probando…','var(--muted)');
@@ -156,6 +165,58 @@ async function testApiUrl(){
     if(Array.isArray(d.oraciones))flashTp(`✓ ${d.oraciones.length} oraciones cargadas.`,'var(--green)');else flashTp('⚠ Sin campo "oraciones".','var(--amber)');
   }catch(e){flashTp(`✕ ${e.message.includes('aborted')?'Tiempo agotado.':e.message}`,'var(--red)');}
 }
+// ── ENLACE PARA MIS ALUMNOS (paso 5 del protocolo de departamento) ──
+// Genera el enlace con ?prof=<id> del cuaderno al que apunta ESTE
+// dispositivo. Siempre lleva el parametro, incluso el del cuaderno de
+// casa: un enlace pelado no rescata a un iPad que quedo asignado al
+// cuaderno de otro profesor, y uno con parametro si.
+function _cuadernoDeEsteDispositivo(){
+  const activo = (typeof getCuadernoActivo==='function') ? getCuadernoActivo() : null;
+  if(activo) return activo;
+  // Sin etiqueta: solo es "el de casa" si la URL sigue siendo la de casa.
+  // Si el profesor escribio otra a mano, no hay enlace que generar.
+  const casa = (typeof buscarCuaderno==='function') ? buscarCuaderno(CUADERNO_POR_DEFECTO) : null;
+  const url  = (typeof getApiUrl==='function') ? getApiUrl() : '';
+  return (casa && url === casa.url) ? casa : null;
+}
+
+function renderEnlaceAlumnos(){
+  const nombre = document.getElementById('tp-cuaderno-activo');
+  const caja   = document.getElementById('tp-enlace-box');
+  const input  = document.getElementById('tp-enlace');
+  if(!nombre || !caja || !input) return;
+
+  const cuaderno = _cuadernoDeEsteDispositivo();
+  if(!cuaderno){
+    nombre.textContent = 'URL escrita a mano (no está en la lista de cuadernos)';
+    caja.style.display = 'none';
+    return;
+  }
+  nombre.textContent = cuaderno.nombre;
+  caja.style.display = 'flex';
+  input.value = location.origin + location.pathname +
+                '?' + PARAM_CUADERNO + '=' + encodeURIComponent(cuaderno.id);
+}
+
+async function copiarEnlaceAlumnos(){
+  const input  = document.getElementById('tp-enlace');
+  const status = document.getElementById('tp-enlace-status');
+  if(!input) return;
+  const decir = (txt,color)=>{ if(status){ status.style.display='block'; status.style.color=color; status.textContent=txt; } };
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(input.value);
+    }else{
+      // iPad viejo o pagina sin https: el metodo de toda la vida.
+      input.focus(); input.select(); document.execCommand('copy');
+    }
+    decir('✓ Enlace copiado. Pégalo en tu Classroom.','var(--green)');
+  }catch(e){
+    input.focus(); input.select();
+    decir('No he podido copiarlo solo: está seleccionado, cópialo con Ctrl+C.','var(--amber)');
+  }
+}
+
 function savePin(){const v=document.getElementById('tp-pin').value.trim();if(v.length!==4||!/^\d+$/.test(v)){flashTp('El PIN debe tener 4 dígitos.','var(--red)');return;}localStorage.setItem(LS_PIN,v);document.getElementById('tp-pin-display').textContent=v;flashTp(`✓ PIN ${v} activado.`,'var(--green)');}
 function genPin(){document.getElementById('tp-pin').value=String(Math.floor(1000+Math.random()*9000));}
 function saveTimer(){const v=Math.max(0,parseInt(document.getElementById('tp-timer').value||'0',10));localStorage.setItem(LS_TIMER,v);flashTp(`✓ ${v} min${v===0?' (sin límite)':''}.`,'var(--green)');}
@@ -1578,6 +1639,8 @@ if (typeof window !== 'undefined') {
     // Informe del profesor (Excel)
     generarInformeProfesor,
     // Mis grupos (filtro de Evolucion_Alumnos)
-    renderMisGruposChecks, guardarMisGrupos
+    renderMisGruposChecks, guardarMisGrupos,
+    // Paso 5 — enlace para los alumnos de cada profesor
+    renderEnlaceAlumnos, copiarEnlaceAlumnos
   });
 }
