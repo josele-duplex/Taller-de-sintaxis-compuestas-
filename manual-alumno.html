@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manual del Alumno · Taller de Sintaxis</title>
-<meta name="description" content="Guía de uso del Taller de Sintaxis para estudiantes: cómo entrar, los modos de práctica, los exámenes con PIN y cómo se calcula tu nota.">
+<meta name="description" content="Guía del Taller de Sintaxis para estudiantes: cómo entrar, los ocho modos (análisis, Fábrica de Palabras, Laboratorio de Oraciones y juegos), los exámenes con PIN y cómo se calcula tu nota.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -284,35 +284,39 @@ body.searching .no-result.show{display:block}
       <ul>
         <li><a href="#inicio">Bienvenida</a></li>
         <li><a href="#acceso">Cómo entrar</a></li>
-        <li><a href="#portada">La portada y los modos</a></li>
-        <li><a href="#identidad">Tu nombre y tu grupo</a></li>
+        <li><a href="#portada">La portada</a></li>
+        <li><a href="#identidad">Tus datos</a></li>
       </ul>
     </div>
     <div class="side-group">
-      <div class="side-head">Los modos de estudio</div>
+      <div class="side-head">Analizar</div>
       <ul>
         <li><a href="#sintactico">Análisis Sintáctico</a></li>
         <li><a href="#morfologico">Análisis Morfológico</a></li>
         <li><a href="#sintagmas">Análisis de Sintagmas</a></li>
         <li><a href="#compuesta">Oración Compuesta</a></li>
-        <li><a href="#arcade">Arcade</a></li>
-        <li><a href="#chispa">Chispa</a></li>
       </ul>
     </div>
     <div class="side-group">
-      <div class="side-head">Práctica y exámenes</div>
+      <div class="side-head">Experimentar y jugar</div>
+      <ul>
+        <li><a href="#fabrica">La Fábrica de Palabras</a></li>
+        <li><a href="#laboratorio">El Laboratorio de Oraciones</a></li>
+        <li><a href="#juegos">Arcade y Chispa</a></li>
+      </ul>
+    </div>
+    <div class="side-group">
+      <div class="side-head">Exámenes y nota</div>
       <ul>
         <li><a href="#practica-examen">Práctica vs. Examen</a></li>
         <li><a href="#pin">Hacer un examen con PIN</a></li>
         <li><a href="#nota">Cómo se calcula tu nota</a></li>
-        <li><a href="#pistas">Pistas y reflexión</a></li>
       </ul>
     </div>
     <div class="side-group">
       <div class="side-head">Ayuda</div>
       <ul>
-        <li><a href="#movil">En el móvil</a></li>
-        <li><a href="#consejos">Consejos para estudiar</a></li>
+        <li><a href="#consejos">Cómo sacarle partido</a></li>
         <li><a href="#problemas">Problemas frecuentes</a></li>
         <li><a href="#faq">Preguntas frecuentes</a></li>
       </ul>
@@ -329,7 +333,7 @@ body.searching .no-result.show{display:block}
         <div class="hero">
           <div class="kicker">Aplicación educativa · Lengua Castellana</div>
           <h1>Aprende a analizar oraciones, paso a paso</h1>
-          <p>El Taller de Sintaxis es una app para practicar el análisis sintáctico, morfológico y de oraciones compuestas del español. Este manual te explica, con palabras claras, cómo usarla.</p>
+          <p>El Taller de Sintaxis es una app para practicar el análisis sintáctico y morfológico, la formación de palabras y la oración compuesta. Este manual te explica, con palabras claras, cómo usarla.</p>
           <div class="meta">
             <span class="pill">✏️ Sin instalar nada</span>
             <span class="pill">📱 Móvil, tablet y ordenador</span>
@@ -338,11 +342,11 @@ body.searching .no-result.show{display:block}
         </div>
 
         <h2><span class="n">1</span> Bienvenida</h2>
-        <p class="lead">El Taller de Sintaxis es una aplicación web para <strong>entrenar el análisis de oraciones</strong> de la forma en que se pide en clase y en la PAU. No es un juego de adivinar: te acompaña razonando, te avisa cuando fallas y te explica por qué.</p>
-        <p>Funciona con la terminología oficial que usáis en clase (la de la NGLE): Sujeto, Complemento Directo, Complemento Indirecto, Atributo, Complemento de Régimen, sintagmas, oraciones compuestas… Está pensada para toda la etapa: desde 1.º de ESO hasta 2.º de Bachillerato.</p>
+        <p class="lead">El Taller de Sintaxis sirve para <strong>entrenar el análisis de oraciones</strong> como se pide en clase y en la selectividad. No es un juego de adivinar: te acompaña razonando, te avisa cuando fallas y te explica por qué.</p>
+        <p>Usa la terminología oficial que ves en clase: Sujeto, Complemento Directo, Complemento Indirecto, Atributo, Complemento de Régimen, sintagmas, oraciones compuestas… Y está pensada para toda la etapa, desde 1.º de ESO hasta 2.º de Bachillerato: cada modo tiene niveles.</p>
         <div class="box info">
           <div class="bx-h"><span class="em">💡</span> Lo esencial en una frase</div>
-          <p>Abres la app, eliges un modo, escribes tu nombre y tu grupo, y practicas. Si el profesor te da un <strong>PIN</strong>, eso es un examen: se guarda tu nota. Sin PIN, es práctica libre para aprender sin presión.</p>
+          <p>Abres la app, eliges un modo, escribes tu nombre y tu grupo, y practicas. Si tu profesor te da un <strong>PIN</strong>, eso es un examen: se guarda tu nota. Sin PIN, es práctica libre para aprender sin presión.</p>
         </div>
       </section>
 
@@ -351,135 +355,140 @@ body.searching .no-result.show{display:block}
         <h2><span class="n">2</span> Cómo entrar</h2>
         <p>Entrar es muy sencillo, porque <strong>no hay cuentas ni contraseñas</strong>. No tienes que registrarte ni recordar ningún usuario.</p>
         <ol class="steps">
-          <li><b>Abre el enlace</b> que te dé tu profesor en cualquier navegador moderno (Chrome, Firefox, Edge o Safari). Puedes guardarlo en favoritos para volver rápido.</li>
-          <li><b>Espera unos segundos</b> a que cargue la portada con los distintos modos.</li>
+          <li><b>Abre el enlace</b> que te dé tu profesor en cualquier navegador (Chrome, Firefox, Edge o Safari). Guárdalo en favoritos para volver rápido.</li>
+          <li><b>Espera unos segundos</b> a que cargue la portada con los modos.</li>
           <li><b>Elige un modo</b> tocando su tarjeta. ¡Ya estás dentro!</li>
         </ol>
+        <div class="box warn">
+          <div class="bx-h"><span class="em">⚠️</span> Usa siempre el enlace de tu profesor</div>
+          <p>Cada profesor tiene su propio cuaderno, y el enlace es lo que hace que tus ejercicios y tus notas lleguen al suyo. Si abres el enlace de otro profesor, tu dispositivo se queda apuntando allí (la app te avisa cuando eso pasa). Con volver a abrir el enlace correcto se arregla.</p>
+        </div>
         <div class="box tip">
-          <div class="bx-h"><span class="em">✅</span> Consejo: instala la app en tu pantalla de inicio</div>
-          <p>La app se puede «instalar» como si fuera una aplicación del móvil, sin pasar por ninguna tienda de apps. Es opcional, pero te evita la barra de direcciones y las pestañas del navegador: tocas el icono y entras directo, a pantalla completa. El proceso cambia según el móvil:</p>
+          <div class="bx-h"><span class="em">✅</span> Puedes ponerla en tu pantalla de inicio</div>
+          <p>La app se puede «instalar» como si fuera una aplicación del móvil, sin pasar por ninguna tienda. Es opcional, pero te evita la barra de direcciones y las pestañas: tocas el icono y entras directo, a pantalla completa. El proceso cambia según el móvil:</p>
         </div>
         <div class="grid g2">
           <div class="card">
             <h4>📱 iPhone / iPad (Safari)</h4>
             <ol class="steps">
-              <li>Abre el enlace de la app <b>en Safari</b> (tiene que ser Safari; en Chrome para iPhone esta opción no aparece).</li>
-              <li>Toca el icono <b>Compartir</b> (el cuadrado con la flecha hacia arriba), en la barra inferior o superior.</li>
+              <li>Abre el enlace <b>en Safari</b> (tiene que ser Safari; en Chrome para iPhone esta opción no aparece).</li>
+              <li>Toca el icono <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li>
               <li>Baja en el menú y toca <b>«Añadir a pantalla de inicio»</b>.</li>
-              <li>Confirma con <b>«Añadir»</b>. Ya tienes el icono en tu pantalla, junto a tus demás apps.</li>
+              <li>Confirma con <b>«Añadir»</b>.</li>
             </ol>
           </div>
           <div class="card">
             <h4>🤖 Android (Chrome)</h4>
             <ol class="steps">
-              <li>Abre el enlace de la app en Chrome.</li>
+              <li>Abre el enlace en Chrome.</li>
               <li>Toca el menú de <b>tres puntos</b> (⋮), arriba a la derecha.</li>
-              <li>Toca <b>«Instalar aplicación»</b> (o <b>«Añadir a pantalla de inicio»</b>, según la versión de Chrome).</li>
-              <li>Confirma. El icono aparece en tu pantalla de inicio o en el cajón de apps.</li>
+              <li>Toca <b>«Instalar aplicación»</b> (o <b>«Añadir a pantalla de inicio»</b>).</li>
+              <li>Confirma. El icono aparece con tus demás apps.</li>
             </ol>
           </div>
         </div>
-        <div class="box warn">
-          <div class="bx-h"><span class="em">⚠️</span> Ten en cuenta</div>
-          <p>Como no hay cuenta, tu progreso de práctica se guarda solo <strong>en el navegador de ese dispositivo</strong>. Si cambias de móvil u ordenador, empiezas de cero en cuanto a rachas y misiones. Las notas de <em>examen</em>, en cambio, sí se guardan en el servidor del profesor. Esto es igual tanto si entras desde el navegador como si usas el icono instalado: es la misma app, solo cambia cómo la abres.</p>
+        <div class="box info">
+          <div class="bx-h"><span class="em">📌</span> Dónde se guarda cada cosa</div>
+          <p>Tu progreso de práctica (rachas, misiones, tu Mesa de Herramientas, tu Museo…) se guarda <strong>en el navegador de ese dispositivo</strong>: si cambias de móvil, empiezas de cero en eso. Tus <strong>notas de examen</strong>, en cambio, se guardan en el servidor de tu profesor y no se pierden.</p>
         </div>
       </section>
 
       <!-- PORTADA -->
       <section id="portada">
-        <h2><span class="n">3</span> La portada y los modos</h2>
-        <p>Nada más entrar verás la portada con seis tarjetas. Cada una es un modo distinto de trabajar. Puedes entrar y salir de cualquiera con el botón <kbd>← Volver</kbd> de arriba.</p>
+        <h2><span class="n">3</span> La portada</h2>
+        <p>Nada más entrar verás ocho tarjetas. Cada una es una forma distinta de trabajar. Puedes entrar y salir de cualquiera con el botón <kbd>← Volver</kbd>.</p>
 
-        <div class="capture" role="img" aria-label="Representación de la pantalla de inicio con las seis tarjetas de modos">
+        <div class="capture" role="img" aria-label="Representación de la pantalla de inicio con las ocho tarjetas de modos">
           <div class="cap-bar"><i class="cap-dot1"></i><i class="cap-dot2"></i><i class="cap-dot3"></i><span class="cap-url">taller-de-sintaxis</span></div>
           <div class="cap-body">
             <div class="mock-grid">
               <div class="mock-card" style="--bar:#102A43"><div class="mc-i">🔗</div><div class="mc-t">Análisis Sintáctico</div><div class="mc-d">Sujeto, núcleo y funciones del predicado</div><span class="mc-cta">Empezar</span></div>
-              <div class="mock-card" style="--bar:#0F766E"><span class="mock-badge">Nuevo</span><div class="mc-i">🔤</div><div class="mc-t">Análisis Morfológico</div><div class="mc-d">Categoría de cada palabra, en 3 niveles</div><span class="mc-cta">Empezar</span></div>
+              <div class="mock-card" style="--bar:#0F766E"><div class="mc-i">🔤</div><div class="mc-t">Análisis Morfológico</div><div class="mc-d">Categoría de cada palabra, en 3 niveles</div><span class="mc-cta">Empezar</span></div>
               <div class="mock-card" style="--bar:#7C3AED"><div class="mc-i">🧱</div><div class="mc-t">Análisis de Sintagmas</div><div class="mc-d">Núcleo, modificadores y término</div><span class="mc-cta">Empezar</span></div>
-              <div class="mock-card" style="--bar:#9F1239"><span class="mock-badge">Nuevo</span><div class="mc-i">🔀</div><div class="mc-t">Oración Compuesta</div><div class="mc-d">Coordinadas, subordinadas, yuxtapuestas</div><span class="mc-cta">Explorar</span></div>
+              <div class="mock-card" style="--bar:#9F1239"><div class="mc-i">🔀</div><div class="mc-t">Oración Compuesta</div><div class="mc-d">Coordinadas, subordinadas, yuxtapuestas</div><span class="mc-cta">Explorar</span></div>
               <div class="mock-card" style="--bar:#B45309"><div class="mc-i">🕹️</div><div class="mc-t">Arcade</div><div class="mc-d">Juega, compite y sube en el ranking</div><span class="mc-cta">Jugar</span></div>
-              <div class="mock-card" style="--bar:#0F766E"><span class="mock-badge">Nuevo</span><div class="mc-i">⚡</div><div class="mc-t">Chispa</div><div class="mc-d">¿Cuál es la función? Rápido</div><span class="mc-cta">Jugar</span></div>
+              <div class="mock-card" style="--bar:#0F766E"><div class="mc-i">⚡</div><div class="mc-t">Chispa</div><div class="mc-d">¿Cuál es la función? Rápido</div><span class="mc-cta">Jugar</span></div>
+              <div class="mock-card" style="--bar:#65733C"><span class="mock-badge">Nuevo</span><div class="mc-i">🏭</div><div class="mc-t">La Fábrica de Palabras</div><div class="mc-d">De qué piezas está hecha una palabra</div><span class="mc-cta">Jugar</span></div>
+              <div class="mock-card" style="--bar:#15803D"><span class="mock-badge">Nuevo</span><div class="mc-i">🧪</div><div class="mc-t">El Laboratorio de Oraciones</div><div class="mc-d">Rompe la oración para ver qué la sostiene</div><span class="mc-cta">Experimentar</span></div>
             </div>
           </div>
-          <div class="cap-caption">La portada: seis modos. Los cuatro primeros son de análisis; los dos últimos, de juego.</div>
+          <div class="cap-caption">Ocho modos: cuatro de análisis, dos de experimentar y dos de jugar.</div>
         </div>
 
-        <div class="grid g2">
-          <div class="card"><div class="c-ico">🔗</div><h4>Análisis Sintáctico</h4><p>El modo principal: analizar oraciones simples (verbo, sujeto y funciones).</p><span class="tag">Análisis</span></div>
-          <div class="card"><div class="c-ico">🔤</div><h4>Análisis Morfológico</h4><p>Clasificar cada palabra por su categoría gramatical.</p><span class="tag">Análisis</span></div>
-          <div class="card"><div class="c-ico">🧱</div><h4>Análisis de Sintagmas</h4><p>Mirar dentro de un sintagma: núcleo y complementos.</p><span class="tag">Análisis</span></div>
-          <div class="card"><div class="c-ico">🔀</div><h4>Oración Compuesta</h4><p>Varias oraciones enlazadas entre sí y sus nexos.</p><span class="tag">Análisis</span></div>
-          <div class="card"><div class="c-ico">🕹️</div><h4>Arcade</h4><p>Modos con presión de tiempo y ranking de clase.</p><span class="tag">Juego</span></div>
-          <div class="card"><div class="c-ico">⚡</div><h4>Chispa</h4><p>Preguntas relámpago para identificar funciones.</p><span class="tag">Juego</span></div>
+        <div class="box info">
+          <div class="bx-h"><span class="em">🧭</span> ¿Por dónde empiezo?</div>
+          <p>Si te estás iniciando en el análisis, empieza por el <strong>Laboratorio de Oraciones</strong>: allí manipulas la oración antes de tener que ponerle nombre a nada, y luego el Análisis Sintáctico se entiende mucho mejor. Si ya analizas con soltura, ve directo a <strong>Análisis Sintáctico</strong> y usa <strong>Chispa</strong> para repasar.</p>
         </div>
       </section>
 
       <!-- IDENTIDAD -->
       <section id="identidad">
-        <h2><span class="n">4</span> Tu nombre y tu grupo</h2>
-        <p>Al entrar en un modo, la app te pedirá algunos datos. Es importante ponerlos <strong>bien</strong> para que tu profesor pueda reconocerte, sobre todo en los exámenes.</p>
+        <h2><span class="n">4</span> Tus datos</h2>
+        <p>Al entrar en un modo, la app te pide tres datos. Ponlos <strong>bien</strong>: es como tu profesor te reconoce, sobre todo en los exámenes.</p>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th>Campo</th><th>Qué escribir</th></tr></thead>
             <tbody>
               <tr><td><strong>Nombre completo</strong></td><td>Tu nombre y apellidos reales, como en la lista de clase. Nada de apodos en los exámenes.</td></tr>
-              <tr><td><strong>Correo</strong></td><td>Tu correo del centro (<code>@alu.murciaeduca.es</code>) o el que te indique el profesor. Sirve para identificar tu resultado.</td></tr>
-              <tr><td><strong>Grupo</strong></td><td>Se elige de una lista (por ejemplo <code>3ºA</code> o <code>1ºBachB</code>). No lo escribas a mano: elígelo del desplegable.</td></tr>
+              <tr><td><strong>Correo educativo</strong></td><td>El correo del centro o el que te indique tu profesor. Sirve para identificar tu resultado y para recibir tu informe si tu profesor lo activa.</td></tr>
+              <tr><td><strong>Grupo</strong></td><td>Se elige de una lista (por ejemplo <code>3ºA</code> o <code>1ºBachB</code>). No lo escribas a mano: despliega y elígelo.</td></tr>
             </tbody>
           </table>
         </div>
         <div class="box tip">
-          <div class="bx-h"><span class="em">✅</span> Consejo</div>
-          <p>La app recuerda tus datos para la próxima vez, así que solo tendrás que escribirlos una vez. En el <strong>Arcade</strong> usarás además un «apodo» para el ranking: ahí sí puedes ser creativo.</p>
+          <div class="bx-h"><span class="em">✅</span> Solo la primera vez</div>
+          <p>La app recuerda tus datos, así que solo tendrás que escribirlos una vez. En el <strong>Arcade</strong> usarás además un «apodo» para el ranking: ahí sí puedes ser creativo, porque nadie ve tu nombre real.</p>
         </div>
       </section>
 
       <!-- SINTÁCTICO -->
       <section id="sintactico">
         <h2><span class="n">5</span> Análisis Sintáctico</h2>
-        <p class="lead">Es el modo estrella. Analizas oraciones simples por fases, y la app te va guiando y corrigiendo.</p>
-        <h3>Cómo funciona una oración</h3>
+        <p class="lead">Es el modo principal. Analizas oraciones simples por fases, y la app te va guiando y corrigiendo.</p>
         <ol class="steps">
-          <li><b>El verbo (núcleo del predicado).</b> Toca la palabra o palabras que forman el verbo conjugado. La app te dice al instante si has acertado.</li>
-          <li><b>El sujeto.</b> Señalas quién realiza la acción (o si el sujeto es tácito, la app te lo indica).</li>
-          <li><b>Las funciones del predicado.</b> Colocas las etiquetas (CD, CI, Atributo, C. Circunstancial, C. de Régimen…) sobre cada parte de la oración.</li>
+          <li><b>El verbo (núcleo del predicado).</b> Toca la palabra o palabras que forman el verbo. La app te dice al instante si has acertado.</li>
+          <li><b>El sujeto.</b> Señalas de quién se dice algo. Si la oración tiene sujeto tácito (como «Llegamos tarde»), no hay que marcar ninguna palabra: la app lo reconoce.</li>
+          <li><b>Las funciones del predicado.</b> Colocas las etiquetas (CD, CI, Atributo, Complemento Circunstancial, Complemento de Régimen…) sobre cada parte de la oración.</li>
           <li><b>Resultado.</b> Al terminar ves tu nota, qué funciones dominas y cuáles conviene repasar.</li>
         </ol>
         <div class="box info">
-          <div class="bx-h"><span class="em">🎚️</span> Los niveles (subfases)</div>
-          <p>A veces solo tendrás que llegar hasta cierto punto: <strong>Solo el verbo</strong>, <strong>Verbo + Sujeto</strong> o <strong>Análisis completo</strong>. Lo decide el profesor o tú mismo en la práctica, según lo que hayáis dado en clase.</p>
+          <div class="bx-h"><span class="em">🎚️</span> La profundidad del análisis</div>
+          <p>Antes de empezar eliges hasta dónde llegas: <strong>Solo el verbo</strong>, <strong>Verbo + Sujeto</strong> o <strong>Análisis completo</strong>. En práctica lo eliges tú, según lo que hayáis dado en clase; en un examen lo fija el PIN de tu profesor.</p>
         </div>
         <div class="box tip">
           <div class="bx-h"><span class="em">✅</span> Si te equivocas, no pasa nada</div>
-          <p>Cada error es una oportunidad: la app te ofrece una pista y una pequeña explicación. En práctica puedes intentarlo tantas veces como quieras.</p>
+          <p>Cada error es una oportunidad: la app te ofrece una pista y una explicación con la <em>prueba</em> que distingue esa función. Y si fallas varias veces en la misma, te propondrá ir a reforzarla al Laboratorio de Oraciones.</p>
         </div>
       </section>
 
       <!-- MORFOLÓGICO -->
       <section id="morfologico">
         <h2><span class="n">6</span> Análisis Morfológico</h2>
-        <p>Aquí no analizas la oración, sino <strong>cada palabra por separado</strong>: ¿es un sustantivo, un verbo, un determinante, una preposición…? Se trabaja con textos breves (a veces fragmentos literarios) y vas etiquetando palabra a palabra.</p>
+        <p>Aquí no analizas la oración, sino <strong>cada palabra por separado</strong>: ¿es un sustantivo, un verbo, un determinante, una preposición…? Se trabaja con textos breves y vas etiquetando palabra a palabra.</p>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th>Nivel</th><th>Para quién</th><th>Qué se pide</th></tr></thead>
             <tbody>
-              <tr><td><strong>Aprendiz</strong></td><td>1.º–2.º ESO</td><td>Categorías básicas: sustantivo, verbo, adjetivo, determinante…</td></tr>
-              <tr><td><strong>ESO 3-4</strong></td><td>3.º–4.º ESO</td><td>Añade preposiciones, conjunciones, pronombres por tipo…</td></tr>
-              <tr><td><strong>Maestro</strong></td><td>Bachillerato</td><td>Análisis completo: género, número, persona, tiempo, modo…</td></tr>
+              <tr><td><strong>🌱 Aprendiz</strong></td><td>1.º–2.º ESO</td><td>Solo la categoría: sustantivo, verbo, adjetivo, determinante…</td></tr>
+              <tr><td><strong>📗 3.º–4.º ESO</strong></td><td>3.º–4.º ESO</td><td>Los rasgos esenciales de cada categoría.</td></tr>
+              <tr><td><strong>🧬 Maestro</strong></td><td>Bachillerato</td><td>Análisis completo: género, número, persona, tiempo, modo…</td></tr>
             </tbody>
           </table>
         </div>
         <p>Elige tu nivel al entrar. Puedes empezar por «Aprendiz» y subir cuando te sientas cómodo.</p>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">⚡</span> El Reto rápido</div>
+          <p>En el mismo modo, abajo, tienes <strong>«Reto rápido»</strong>: identificar categorías a contrarreloj, con racha. No es un análisis completo, es entrenamiento de reflejos. Va muy bien para calentar cinco minutos antes de ponerte en serio.</p>
+        </div>
       </section>
 
       <!-- SINTAGMAS -->
       <section id="sintagmas">
         <h2><span class="n">7</span> Análisis de Sintagmas</h2>
-        <p>Un sintagma es un grupo de palabras que funciona como una unidad (por ejemplo, «la casa de mi abuela»). En este modo <strong>desmontas el sintagma por dentro</strong>: identificas el núcleo (la palabra principal), los determinantes, los modificadores y los complementos.</p>
+        <p>Un sintagma es un conjunto de palabras que funciona como una unidad (por ejemplo, «la casa de mi abuela»). En este modo <strong>desmontas el sintagma por dentro</strong>: identificas el núcleo, los determinantes, los modificadores y el término.</p>
         <div class="box info">
           <div class="bx-h"><span class="em">🧠</span> ¿Cuándo te viene bien?</div>
-          <p>Si en «Análisis Sintáctico» aciertas la función pero no entiendes por qué un grupo de palabras es un sintagma preposicional y no uno nominal, pásate por aquí: entenderás la estructura interna y todo encajará mejor.</p>
+          <p>Si en «Análisis Sintáctico» aciertas la función pero no entiendes por qué un grupo de palabras es un sintagma preposicional y no uno nominal, pásate por aquí. Es un modo de práctica: no tiene exámenes.</p>
         </div>
       </section>
 
@@ -488,205 +497,230 @@ body.searching .no-result.show{display:block}
         <h2><span class="n">8</span> Oración Compuesta</h2>
         <p class="lead">Las oraciones compuestas tienen varias oraciones dentro (varios verbos). Este modo te lleva paso a paso para que no te pierdas.</p>
         <div class="tabs" data-tabs>
-          <div class="tab-btns" role="tablist" aria-label="Fases de la oración compuesta">
+          <div class="tab-btns" role="tablist" aria-label="Pasos de la oración compuesta">
             <button role="tab" aria-selected="true" aria-controls="cp1" id="cpb1">1 · Verbos</button>
             <button role="tab" aria-selected="false" aria-controls="cp2" id="cpb2">2 · Nexos</button>
             <button role="tab" aria-selected="false" aria-controls="cp3" id="cpb3">3 · Delimitar</button>
-            <button role="tab" aria-selected="false" aria-controls="cp4" id="cpb4">4 · Clasificar</button>
+            <button role="tab" aria-selected="false" aria-controls="cp4" id="cpb4">4 · Clasificar y relacionar</button>
           </div>
           <div class="tab-panel" data-active="true" id="cp1" role="tabpanel" aria-labelledby="cpb1">
             <h4>Identificar los verbos</h4>
-            <p>Primero marcas todos los verbos. Tantos verbos (o perífrasis) como marques, tantas oraciones habrá dentro de la compuesta. Es la base de todo el análisis.</p>
+            <p>Primero marcas todos los verbos. Tantos verbos (o perífrasis) como haya, tantas oraciones habrá dentro de la compuesta. Es la base de todo lo demás: si aquí te equivocas, el resto se descoloca.</p>
           </div>
           <div class="tab-panel" id="cp2" role="tabpanel" aria-labelledby="cpb2">
             <h4>Identificar los nexos</h4>
-            <p>Señalas las palabras que unen las oraciones: conjunciones («y», «pero», «porque»), pronombres relativos («que», «quien»), etc. El nexo es la pista del tipo de relación.</p>
+            <p>Señalas las palabras que unen las oraciones: conjunciones («y», «pero», «porque»), relativos («que», «quien»), etc. El nexo es la primera pista del tipo de relación. Si la compuesta es yuxtapuesta, no habrá nexo y este paso se salta.</p>
           </div>
           <div class="tab-panel" id="cp3" role="tabpanel" aria-labelledby="cpb3">
             <h4>Delimitar las oraciones</h4>
-            <p>Marcas dónde empieza y dónde acaba cada oración. La app las llama <strong>O1, O2, O3…</strong> para que sea claro.</p>
+            <p>Marcas dónde empieza y dónde acaba cada oración, una por una. La app las llama <strong>O1, O2, O3…</strong> y les da un color a cada una.</p>
           </div>
           <div class="tab-panel" id="cp4" role="tabpanel" aria-labelledby="cpb4">
             <h4>Clasificar y relacionar</h4>
-            <p>Dices qué tipo de relación hay: coordinación (O1 ↔ O2), subordinación (O1 → O2) o yuxtaposición (O1 ∥ O2), y qué función cumple cada oración subordinada. Si el ejercicio lo pide, también analizas el interior de cada oración.</p>
+            <p>Dices qué relación hay entre ellas: coordinación (O1 ↔ O2), subordinación (O1 → O2) o yuxtaposición (O1 ∥ O2), y de qué tipo es cada una. Si el ejercicio lo pide, después analizas también el interior de cada oración.</p>
           </div>
         </div>
         <div class="box tip">
-          <div class="bx-h"><span class="em">✅</span> Al final: análisis modelo</div>
-          <p>Cuando terminas, la app te muestra el análisis completo bien hecho, al estilo de la PAU. Compáralo con lo que tú hiciste: es la mejor forma de aprender.</p>
+          <div class="bx-h"><span class="em">✅</span> Al final: el análisis modelo</div>
+          <p>Cuando terminas, la app te muestra el <strong>análisis completo bien hecho</strong>, redactado como se pide en selectividad, y debajo unos comentarios sobre lo que hiciste tú. Compararlos es la parte que más enseña: no te saltes esa pantalla.</p>
         </div>
       </section>
 
-      <!-- ARCADE -->
-      <section id="arcade">
-        <h2><span class="n">9</span> Arcade</h2>
-        <p>El modo de juego. Aquí la sintaxis se convierte en un reto con presión de tiempo y ranking de clase. Tiene varios modos:</p>
+      <!-- FÁBRICA -->
+      <section id="fabrica">
+        <h2><span class="n">9</span> La Fábrica de Palabras</h2>
+        <p class="lead">Aquí no analizas oraciones: <strong>desmontas y montas palabras</strong> para descubrir de qué piezas están hechas. Raíces, prefijos, sufijos, palabras compuestas, siglas, acortamientos, préstamos…</p>
+        <p>Se trabaja en tres estaciones, siempre en este orden:</p>
+        <div class="grid g3">
+          <div class="card"><div class="c-ico">🔍</div><h4>1 · Observa</h4><p>Miras palabras emparentadas y detectas qué tienen en común y qué cambia. Todavía no hay que nombrar nada.</p></div>
+          <div class="card"><div class="c-ico">🔧</div><h4>2 · Manipula</h4><p>Cortas la palabra por donde crees que se separa, la vuelves a montar, decides si una palabra inventada podría existir o no.</p></div>
+          <div class="card"><div class="c-ico">🏷</div><h4>3 · Etiqueta</h4><p>Ahora sí: pones nombre a cada pieza (raíz, prefijo, sufijo…) y dices si la palabra es derivada, compuesta, parasintética, una sigla…</p></div>
+        </div>
+        <div class="box info">
+          <div class="bx-h"><span class="em">🎚️</span> Tres niveles</div>
+          <p><strong>🌱 Aprendiz</strong> (1.º-2.º ESO): de qué piezas está hecha una palabra. <strong>📗 3.º-4.º ESO</strong>: siglas, acortamientos y palabras con dos piezas a la vez. <strong>🧬 Maestro</strong> (1.º Bach): el orden real en que se fabrica cada palabra.</p>
+        </div>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">🧰</span> Tu mesa y tu museo</div>
+          <p>Arriba tienes dos botones que se van llenando solos. <strong>🧰 Mi mesa</strong> es tu tabla personal: cada vez que aciertas en la Estación 3, se añade ese procedimiento con <em>tu</em> ejemplo. <strong>🏛 Museo</strong> guarda las palabras que tú mismo inventas en los retos creativos. Los dos se pueden imprimir: son un resumen de la unidad hecho por ti.</p>
+        </div>
+      </section>
+
+      <!-- LABORATORIO -->
+      <section id="laboratorio">
+        <h2><span class="n">10</span> El Laboratorio de Oraciones</h2>
+        <p class="lead">Aquí no etiquetas: <strong>rompes la oración a propósito</strong> para ver qué la sostiene. Es el modo que te enseña las <em>pruebas</em> del análisis, esas que luego usas sin pensar.</p>
+        <p>Sustituyes un trozo por un pronombre, lo suprimes, lo cambias de sitio, pasas la oración a pasiva, cambias el número… y compruebas qué pasa. Si al sustituirlo por «lo» la oración sigue en pie, sabes lo que tienes delante sin necesidad de preguntarle «¿qué?» al verbo.</p>
+        <div class="grid g3">
+          <div class="card"><div class="c-ico">🔍</div><h4>1 · Observa</h4><p>Ves qué cambia entre dos oraciones casi iguales, o cuál de tres no encaja. Sin etiquetas todavía.</p></div>
+          <div class="card"><div class="c-ico">🔧</div><h4>2 · Manipula</h4><p>Haces el experimento: sustituye, suprime, mueve, transforma, cambia el número. Y juzgas si el resultado funciona o no, y por qué.</p></div>
+          <div class="card"><div class="c-ico">🏷</div><h4>3 · Etiqueta</h4><p>La función ya está puesta; lo que eliges es <strong>qué prueba lo demuestra</strong>. Que es exactamente lo que te van a pedir que justifiques en un examen.</p></div>
+        </div>
+        <div class="box info">
+          <div class="bx-h"><span class="em">🎚️</span> Tres niveles</div>
+          <p><strong>🌱 Aprendiz</strong> (2.º ESO): observar y manipular sin necesitar aún ninguna etiqueta. <strong>📗 3.º-4.º ESO</strong>: Sujeto, CD, CI, C. de Régimen, Atributo y C. Predicativo puestos a prueba. <strong>🧬 Maestro</strong> (1.º Bach): los valores de «se» y los casos de frontera.</p>
+        </div>
+        <div class="box tip">
+          <div class="bx-h"><span class="em">📇</span> Tu Caja de Pruebas</div>
+          <p>Cada vez que conquistas una prueba, puedes guardarla en tu <strong>📇 Caja de Pruebas</strong> con un ejemplo tuyo. Es tu chuleta legal: llegado el examen, tienes escritas con tus palabras las pruebas que distinguen cada función.</p>
+        </div>
+        <div class="box best">
+          <div class="bx-h"><span class="em">🌟</span> Cuándo usarlo</div>
+          <p>Justo <em>antes</em> de estudiar una función nueva, y justo <em>después</em> de fallarla. Es el modo que convierte «me lo sé de memoria» en «sé demostrarlo».</p>
+        </div>
+      </section>
+
+      <!-- JUEGOS -->
+      <section id="juegos">
+        <h2><span class="n">11</span> Arcade y Chispa</h2>
+        <p>Los dos modos de repaso. No se guarda nota: son para afinar y para picarse un poco.</p>
+        <h3>🕹️ Arcade</h3>
+        <p>Sintaxis con presión de tiempo y ranking de clase, en cuatro modalidades:</p>
         <div class="grid g2">
-          <div class="card"><div class="c-ico">❤️</div><h4>Supervivencia</h4><p>Tienes vidas. Cada error resta; los aciertos seguidos te dan escudos. ¿Cuánto aguantas?</p></div>
-          <div class="card"><div class="c-ico">⏱️</div><h4>Contrarreloj</h4><p>Corre contra el reloj. Aciertos rápidos suman tiempo; errores graves lo restan.</p></div>
-          <div class="card"><div class="c-ico">👻</div><h4>Duelo Fantasma</h4><p>Compites contra tu propio récord o contra la media de tu clase, como un «fantasma».</p></div>
-          <div class="card"><div class="c-ico">🎯</div><h4>Radar de Errores</h4><p>Detectas errores escondidos en un análisis casi correcto. Te conviertes en corrector.</p></div>
+          <div class="card"><div class="c-ico">🔥</div><h4>Supervivencia</h4><p>Tienes vidas. Cada error resta; los aciertos seguidos te dan escudos. ¿Cuánto aguantas?</p></div>
+          <div class="card"><div class="c-ico">⏱️</div><h4>Contrarreloj</h4><p>Corre contra el reloj: los aciertos suman segundos y los errores los restan.</p></div>
+          <div class="card"><div class="c-ico">👻</div><h4>Duelo Fantasma</h4><p>Compites contra tu propio récord o contra la media de tu clase, que corre a tu lado como un «fantasma».</p></div>
+          <div class="card"><div class="c-ico">🛰️</div><h4>Radar de Errores</h4><p>Un análisis ya hecho esconde un fallo. Tú lo cazas y lo corriges: te toca ser el corrector.</p></div>
         </div>
         <div class="box info">
           <div class="bx-h"><span class="em">🏆</span> El ranking</div>
-          <p>En Arcade eliges un <strong>apodo</strong> para aparecer en la clasificación de tu grupo. Es competición sana: nadie ve tu nombre real, solo tu apodo.</p>
+          <p>En Arcade eliges un <strong>apodo</strong> para la clasificación de tu grupo. Competición sana: nadie ve tu nombre real, solo tu apodo.</p>
         </div>
-      </section>
-
-      <!-- CHISPA -->
-      <section id="chispa">
-        <h2><span class="n">10</span> Chispa</h2>
-        <p>Ejercicios relámpago para afinar el ojo. Aparece una oración y varias «fichas» resaltadas; tú tocas la que cumple la función que se te pide (por ejemplo, «¿cuál es el Complemento de Régimen?»). Rápido, directo, sin cronómetro obligatorio.</p>
+        <h3>⚡ Chispa</h3>
+        <p>Preguntas relámpago para afinar el ojo: aparece una oración con varias partes resaltadas y tocas la que cumple la función que se te pide. Mezcla oraciones simples y compuestas, y no hay cronómetro: solo racha.</p>
         <ul class="clean">
-          <li>Elige un tema (Complemento de Régimen, Atributo/Predicativo, CD/CI en forma de pronombre…) o «Mezcla de todo».</li>
-          <li>La dificultad sube sola: en las rondas avanzadas los señuelos son más difíciles.</li>
-          <li>Tras cada respuesta, una explicación breve te recuerda la «prueba» para distinguir esa función.</li>
+          <li>Eliges un tema (Complemento de Régimen, Atributo / Predicativo, Complemento Indirecto, Sujeto / CD, CC / C. de Régimen, o CD y CI en forma de pronombre) o los mezclas todos.</li>
+          <li>La dificultad sube sola: en las rondas avanzadas los señuelos son justo la función con la que más se confunde.</li>
+          <li>Tras cada respuesta, una explicación breve te recuerda la prueba para distinguirla.</li>
         </ul>
       </section>
 
       <!-- PRÁCTICA VS EXAMEN -->
       <section id="practica-examen">
-        <h2><span class="n">11</span> Práctica vs. Examen</h2>
-        <p>Hay dos formas de trabajar en los modos de análisis, y conviene tener clara la diferencia:</p>
+        <h2><span class="n">12</span> Práctica vs. Examen</h2>
+        <p>Hay dos formas de trabajar, y conviene tener clara la diferencia:</p>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th></th><th>🟢 Práctica libre</th><th>🎓 Examen (con PIN)</th></tr></thead>
+            <thead><tr><th></th><th>📖 Práctica libre</th><th>🎓 Examen (con PIN)</th></tr></thead>
             <tbody>
-              <tr><td><strong>Para qué</strong></td><td>Aprender sin presión</td><td>Que el profesor te ponga nota</td></tr>
-              <tr><td><strong>Pistas</strong></td><td>Sí, todas las que quieras</td><td>Limitadas o ninguna</td></tr>
+              <tr><td><strong>Para qué</strong></td><td>Aprender sin presión</td><td>Que tu profesor te ponga nota</td></tr>
+              <tr><td><strong>Pistas y explicaciones</strong></td><td>Sí</td><td>No: respondes y sigues, sin saber si has acertado</td></tr>
               <tr><td><strong>Reintentar</strong></td><td>Sí</td><td>No: cada respuesta cuenta</td></tr>
-              <tr><td><strong>Se guarda la nota</strong></td><td>No (solo para ti)</td><td>Sí, en el servidor del profesor</td></tr>
-              <tr><td><strong>Necesita PIN</strong></td><td>No</td><td>Sí, te lo da el profesor</td></tr>
+              <tr><td><strong>Se guarda la nota</strong></td><td>No</td><td>Sí, en el servidor de tu profesor</td></tr>
+              <tr><td><strong>Cómo de dura es la nota</strong></td><td>Curva suave</td><td>Curva dura (ver la sección siguiente)</td></tr>
             </tbody>
           </table>
+        </div>
+        <div class="box info">
+          <div class="bx-h"><span class="em">📋</span> Y las misiones</div>
+          <p>A veces, al entrar en un modo, te aparece una <strong>misión</strong> que ha puesto tu profesor («5 oraciones con Complemento de Régimen»). Algunas misiones se califican con la curva dura del examen aunque sigas teniendo pistas: la app te lo indica. Tómatelas en serio.</p>
         </div>
       </section>
 
       <!-- PIN -->
       <section id="pin">
-        <h2><span class="n">12</span> Hacer un examen con PIN</h2>
-        <p>Cuando tu profesor prepara un examen, te da un <strong>PIN</strong> (un número de 4 dígitos). Así se hace:</p>
+        <h2><span class="n">13</span> Hacer un examen con PIN</h2>
+        <p>Cuando tu profesor prepara un examen, te da un <strong>PIN</strong> de cuatro dígitos. Así se hace:</p>
         <ol class="steps">
-          <li>Entra en el modo que te indique el profesor (por ejemplo, «Análisis Sintáctico»).</li>
-          <li>Elige la opción <b>🎓 Examen</b> (en lugar de Práctica).</li>
+          <li>Entra en el modo que te indique tu profesor.</li>
+          <li>Elige <b>📝 Examen</b> en lugar de Práctica. En la <b>Fábrica</b> y en el <b>Laboratorio</b> no hay selector: pulsa <b>«🔑 Tengo un PIN de examen»</b>.</li>
           <li>Escribe tu <b>nombre completo</b>, tu <b>correo</b>, tu <b>grupo</b> y el <b>PIN</b>.</li>
-          <li>Resuelve los ejercicios. Verás arriba un aviso con el nombre del examen y, si lo hay, el tiempo restante.</li>
-          <li>Al terminar, pulsa <b>«Enviar»</b>. Verás tu nota y tu resultado quedará guardado para el profesor.</li>
+          <li>Resuelve los ejercicios. Arriba verás el nombre del examen y, si lo hay, el tiempo restante.</li>
+          <li>Al terminar, pulsa <b>«Enviar»</b>. Verás tu nota y tu resultado quedará guardado.</li>
         </ol>
         <div class="box info">
           <div class="bx-h"><span class="em">📝</span> Exámenes en dos partes</div>
-          <p>Algunos exámenes tienen <strong>dos partes</strong>: primero oraciones simples y después una oración compuesta, con el mismo PIN. La app te avisa al empezar y, al terminar la primera parte, te ofrece un botón para continuar con la segunda. Tu nota final combina las dos.</p>
+          <p>Algunos exámenes tienen <strong>dos partes</strong> con el mismo PIN: primero oraciones simples y después una oración compuesta. Al terminar la primera, la app te ofrece un botón para continuar con la segunda. Tu nota final combina las dos.</p>
         </div>
         <div class="box err">
-          <div class="bx-h"><span class="em">⛔</span> Error frecuente</div>
-          <p>Si ves «PIN no encontrado», comprueba que lo has escrito bien y que estás en el <strong>modo correcto</strong> (un PIN de compuestas no funciona en simples). Si sigue fallando, avisa a tu profesor: quizá el examen aún no está activo.</p>
+          <div class="bx-h"><span class="em">⛔</span> «PIN no encontrado»</div>
+          <p>Comprueba dos cosas: que lo has escrito bien y que estás en el <strong>módulo correcto</strong> (un PIN de compuestas no funciona en simples). Si sigue fallando, avisa a tu profesor.</p>
         </div>
       </section>
 
       <!-- NOTA -->
       <section id="nota">
-        <h2><span class="n">13</span> Cómo se calcula tu nota</h2>
-        <p>La nota va de <strong>0 a 10</strong>. No todos los elementos valen igual: el verbo y el sujeto pesan más, y los errores repetidos en el mismo punto penalizan más. El sistema es parecido al de las tarjetas «rasca» de algunos exámenes:</p>
+        <h2><span class="n">14</span> Cómo se calcula tu nota</h2>
+        <p>La nota va de <strong>0 a 10</strong>. Funciona como las tarjetas «rasca»: el primer intento vale entero, y cada error posterior <em>en ese mismo punto</em> te recorta lo que puedes sacar. Y la curva <strong>no es la misma en práctica que en examen</strong>:</p>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>Errores en un mismo bloque</th><th>Puntos que cuentan</th></tr></thead>
+            <thead><tr><th>Errores en un mismo punto</th><th>📖 En práctica</th><th>🎓 En examen</th></tr></thead>
             <tbody>
-              <tr><td>0 errores</td><td><strong style="color:#15803D">100 %</strong> — perfecto</td></tr>
-              <tr><td>1 error</td><td>50 %</td></tr>
-              <tr><td>2 errores</td><td>25 %</td></tr>
-              <tr><td>3 o más</td><td><strong style="color:#B91C1C">0 %</strong></td></tr>
+              <tr><td>0 errores</td><td><strong style="color:#15803D">100 %</strong></td><td><strong style="color:#15803D">100 %</strong></td></tr>
+              <tr><td>1 error</td><td>50 %</td><td>40 %</td></tr>
+              <tr><td>2 errores</td><td>25 %</td><td>10 %</td></tr>
+              <tr><td>3 o más</td><td><strong style="color:#B91C1C">0 %</strong></td><td><strong style="color:#B91C1C">0 %</strong></td></tr>
             </tbody>
           </table>
         </div>
+        <p>Además, no todo vale lo mismo. En el análisis de la oración simple, <strong>acertar el sujeto vale el triple que acertar el verbo</strong>, y dentro del predicado los complementos del verbo (CD, CI, Atributo, Complemento Predicativo, Complemento de Régimen, Complemento Agente) pesan más que los circunstanciales.</p>
         <div class="box tip">
-          <div class="bx-h"><span class="em">✅</span> Qué significa para ti</div>
-          <p>Merece la pena <strong>pensar antes de tocar</strong>. Es mejor acertar a la primera que ir probando: cada intento fallido en el mismo bloque te resta. Para aprobar necesitas acertar bien la mayoría de los bloques (en torno al 60-70 %).</p>
+          <div class="bx-h"><span class="em">✅</span> Qué significa esto para ti</div>
+          <p>Merece la pena <strong>pensar antes de tocar</strong>. Ir probando a ver si suena es la peor estrategia posible: dos intentos fallidos en un examen dejan ese punto casi a cero. Y no compares tu nota de práctica con la de examen: son escalas distintas a propósito.</p>
         </div>
-      </section>
-
-      <!-- PISTAS -->
-      <section id="pistas">
-        <h2><span class="n">14</span> Pistas y reflexión</h2>
-        <p>En práctica, la app es tu tutora particular:</p>
-        <ul class="clean">
-          <li><strong>Pistas.</strong> Si dudas, pide una pista: te da un empujón sin darte la respuesta.</li>
-          <li><strong>Explicaciones.</strong> Tras cada error verás la «prueba» para distinguir esa función (por ejemplo, cómo saber si algo es CD o CI).</li>
-          <li><strong>Reflexión.</strong> En algunos ejercicios te preguntan «por qué» tu respuesta es correcta: eso fija lo aprendido.</li>
-        </ul>
-        <div class="box best">
-          <div class="bx-h"><span class="em">🌟</span> Buenas prácticas</div>
-          <p>No corras a pedir la pista a la primera. Intenta razonar tú; si no sale, entonces pídela y lee la explicación con calma. Aprenderás mucho más.</p>
-        </div>
-      </section>
-
-      <!-- MÓVIL -->
-      <section id="movil">
-        <h2><span class="n">15</span> En el móvil</h2>
-        <p>La app funciona perfectamente en el teléfono. Algunos consejos:</p>
-        <ul class="clean">
-          <li>Gira el móvil o usa el navegador a pantalla completa si un ejercicio se ve apretado.</li>
-          <li>Los botones están pensados para el dedo; si algo no responde, toca con calma en el centro del botón.</li>
-          <li>Si el texto se ve pequeño, usa el zoom del navegador: no rompe la app.</li>
-        </ul>
       </section>
 
       <!-- CONSEJOS -->
       <section id="consejos">
-        <h2><span class="n">16</span> Consejos para estudiar</h2>
+        <h2><span class="n">15</span> Cómo sacarle partido</h2>
         <div class="grid g2">
-          <div class="card"><div class="c-ico">🧭</div><h4>Empieza por lo básico</h4><p>Si acabas de empezar, usa el nivel «Solo el verbo» o «Verbo + Sujeto» y sube cuando lo tengas dominado.</p></div>
-          <div class="card"><div class="c-ico">🔁</div><h4>Poco y a menudo</h4><p>Cinco oraciones al día valen más que treinta el día antes del examen.</p></div>
-          <div class="card"><div class="c-ico">🎯</div><h4>Practica tus fallos</h4><p>Al terminar, la app te dice qué funciones se te resisten. Úsalo: practica justo esas.</p></div>
-          <div class="card"><div class="c-ico">⚡</div><h4>Cambia de modo</h4><p>Si te aburres del análisis, juega a Chispa o Arcade: también se aprende, pero jugando.</p></div>
+          <div class="card"><div class="c-ico">🧭</div><h4>Empieza por lo básico</h4><p>Si acabas de empezar, usa «Solo el verbo» o «Verbo + Sujeto» y sube cuando lo tengas dominado. Bajar de nivel no es retroceder: es asegurar.</p></div>
+          <div class="card"><div class="c-ico">🔁</div><h4>Poco y a menudo</h4><p>Cinco oraciones al día valen más que treinta la víspera del examen.</p></div>
+          <div class="card"><div class="c-ico">🎯</div><h4>Practica tus fallos</h4><p>Al terminar, la app te dice qué funciones se te resisten. Úsalo: practica justo esas, no las que ya te salen.</p></div>
+          <div class="card"><div class="c-ico">🧪</div><h4>Aprende la prueba, no la regla</h4><p>En el Laboratorio, quédate con <em>cómo se demuestra</em> cada función. Eso es lo que sirve cuando la oración es rara.</p></div>
+          <div class="card"><div class="c-ico">💡</div><h4>No corras a por la pista</h4><p>Intenta razonar tú primero; si no sale, pídela y lee la explicación con calma. Aprenderás mucho más.</p></div>
+          <div class="card"><div class="c-ico">📱</div><h4>En el móvil, con calma</h4><p>Los botones están pensados para el dedo: toca en el centro. Si el texto se ve pequeño, usa el zoom del navegador: no rompe nada.</p></div>
         </div>
       </section>
 
       <!-- PROBLEMAS -->
       <section id="problemas">
-        <h2><span class="n">17</span> Problemas frecuentes</h2>
+        <h2><span class="n">16</span> Problemas frecuentes</h2>
         <div class="box warn">
           <div class="bx-h"><span class="em">⚠️</span> La app no carga o se queda «pensando»</div>
-          <p>Recarga la página (desliza hacia abajo en el móvil o pulsa <kbd>F5</kbd> en el ordenador). El servidor a veces tarda unos segundos la primera vez.</p>
+          <p>Recarga la página (desliza hacia abajo en el móvil o pulsa <kbd>F5</kbd> en el ordenador). El servidor a veces tarda unos segundos la primera vez del día.</p>
         </div>
         <div class="box warn">
           <div class="bx-h"><span class="em">⚠️</span> Se me cerró la pestaña en pleno examen</div>
-          <p>Tranquilo: vuelve a entrar con el mismo PIN. La app recuerda lo que llevabas hecho en ese dispositivo y te deja continuar.</p>
+          <p>Tranquilo: vuelve a entrar con el mismo PIN <strong>en el mismo dispositivo</strong>. La app recuerda lo que llevabas y te deja continuar.</p>
+        </div>
+        <div class="box warn">
+          <div class="bx-h"><span class="em">⚠️</span> Practico pero no se guarda nada</div>
+          <p>Puede que tu dispositivo esté apuntando al cuaderno de otro profesor. Vuelve a abrir el enlace que te dio el tuyo.</p>
         </div>
         <div class="box err">
           <div class="bx-h"><span class="em">⛔</span> «PIN no encontrado» o «examen no activo»</div>
-          <p>Revisa el número y el modo. Si es correcto y sigue fallando, avisa al profesor: puede que el examen todavía no esté abierto.</p>
+          <p>Revisa el número y el módulo en el que estás. Si es correcto y sigue fallando, avisa a tu profesor: puede que el examen aún no esté abierto.</p>
         </div>
       </section>
 
       <!-- FAQ -->
       <section id="faq">
-        <h2><span class="n">18</span> Preguntas frecuentes</h2>
+        <h2><span class="n">17</span> Preguntas frecuentes</h2>
         <div class="faq">
-          <details><summary>¿Necesito crear una cuenta o contraseña?</summary><div class="a"><p>No. Solo escribes tu nombre, tu correo y tu grupo al entrar en un modo. No hay registro ni contraseñas.</p></div></details>
-          <details><summary>¿Es gratis?</summary><div class="a"><p>Sí. Es una aplicación educativa; solo necesitas el enlace que te dé tu profesor.</p></div></details>
-          <details><summary>¿Funciona en el móvil?</summary><div class="a"><p>Sí, en móvil, tablet y ordenador.</p></div></details>
-          <details><summary>¿Tengo que instalar algo?</summary><div class="a"><p>No, nunca es obligatorio: se abre en el navegador y ya está, sin descargas ni tiendas de apps. Si quieres, puedes «instalarla» en tu pantalla de inicio para tener un icono directo y verla a pantalla completa (sin la barra del navegador). Mira el apartado <b>«Cómo entrar»</b> al principio de este manual para los pasos en iPhone/iPad y Android.</p></div></details>
-          <details><summary>¿Se guarda mi progreso?</summary><div class="a"><p>La práctica se guarda en el navegador de tu dispositivo (rachas, misiones). Las notas de examen se guardan en el servidor del profesor.</p></div></details>
-          <details><summary>Si cambio de dispositivo, ¿pierdo mi progreso?</summary><div class="a"><p>Pierdes las rachas y misiones de práctica de ese dispositivo, pero no tus notas de examen, que quedan en el servidor.</p></div></details>
-          <details><summary>¿Qué es un PIN?</summary><div class="a"><p>Un número de 4 dígitos que te da el profesor para hacer un examen concreto. Sin PIN, todo es práctica libre.</p></div></details>
-          <details><summary>¿Puedo repetir un examen?</summary><div class="a"><p>No por tu cuenta: el sistema guarda tu primer intento con ese PIN. Si necesitas repetirlo, tiene que decidirlo el profesor.</p></div></details>
-          <details><summary>¿Puedo usar pistas en el examen?</summary><div class="a"><p>Depende de cómo lo configure el profesor. Normalmente en examen hay menos pistas o ninguna, para que la nota sea justa.</p></div></details>
-          <details><summary>¿Cómo se calcula la nota?</summary><div class="a"><p>De 0 a 10. Los aciertos a la primera valen el máximo; los errores repetidos en el mismo punto restan crédito. El verbo y el sujeto pesan más que otros elementos.</p></div></details>
-          <details><summary>Fallé una función. ¿Baja mucho la nota?</summary><div class="a"><p>Un fallo aislado apenas baja. Lo que penaliza es equivocarse varias veces en el mismo bloque. Por eso conviene pensar antes de responder.</p></div></details>
-          <details><summary>¿Qué diferencia hay entre Arcade y Chispa?</summary><div class="a"><p>Arcade tiene vidas, tiempo y ranking (más de juego); Chispa son preguntas relámpago de «encuentra la función», sin cronómetro obligatorio.</p></div></details>
-          <details><summary>¿Qué significan O1, O2, O3 en la oración compuesta?</summary><div class="a"><p>Son las oraciones que forman la compuesta: O1 la primera, O2 la segunda, etc. La app las numera así para que sea fácil referirse a cada una.</p></div></details>
-          <details><summary>¿Qué hago si no entiendo por qué he fallado?</summary><div class="a"><p>Lee la explicación que aparece tras el error y, si sigues con dudas, apúntalo y pregúntale a tu profesor. También puedes ir al modo Sintagmas para entender la estructura.</p></div></details>
-          <details><summary>La oración no tiene sujeto visible. ¿Está mal?</summary><div class="a"><p>No. Hay oraciones con sujeto tácito (por ejemplo, «Llegamos tarde»). La app lo reconoce; no tienes que marcar ninguna palabra como sujeto en esos casos.</p></div></details>
-          <details><summary>¿Puedo salir de un ejercicio a la mitad?</summary><div class="a"><p>En práctica sí, cuando quieras. En examen puedes salir, pero lo que no hayas contestado contará como no hecho.</p></div></details>
-          <details><summary>¿La app corrige como mi profesor?</summary><div class="a"><p>Usa la terminología oficial (NGLE) que se enseña en clase. Aun así, ante cualquier duda, la última palabra siempre la tiene tu profesor.</p></div></details>
-          <details><summary>¿Puedo elegir qué practicar?</summary><div class="a"><p>Sí. En cada modo hay filtros para centrarte en ciertas funciones o tipos de oración. En Chispa eliges directamente el tema.</p></div></details>
-          <details><summary>¿Se puede usar sin internet?</summary><div class="a"><p>Necesita conexión para cargar y para guardar las notas de examen. La práctica básica puede seguir si se corta un momento, pero lo normal es tener internet.</p></div></details>
-          <details><summary>Tengo una idea o he visto un fallo. ¿A quién se lo digo?</summary><div class="a"><p>Díselo a tu profesor. La app se mejora continuamente y las sugerencias se tienen en cuenta.</p></div></details>
+          <details><summary>¿Necesito crear una cuenta o contraseña?</summary><div class="a"><p>No. Solo escribes tu nombre, tu correo y tu grupo al entrar en un modo.</p></div></details>
+          <details><summary>¿Tengo que instalar algo?</summary><div class="a"><p>No, nunca es obligatorio: se abre en el navegador y ya está. Si quieres, puedes ponerla en tu pantalla de inicio para verla a pantalla completa; los pasos están en <b>«Cómo entrar»</b>.</p></div></details>
+          <details><summary>¿Se guarda mi progreso?</summary><div class="a"><p>La práctica (rachas, misiones, tu mesa, tu museo, tu caja de pruebas) se guarda en el navegador de tu dispositivo. Las notas de examen se guardan en el servidor de tu profesor.</p></div></details>
+          <details><summary>Si cambio de móvil, ¿pierdo mi progreso?</summary><div class="a"><p>Pierdes lo de práctica de ese dispositivo, pero no tus notas de examen, que están a salvo en el servidor.</p></div></details>
+          <details><summary>¿Qué es un PIN?</summary><div class="a"><p>Un número de cuatro dígitos que te da tu profesor para un examen concreto. Sin PIN, todo es práctica libre.</p></div></details>
+          <details><summary>¿Puedo repetir un examen?</summary><div class="a"><p>No por tu cuenta: se guarda tu primer intento con ese PIN. Si hace falta repetirlo, lo decide tu profesor.</p></div></details>
+          <details><summary>¿Por qué en el examen no me dice si he acertado?</summary><div class="a"><p>Porque es un examen: no hay pistas ni corrección al momento, igual que en papel. Verás tu nota y tus errores al terminar.</p></div></details>
+          <details><summary>Fallé una vez. ¿Baja mucho la nota?</summary><div class="a"><p>Un fallo aislado baja poco. Lo que penaliza de verdad es equivocarse varias veces en el mismo punto, sobre todo en examen. Por eso conviene pensar antes de responder.</p></div></details>
+          <details><summary>¿Qué significan O1, O2, O3 en la oración compuesta?</summary><div class="a"><p>Son las oraciones que forman la compuesta: O1 la primera, O2 la segunda, etc. La app las numera así para poder referirse a cada una con claridad.</p></div></details>
+          <details><summary>La oración no tiene sujeto visible. ¿Está mal?</summary><div class="a"><p>No. Hay oraciones con sujeto tácito («Llegamos tarde»). La app lo reconoce: en esos casos no tienes que marcar ninguna palabra.</p></div></details>
+          <details><summary>¿Qué diferencia hay entre la Fábrica y el Laboratorio?</summary><div class="a"><p>La Fábrica trabaja con <b>palabras</b>: de qué piezas están hechas. El Laboratorio trabaja con <b>oraciones</b>: qué le pasa a una oración cuando la manipulas. Los dos siguen el mismo recorrido de tres estaciones.</p></div></details>
+          <details><summary>¿Qué diferencia hay entre Arcade y Chispa?</summary><div class="a"><p>Arcade tiene vidas, tiempo y ranking. Chispa son preguntas de «encuentra la función», sin cronómetro y con racha.</p></div></details>
+          <details><summary>¿Qué hago si no entiendo por qué he fallado?</summary><div class="a"><p>Lee la explicación que aparece tras el error. Si sigues con dudas, ve al Laboratorio de Oraciones a ver la prueba de esa función, y si aun así no lo ves claro, pregúntale a tu profesor.</p></div></details>
+          <details><summary>¿Puedo elegir qué practicar?</summary><div class="a"><p>Sí. Cada modo tiene filtros o niveles para centrarte en lo que necesitas, y en Chispa eliges el tema directamente.</p></div></details>
+          <details><summary>¿Los demás ven mi nota?</summary><div class="a"><p>No. Cada uno ve solo la suya. En el ranking del Arcade aparece tu apodo, nunca tu nombre.</p></div></details>
+          <details><summary>¿Se puede usar sin internet?</summary><div class="a"><p>Necesita conexión para cargar y para guardar las notas. Si se corta un momento en pleno ejercicio no pasa nada, pero para un examen conviene tener buena conexión.</p></div></details>
+          <details><summary>¿La app corrige como mi profesor?</summary><div class="a"><p>Usa la terminología oficial que se enseña en clase. Aun así, en sintaxis hay casos discutibles: ante la duda, la última palabra la tiene tu profesor.</p></div></details>
+          <details><summary>Tengo una idea o he visto un fallo. ¿A quién se lo digo?</summary><div class="a"><p>Díselo a tu profesor, con la oración concreta. La app se mejora continuamente y las sugerencias se tienen en cuenta.</p></div></details>
         </div>
       </section>
 
       <footer class="foot">
-        <p><b>Taller de Sintaxis</b> · Manual del alumno. Aplicación educativa para el análisis sintáctico, morfológico y de oraciones compuestas del español (NGLE / PAU).</p>
+        <p><b>Taller de Sintaxis</b> · Manual del alumno. Aplicación educativa para el análisis sintáctico y morfológico, la formación de palabras y la oración compuesta del español.</p>
         <p>¿Dudas que este manual no resuelve? Pregúntale a tu profesor. 🙂</p>
       </footer>
     </div>
