@@ -75,6 +75,75 @@ que lleguen a nadie.
 de usuarios. Que sea genuinamente buena es el requisito: una versión mutilada no
 capta a nadie y además arruina la primera impresión ante un profesor.
 
+#### 2.1.1 Qué entra y qué no — decidido el 8 de septiembre de 2026
+
+| Módulo | ¿Entra? | Nota |
+|---|---|---|
+| Oración simple | **Sí** | **150** oraciones elegidas a mano (de 658 activas) |
+| Oración compuesta | **Sí** | **~80** por topes de demanda real (de 258 activas y válidas); 5 subtipos (distributiva, explicativa-coord., locativa, modal, comparativa) aparcados: no se dan en PAU Murcia ni en la práctica de 4º ESO/Bachillerato |
+| Sintagmas | **Sí** | |
+| Morfología | **Sí** | bolsa completa de `Morfologia_Textos` (95 activos), orden por cobertura de categorías/niveles + brevedad — sin corte duro por posición en la hoja (cortar en la fila 50 dejaba fuera pronombres y niveles n2/n3, ver `build-seleccion-banco.js`) |
+| Chispa | **Sí** | solo lee banco: no necesita servidor |
+| Arcade | **Sí, sin clasificación en línea** | ver aviso |
+| Laboratorio de Oraciones | **No** | botón visible; ver 2.1.2 |
+| Fábrica de Palabras | **No** | botón visible; ver 2.1.2 |
+| Panel del profesor, exámenes, informes | **No** | son el producto de pago (§2.2) |
+
+> **Aviso — la clasificación de Arcade no puede viajar a la versión gratuita.**
+> Hoy `saveArcadeScore` manda al servidor el alias y el grupo del alumno. En una
+> versión gratuita dirigida a menores, eso choca de frente con la línea roja de
+> §6. En la versión ligera, Arcade conserva la marca personal guardada en el
+> propio dispositivo y pierde la clasificación compartida. No es una pérdida
+> grave: es lo que hace que la versión gratuita no necesite política de cookies
+> ni consentimiento.
+
+**Por qué compuestas lleva menos oraciones y por qué eso no es debilidad.** Una
+oración compuesta pasa por seis fases; una simple, por tres. En minutos de alumno,
+una compuesta vale por tres o cuatro simples: 65 compuestas dan más trabajo que
+150 simples. La cifra no sale de un porcentaje del banco, sino de la
+**cobertura**: mínimo tres ejemplos por cada subtipo del currículo —coordinadas
+(copulativa, adversativa, disyuntiva, explicativa, distributiva), sustantivas,
+relativas, adverbiales y construcciones, yuxtapuestas— para que un alumno que
+filtre «condicionales» no se quede sin material a la segunda. Con ~22 subtipos
+vivos, el suelo cae en 60-70.
+
+> **Regla de proceso para compuestas: primero el validador, después la
+> selección.** Este banco tiene un historial documentado de ejercicios sin
+> salida (el parche del lote literario de julio de 2026, los subtipos fuera de
+> lista, las direcciones ausentes). En clase, un ejercicio atascado lo rescata el
+> profesor; en la versión gratuita no hay nadie. Pasar
+> `node scripts/validar-banco.mjs compuestas` y **excluir todo lo que dé error
+> antes** de que nada llegue a la hoja de selección.
+
+Conviene además no ser tacaño aquí: según el mapa de intención de búsqueda del
+§8.3, «cómo analizar oraciones compuestas» y «subordinadas sustantivas» son
+justo lo que busca el alumno de 2.º de Bachillerato. Es el contenido con más
+tirón de todo el proyecto.
+
+#### 2.1.2 Los dos módulos ausentes: cómo se cuentan
+
+Dejar fuera el Laboratorio y la Fábrica es acertado por razones de alcance: son
+los dos módulos cuyos datos cuesta más llevar a un archivo local, y nadie los
+busca en un buscador, así que no cuestan nada en captación.
+
+**Pero no deben presentarse como «de pago».** Si se etiquetan como Premium se
+abre un segundo eje de muro —funciones de alumno— que enturbia el relato limpio
+del §2.2: *gratis es aprender, se paga por enseñar y evaluar*. Además, quien mira
+ese botón apagado es un menor que no puede comprar nada.
+
+**Forma acordada:** botón visible y **pulsable**, agrupado bajo un rótulo del
+tipo «En preparación», que abre una página real explicando qué hace el módulo.
+Informa en vez de frustrar, sirve de contenido indexable y no compromete el
+precio de nada.
+
+> **No usar «más oraciones en la versión Premium» como reclamo.** Es
+> exactamente el error contra el que avisa §3: vender lista de funciones. El
+> tope de ~100 oraciones es un límite de *revisión de calidad* (§12), no una
+> palanca comercial, y anunciarlo le dice al alumno que lo que tiene está
+> recortado a propósito. El gancho honesto y más fuerte es otro: **con licencia,
+> el profesor elige y crea lo que practican sus alumnos.** Eso ya está
+> construido.
+
 ### 2.2 Nivel profesor — «Licencia Docente»
 
 > **Nota importante: esto ya está construido.** El protocolo de cuadernos por
@@ -109,6 +178,18 @@ centro que gasta miles en licencias digitales aprueba esa cifra sin comité.
 > existe la versión con licencia. No escondida en el pie: presente en la página
 > de inicio, con página propia y con lenguaje propio — **no «más funciones», sino
 > «cambia tu forma de evaluar»**.
+
+**Dentro de la aplicación** (decidido el 8 de septiembre de 2026) el mismo aviso
+aparece en dos sitios y en ninguno más: una entrada discreta y permanente en el
+menú o el pie, y **la pantalla de resultados al terminar una sesión** —el momento
+natural, porque el alumno acaba de ver su nota y la pregunta «¿y si esto lo
+recogiera tu profesor de toda la clase?» se cae por su peso. Nunca un cartel a
+mitad de un ejercicio.
+
+Dos condiciones: es **un enlace a la web, jamás un formulario dentro de la app**
+(§6 no admite recoger el correo de un menor); y mientras no esté resuelta la
+compatibilidad del §11.1, ese enlace lleva a una página de información y lista de
+espera, no a un botón de compra.
 
 ---
 
@@ -378,13 +459,30 @@ enseña cuando una editorial pregunta de quién es esto.
 - **Los centros públicos** suelen exigir factura formal y a veces alta como
   proveedor. Conviene prever ese trámite antes de la primera venta a un centro.
 
-### 11.5 Documentos obligatorios de la web
+### 11.5 Derechos de autor de los textos de Morfología — hallazgo del 9-sep-2026
+
+Al generar la selección de la versión ligera apareció un riesgo que no estaba
+recogido aquí: varios textos de `Morfologia_Textos` (niveles n2/n3/arcade) son
+**fragmentos literarios extensos con autoría vigente** — p. ej. un párrafo de
+*Cien años de soledad* (García Márquez, fallecido en 2014; derechos vigentes
+hasta 2084). Usarlos con tus propios alumnos, dentro de un entorno cerrado, cae
+en la excepción educativa de la Ley de Propiedad Intelectual. **Publicarlos en
+la web pública ya no es lo mismo: es una comunicación abierta a cualquiera, un
+régimen distinto al de aula.**
+
+No bloquea nada de lo hecho hoy. Sí es un criterio a aplicar **a mano** al marcar
+la columna INCLUIR de `Seleccion_Morfologia_Light.csv`: los textos largos de
+autoría reconocible piden verificar cita/atribución o sustituirlos por textos
+propios antes de publicarlos; los textos cortos generados para el banco no
+tienen este problema.
+
+### 11.6 Documentos obligatorios de la web
 
 Aviso legal, política de privacidad y términos de la licencia. Si la versión
 gratuita no recoge datos, la política de privacidad es breve y honesta — y eso es
 un argumento de venta ante un jefe de estudios, no un trámite.
 
-### 11.6 Repositorio
+### 11.7 Repositorio
 
 Si el objetivo final es vender o licenciar, **el repositorio no debe ser
 público**. Publicar el motor completo le resta valor a lo que intentas vender.
