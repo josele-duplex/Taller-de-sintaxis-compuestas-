@@ -20,3 +20,12 @@ Thumbs.db
 # La carpeta y su LEEME.md sí se versionan; los .tsv/.csv no.
 banco_export/*.tsv
 banco_export/*.csv
+
+# Documentos generados por los build-*.js de la serie "estrategia web"
+# (sep-2026). Se versiona el generador, no su salida: cualquiera de estos
+# se rehace con `node build-<lo-que-sea>.js`. Ojo: los .docx antiguos de la
+# raíz SÍ están versionados por historial, aunque algunos también sean
+# regenerables; si algún día se normaliza, se hace en un commit aparte.
+Brief_Tecnico_SEO_Taller_Sintaxis.docx
+Nota_Tecnica_Alojamiento_Taller_Sintaxis.docx
+Informe_Version_Light_Taller_Sintaxis.pdf
