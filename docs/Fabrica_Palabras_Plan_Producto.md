@@ -86,7 +86,7 @@ Reutiliza la convención existente `basico/medio/avanzado` ↔ Aprendiz/ESO34/Ma
 | **ESO34** | 3.º ESO (y 4.º) | `Gramatica_01…3ESO`: + interfijo, parasintética, compuesta léxica/sintagmática/culta, sigla, acrónimo, acortamiento, abreviatura, numerónimo, préstamo; trampas de norma (*\*ONGs*, *\*I.E.S.*) | ~16 |
 | **Maestro** | 1.º BACH | UD-D-1B: + cultismos, **estructura secuenciada** (desmontaje por capas ordenadas: *des-[orden-ado]*, no *[des-orden]-ado*), frontera sintagma/locución/compuesto | catálogo NGLE completo |
 
-El ítem estrella de Maestro es la **estructura secuenciada**: desmontar en el orden correcto de formación (cada corte de capa se justifica con "¿existe la forma intermedia?"). Es oro EBAU y no existe en ninguna app del mercado.
+El ítem estrella de Maestro es la **estructura secuenciada**: desmontar en el orden correcto de formación (cada corte de capa se justifica con "¿existe la forma intermedia?"). Es oro PAU y no existe en ninguna app del mercado.
 
 ---
 
@@ -184,7 +184,7 @@ Solo estaciones 2-3 (la 1 es de aprendizaje); curva dura de examen (100/40/10/0,
 | **F3** | 1-2 | Examen PIN, `Formacion_Resultados`, panel del profesor (+ arreglo del hueco de Maestro) | 🟢 Sonnet | Copia directa del patrón ya implementado y auditado en Morfología (`createExamMorfologia_`) |
 | **F4** | 1 | Lote ESO34 (~30 retos: parasintéticas, siglas/acrónimos, trampas de norma) | 🟢 Sonnet → validado por Josele | Igual que F0-sesión 3: contenido sobre canon ya fijado |
 | F4 | 2 | Reto creativo «Fabrica tu palabra» + Museo de Palabras + misiones | 🟢 Sonnet | Mecánica nueva pero de bajo riesgo (la validación del procedimiento es automática, no depende de una decisión editorial fina) |
-| **F5** | 1 | **Estructura secuenciada** (orden de capas de desmontaje) + frontera sintagma/locución/compuesto + reglas de cultismos | 🟣 **Opus** | El ítem más delicado del módulo: EBAU lo penaliza si el orden de capas está mal justificado. Es la misma clase de decisión que el canon de F0-sesión 1 |
+| **F5** | 1 | **Estructura secuenciada** (orden de capas de desmontaje) + frontera sintagma/locución/compuesto + reglas de cultismos | 🟣 **Opus** | El ítem más delicado del módulo: la PAU lo penaliza si el orden de capas está mal justificado. Es la misma clase de decisión que el canon de F0-sesión 1 |
 | F5 | 2-3 | Lote 1B (Maestro) + implementación de la cascada de estructura secuenciada | 🟢 Sonnet | Ejecución sobre las reglas ya fijadas en la sesión 1 |
 
 **Total: ~13-17 sesiones de trabajo** (4 de ellas 🟣 Opus — schema, banco de pruebas, estructura secuenciada, y la validación de canon que las acompaña; el resto 🟢 Sonnet). Calendario honesto contra el curso 2026-27: F0-F2 en septiembre-octubre → 1.º ESO estrena la Fábrica como práctica **dentro de su UD de la 1.ª evaluación** (su única UD de gramática, con calendario flexible); F3 en noviembre → posible prueba de bloque con PIN en 1.º; F4 en diciembre → 3.º la usa como repaso y en recuperaciones (su UD de formación ya habrá pasado — este año 3.º llega tarde, el ciclo completo lo estrena la promoción siguiente); F5 en enero.
@@ -213,7 +213,7 @@ Solo estaciones 2-3 (la 1 es de aprendizaje); curva dura de examen (100/40/10/0,
 3. **Reutiliza ~80 % de infraestructura existente** (drag & drop, cascadas, examen PIN, gamificación, analíticas, informes). Lo único genuinamente nuevo son el schema, el motor de estaciones y el banco de pruebas de morfología.
 4. **Cierra tres pendientes de una tacada**: el encargo de gamificación N1 (§4.2), el panel de resultados de morfología que faltaba (§5.3) y la extensión del banco de reflexión a enunciados simplificados 1.º-2.º ESO ("¿cuál de estos cambios funciona?") que el propio banco dejaba anotada como no implementada.
 5. **Evaluación defendible desde el día 1**: curva de examen, ponderación discriminante, aleatorización y registro por categoría aplican las recomendaciones del informe de evaluación online antes de que el problema aparezca.
-6. **Diferencial de mercado real**: manipulación morfológica con validación de procedimiento y estructura secuenciada EBAU no existe en las apps educativas de español al uso — es la clase de pieza que da peso a la conversación con la Consejería y las editoriales.
+6. **Diferencial de mercado real**: manipulación morfológica con validación de procedimiento y estructura secuenciada PAU no existe en las apps educativas de español al uso — es la clase de pieza que da peso a la conversación con la Consejería y las editoriales.
 
 ---
 

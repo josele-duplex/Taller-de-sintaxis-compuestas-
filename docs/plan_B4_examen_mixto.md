@@ -22,7 +22,7 @@ Qué NO se hace (y por qué):
 |---|---|
 | Hoja `Examenes_Mixtos` | Innecesaria: el marcador y los pesos caben en 3 columnas nuevas de `Examenes_Config` (auto-migradas por `ensureSheetHeaders_`) |
 | Hoja `Mixtos_Resultados` | Peligrosa: duplicaría datos que ya viven en `Alumnos_Resultados` + `Compuestas_Resultados` y podría desincronizarse. La nota global es una **vista** calculada al leer |
-| Modo "mezclado" (alternar motores por ejercicio) | Era EL riesgo señalado en el plan antiguo (§9): coordinar el ciclo de vida de dos motores en la misma sesión. Con secuencia estricta agrupada ese problema desaparece. Pedagógicamente el examen por bloques es lo normal (EBAU también) |
+| Modo "mezclado" (alternar motores por ejercicio) | Era EL riesgo señalado en el plan antiguo (§9): coordinar el ciclo de vida de dos motores en la misma sesión. Con secuencia estricta agrupada ese problema desaparece. Pedagógicamente el examen por bloques es lo normal (PAU también) |
 | `saveResultadoExamenMixto_` | No hay nada nuevo que guardar: cada parte usa su endpoint de siempre (`saveResult` / `saveResultadoCompuesta`), con su anti-duplicado ya probado |
 
 ## 2. Decisiones pedagógicas (cerradas con Josele, 2026-07-09)

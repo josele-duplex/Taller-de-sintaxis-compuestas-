@@ -52,7 +52,7 @@ Precaución que el propio informe señala y hay que respetar: no identificar «n
 
 ### 3.2 El efecto de cada capa (informe §12-13) — ACEPTADA, pero sin el campo nuevo
 
-«¿Qué hace `-al`? ¿Qué hace `-izar`? ¿Qué hace `-ción`?». Pasar de identificar piezas a **atribuir una función a cada operación** es el mismo salto que en sintaxis va de reconocer sintagmas a asignar funciones, y conecta con lo que el alumno necesita en EBAU: el cambio de categoría.
+«¿Qué hace `-al`? ¿Qué hace `-izar`? ¿Qué hace `-ción`?». Pasar de identificar piezas a **atribuir una función a cada operación** es el mismo salto que en sintaxis va de reconocer sintagmas a asignar funciones, y conecta con lo que el alumno necesita en la PAU: el cambio de categoría.
 
 **Se rechaza el campo de metadatos `efecto_formativo`** que propone el informe. No hace falta: `par_minimo` ya pregunta «¿nueva o la misma?» con `opciones` de texto libre y `micro` en cada lado (schema §3.5). Basta con redactar esas opciones en términos de efecto —«crea un nombre de oficio» frente a «solo dice cuántos hay»— para tener la idea entera con cero cambios de motor. Es el mismo criterio con el que en agosto se descartó el bloque `calidad_didactica`: no se añaden campos que nadie consume todavía.
 

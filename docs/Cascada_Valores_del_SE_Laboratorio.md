@@ -7,13 +7,13 @@ Documento de diseño del ítem estrella del nivel `avanzado` del Laboratorio de 
 > **Qué se decide aquí:** el orden de las pruebas, qué separa cada valor de su vecino, y cómo conviven los siete valores del Laboratorio con las etiquetas del módulo Simples.
 > **Qué NO se decide aquí:** la estructura JSON del ítem (PASO 2) ni una sola línea de código (PASO 3).
 
-**Fuentes.** La lista de siete valores viene fijada por Josele en `proyecto_plan_de_trabajo_lengua/…/1BACH/Gramatica_02_Sintaxis-oracion-simple-y-compuesta_1BACH.md`, SESIÓN 4 («clave para la EBAU»). El fundamento NGLE (paradigmático / no paradigmático / variante de *le*) y el corpus vienen de `…/materiales/morfologia_sintaxis/Reflexion_sintactica_complet_1Bach.md` §5. Lo ya operativo en la app: `Banco_reflexion_metalinguistica.md` §10, `js/data/pruebas-sintaxis.js` (`PRU-SINT-SE-01`), `js/modules/maestro/index.js` (`MORPH_CASCADES`), `docs/Schema_Laboratorio_v1.0.md`.
+**Fuentes.** La lista de siete valores viene fijada por Josele en `proyecto_plan_de_trabajo_lengua/…/1BACH/Gramatica_02_Sintaxis-oracion-simple-y-compuesta_1BACH.md`, SESIÓN 4 («clave para la PAU»). El fundamento NGLE (paradigmático / no paradigmático / variante de *le*) y el corpus vienen de `…/materiales/morfologia_sintaxis/Reflexion_sintactica_complet_1Bach.md` §5. Lo ya operativo en la app: `Banco_reflexion_metalinguistica.md` §10, `js/data/pruebas-sintaxis.js` (`PRU-SINT-SE-01`), `js/modules/maestro/index.js` (`MORPH_CASCADES`), `docs/Schema_Laboratorio_v1.0.md`.
 
 ---
 
 ## 1. Lo que ya existe hoy, y por qué se queda corto
 
-`PRU-SINT-SE-01` y el §10 del banco de reflexión resuelven **una sola frontera de las seis**: pasiva refleja ↔ impersonal, con la prueba de la concordancia con el elemento pospuesto. Es un peldaño excelente —de hecho es el más rentable en EBAU— pero es el último de una cascada que empieza mucho antes: para llegar a preguntarse si el verbo concuerda con lo pospuesto, el alumno ya ha tenido que descartar que ese *se* sea un falso *le*, un reflexivo, un recíproco, un morfema del verbo o un dativo aspectual.
+`PRU-SINT-SE-01` y el §10 del banco de reflexión resuelven **una sola frontera de las seis**: pasiva refleja ↔ impersonal, con la prueba de la concordancia con el elemento pospuesto. Es un peldaño excelente —de hecho es el más rentable en PAU— pero es el último de una cascada que empieza mucho antes: para llegar a preguntarse si el verbo concuerda con lo pospuesto, el alumno ya ha tenido que descartar que ese *se* sea un falso *le*, un reflexivo, un recíproco, un morfema del verbo o un dativo aspectual.
 
 Los retos LB_0164-LB_0167 del lote avanzado ya usan `PRU-SINT-SE-01` correctamente. **Nada de lo que sigue los invalida**: la cascada completa los envuelve, no los sustituye.
 

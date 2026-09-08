@@ -150,7 +150,7 @@ Reutiliza la convención existente `basico` / `medio` / `avanzado` ↔ Aprendiz 
 | **medio** (ESO34) | 3.º ESO y 4.º | `UD-D-3E-sint` «Detective de oraciones» + `UD-D-04b` (valencia y argumentales) | + C.Rég., Atr., Atr. Loc., CPvo, C.Ag., CC con subtipo, Vocat., PN/PV | Los cinco, incluida activa↔pasiva | + régimen, pronombre cruzado, selección semántica; primer ⚠ |
 | **avanzado** (Maestro) | 1.º BACH | `UD-D-1B-sint` (parte de oración simple) | + Marca.Pas.Ref., Marca.Imp., Marca.Pron., Dativo, Mod.Or. y los periféricos | Los cinco + transformaciones cruzadas (impersonal↔pasiva refleja) | Todo, incluidos ⚠ de norma culta y ⚖ de zona gris |
 
-**El ítem estrella de `avanzado` es la investigación de los valores de *se***, jugada como Tipo 5 del marco («aquí tenéis veinte enunciados con *se*: investigad cuántos valores distintos tiene»): el reto sirve un corpus de 12-20 oraciones y el alumno las clasifica por **comportamiento** antes de recibir los nombres —¿concuerda el verbo con el elemento pospuesto? ¿se puede quitar el *se*? ¿hay pasiva equivalente?—. La cascada de decisión es la del banco de reflexión §10. Es la pieza más valiosa para EBAU del módulo y la que ninguna app de español al uso tiene, igual que la estructura secuenciada lo era en la Fábrica.
+**El ítem estrella de `avanzado` es la investigación de los valores de *se***, jugada como Tipo 5 del marco («aquí tenéis veinte enunciados con *se*: investigad cuántos valores distintos tiene»): el reto sirve un corpus de 12-20 oraciones y el alumno las clasifica por **comportamiento** antes de recibir los nombres —¿concuerda el verbo con el elemento pospuesto? ¿se puede quitar el *se*? ¿hay pasiva equivalente?—. La cascada de decisión es la del banco de reflexión §10. Es la pieza más valiosa para la PAU del módulo y la que ninguna app de español al uso tiene, igual que la estructura secuenciada lo era en la Fábrica.
 
 En `basico` **no aparece ni una etiqueta**: la estación 3 usa siempre la variante 3.2 («¿cuál de estos cambios funciona?»). La primera vez que un alumno del proyecto ve la palabra «sujeto» en la app sigue siendo en Simples, no aquí.
 
@@ -319,7 +319,7 @@ Aplicado desde el día 1 con las lecciones ya incorporadas al resto de la app:
 | **F3** | 1-2 | Examen PIN, `Laboratorio_Resultados`, eje «prueba fallada» en la hoja `Diagnóstico` | 🟢 Sonnet | Copia del patrón ya implementado en Simples y Compuestas |
 | **F4** | 1 | Lote `basico` (~25 retos de 2.º ESO, sin una sola etiqueta) | 🟢 Sonnet → validado por Josele | Contenido sobre canon ya fijado |
 | F4 | 2 | «Cazador de contraejemplos» + Cuaderno de Campo + misiones | 🟢 Sonnet | Mecánica nueva de bajo riesgo: la validación es por slots y causa declarada, no editorial |
-| **F5** | 1 | **Valores de *se*** como investigación (cascada, corpus, criterios de clasificación) + ítems ⚖ de zona gris + periféricos y Mod.Or. | 🟣 **Opus** | El ítem más delicado del módulo y el de mayor rendimiento EBAU; la zona gris exige decidir qué se acepta y por qué |
+| **F5** | 1 | **Valores de *se*** como investigación (cascada, corpus, criterios de clasificación) + ítems ⚖ de zona gris + periféricos y Mod.Or. | 🟣 **Opus** | El ítem más delicado del módulo y el de mayor rendimiento PAU; la zona gris exige decidir qué se acepta y por qué |
 | F5 | 2-3 | Lote `avanzado` + implementación de la cascada de *se* | 🟢 Sonnet | Ejecución sobre reglas ya fijadas |
 
 **Total: ~14-16 sesiones de trabajo**, 3 de ellas 🟣 Opus (schema, banco de pruebas + canon agramatical, valores de *se*).
@@ -333,7 +333,7 @@ Aplicado desde el día 1 con las lecciones ya incorporadas al resto de la app:
 | **Ene. 2027** | F2 | 3.º ESO empieza `UD-D-3E-sint` en la 2.ª evaluación: el Laboratorio entra en sus **sesiones 2-3** como antesala, con las tres estaciones y sin nota |
 | **Feb. 2027** | F3 | Examen PIN listo para la prueba de bloque de sintaxis de 3.º, que ya está comprometida en la programación → absorbe la parte ⚓ |
 | **Marzo 2027** | F4 | 2.º ESO llega a «La escena del verbo»; el nivel `basico` estrena a tiempo |
-| **Abril-mayo 2027** | F5 | 1.º BACH en la 3.ª evaluación; los valores de *se* como preparación EBAU |
+| **Abril-mayo 2027** | F5 | 1.º BACH en la 3.ª evaluación; los valores de *se* como preparación PAU |
 
 **Si hay conflicto de tiempo, el Laboratorio se pausa tras F1** (igual que la Fábrica se pausa tras F3). Consecuencia concreta y aceptable: 3.º ESO usaría solo las estaciones 1-2, sin estación 3 ni examen — sigue siendo la antesala útil de su unidad, simplemente sin nota y con la parte ⚓ todavía en papel.
 

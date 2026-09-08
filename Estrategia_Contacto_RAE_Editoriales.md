@@ -13,7 +13,7 @@ descripción de la memoria de registro.
 
 > **Una línea:** *Taller de Sintaxis es una aplicación web para enseñar y
 > aprender el análisis morfológico y sintáctico del español en ESO y
-> Bachillerato, con el rigor terminológico de la NGLE y de la EBAU.*
+> Bachillerato, con el rigor terminológico de la NGLE y de la PAU.*
 
 > **Párrafo:** *Soy [nombre], profesor de Lengua Castellana y filólogo. He
 > diseñado y programado Taller de Sintaxis, una aplicación web para el análisis
@@ -27,7 +27,7 @@ descripción de la memoria de registro.
 
 Señales de credibilidad que conviene deslizar (elige según destinatario):
 - Hecha por **un profesor en activo**, no por una empresa tecnológica genérica.
-- **Rigor NGLE / EBAU** (clave para la RAE).
+- **Rigor NGLE / PAU** (clave para la RAE).
 - **Ya en uso real en el aula**.
 - **Inscrita en el Registro de la Propiedad Intelectual**.
 - **~34.000 líneas de código propio** (señal de seriedad para editoriales;
@@ -244,7 +244,7 @@ reconocimiento». Esta versión encaja mejor que la carta genérica.
 > Sé que reciben muchas propuestas de contenido digital, así que voy directo:
 > he creado una aplicación que hace algo que, hasta donde he podido comprobar,
 > no existe combinado en el mercado —un itinerario de análisis sintáctico y
-> morfológico **autocorregido**, con el rigor de la NGLE y de la EBAU, que
+> morfológico **autocorregido**, con el rigor de la NGLE y de la PAU, que
 > además da al profesor evaluación real con informes.
 >
 > Soy [nombre y apellidos], profesor de Lengua Castellana y filólogo. Guía al
@@ -312,7 +312,7 @@ sirve para la RAE y para editoriales (al final, dos variantes de una frase).
 > proposiciones y sus nexos.
 >
 > **[0:58]** La morfología se analiza en tres niveles, desde primero de ESO
-> hasta el modelo de la EBAU. Y hay modos de práctica rápida y de juego para
+> hasta el modelo de la PAU. Y hay modos de práctica rápida y de juego para
 > mantener el interés.
 >
 > **[1:14]** Pero Taller de Sintaxis no es solo para el alumno. El profesor crea
@@ -410,7 +410,7 @@ cuando te pregunten *«¿en qué se diferencia de…?»*.
 > aprender ni evaluar. Syntagma Digital corrige ejercicios, y es lo más cercano.
 > Taller de Sintaxis va más allá en tres frentes: es un **itinerario de
 > aprendizaje guiado y autocorregido** paso a paso, no solo un corrector; cubre
-> **morfología en tres niveles** (de 1.º de ESO al modelo EBAU) y **oración
+> **morfología en tres niveles** (de 1.º de ESO al modelo PAU) y **oración
 > compuesta** con motor propio, no solo sintaxis; e integra la **evaluación del
 > profesor** —examen con PIN, calificación e informes por alumno y grupo— como
 > parte del producto. Todo con el rigor terminológico de la NGLE.»*

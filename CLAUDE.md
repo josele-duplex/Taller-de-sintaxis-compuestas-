@@ -1,6 +1,6 @@
 # Taller de Sintaxis — guía para agentes
 
-Webapp educativa de sintaxis del español (NGLE / EBAU Murcia), de Josele (filólogo, no programador, aprendiendo a programar). SPA estática modular: sin build, sin bundler, sin framework, sin TypeScript.
+Webapp educativa de sintaxis del español (NGLE / PAU Murcia), de Josele (filólogo, no programador, aprendiendo a programar). SPA estática modular: sin build, sin bundler, sin framework, sin TypeScript.
 
 - **Arquitectura completa** (mapa de módulos, estado, backend, localStorage, convenciones de código): `arquitectura.md`.
 - **Pendientes y roadmap**: `roadmap.md`.

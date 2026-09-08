@@ -50,7 +50,7 @@ Este documento es la fuente única de verdad sobre **qué palabras y abreviatura
 
 ## 4. Regla dura: «para» NUNCA introduce CI
 
-En PAU/EBAU Murcia, el CI se introduce **únicamente** por:
+En la PAU Murcia, el CI se introduce **únicamente** por:
 - preposición `a` («Le di un libro a María»)
 - pronombre átono («Le di un libro»)
 
@@ -71,7 +71,7 @@ Los SP con `para` son **CC Finalidad**, no CI. Esto es innegociable.
 |---|---|---|
 | `basico` / Aprendiz | Básico | Inicio ESO |
 | `medio` / ESO34 | Medio | 3.º-4.º ESO |
-| `avanzado` / Maestro | Avanzado | Bachillerato / EBAU |
+| `avanzado` / Maestro | Avanzado | Bachillerato / PAU |
 
 ## 7. Convenciones de oración compuesta (schema 1.2)
 

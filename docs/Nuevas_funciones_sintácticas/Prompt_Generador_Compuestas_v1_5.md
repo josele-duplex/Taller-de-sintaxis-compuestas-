@@ -11,7 +11,7 @@ Versión: **1.5** · Julio 2026. Compatible con: `Compuestas_Banco` (esquema JSO
 
 - **Eliminado el subtipo `sustantiva_c_regimen`**. Toda PS que sea término de preposición se etiqueta como `sustantiva_termino_preposicion`.  
 - Añadido el campo `relacion.funcion_sp` para indicar la función del **SP completo** dentro de la oración mayor cuando la PS es término de preposición.  
-- Esta es la línea NGLE estándar y la EBAU Murcia: la PS no puede *ser* un C. Régimen; la PS es siempre término de preposición y el **SP entero** es lo que tiene función (CRégimen, CI, CC, CN, CAdj, CAdv, atributo).
+- Esta es la línea NGLE estándar y la PAU Murcia: la PS no puede *ser* un C. Régimen; la PS es siempre término de preposición y el **SP entero** es lo que tiene función (CRégimen, CI, CC, CN, CAdj, CAdv, atributo).
 
 Cambios anteriores (v1.0 → v1.1): `schema_version`, `verbo.indices_perifrasis`, coordinación múltiple.
 
