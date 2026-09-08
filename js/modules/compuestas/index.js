@@ -1583,7 +1583,7 @@
 
   function renderFeedback(msg){
     // En EXAMEN no se revela información que ayude a corregir (paridad con el
-    // papel/EBAU y con el módulo de simples): el feedback se reduce a un aviso
+    // papel/PAU y con el módulo de simples): el feedback se reduce a un aviso
     // neutro. La nota ya penaliza el error con la curva dura; aprender el porqué
     // se reserva para la práctica.
     if(state.modoExamen){
@@ -2569,7 +2569,7 @@
   }
 
   // Opciones de subtipo para la fase fusionada (rel + subtipo). Coordinadas tienen
-  // solo 3 (EBAU Murcia). Subordinadas dependen de la familia elegida por el alumno.
+  // solo 3 (PAU Murcia). Subordinadas dependen de la familia elegida por el alumno.
   function obtenerOpcionesSubtipoF5(rel, familiaElegida){
     if(rel.tipo === 'coordinacion'){
       // 'ilativa_coord' añadida jul-2026: el banco tiene coordinadas ilativas
@@ -5080,7 +5080,7 @@
   // ═════════════════════════════════════════════════════════════════════
   // MODELO DEFINITIVO PAU
   // Render descriptivo del análisis de la oración compuesta para "Ver
-  // análisis completo". Estilo PAU/EBAU Murcia: títulos en mayúsculas,
+  // análisis completo". Estilo PAU Murcia: títulos en mayúsculas,
   // oraciones marcadas con • o ↳, nexo y función al final.
   // ═════════════════════════════════════════════════════════════════════
 

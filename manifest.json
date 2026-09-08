@@ -1,7 +1,7 @@
 {
   "name": "Taller de Sintaxis",
   "short_name": "Sintaxis",
-  "description": "Análisis sintáctico, morfológico y de oraciones compuestas — NGLE / EBAU Murcia",
+  "description": "Análisis sintáctico, morfológico y de oraciones compuestas — NGLE / PAU",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
