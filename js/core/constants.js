@@ -2,6 +2,13 @@
    Extraído de index.html (Paso 4 de la migración, mayo 2026)
    Líneas originales: 926-943, 5185-5186, 7607-7608. */
 
+// ───── Bandera de la versión ligera (Plan_Estrategico_Web.md §11.9) ─────
+// SIEMPRE false aquí, en el repositorio fuente: así la app que usan tus
+// alumnos no cambia en nada. build-light.js copia el repo a dist-light/ y
+// SOLO ahí pone esto en true (y vacía DEFAULT_API_URL) — nunca a mano y
+// nunca en este archivo. Si ves LIGHT=true aquí, algo se ha hecho mal.
+export const LIGHT = false;
+
 // ───── Claves de localStorage ─────
 export const LS_API            = 'taller_api_url';
 export const LS_CUADERNO       = 'taller_cuaderno';    // id del cuaderno de profesor asignado a este dispositivo (ver cuadernos.js)

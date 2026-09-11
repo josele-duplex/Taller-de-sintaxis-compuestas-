@@ -119,6 +119,20 @@ logModule.log.debug('[app.js] Módulos ES6 cargados y expuestos en window.');
 // delante de una pantalla muerta. No lo quites sin quitar también el guardián.
 window.__TALLER_BOOTSTRAP_OK__ = true;
 
+// Versión ligera: no hay panel del profesor al que entrar (build-light.js
+// no copia js/modules/teacher/), así que ni el icono del pie de página ni
+// el texto que lo anuncia deben verse. eggClick() (sint/index.js) ya
+// comprueba LIGHT y no hace nada al tocarlo; esto es solo lo visual.
+if (constants.LIGHT) {
+  const eggBtn = document.getElementById('egg-btn');
+  if (eggBtn) eggBtn.remove();
+  document.querySelectorAll('footer, .footer, [class*="footer"]').forEach(f => {
+    if (f.textContent.includes('panel del profesor')) {
+      f.innerHTML = f.innerHTML.replace(/\s*·?\s*Toca tres veces el[^·]*panel del profesor/i, '');
+    }
+  });
+}
+
 // ─────────────────────────────────────────────────────────────
 // 7. PWA — instalable + shell offline (jul-2026)
 // ─────────────────────────────────────────────────────────────

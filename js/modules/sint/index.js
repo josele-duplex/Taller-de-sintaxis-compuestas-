@@ -899,6 +899,7 @@ function stopLoadingTips(){
 // ════════════════════════════════════════════════════════
 let selectedMode=null,eggCount=0;
 function eggClick(){
+  if(LIGHT)return; // versión ligera: no hay panel del profesor que abrir
   if(++eggCount>=3){eggCount=0;document.getElementById('teacher-pw').value='';document.getElementById('teacher-pw-err').style.display='none';openOverlay('teacher-modal');try{warmupApi();}catch(e){}setTimeout(()=>document.getElementById('teacher-pw').focus(),100);}
 }
 let selectedSubfase = 'completo';
