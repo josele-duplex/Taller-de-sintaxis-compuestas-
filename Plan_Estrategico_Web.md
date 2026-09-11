@@ -607,22 +607,42 @@ compuestas ni morfología en la versión ligera — sin panel del profesor no
 hay quien configure un PIN, así que dejarlo visible era un callejón sin
 salida silencioso (commit `c92ed1b`).
 
-**Pendiente de Fase 3** (no bloqueante — con `DEFAULT_API_URL` vacía,
-ningún envío de resultados llega a ningún sitio aunque el código todavía
-esté ahí, así que no es un riesgo de privacidad, solo pulido):
-- Quitar (no solo dejar inerte) el HTML del panel del profesor de
-  `index.html` — hoy sigue presente pero inalcanzable.
+**Pendiente de Fase 3 — CERRADO (11-sep-2026, commit `e3322f7`).** El HTML
+del panel del profesor (`<div id="screen-teacher">` y `#teacher-modal`) se
+quita de verdad de `dist-light/index.html` en vez de quedar solo inerte —
+`build-light.js` ahora lo recorta con el mismo patrón de `.replace()` que
+el resto de parches. Verificado con grep sobre la copia generada (0
+coincidencias) y con clic real: la versión completa sigue abriendo el
+panel con el triple clic en el ✒️ exactamente igual que antes. Fase 3
+queda cerrada del todo.
 
-**Fase 4 (itinerarios del alumno) — por comprobar, puede que ya esté hecha
-en su mayor parte:** al probar en el navegador esta sesión, tanto simples
-como compuestas YA muestran filtros al alumno antes de practicar («🔍
-Filtros de funciones» en simples, pantalla completa de filtros en
-compuestas) — el informe original (1-sep) asumía que los filtros eran solo
-del profesor, pero el código ha evolucionado desde entonces. Antes de dar
-por hecha esta fase hace falta una revisión deliberada (no solo lo visto de
-pasada), y decidir si conviene envolverlo en itinerarios con nombre
-pedagógico («Empiezo por el sujeto»…) como proponía el informe, o si los
-filtros tal cual ya cumplen.
+### 11.11 Fase 4 (itinerarios del alumno) — CERRADA (11-sep-2026)
+
+Revisión deliberada del código real (no solo lo visto de pasada) en los
+dos motores:
+
+- **Oración Simple ya tenía el itinerario que pedía el informe original**,
+  solo que no se llamaba así: `SUBFASE_CONFIGS` (`js/modules/sint/index.js`)
+  define una progresión con nombre, icono y descripción — «① Solo NP» →
+  «①② NP + Sujeto» → «①②③ Análisis completo» — que el alumno elige al
+  entrar, antes de empezar a practicar. Encima de eso, los «🔍 Filtros de
+  funciones» (CD, CI, CC Tiempo…) dan un ajuste fino aparte para quien ya
+  sabe qué quiere reforzar. No hacía falta tocar nada aquí.
+- **Oración Compuesta tenía los filtros (tipo/subtipo/nivel/nº de
+  oraciones) pero sin la envoltura pedagógica**: el filtro «Nivel»
+  (Básico/Medio/Avanzado) era solo una etiqueta de dificultad, sin guiar a
+  quien no sabe por dónde empezar. Se descartó envolver los filtros en
+  nombres narrativos tipo «Empiezo por el sujeto» —habría sido maquillaje
+  de texto sobre algo que ya funciona, no una función nueva—: se añadió en
+  su lugar una frase de orientación de una línea junto al filtro de Nivel
+  («💡 ¿Primera vez aquí? Empieza por Básico.», commit `f4e97ba`), el mismo
+  papel que cumple la Profundidad en Simples.
+
+Verificado con clic real: el chip «Básico» sigue filtrando con normalidad
+(254→71 ejercicios en el banco de prueba) y Simples no se ha tocado. Fase
+4 queda cerrada sin necesidad de una fase de itinerarios nueva — la
+sustancia pedagógica ya estaba construida, solo faltaba nombrarla en un
+sitio.
 
 **Fase 5 (idioma neutro) — sin empezar, necesita una decisión de diseño
 antes de tocar código:** 96 apariciones de «PAU»/«Murcia» (§11.8) piden un
