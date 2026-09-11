@@ -64,9 +64,15 @@ fs.writeFileSync(constantsPath, constantsSrc, 'utf8');
 const appJsPath = path.join(OUT, 'js', 'app.js');
 fs.writeFileSync(appJsPath, fs.readFileSync(appJsPath, 'utf8').replace("import './modules/teacher/index.js';\n", ''), 'utf8');
 
-// 3. index.html: el <script> del informe Excel apunta a un módulo que ya no está.
+// 3. index.html: el panel del profesor (screen-teacher + su modal de
+//    contraseña) y el <script> del informe Excel ya no tienen quien los
+//    abra sin teacher/index.js — se quitan de verdad, no se dejan inertes.
 const indexPath = path.join(OUT, 'index.html');
-fs.writeFileSync(indexPath, fs.readFileSync(indexPath, 'utf8').replace('<script defer src="js/modules/teacher/informe-excel.js"></script>\n', ''), 'utf8');
+let indexSrc = fs.readFileSync(indexPath, 'utf8');
+indexSrc = indexSrc.replace('<script defer src="js/modules/teacher/informe-excel.js"></script>\n', '');
+indexSrc = indexSrc.replace(/<!-- TEACHER PANEL -->\n<div id="screen-teacher"[\s\S]*?\n<\/div>\n\n\n/, '');
+indexSrc = indexSrc.replace(/<!-- TEACHER PASSWORD MODAL -->\n<div class="overlay" id="teacher-modal"[\s\S]*?\n<\/div>\n\n\n/, '');
+fs.writeFileSync(indexPath, indexSrc, 'utf8');
 
 // 4. sw.js: quitar del precache lo que esta copia ya no tiene (no es
 //    obligatorio —el propio sw.js precarga tolerante a fallos—, pero evita
@@ -87,12 +93,14 @@ const urlMatch = constantsFinal.match(/DEFAULT_API_URL = '([^']*)'/);
 const okUrl = urlMatch && urlMatch[1] === '';
 const okSinTeacher = !fs.existsSync(path.join(OUT, 'js', 'modules', 'teacher'));
 const okSinVendor = !fs.existsSync(path.join(OUT, 'vendor'));
+const okSinHtmlTeacher = !fs.readFileSync(indexPath, 'utf8').includes('screen-teacher');
 
 console.log('OK: dist-light/ generado.');
 console.log('  LIGHT = true en la copia:', okLight);
 console.log('  DEFAULT_API_URL vacía en la copia:', okUrl);
 console.log('  js/modules/teacher/ ausente:', okSinTeacher);
 console.log('  vendor/ ausente:', okSinVendor);
-if (!okLight || !okUrl || !okSinTeacher || !okSinVendor) {
+console.log('  HTML del panel del profesor ausente en index.html:', okSinHtmlTeacher);
+if (!okLight || !okUrl || !okSinTeacher || !okSinVendor || !okSinHtmlTeacher) {
   console.log('\n⚠ Algo no salió como se esperaba — revisa antes de publicar esto.');
 }
