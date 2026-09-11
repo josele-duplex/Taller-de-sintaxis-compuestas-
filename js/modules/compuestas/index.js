@@ -233,6 +233,18 @@
   }
   window.cpExit = exit;
 
+  // Banco local (versión ligera / respaldo sin servidor): mismo JSON_Compuesta
+  // puro que ya genera build-banco-json.js para Chispa. aplicarFiltros() e
+  // isValidEjercicio() no distinguen de dónde vino state.ejercicios, así que
+  // no hace falta tocar nada más del módulo.
+  async function _cargarBancoLocal(){
+    const r = await fetch('./data/banco-compuestas.json');
+    if(!r.ok) throw new Error(`HTTP ${r.status} al leer el banco local`);
+    const arr = await r.json();
+    if(!Array.isArray(arr)) throw new Error('banco-compuestas.json no es un array');
+    return arr.filter(isValidEjercicio);
+  }
+
   // ─────────────────────────────────────────────────────────────────────
   // Carga del banco desde el GAS
   // ─────────────────────────────────────────────────────────────────────
@@ -246,8 +258,18 @@
       </div>`;
     const apiUrl = getApiUrl();
     if(!apiUrl){
-      state.loadError = 'No hay URL de API configurada. Ve al panel del profesor para configurarla.';
-      renderError();
+      try{
+        const local = await _cargarBancoLocal();
+        if(local.length === 0) throw new Error('El banco local no tiene ejercicios válidos.');
+        state.ejercicios = local;
+        state.loaded = true;
+        state.loadError = '';
+        log.debug('[CP] Sin apiUrl — banco local cargado:', local.length, 'ejercicios.');
+      }catch(e){
+        state.loadError = 'No hay URL de API configurada y el banco local falló: ' + (e.message || e);
+        state.loaded = false;
+        renderError();
+      }
       return;
     }
     // Diagnóstico: guardamos el detalle de cada paso para mostrarlo si algo falla
@@ -316,12 +338,22 @@
       state.loadError = '';
       log.debug('[CP] Banco cargado correctamente:', state.ejercicios.length, 'ejercicios.');
     } catch(e){
-      state.loadError = (e.message || String(e));
-      // Anexar diagnóstico para que se vea en pantalla
-      state.loadDiagnostic = diag;
-      log.error('[CP] Error cargando banco:', e);
-      log.error('[CP] Diagnóstico:', diag);
-      state.loaded = false;
+      log.warn('[CP] Servidor no disponible, pruebo banco local:', e.message || e);
+      try{
+        const local = await _cargarBancoLocal();
+        if(local.length === 0) throw new Error('banco local vacío');
+        state.ejercicios = local;
+        state.loaded = true;
+        state.loadError = '';
+        log.debug('[CP] Banco local cargado tras fallo del servidor:', local.length, 'ejercicios.');
+      }catch(e2){
+        state.loadError = (e.message || String(e));
+        // Anexar diagnóstico para que se vea en pantalla
+        state.loadDiagnostic = diag;
+        log.error('[CP] Error cargando banco (servidor y local fallaron):', e, e2);
+        log.error('[CP] Diagnóstico:', diag);
+        state.loaded = false;
+      }
     }
   }
 
