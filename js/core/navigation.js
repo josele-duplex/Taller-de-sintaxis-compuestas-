@@ -11,6 +11,26 @@
 import { applyProfileToLogin } from './profile.js';
 import { pintarDistintivoCuaderno, pintarAvisoDeCambio } from './cuadernos.js';
 import { limpiarTodo } from './timers.js';
+import { LIGHT } from './constants.js';
+
+// Fábrica y Laboratorio no entran en la versión ligera (Plan_Estrategico_Web.md
+// §2.1.2, decisión de Josele): botón visible y pulsable, pero en vez de abrir
+// el módulo muestra qué hace y que llegará más adelante — nunca "Premium",
+// eso abriría un segundo muro de pago que no es el que se ha decidido vender.
+const PROXIMAMENTE_INFO = {
+  fabrica: { titulo: '🏭 La Fábrica de Palabras', desc: 'Desmonta y monta palabras: raíces, prefijos, sufijos… descubre de qué están hechas.' },
+  laboratorio: { titulo: '🧪 El Laboratorio de Oraciones', desc: 'Rompe oraciones a propósito para ver qué las sostiene: sustituye, suprime, juzga si funcionan.' },
+};
+
+function mostrarProximamente(mod) {
+  const info = PROXIMAMENTE_INFO[mod];
+  if (!info) return;
+  const titulo = document.getElementById('prox-titulo');
+  const desc = document.getElementById('prox-desc');
+  if (titulo) titulo.textContent = info.titulo;
+  if (desc) desc.textContent = info.desc;
+  document.getElementById('proximamente-overlay')?.classList.add('open');
+}
 
 export function showScreen(id) {
   // A6 (auditoría técnica ago-2026): centraliza la limpieza de temporizadores
@@ -43,6 +63,10 @@ export function showPortada() {
 }
 
 export function goModule(mod) {
+  if (LIGHT && (mod === 'fabrica' || mod === 'laboratorio')) {
+    mostrarProximamente(mod);
+    return;
+  }
   currentModule = mod;
   // Compuestas pasa por el login unificado (mayo 2026, Paso 3):
   // mismo nombre/email/grupo que el resto y eleccion de modo
