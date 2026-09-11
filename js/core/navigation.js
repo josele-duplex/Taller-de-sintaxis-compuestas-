@@ -73,6 +73,13 @@ export function goModule(mod) {
   // (practica o examen con PIN) desde el panel.
   const panel = document.getElementById('login-module-panel');
   if (panel) panel.innerHTML = LOGIN_PANELS[mod] || '';
+  // Examen con PIN: FUERA de la versión ligera (requiere que un profesor lo
+  // configure en la Hoja — no tiene sentido sin centro, decisión ya tomada
+  // en el plan). Se quita el botón de modo en vez de dejarlo y que falle
+  // silenciosamente al no encontrar el PIN en ningún backend.
+  if (LIGHT) {
+    ['mc-exam', 'mm-exam', 'mc-cp-exam'].forEach(id => document.getElementById(id)?.remove());
+  }
   // Hook CSS para la estética «arcade años 90»: solo cuando el módulo es Arcade.
   const scrLogin = document.getElementById('screen-login');
   if (scrLogin) scrLogin.classList.toggle('login-arcade', mod === 'arcade');
