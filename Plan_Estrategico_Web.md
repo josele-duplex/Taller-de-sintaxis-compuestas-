@@ -569,16 +569,50 @@ duplicado en dos filas con contenido distinto (una es de García Márquez).
 `build-banco-json.js` desambigua por texto; el Sheet sigue teniendo el
 problema pendiente de corregir cuando Josele tenga un rato.
 
-**Lo que esto NO incluye todavía — y por qué es una parada natural:** la
-Fase 3 (podar panel del profesor, login, examen con PIN, URL del backend)
-no es "más de lo mismo". Fases 1-2 fueron aditivas: no se quitó ni se
-escondió nada, la versión de Josele sigue funcionando exactamente igual con
-su backend real. Podar SÍ implica una decisión que no estaba tomada:
-**cómo se produce el build ligero de verdad** — ¿una bandera `LIGHT` en
-tiempo de compilación (como decía el informe original), una carpeta/rama
-aparte, o un script que copia y recorta el repo? Esa decisión afecta a la
-app que ya usan alumnos reales, así que se para aquí a propósito en vez de
-decidirlo sin consultar.
+### 11.10 Fase 3 (parte 1 y 2) — panel del profesor y login, HECHO (11-sep-2026)
+
+Decisión: bandera `LIGHT` en el mismo repo (`js/core/constants.js`, siempre
+`false` en el código fuente). `build-light.js` copia el repo a `dist-light/`
+con lista blanca de archivos, excluye `js/modules/teacher/` (~2600 líneas)
+y `vendor/` (xlsx del informe), y parchea SOLO la copia: `LIGHT=true`,
+`DEFAULT_API_URL=''`. `.claude/launch.json` tiene una tercera entrada
+(`taller-sintaxis-light`, puerto 8767) para servir `dist-light/` aparte.
+
+**Hecho:**
+- Panel del profesor fuera del build público (excluido, no solo oculto).
+- URL real del backend nunca viaja en `dist-light/` (comprobado con grep
+  del identificador exacto, no solo revisado a ojo).
+- El icono del pie (✒️) y su texto desaparecen si `LIGHT`.
+- Login: correo y grupo dejan de ser obligatorios si `LIGHT` (el dominio
+  murciaeduca.es no tiene sentido fuera de España, y nadie recoge el dato
+  de todas formas). El nombre se sigue pidiendo — es solo para mostrarlo en
+  pantalla, no se envía a ningún sitio sin backend.
+- Tres cabos sueltos de excluir `teacher/index.js` (que no es solo el panel:
+  también inicializa `_activeReto`, `_activeMission` y expone
+  `getMisionesForMode`, leídos por `sint/index.js` sin comprobar que
+  existan) — encontrados jugando de verdad en el navegador, no leyendo
+  código, y corregidos con el mismo patrón ya usado en `compuestas/index.js`.
+
+**Verificado con clics reales** (no invocación directa de funciones: eso
+corre en un contexto aislado que da falsos positivos/negativos, lección
+aprendida esta sesión) en `dist-light/` servido aparte: entra a Oración
+Simple sin correo, sin colgarse, con datos reales. Regresión en la versión
+completa: correo sigue obligatorio, selector de misiones reales sigue
+funcionando igual que siempre.
+
+**Pendiente de Fase 3** (no bloqueante — con `DEFAULT_API_URL` vacía,
+ningún envío de resultados llega a ningún sitio aunque el código todavía
+esté ahí, así que no es un riesgo de privacidad, solo pulido):
+- Login/examen con PIN de los demás módulos (compuestas, morfología,
+  fábrica, laboratorio) — comparten `handleStartAll()`, pero cada uno tiene
+  su propio flujo de PIN que no se ha revisado módulo a módulo.
+- Quitar (no solo dejar inerte) el HTML del panel del profesor de
+  `index.html` — hoy sigue presente pero inalcanzable.
+- Fábrica y Laboratorio siguen totalmente activos en `dist-light/`; la
+  decisión de «botón visible, en preparación» (§2.1.2) no está implementada
+  todavía.
+- Fases 4-6 del plan técnico (itinerarios del alumno, idioma neutro, PWA a
+  punto) sin empezar.
 
 ## 12. Riesgos
 
