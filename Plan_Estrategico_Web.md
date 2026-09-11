@@ -726,6 +726,60 @@ carpeta a publicar `dist-light/`. Así la copia ligera se regenera sola en
 cada despliegue y el repo sigue siendo uno. Pendiente de decidir; no
 bloquea el desarrollo, bloquea la publicación.
 
+### 11.14 Auditoría "primer usuario" pre-publicación (12-sep-2026)
+
+A petición expresa de Josele antes de publicar, sesión completa de
+pruebas con `localStorage` limpio (usuario que nunca ha usado la app,
+sin correo) en los 6 módulos que sí entran en la versión ligera: Simple,
+Morfología, Sintagmas, Compuesta, Chispa, Arcade — más Fábrica/
+Laboratorio ("próximamente") y el panel de progreso. Metodología: clic
+real en el navegador, nunca invocación directa de funciones (misma
+lección de §11.10), con `localStorage.clear()` entre módulos para
+simular de verdad a alguien que entra por primera vez.
+
+**Encontrados y corregidos 3 bugs reales, ninguno visto al probar con
+perfil ya guardado (por eso llevaban ahí desde antes de la versión
+ligera sin que nadie los notara):**
+
+1. **Bloqueante crítico — Análisis Sintáctico entero inservible sin
+   correo** (commit `a581009`). `handleStart()` repetía su propia
+   comprobación de correo obligatorio sin mirar `LIGHT`, distinta de la
+   de `handleStartAll()` que sí lo hacía opcional — el alumno pasaba el
+   primer filtro y caía en el segundo. Como es el módulo que aparece
+   primero en la portada, esto habría dejado la versión gratuita
+   inservible para cualquiera sin @gmail.com o @murciaeduca.es desde el
+   primer minuto de publicarla.
+2. **Mismo bug en Análisis Morfológico (Maestro)** (commit `a91a502`),
+   encontrado primero, el mismo día — `startMaestro()` con la idéntica
+   comprobación duplicada, y encima con el error invisible por faltarle
+   `classList.add('show')`. Llevó a auditar `handleStart()` por si tenía
+   el mismo patrón, que sí lo tenía.
+3. **Copy de Arcade prometía función social inexistente** (commit
+   `cc0a874`) — "escala en el ranking de la clase", "visible en el
+   ranking", "compite contra tus compañeros" cuando en LIGHT no hay
+   backend y solo hay marca personal en el dispositivo
+   (`renderArcadeLocalFallback`, ya correcto en código — confirmado con
+   `read_network_requests` que no sale ninguna petición a
+   `script.google.com`). Solo era el texto: no anunciar lo que no se
+   cumple.
+
+**Verificado sin incidencias** (clic real, consola sin errores, sin
+peticiones fallidas): las 6 rutas de módulo completas hasta terminar al
+menos un ejercicio real, el selector "Solo NP / NP+Sujeto / Análisis
+completo", "Próximamente" de Fábrica y Laboratorio, y el panel "Tu
+progreso" con datos en cero (nivel 1, 0 XP, sin errores de `NaN`/
+`undefined`). Regresión comprobada en paralelo en la versión completa
+para los 3 fixes: sigue exigiendo correo donde debía y sigue diciendo
+"PAU"/"ranking" donde debía.
+
+**Por qué no se encontraron antes:** todas las sesiones de prueba
+anteriores de este plan (Fases 1-2, 3, 4, 5) reutilizaban un perfil ya
+guardado en `localStorage` de pruebas previas — el correo de prueba
+persistía entre módulos y nunca se disparaba la comprobación. Limpiar
+`localStorage` antes de cada módulo fue lo que los sacó a la luz.
+**Lección para futuras verificaciones de LIGHT: probar siempre con
+`localStorage.clear()` primero, no solo con clics reales.**
+
 ## 12. Riesgos
 
 | Riesgo | Gravedad | Mitigación |
