@@ -33,7 +33,7 @@
 //    EVALUACION + avisar a los alumnos de la escala (requisito del
 //    documento Investigacion_evaluacion.md, igual que B1/B2 de Simples).
 import { log } from '../../core/log.js';
-import { NOMBRE_PRUEBA } from '../../core/constants.js';
+import { LIGHT, NOMBRE_PRUEBA } from '../../core/constants.js';
 // Las cascadas de rasgos (datos linguisticos, no interfaz) viven en
 // js/data/cascadas-morfologia.js desde ago-2026 (hallazgo A8 de la
 // auditoria). getCascadeForNivel es la unica puerta de entrada: resuelve
@@ -517,9 +517,18 @@ function mapCategoriaN1_(cat, atrs) {
 
 // ── MAESTRO ENGINE ────────────────────────────────────────────────────
 function startMaestro({name,email,grupo}){
-  if(!name){document.getElementById('e-name').textContent='Escribe tu nombre.';return;}
-  if(!email||!EMAIL_RE.test(email)){
-    document.getElementById('e-email').textContent='Correo @murciaeduca.es, @alu.murciaeduca.es o @gmail.com requerido.';return;
+  if(!name){ferr('e-name','Escribe tu nombre.');return;}
+  // Versión ligera: correo opcional, igual que handleStartAll() en
+  // sint/index.js (misma razón: sin backend nadie lo recoge, y exigir un
+  // dominio @murciaeduca.es bloquearía a cualquier alumno fuera de Murcia).
+  // Esta comprobación es propia de startMaestro() y no pasaba por LIGHT
+  // (bug encontrado al verificar la Fase 5, Plan_Estrategico_Web.md §11.12).
+  if(!LIGHT){
+    if(!email||!EMAIL_RE.test(email)){
+      ferr('e-email','Correo @murciaeduca.es, @alu.murciaeduca.es o @gmail.com requerido.');return;
+    }
+  } else if(email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+    ferr('e-email','Ese correo no parece válido (o déjalo en blanco).');return;
   }
   if(!selectedMorphTipo){
     document.getElementById('e-morphtipo').textContent='Elige el tipo de actividad.';return;
