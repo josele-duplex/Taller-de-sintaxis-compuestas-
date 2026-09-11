@@ -139,6 +139,13 @@ if (constants.LIGHT) {
     if (d.textContent.includes('el rigor de la PAU')) {
       d.textContent = d.textContent.replace('la PAU', 'la ' + constants.NOMBRE_PRUEBA);
     }
+    // El Arcade en LIGHT no envía nada a ningún sitio (getApiUrl() vacío,
+    // ver arcade/index.js) — "ranking de la clase" prometería una
+    // comparativa social que aquí no existe, solo la marca personal del
+    // dispositivo (auditoría pre-publicación, 12-sep-2026).
+    if (d.textContent.includes('escala en el ranking de la clase')) {
+      d.textContent = d.textContent.replace('Juega, compite y escala en el ranking de la clase.', 'Juega y mejora tu marca personal.');
+    }
   });
 
   // Sin centro ni backend: el correo no sirve para nada (nadie lo recoge —

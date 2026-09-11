@@ -3561,12 +3561,12 @@ const LOGIN_PANELS = {
   arcade: `
     <p style="font-weight:800;font-size:.9rem;color:#DC2626;margin-bottom:12px">🎮 Arcade</p>
     <div class="field">
-      <label>Nick <span style="font-weight:400;color:var(--muted)">(visible en el ranking)</span></label>
+      <label>Nick <span style="font-weight:400;color:var(--muted)">(${LIGHT ? 'tu marca personal' : 'visible en el ranking'})</span></label>
       <input id="inp-nickname" class="input" type="text" placeholder="Ej: GramatiKing99" maxlength="20">
       <p id="e-nick" class="ferr" role="alert"></p>
     </div>
     <div class="field">
-      <label>Tu clase <span style="font-weight:400;color:var(--muted)">(compite contra tus compañeros)</span></label>
+      <label>Tu clase <span style="font-weight:400;color:var(--muted)">(${LIGHT ? 'opcional' : 'compite contra tus compañeros'})</span></label>
       <select id="inp-arc-grupo" class="input grupo-select" style="max-width:160px">${grupoOptionsHTML()}</select>
     </div>
     <div class="field">
