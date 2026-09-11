@@ -542,6 +542,7 @@
 
         <div class="cp-filter-block">
           <div class="cp-filter-label">Nivel</div>
+          <p style="margin:0 0 8px;font-size:.8rem;color:var(--muted)">💡 ¿Primera vez aquí? Empieza por <b>Básico</b>.</p>
           <div class="cp-chip-grid" id="cp-f-nivel">
             ${opc.niveles.map(n=>chipHtml('nivel', n, etiquetaNivel(n))).join('')}
           </div>
