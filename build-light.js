@@ -83,6 +83,17 @@ let swSrc = fs.readFileSync(swPath, 'utf8');
   .forEach(linea => { swSrc = swSrc.replace(linea, ''); });
 fs.writeFileSync(swPath, swSrc, 'utf8');
 
+// 5. manifest.json: "PAU" en la descripción es metadato de instalación
+//    (lo que ve el alumno al añadir la app a la pantalla de inicio), no
+//    solo texto interno — mismo criterio de Fase 5 que las 4 cadenas de
+//    la interfaz (Plan_Estrategico_Web.md §11.12/§11.14).
+const manifestPath = path.join(OUT, 'manifest.json');
+fs.writeFileSync(
+  manifestPath,
+  fs.readFileSync(manifestPath, 'utf8').replace(' / PAU"', '"'),
+  'utf8'
+);
+
 // vendor/ (xlsx.bundle.js) no está en la lista blanca de arriba, así que ya
 // no se ha copiado — el informe Excel es cosa del panel del profesor.
 
