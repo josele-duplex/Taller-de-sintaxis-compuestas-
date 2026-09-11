@@ -1454,7 +1454,10 @@ async function handleStart(){
   const examSubfase = selectedMode === 'exam' ? (localStorage.getItem('taller_exam_subfase') || 'completo') : selectedSubfase;
 
   // ── 1b. Mission selector for practice mode ──
-  if(selectedMode==='practice' && currentModule==='sint'){
+  // getMisionesForMode vive en teacher/index.js (las misiones las crea el
+  // profesor) — en la versión ligera ese módulo no existe, igual que ya
+  // contempla compuestas/index.js con esta misma comprobación.
+  if(selectedMode==='practice' && currentModule==='sint' && typeof getMisionesForMode === 'function'){
     const misiones=await getMisionesForMode('sintaxis');
     const errorHist=_loadErrorHistory();
     const hasErrors=Object.keys(errorHist.sintaxis||{}).length>0;
@@ -1598,14 +1601,17 @@ async function _doHandleStart(name,email,pin,examSubfase){
   // del recorte por nOraciones de la misión: el reto define su propio alcance.
   // El botón del reto ya comprobó la cobertura al abrir el selector; este
   // fallback es solo defensivo por si el banco cambió entre medias.
-  if(_activeReto){
+  // _activeReto lo inicializa teacher/index.js (window._activeReto = null);
+  // en la versión ligera ese módulo no existe, así que ni siquiera está
+  // declarada — typeof la trata como 'undefined' en vez de lanzar.
+  if(typeof _activeReto !== 'undefined' && _activeReto){
     const filtradas = filtrarPorReto(oraciones, _activeReto.id);
     if(filtradas.length > 0) oraciones = filtradas;
     else log.warn('[reto] Banco insuficiente para', _activeReto.id, '— se usa el banco completo.');
   }
   // Apply mission nOraciones limit
-  if(_activeMission && _activeMission.nOraciones > 0 && oraciones.length > _activeMission.nOraciones){
-    oraciones = oraciones.slice(0, _activeMission.nOraciones);
+  if(window._activeMission && window._activeMission.nOraciones > 0 && oraciones.length > window._activeMission.nOraciones){
+    oraciones = oraciones.slice(0, window._activeMission.nOraciones);
   }
   if (!oraciones || oraciones.length === 0) {
     oraciones = getMock().map(normalizeOracion).filter(Boolean);
@@ -2791,7 +2797,7 @@ function calcDetailedScore(){
   // 'practice' (por eso el feedback y las pistas se mantienen visibles;
   // eso es justo lo que la distingue de un examen de verdad).
   const _califDura = (G && G.mode === 'exam')
-    || (typeof _activeMission !== 'undefined' && _activeMission && _activeMission.calificacion === 'examen');
+    || (window._activeMission && window._activeMission.calificacion === 'examen');
   const _penaltyFactor = _califDura
     ? [1, 0.40, 0.10, 0]
     : [1, 0.50, 0.25, 0];
@@ -3017,7 +3023,7 @@ async function goResults(){
   // Practice and missions hide score/grade/breakdown/sentence-list to
   // reduce stress and visual noise. Only exam shows the full report.
   // CSS rules with .is-student-friendly do the actual hiding.
-  const isStudentFriendly = (G.mode === 'practice' || !!_activeMission);
+  const isStudentFriendly = (G.mode === 'practice' || !!window._activeMission);
   const resScreen = document.getElementById('screen-results');
   resScreen.classList.toggle('is-student-friendly', isStudentFriendly);
   
@@ -3029,8 +3035,8 @@ async function goResults(){
   
   document.getElementById('res-emoji').textContent = exitedEarly ? `${grade.e} Sesión terminada` : `${grade.e} Resultado`;
   const sfLabel=SUBFASE_CONFIGS[G.subfase]?.label||'Análisis completo';
-  let missionLabel = _activeMission?`Misión: ${_activeMission.nombre}`:(G.mode==='exam'?`Examen PIN ${G.examPin}`:'Modo Práctica');
-  if(_activeMission && _activeMission.calificacion === 'examen'){
+  let missionLabel = window._activeMission?`Misión: ${window._activeMission.nombre}`:(G.mode==='exam'?`Examen PIN ${G.examPin}`:'Modo Práctica');
+  if(window._activeMission && window._activeMission.calificacion === 'examen'){
     missionLabel += ' · 📝 calificación de examen';
   }
   if(exitedEarly){
@@ -3052,7 +3058,7 @@ async function goResults(){
   }
   if(isStudentFriendly){
     let icon, message, stats;
-    if(_activeMission){
+    if(window._activeMission){
       icon = '🎯';
       const total = (G.oraciones||[]).length;
       message = noCompletadas === 0 ? '¡Misión completada!' : 'Has trabajado tu misión';
@@ -3275,15 +3281,15 @@ async function goResults(){
   
   // Mission: show info and save result
   const misInfo=document.getElementById('res-mission-info');
-  if(_activeMission&&misInfo){
+  if(window._activeMission&&misInfo){
     misInfo.style.display='block';
-    misInfo.textContent=`📋 Misión completada: ${_activeMission.nombre}`;
+    misInfo.textContent=`📋 Misión completada: ${window._activeMission.nombre}`;
     // Save to API if available
     const apiUrl=getApiUrl();
     if(apiUrl&&!G.usingMock){
       try{
         const params=new URLSearchParams({action:'saveMisionResult',email:G.email,name:G.name,
-          misionId:_activeMission.id,modo:'sintaxis',aciertos:String(totalEarned),
+          misionId:window._activeMission.id,modo:'sintaxis',aciertos:String(totalEarned),
           errores:String(G.totalErrors),nota:String(score),detalle:JSON.stringify(funcErrors)});
         fetch(apiUrl+'?'+params.toString());
       }catch(e){}
@@ -3300,7 +3306,7 @@ function practiceMyErrors(){
   if(topErrors.length>0){
     localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:topErrors,dificultad:0}));
   }
-  _activeMission={id:'REFUERZO',nombre:'Refuerzo: '+topErrors.join(', '),modo:'sintaxis',funciones:topErrors,nOraciones:5};
+  window._activeMission={id:'REFUERZO',nombre:'Refuerzo: '+topErrors.join(', '),modo:'sintaxis',funciones:topErrors,nOraciones:5};
   goLogin();
   // Auto-select practice mode after a tick
   setTimeout(()=>{
@@ -4049,13 +4055,21 @@ async function handleStartAll(){
   let ok=true;
   if(!name){ferr('e-name','Escribe tu nombre completo.');ok=false;}
   else if(!NOMBRE_RE.test(name)){ferr('e-name','El nombre solo puede llevar letras, espacios y guiones (máx. 60).');ok=false;}
-  if(!email){ferr('e-email','El correo es obligatorio.');ok=false;}
-  else if(!EMAIL_RE.test(email)){ferr('e-email','Correo inválido. Usa @murciaeduca.es, @alu.murciaeduca.es o @gmail.com');ok=false;}
+  // Versión ligera: sin backend nadie recoge el correo ni el grupo (ver
+  // DEFAULT_API_URL vacía), y exigir un dominio @murciaeduca.es bloquearía
+  // a cualquier alumno fuera de Murcia. Solo se validan si NO es LIGHT.
+  if(!LIGHT){
+    if(!email){ferr('e-email','El correo es obligatorio.');ok=false;}
+    else if(!EMAIL_RE.test(email)){ferr('e-email','Correo inválido. Usa @murciaeduca.es, @alu.murciaeduca.es o @gmail.com');ok=false;}
+  } else if(email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+    // Si escribe algo, que al menos tenga forma de correo — pero no exigir dominio.
+    ferr('e-email','Ese correo no parece válido (o déjalo en blanco).');ok=false;
+  }
   // Grupo obligatorio para todos los modulos academicos. Arcade usa su
   // propio campo (inp-arc-grupo) y NO valida aqui el compartido (esta
   // oculto cuando mod==='arcade', ver navigation.js).
   const grupoCompartido = document.getElementById('inp-grupo')?.value?.trim() || '';
-  if (currentModule !== 'arcade') {
+  if (currentModule !== 'arcade' && !LIGHT) {
     if (!grupoCompartido) { ferr('e-grupo','Elige tu grupo.'); ok=false; }
   }
   if(!ok)return;

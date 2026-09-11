@@ -131,6 +131,21 @@ if (constants.LIGHT) {
       f.innerHTML = f.innerHTML.replace(/\s*·?\s*Toca tres veces el[^·]*panel del profesor/i, '');
     }
   });
+
+  // Sin centro ni backend: el correo no sirve para nada (nadie lo recoge —
+  // DEFAULT_API_URL ya está vacía) y pedir un dominio @murciaeduca.es a un
+  // alumno de otro país no tiene sentido. Se marca opcional aquí;
+  // handleStartAll() (sint/index.js) ya no lo exige si LIGHT. El campo
+  // "Grupo" se deja tal cual (visible): navigation.js decide su visibilidad
+  // módulo a módulo (se oculta solo en Arcade) y forzarlo aquí se
+  // desharía en el primer cambio de módulo — pero ya no es obligatorio.
+  const campoEmail = document.getElementById('inp-email');
+  if (campoEmail) {
+    campoEmail.removeAttribute('aria-required');
+    campoEmail.placeholder = 'Opcional';
+    const label = campoEmail.closest('.field')?.querySelector('label');
+    if (label) label.textContent = 'Correo (opcional)';
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
