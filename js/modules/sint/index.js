@@ -72,7 +72,7 @@ const GrammarRules = {
 const SUBFASE_CONFIGS = {
   solo_np:   { label:'Solo NP',          icon:'①',    phases:[1],       color:'#2563EB', desc:'Identifica el Núcleo del Predicado.' },
   np_sujeto: { label:'NP + Sujeto',      icon:'①②',   phases:[1,2],     color:'#7C3AED', desc:'Verbo y sujeto (expreso o tácito).' },
-  completo:  { label:'Análisis completo',icon:'①②③', phases:[1,2,3],   color:'#059669', desc:'NP + Sujeto + Funciones del Predicado (PAU).' },
+  completo:  { label:'Análisis completo',icon:'①②③', phases:[1,2,3],   color:'#059669', desc:'NP + Sujeto + Funciones del Predicado ('+NOMBRE_PRUEBA+').' },
 };
 
 
@@ -3493,7 +3493,7 @@ const LOGIN_PANELS = {
           <span class="sel-icon">📗</span><span class="sel-title">3.º–4.º ESO</span><span class="sel-desc">Atributos esenciales</span>
         </button>
         <button type="button" class="sel-card" id="mm-maestro-lvl" onclick="setMaestroNivel('maestro');setMorphTipoSilent('analisis')" role="radio" aria-checked="false">
-          <span class="sel-icon">🧬</span><span class="sel-title">Maestro</span><span class="sel-desc">Análisis PAU</span>
+          <span class="sel-icon">🧬</span><span class="sel-title">Maestro</span><span class="sel-desc">Análisis ${NOMBRE_PRUEBA}</span>
         </button>
       </div>
       <p id="e-maestronivel" class="ferr" role="alert"></p>

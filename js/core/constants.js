@@ -41,6 +41,12 @@ export const NOMBRE_RE = /^[\p{L}\p{M}\s'’.\-]{2,60}$/u;
 // ───── PIN del modo examen ─────
 export const PIN_LEN = 4;
 
+// ───── Nombre neutro de la prueba (Plan_Estrategico_Web.md §11.12) ─────
+// La NGLE es panhispánica; "PAU" es la denominación oficial en España (RD
+// 534/2024) pero no significa nada fuera. En la versión completa (centro
+// de Josele) se sigue diciendo "PAU" tal cual; en la ligera se deletrea.
+export const NOMBRE_PRUEBA = LIGHT ? 'prueba de acceso a la universidad' : 'PAU';
+
 // ───── URL por defecto del backend GAS ─────
 // Cambia esta URL por la de tu despliegue de Google Apps Script.
 // Los alumnos NO necesitan entrar al panel del profesor; la app

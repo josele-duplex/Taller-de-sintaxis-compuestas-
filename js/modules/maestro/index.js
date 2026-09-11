@@ -33,6 +33,7 @@
 //    EVALUACION + avisar a los alumnos de la escala (requisito del
 //    documento Investigacion_evaluacion.md, igual que B1/B2 de Simples).
 import { log } from '../../core/log.js';
+import { NOMBRE_PRUEBA } from '../../core/constants.js';
 // Las cascadas de rasgos (datos linguisticos, no interfaz) viven en
 // js/data/cascadas-morfologia.js desde ago-2026 (hallazgo A8 de la
 // auditoria). getCascadeForNivel es la unica puerta de entrada: resuelve
@@ -1259,7 +1260,7 @@ function showTokenFeedback(token, catCorrect, earned, possible, displayCat){
     }).join('');
   const respuestaPAU = (MM.nivel==='maestro' && catCorrect)
     ? `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(0,0,0,.12);font-size:.78rem;color:var(--ink2)">
-        📝 <strong>Respuesta PAU:</strong> ${buildRespuestaPAU_(token, cascade, correctAtrs)}
+        📝 <strong>Respuesta ${NOMBRE_PRUEBA}:</strong> ${buildRespuestaPAU_(token, cascade, correctAtrs)}
       </div>`
     : '';
 

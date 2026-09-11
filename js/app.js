@@ -132,6 +132,15 @@ if (constants.LIGHT) {
     }
   });
 
+  // "PAU" no significa nada fuera de España (Plan_Estrategico_Web.md
+  // §11.12) — la tarjeta de Análisis Sintáctico es texto estático de
+  // index.html, así que se neutraliza aquí en vez de duplicar el archivo.
+  document.querySelectorAll('.mod-card-desc').forEach(d => {
+    if (d.textContent.includes('el rigor de la PAU')) {
+      d.textContent = d.textContent.replace('la PAU', 'la ' + constants.NOMBRE_PRUEBA);
+    }
+  });
+
   // Sin centro ni backend: el correo no sirve para nada (nadie lo recoge —
   // DEFAULT_API_URL ya está vacía) y pedir un dominio @murciaeduca.es a un
   // alumno de otro país no tiene sentido. Se marca opcional aquí;
