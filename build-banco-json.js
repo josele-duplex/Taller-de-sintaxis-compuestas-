@@ -26,7 +26,7 @@ function leerTSV(ruta) {
   });
 }
 
-function leerIdsMarcados(rutaCSV) {
+function parseCSVFile(rutaCSV) {
   const raw = fs.readFileSync(rutaCSV, 'utf8').replace(/^﻿/, '');
   const lineas = []; let campo = '', fila = [], enComillas = false;
   for (let i = 0; i < raw.length; i++) {
@@ -39,11 +39,31 @@ function leerIdsMarcados(rutaCSV) {
     else campo += c;
   }
   if (campo.length || fila.length) { fila.push(campo); lineas.push(fila); }
-  const header = lineas[0];
+  return { header: lineas[0], filas: lineas.slice(1) };
+}
+
+function normalizarTexto(t) {
+  return String(t || '').replace(/\s+([.,;:!?¡¿])/g, '$1').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function leerIdsMarcados(rutaCSV) {
+  const { header, filas } = parseCSVFile(rutaCSV);
   const iId = header.indexOf('id'), iInc = header.indexOf('INCLUIR');
   const ids = new Set();
-  lineas.slice(1).forEach(f => { if ((f[iInc] || '').trim() !== '') ids.add(f[iId]); });
+  filas.forEach(f => { if ((f[iInc] || '').trim() !== '') ids.add(f[iId]); });
   return ids;
+}
+
+// Como leerIdsMarcados, pero además devuelve el texto exacto que se marcó
+// para cada id — necesario cuando el ID de origen no es único de verdad
+// (ver el ID 52 duplicado en Morfologia_Textos: dos filas físicas distintas
+// comparten el mismo ID de la hoja) y hace falta desambiguar por contenido.
+function leerIdsYTextosMarcados(rutaCSV, columnaTexto) {
+  const { header, filas } = parseCSVFile(rutaCSV);
+  const iId = header.indexOf('id'), iInc = header.indexOf('INCLUIR'), iTexto = header.indexOf(columnaTexto);
+  const porId = new Map();
+  filas.forEach(f => { if ((f[iInc] || '').trim() !== '') porId.set(f[iId], f[iTexto]); });
+  return porId;
 }
 
 // ── Compuestas ───────────────────────────────────────────────────────────
@@ -520,6 +540,41 @@ function generarBancoSimples() {
   return { destino, total: oraciones.length, esperados: idsMarcados.size, errores };
 }
 
+// ── Morfología ───────────────────────────────────────────────────────────
+// Port de precomputeMorfologia_ (Server/Code_v6.gs:1421-1457): a diferencia
+// de simples, aquí el servidor NO transforma el contenido — solo lee
+// {id, texto, nivel, tokens} tal cual. El filtro/relajación por nivel
+// (resolveNivelMorfologia_, líneas 1547-1585) si se necesita en el futuro.
+function generarBancoMorfologia() {
+  // Por id Y por texto: el ID 52 de la hoja está duplicado en dos filas
+  // físicas distintas con contenido distinto (hallazgo del 9-sep-2026,
+  // ver memoria del proyecto). Desambiguar solo por id incluiría las dos.
+  const marcados = leerIdsYTextosMarcados(path.join(DIR, 'Seleccion_Morfologia_Light.csv'), 'Texto');
+  const filas = leerTSV(path.join(DIR, 'banco_export', 'Morfologia_Textos.tsv'));
+
+  const textos = [];
+  const errores = [];
+  // Los ids en Seleccion_Morfologia_Light.csv son 'M' + el ID original de la
+  // hoja (build-seleccion-banco.js), así que hay que reconstruir el mismo
+  // prefijo para saber qué filas están marcadas.
+  filas.forEach(r => {
+    const idConPrefijo = 'M' + r.ID;
+    if (!marcados.has(idConPrefijo)) return;
+    if (normalizarTexto(r.Texto_Completo) !== normalizarTexto(marcados.get(idConPrefijo))) return; // desambigua ID 52
+    if (r.Activo !== 'Sí') { errores.push(idConPrefijo + ': marcada pero no Activa en el TSV'); return; }
+    let tokens = [];
+    try { tokens = JSON.parse(r.Tokens_JSON || '[]'); }
+    catch (e) { errores.push(idConPrefijo + ': Tokens_JSON no parsea (' + e.message + ')'); return; }
+    textos.push({ id: r.ID, texto: r.Texto_Completo, nivel: (r.Nivel || 'basico').trim(), tokens });
+  });
+
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+  const destino = path.join(DATA_DIR, 'banco-morfologia.json');
+  fs.writeFileSync(destino, JSON.stringify({ textos }), 'utf8');
+
+  return { destino, total: textos.length, esperados: marcados.size, errores };
+}
+
 // ── Ejecución ────────────────────────────────────────────────────────────
 
 const rc = generarBancoCompuestas();
@@ -531,3 +586,8 @@ const rs = generarBancoSimples();
 console.log('\nOK:', path.relative(DIR, rs.destino), '—', rs.total, 'oraciones (' + rs.esperados, 'marcadas en el CSV)');
 if (rs.errores.length) { console.log('\nAVISOS (simples):'); rs.errores.forEach(e => console.log('  -', e)); }
 if (rs.total !== rs.esperados) console.log('\n⚠ El total escrito no coincide con lo marcado (simples) — revisa los avisos.');
+
+const rm = generarBancoMorfologia();
+console.log('\nOK:', path.relative(DIR, rm.destino), '—', rm.total, 'textos (' + rm.esperados, 'marcados en el CSV)');
+if (rm.errores.length) { console.log('\nAVISOS (morfología):'); rm.errores.forEach(e => console.log('  -', e)); }
+if (rm.total !== rm.esperados) console.log('\n⚠ El total escrito no coincide con lo marcado (morfología) — revisa los avisos.');

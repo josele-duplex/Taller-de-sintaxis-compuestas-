@@ -65,6 +65,53 @@ const MORPH_CHALLENGES = [
 //  agrupados en el mismo modulo).
 // ──────────────────────────────────────────────────────────────────────
 
+// Banco local de morfología (versión ligera / respaldo sin servidor): 30
+// textos curados en data/banco-morfologia.json, generados por
+// build-banco-json.js con el mismo shape {id,texto,nivel,tokens} que hoy
+// sirve precomputeMorfologia_. _filtrarNivelLocal replica
+// resolveNivelMorfologia_ (Server/Code_v6.gs) — mismo umbral MORPH_MIN_POOL
+// y misma cascada n1->n2->n3 si el nivel pedido se queda corto.
+const MORPH_MIN_POOL_LOCAL = 3;
+const MORPH_NIVEL_ORDER_LOCAL = ['n1', 'n2', 'n3'];
+
+function _normalizarNivelLocal(s) {
+  // Quita diacríticos (tildes) tras normalizar a NFD: los caracteres
+  // combinados quedan en el rango Unicode 0x0300-0x036f. Se filtra por
+  // código, no con una clase de regex, para no meter el carácter combinado
+  // literal en el fichero fuente (mismo motivo que _normalizarNivel_ en el GAS).
+  const sinDiacriticos = Array.from(String(s || '').normalize('NFD'))
+    .filter(ch => { const cp = ch.codePointAt(0); return cp < 0x0300 || cp > 0x036f; })
+    .join('');
+  return sinDiacriticos.trim().toLowerCase();
+}
+
+function _filtrarNivelLocal(textos, nivel) {
+  if (!nivel) return { textos };
+  const nivelNorm = _normalizarNivelLocal(nivel);
+  const filtrados = textos.filter(t => _normalizarNivelLocal(t.nivel) === nivelNorm);
+  const startIdx = MORPH_NIVEL_ORDER_LOCAL.indexOf(nivelNorm);
+  if (filtrados.length >= MORPH_MIN_POOL_LOCAL || startIdx === -1) return { textos: filtrados };
+  for (let i = startIdx + 1; i < MORPH_NIVEL_ORDER_LOCAL.length; i++) {
+    const siguientes = textos.filter(t => _normalizarNivelLocal(t.nivel) === MORPH_NIVEL_ORDER_LOCAL[i]);
+    if (siguientes.length >= MORPH_MIN_POOL_LOCAL) {
+      return { textos: siguientes, nivelSolicitado: nivelNorm, nivelServido: MORPH_NIVEL_ORDER_LOCAL[i], nivelRelajado: true };
+    }
+  }
+  return { textos, nivelSolicitado: nivelNorm, nivelServido: 'todos', nivelRelajado: true };
+}
+
+async function _cargarMorfologiaLocal(nivel) {
+  try {
+    const r = await fetch('./data/banco-morfologia.json');
+    const d = await r.json();
+    const todos = Array.isArray(d.textos) ? d.textos : [];
+    return _filtrarNivelLocal(todos, nivel);
+  } catch (e) {
+    log.warn('[maestro] banco-morfologia.json no disponible:', e);
+    return { textos: [] };
+  }
+}
+
 // MORPH CHALLENGE ENGINE v4.7
 // ════════════════════════════════════════════════════════════════════
 
@@ -72,23 +119,27 @@ let MC = {};
 
 async function startMorphChallenge({name, email, challenge}) {
   let allTokens = MAESTRO_DEMO.filter(t=>t.cat!=='Puntuación').map(t=>({...t, textSource:1}));
-  // Try to load arcade texts from Sheets
+  // Try to load arcade texts from Sheets; sin apiUrl o si falla, banco local.
   const apiUrl = getApiUrl();
+  let d = null;
   if(apiUrl){
     try{
       const r = await fetchWithTimeout(apiUrl+'?action=getTextosMorfologia&nivel=arcade',{},6000);
-      const d = await r.json();
-      if(d.textos && d.textos.length>0){
-        const analyzed = d.textos.filter(t=>t.tokens&&t.tokens.length>0);
-        if(analyzed.length>0){
-          allTokens = [];
-          analyzed.forEach((t,i) => {
-            const evalTokens = t.tokens.filter(tk=>tk.cat!=='Puntuación');
-            evalTokens.forEach(tk => allTokens.push({...tk, textSource:i+1}));
-          });
-        }
-      }
-    }catch(e){log.warn('[startMorphChallenge] Sheets error, using fallback:',e);}
+      d = await r.json();
+    }catch(e){log.warn('[startMorphChallenge] Sheets error, pruebo banco local:',e);}
+  }
+  if(!d || !d.textos || d.textos.length===0){
+    d = await _cargarMorfologiaLocal('arcade');
+  }
+  if(d && d.textos && d.textos.length>0){
+    const analyzed = d.textos.filter(t=>t.tokens&&t.tokens.length>0);
+    if(analyzed.length>0){
+      allTokens = [];
+      analyzed.forEach((t,i) => {
+        const evalTokens = t.tokens.filter(tk=>tk.cat!=='Puntuación');
+        evalTokens.forEach(tk => allTokens.push({...tk, textSource:i+1}));
+      });
+    }
   }
   // Tokens mantienen el orden del texto para que el alumno lea con coherencia
   MC = {
@@ -579,38 +630,42 @@ async function _loadMaestroExamByPin(name,email,grupo,pin){
 }
 
 async function _loadMaestroTexts(name,email,grupo){
-  let textsToUse = [...MAESTRO_TEXTS]; // fallback
+  let textsToUse = [...MAESTRO_TEXTS]; // último recurso: 1 texto de ejemplo
   const apiUrl = getApiUrl();
+  const nivelContenido = MORPH_NIVEL_CONTENIDO[selectedMaestroNivel] || 'n3';
+  let d = null;
   if(apiUrl){
     try{
-      const nivelContenido = MORPH_NIVEL_CONTENIDO[selectedMaestroNivel] || 'n3';
       const r = await fetchWithTimeout(apiUrl+'?action=getTextosMorfologia&nivel='+nivelContenido,{},6000);
-      const d = await r.json();
-      if(d.nivelRelajado) log.warn('[loadMaestroTexts] Banco insuficiente para el nivel "'+d.nivelSolicitado+'" — servido nivel "'+d.nivelServido+'".');
-      if(d.textos && d.textos.length>0){
-        // Accept each text, skip silently the ones with corrupt tokens
-        const analyzed = [];
-        d.textos.forEach(t => {
-          try {
-            if(!t.tokens || !Array.isArray(t.tokens) || t.tokens.length===0) return;
-            const safeTokens = t.tokens
-              .filter(tk => tk && tk.cat && tk.texto) // defensive: reject null/partial tokens
-              .filter(tk => tk.cat !== 'Puntuación')
-              .map(tk => tk.cat==='Verbo' ? {...tk, atrs: normalizePerifrasTokenAtrs(tk.atrs)} : tk);
-            if(safeTokens.length===0) return;
-            analyzed.push({
-              title: t.texto.slice(0,50)+'…',
-              tokens: safeTokens,
-              allTokens: t.tokens,
-            });
-          } catch(tokErr) {
-            log.warn('[loadMaestroTexts] Texto saltado (tokens corruptos):', t.id||'?', tokErr);
-          }
+      d = await r.json();
+    }catch(e){log.warn('[loadMaestroTexts] Sheets error, pruebo banco local:',e);}
+  }
+  if(!d || !d.textos || d.textos.length===0){
+    d = await _cargarMorfologiaLocal(nivelContenido);
+  }
+  if(d && d.textos && d.textos.length>0){
+    if(d.nivelRelajado) log.warn('[loadMaestroTexts] Banco insuficiente para el nivel "'+d.nivelSolicitado+'" — servido nivel "'+d.nivelServido+'".');
+    // Accept each text, skip silently the ones with corrupt tokens
+    const analyzed = [];
+    d.textos.forEach(t => {
+      try {
+        if(!t.tokens || !Array.isArray(t.tokens) || t.tokens.length===0) return;
+        const safeTokens = t.tokens
+          .filter(tk => tk && tk.cat && tk.texto) // defensive: reject null/partial tokens
+          .filter(tk => tk.cat !== 'Puntuación')
+          .map(tk => tk.cat==='Verbo' ? {...tk, atrs: normalizePerifrasTokenAtrs(tk.atrs)} : tk);
+        if(safeTokens.length===0) return;
+        analyzed.push({
+          title: t.texto.slice(0,50)+'…',
+          tokens: safeTokens,
+          allTokens: t.tokens,
         });
-        if(analyzed.length>0) textsToUse = analyzed;
-        else log.warn('[loadMaestroTexts] Ningún texto del Sheet usable, usando fallback');
+      } catch(tokErr) {
+        log.warn('[loadMaestroTexts] Texto saltado (tokens corruptos):', t.id||'?', tokErr);
       }
-    }catch(e){log.warn('[loadMaestroTexts] Sheets error, usando fallback:',e);}
+    });
+    if(analyzed.length>0) textsToUse = analyzed;
+    else log.warn('[loadMaestroTexts] Ningún texto usable (Sheet ni banco local), usando fallback mínimo');
   }
   // Shuffle texts randomly
   const shuffled = shuffle(textsToUse);
