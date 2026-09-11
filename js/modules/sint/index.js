@@ -1439,8 +1439,16 @@ async function handleStart(){
   let ok = true;
   if (!name)  { ferr('e-name','Escribe tu nombre completo.'); ok = false; }
   else if (!NOMBRE_RE.test(name)) { ferr('e-name','El nombre solo puede llevar letras, espacios y guiones (máx. 60).'); ok = false; }
-  if (!email) { ferr('e-email','El correo es obligatorio.'); ok = false; }
-  else if (!EMAIL_RE.test(email)) { ferr('e-email','Correo inválido. Usa @murciaeduca.es, @alu.murciaeduca.es o @gmail.com'); ok = false; }
+  // Versión ligera: correo opcional, igual que handleStartAll() más abajo
+  // en este mismo archivo (mismo bug que startMaestro() en maestro/index.js,
+  // encontrado al auditar antes de publicar: esta comprobación duplicada
+  // no miraba LIGHT y bloqueaba al alumno pese a que el campo dice "Opcional").
+  if (!LIGHT) {
+    if (!email) { ferr('e-email','El correo es obligatorio.'); ok = false; }
+    else if (!EMAIL_RE.test(email)) { ferr('e-email','Correo inválido. Usa @murciaeduca.es, @alu.murciaeduca.es o @gmail.com'); ok = false; }
+  } else if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    ferr('e-email','Ese correo no parece válido (o déjalo en blanco).'); ok = false;
+  }
   if (!selectedMode) { ferr('e-mode','Selecciona un modo de sesión.'); ok = false; }
   if (selectedMode === 'exam' && (!pin || pin.length !== PIN_LEN || !/^\d+$/.test(pin))) {
     ferr('e-pin', `El PIN debe ser ${PIN_LEN} dígitos numéricos.`); ok = false;
