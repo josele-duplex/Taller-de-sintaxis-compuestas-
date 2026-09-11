@@ -548,6 +548,38 @@ primero porque son las que ya tienen patrón probado y coste conocido; podar
 (Fase 3) después de tener el dato local funcionando, no antes, para no
 arriesgar cabos sueltos con el panel/login todavía a medias.
 
+### 11.9 Fases 1+2 — CERRADAS (11-sep-2026)
+
+Hecho para los tres bancos (compuestas primero, empezando por Chispa como
+demo pequeña, tal como se decidió; simples y morfología después, mismo día).
+`build-banco-json.js` genera `data/banco-{compuestas,simple,morfologia}.json`
+a partir de las hojas `Seleccion_*_Light.csv` ya marcadas a mano. Cada motor
+que sobrevive a la ligera (`compuestas`, `chispa`, `sint`, `sintagmas`,
+`arcade`, `maestro` en sus dos modos) prueba primero el servidor y, si no
+hay `apiUrl` o falla, cae al JSON local — sin bandera `LIGHT`, sin tocar
+nada de lo que ya funciona con backend. Verificado forzando una `apiUrl`
+inalcanzable en el navegador: los seis funcionan de principio a fin.
+
+El puerto de `buildOracionObject` (simples) se verificó **byte a byte**
+contra el backend real, no solo "a ojo": las 165 oraciones curadas
+coinciden con `JSON.stringify` idéntico a lo que sirve hoy `getOraciones`.
+
+De paso, un hallazgo de datos: el ID "52" de `Morfologia_Textos` está
+duplicado en dos filas con contenido distinto (una es de García Márquez).
+`build-banco-json.js` desambigua por texto; el Sheet sigue teniendo el
+problema pendiente de corregir cuando Josele tenga un rato.
+
+**Lo que esto NO incluye todavía — y por qué es una parada natural:** la
+Fase 3 (podar panel del profesor, login, examen con PIN, URL del backend)
+no es "más de lo mismo". Fases 1-2 fueron aditivas: no se quitó ni se
+escondió nada, la versión de Josele sigue funcionando exactamente igual con
+su backend real. Podar SÍ implica una decisión que no estaba tomada:
+**cómo se produce el build ligero de verdad** — ¿una bandera `LIGHT` en
+tiempo de compilación (como decía el informe original), una carpeta/rama
+aparte, o un script que copia y recorta el repo? Esa decisión afecta a la
+app que ya usan alumnos reales, así que se para aquí a propósito en vez de
+decidirlo sin consultar.
+
 ## 12. Riesgos
 
 | Riesgo | Gravedad | Mitigación |
