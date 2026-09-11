@@ -65,7 +65,19 @@ async function _cargarPoolSimples(apiUrl){
   }catch(e){ log.warn('[chispa] Simples no disponible:', e); return []; }
 }
 
+// Banco local de compuestas para cuando no hay backend (versión ligera) o el
+// servidor falla — mismo espíritu que getMock() en sint/index.js, pero como
+// archivo externo porque aquí son 80 ejercicios curados, no 5 de ejemplo.
+async function _cargarPoolCompuestasLocal(){
+  try{
+    const r = await fetch('./data/banco-compuestas.json');
+    const arr = await r.json();
+    return Array.isArray(arr) ? arr.filter(ej => ej && typeof ej.texto === 'string' && Array.isArray(ej.tokens) && Array.isArray(ej.proposiciones)) : [];
+  }catch(e){ log.warn('[chispa] banco local de compuestas no disponible:', e); return []; }
+}
+
 async function _cargarPoolCompuestas(apiUrl){
+  if(!apiUrl) return _cargarPoolCompuestasLocal();
   try{
     const r = await fetchWithTimeout(apiUrl + '?action=getOracionesCompuestas&mode=practice', {}, 12000);
     const d = await r.json();
@@ -74,8 +86,9 @@ async function _cargarPoolCompuestas(apiUrl){
               : Array.isArray(d?.oraciones)  ? d.oraciones
               : Array.isArray(d?.data)       ? d.data
               : Array.isArray(d) ? d : [];
-    return arr.filter(ej => ej && typeof ej.texto === 'string' && Array.isArray(ej.tokens) && Array.isArray(ej.proposiciones));
-  }catch(e){ log.warn('[chispa] Compuestas no disponible:', e); return []; }
+    const limpio = arr.filter(ej => ej && typeof ej.texto === 'string' && Array.isArray(ej.tokens) && Array.isArray(ej.proposiciones));
+    return limpio.length ? limpio : _cargarPoolCompuestasLocal();
+  }catch(e){ log.warn('[chispa] Compuestas no disponible, uso banco local:', e); return _cargarPoolCompuestasLocal(); }
 }
 
 // ── Adaptadores: de cada banco a "fichas" {func, texto} ─────────────────
@@ -293,9 +306,13 @@ async function startChispa({ name, email, grupo }){
   _actualizarStreak();
 
   const apiUrl = (typeof getApiUrl === 'function') ? getApiUrl() : '';
+  // Antes, sin apiUrl, esto devolvía pools vacíos sin ni intentar el banco
+  // local. _cargarPoolSimples ya delega en loadOraciones(), que resuelve a
+  // getMock() sin apiUrl; _cargarPoolCompuestas ahora hace lo mismo con
+  // banco-compuestas.json. Chispa funciona sin backend desde aquí.
   const [poolSimples, poolCompuestas] = await Promise.all([
-    apiUrl ? _cargarPoolSimples(apiUrl) : Promise.resolve([]),
-    apiUrl ? _cargarPoolCompuestas(apiUrl) : Promise.resolve([])
+    _cargarPoolSimples(apiUrl),
+    _cargarPoolCompuestas(apiUrl)
   ]);
   CHI.poolSimples = poolSimples;
   CHI.poolCompuestas = poolCompuestas;

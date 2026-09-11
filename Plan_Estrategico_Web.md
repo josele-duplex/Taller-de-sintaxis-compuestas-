@@ -489,6 +489,65 @@ público**. Publicar el motor completo le resta valor a lo que intentas vender.
 
 ---
 
+## 11.8 Optimización técnica de las Fases 1-6 (9-sep-2026)
+
+El `Informe_Version_Light_Taller_Sintaxis.pdf` (1-sep-2026) estimó las fases 1-6
+sin mirar el código línea a línea. Con el banco ya seleccionado (§2.1.1) tocaba
+comprobarlo contra el repo real antes de decir "empieza por aquí". Cuatro
+correcciones, todas a favor de ir más rápido y más barato salvo la última:
+
+**Fase 2 es más barata de lo que parecía — ya existe el patrón, solo hay que
+extenderlo.** El informe hablaba de "imitar la forma exacta de los datos en 5
+endpoints, 2-3 sesiones, ALTA dificultad". Comprobado en el código real:
+- Con el examen-PIN, el ranking y las analíticas ya descartados de la light
+  (tabla §2.1.1), los módulos que sobreviven solo llaman a **3 endpoints de
+  lectura**: `getOraciones` (sint/sintagmas/arcade), `getOracionesCompuestas`
+  (compuestas/chispa), `getTextosMorfologia` (maestro).
+- `sint`, `sintagmas` y `arcade` **ya tienen** una función `getMock()`
+  (`js/modules/sint/index.js:369`) que se usa como respaldo sin backend, con
+  el objeto de oración YA en la forma final que consume el motor (fase1/fase2/
+  fase3 precalculados, no el JSON en bruto del Sheet). Es exactamente el patrón
+  que la Fase 2 necesita — probado en producción, no una idea nueva. El trabajo
+  real es: (a) que ese `getMock()` cargue de un archivo JSON externo en vez de
+  5 oraciones de ejemplo en línea, y (b) construir el mismo patrón para
+  `compuestas` y `maestro`, que hoy no lo tienen.
+- Revisado: **1-2 sesiones, MEDIA**, no 2-3 ALTA.
+
+**Fase 1 tiene un coste conocido, no una estimación.** La transformación
+Sheet-fila → objeto-que-consume-el-motor vive en Apps Script y tiene tamaño
+medible: `buildOracionObject` (simples) 244 líneas, `getOracionesCompuestas_`
+63 líneas, `getTextosMorfologia_` 46 líneas — sin contar las funciones de
+normalización (`normalizeFuncOrac`, `normalizeSintagma_`) que
+`build-seleccion-banco.js` ya porta parcialmente a Node. Portar ~350 líneas de
+transformación de datos pura (sin llamadas a Sheets dentro) es trabajo
+mecánico acotado, no una incógnita. Se mantiene en **1 sesión, baja-media**.
+
+**Fase 5 (idioma neutro) es bastante más grande de lo que decía el informe —
+y ha crecido justo esta semana.** El informe la calificó "1 sesión, baja pero
+larga". Recuento real hoy: **96 apariciones de "PAU"/"Murcia"** en 7 archivos,
+concentradas en `js/modules/compuestas/index.js` (70) y `js/modules/maestro/index.js`
+(13). Además, el commit `de6d835` (después de escribirse el informe) *añadió*
+34 apariciones de "PAU" sustituyendo "EBAU" — en la dirección contraria a lo
+que necesita la light. Recomendación: no reescribir 96 sitios a mano. Crear un
+módulo pequeño (`js/core/terminologia.js`) con un diccionario de términos y un
+getter consciente de una bandera `LIGHT` (`términoExamen()` → "la PAU" en la
+versión de centro, "la prueba de acceso a la universidad" en la light), y
+hacer la sustitución con un script asistido por regex, no a mano. **2 sesiones,
+media** (subo la estimación, no la bajo, en esta fase).
+
+**Fase 6 (PWA) se confirma sin cambios.** `manifest.json` completo (iconos,
+colores, `display: standalone`) y `sw.js` de 192 líneas, igual que el 1-sep.
+Sigue siendo la fase más barata: 1 sesión, media.
+
+**Total revisado: 6-8 sesiones** (antes 7-10), con el ahorro concentrado en
+las Fases 1-2 gracias al patrón `getMock()` ya probado, y el coste extra
+absorbido por una Fase 5 más grande de lo previsto.
+
+**Orden recomendado — no cambia respecto al informe, sí el porqué:** 1 y 2
+primero porque son las que ya tienen patrón probado y coste conocido; podar
+(Fase 3) después de tener el dato local funcionando, no antes, para no
+arriesgar cabos sueltos con el panel/login todavía a medias.
+
 ## 12. Riesgos
 
 | Riesgo | Gravedad | Mitigación |
