@@ -644,11 +644,87 @@ Verificado con clic real: el chip «Básico» sigue filtrando con normalidad
 sustancia pedagógica ya estaba construida, solo faltaba nombrarla en un
 sitio.
 
-**Fase 5 (idioma neutro) — sin empezar, necesita una decisión de diseño
-antes de tocar código:** 96 apariciones de «PAU»/«Murcia» (§11.8) piden un
-diccionario de términos con getter consciente de `LIGHT` — hay que decidir
-su forma exacta (¿un solo archivo `js/core/terminologia.js`? ¿qué términos
-además de «PAU» hace falta neutralizar?) antes de hacer la pasada.
+### 11.12 Fase 5 (idioma neutro) — recuento real y efecto en la estrategia comercial (12-sep-2026)
+
+**El recuento de §11.8 (96 apariciones, 2 sesiones) estaba inflado por
+contar código, no texto.** Al separar lo que ve el alumno de lo que solo ve
+el programador, la fase se desinfla:
+
+- De las 68 apariciones de «PAU» en `compuestas/index.js`, **ninguna es
+  visible**: son nombres de funciones internas (`renderModeloPAU`,
+  `familiaPAU`, `bloquePropPAU`…), una clase CSS (`cp-pau`) y comentarios.
+  Renombrarlas no cambia nada para nadie.
+- Las 5 apariciones de «Murcia» son todas comentarios. **Cero visibles.**
+- **Texto que el alumno ve de verdad en la versión ligera: 4 cadenas.**
+  «con el rigor de la PAU» (tarjeta de Análisis Sintáctico, `index.html`),
+  «Funciones del Predicado (PAU)» (Profundidad del análisis, `sint`),
+  «Análisis PAU» (nivel Maestro, `sint`) y «Respuesta PAU:» (feedback del
+  nivel Maestro, `maestro`). Las otras 2 de `index.html` están en el panel
+  del profesor, que ya no viaja en la copia ligera.
+
+Conclusión técnica: no hace falta `terminologia.js` ni script con regex.
+Basta una constante en `js/core/constants.js` con el nombre de la prueba
+según `LIGHT` («la PAU» / «la prueba de acceso a la universidad») y
+usarla en esas 4 cadenas. **Menos de 1 sesión, baja.** La estimación de
+§11.8 queda corregida aquí; no se reescribe allí para conservar el
+historial de cómo se llegó.
+
+**¿Influye en la estrategia comercial? En tres cosas, y ninguna cambia el
+modelo.**
+
+1. **Niveles y precios: sin cambio.** La fase solo toca texto visible; el
+   muro gratis/docente/departamento (§2) se apoya en el panel del profesor,
+   no en el vocabulario.
+
+2. **«PAU» es un activo en España, no una marca regional.** Desde el Real
+   Decreto 534/2024 la denominación oficial estatal de la prueba es PAU
+   (lo que confirma, de paso, la regla «PAU, nunca EBAU» del proyecto). Lo
+   regional era «Murcia», y eso no está en ningún texto visible. Así que
+   neutralizar la app no es «quitarle Murcia»: es la misma decisión que ya
+   toma §8.4 para la web —contenido gramatical panhispánico (NGLE), envoltura
+   local en las páginas de España—. La app ligera es una sola para todos,
+   luego va con la envoltura neutra; el reclamo «prepara la PAU» vive en la
+   página de inicio para España, donde posiciona, no dentro de la app. Las
+   dos cosas se complementan, no compiten.
+
+3. **La dependencia regional real no es la etiqueta, son los criterios.**
+   La app analiza según NGLE (panhispánica) con el *formato de respuesta*
+   de la PAU de Murcia (títulos, «Oración principal / ↳ subordinada», «Nexo
+   y función»). Para la Licencia Docente fuera de Murcia conviene decirlo
+   tal cual en `/licencias/profesor` —«criterios NGLE, modelo de respuesta
+   tipo PAU»— como característica, no esconderlo: un profesor de otra
+   comunidad con criterios de corrección algo distintos lo agradecerá más
+   que descubrirlo después. No es un problema de Fase 5; es una línea de
+   la página de licencias.
+
+**Efecto colateral más importante, y es de calendario, no de Fase 5:** las
+Fases 3 y 4 estaban previstas para febrero-marzo de 2027 (§13) y se han
+cerrado en septiembre de 2026; la 5 es trivial y la 6 (PWA) ya estaba casi
+hecha. La versión ligera está mucho más cerca de publicable de lo que el
+calendario suponía. Y **publicar la versión gratuita no depende del
+bloqueante de incompatibilidad (§11.1)** —ese bloquea *cobrar*, no
+*regalar*—. Lo que sí falta antes de publicar: dominio, decidir dónde se
+aloja `dist-light/` (hoy no está en git; ver §11.13), marcar INCLUIR en la
+selección del banco (§2.1.1), la revisión de fragmentos literarios (§11.5)
+y estas 4 cadenas. Adelantar la publicación gratuita a enero-febrero de
+2027 daría al posicionamiento los 6-12 meses que §12 dice que necesita
+*antes* de abril, en vez de empezar a contarlos en abril. Es una opción,
+no una decisión: el calendario de §13 sigue vigente hasta que Josele diga
+otra cosa, y octubre-noviembre siguen reservados al curso y a iDoceo.
+
+### 11.13 Dónde se aloja la versión ligera — decisión pendiente (12-sep-2026)
+
+`dist-light/` está en `.gitignore` a propósito (es un artefacto generado,
+como una carpeta de compilación). La web actual se sirve por GitHub Pages
+desde la raíz de este mismo repositorio, que es la versión completa con
+backend real. Consecuencia: **no se puede «subir» `dist-light/` al sitio
+actual** sin sustituir la app de los alumnos. Hace falta un alojamiento
+aparte apuntando al dominio nuevo. La opción más cómoda —evita commitear
+a mano la carpeta generada en cada cambio— es un servicio con paso de
+build (Netlify, Cloudflare Pages o similar): comando `node build-light.js`,
+carpeta a publicar `dist-light/`. Así la copia ligera se regenera sola en
+cada despliegue y el repo sigue siendo uno. Pendiente de decidir; no
+bloquea el desarrollo, bloquea la publicación.
 
 ## 12. Riesgos
 
