@@ -128,15 +128,9 @@ async function startArcade({name,email,nickname,grupo,arcadeMode,ghostDuel,radar
   await delay(150);
 
   const apiUrl=getApiUrl();
-  let oraciones;
-  if(!apiUrl){oraciones=getMock().map(normalizeOracion).filter(Boolean);}
-  else{
-    try{
-      const r=await fetchWithTimeout(`${apiUrl}?action=getOraciones&mode=practice`,{},8000);
-      const d=await r.json();
-      oraciones=Array.isArray(d.oraciones)&&d.oraciones.length?d.oraciones.map(normalizeOracion).filter(Boolean):getMock().map(normalizeOracion).filter(Boolean);
-    }catch{oraciones=getMock().map(normalizeOracion).filter(Boolean);}
-  }
+  // loadOraciones ya hace la cascada servidor -> banco local (165, versión
+  // ligera) -> getMock (5, último recurso), y devuelve ya normalizado.
+  let {oraciones}=await loadOraciones('practice', apiUrl);
   oraciones=shuffle(oraciones);
 
   // En Duelo Fantasma el récord propio se guarda en su clave dedicada

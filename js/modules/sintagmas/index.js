@@ -48,16 +48,9 @@ async function startSintagmas({name,email,grupo}){
   await delay(150);
 
   const apiUrl=getApiUrl();
-  let oraciones=[];
-  if(!apiUrl){
-    oraciones=getMock().map(normalizeOracion).filter(Boolean);
-  } else {
-    try{
-      const r=await fetchWithTimeout(`${apiUrl}?action=getOraciones&mode=practice`,{},8000);
-      const d=await r.json();
-      oraciones=(Array.isArray(d.oraciones)&&d.oraciones.length>0?d.oraciones:getMock()).map(normalizeOracion).filter(Boolean);
-    }catch{oraciones=getMock().map(normalizeOracion).filter(Boolean);}
-  }
+  // loadOraciones ya hace la cascada servidor -> banco local (165, versión
+  // ligera) -> getMock (5, último recurso), y devuelve ya normalizado.
+  const {oraciones}=await loadOraciones('practice', apiUrl);
 
   // Extract all sintagmas with ≥2 valid elements
   const allSint=oraciones.flatMap(o=>{
