@@ -1230,10 +1230,30 @@ function reflexionResponder(itemIdx, optIdx){
 }
 
 // ── loadOraciones — separated from UI, always resolves ──────────────
+// Banco local (versión ligera / respaldo sin servidor): 165 oraciones
+// curadas, generadas por build-banco-json.js en el mismo formato exacto que
+// hoy sirve el servidor (verificado byte a byte contra buildOracionObject_
+// en Server/Code_v6.gs, 11-sep-2026). Se intenta ANTES que getMock() —los
+// 5 ejemplos de getMock() quedan como último recurso si ni esto carga.
+async function _cargarBancoSimpleLocal() {
+  try {
+    const r = await fetch('./data/banco-simple.json');
+    const d = await r.json();
+    const raw = Array.isArray(d.oraciones) ? d.oraciones : [];
+    return raw.map(o => { try { return normalizeOracion(o); } catch (e) { return null; } }).filter(Boolean);
+  } catch (e) {
+    log.warn('[loadOraciones] banco-simple.json no disponible:', e);
+    return [];
+  }
+}
+
 async function loadOraciones(mode, apiUrl, subfase) {
   log.debug('[loadOraciones] mode:', mode, 'apiUrl:', apiUrl ? '(set)' : '(none)', 'subfase:', subfase || '(ninguna)');
   if (!apiUrl) {
-    log.debug('[loadOraciones] No API URL — using mock data');
+    log.debug('[loadOraciones] No API URL — probando banco local');
+    const local = await _cargarBancoSimpleLocal();
+    if (local.length > 0) return { oraciones: local, usingMock: false, apiError: '' };
+    log.debug('[loadOraciones] Banco local vacío — using mock data');
     return { oraciones: getMock().map(normalizeOracion).filter(Boolean), usingMock: true, apiError: '' };
   }
   try {
@@ -1281,6 +1301,8 @@ async function loadOraciones(mode, apiUrl, subfase) {
   } catch (e) {
     const msg = e.message?.includes('aborted') ? 'Tiempo de espera agotado.' : (e.message || 'Error desconocido');
     log.error('[loadOraciones] Error:', msg, e);
+    const local = await _cargarBancoSimpleLocal();
+    if (local.length > 0) return { oraciones: local, usingMock: false, apiError: msg };
     return { oraciones: getMock().map(normalizeOracion).filter(Boolean), usingMock: true, apiError: msg };
   }
 }
