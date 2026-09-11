@@ -600,19 +600,35 @@ Simple sin correo, sin colgarse, con datos reales. Regresión en la versión
 completa: correo sigue obligatorio, selector de misiones reales sigue
 funcionando igual que siempre.
 
+**Ampliado el mismo día:** Fábrica y Laboratorio ya muestran «próximamente»
+en vez de abrir (commit `5f36a10`) — nunca «Premium», por la misma razón de
+§2.1.2. El modo «Examen con PIN» ya no aparece en el login de simples,
+compuestas ni morfología en la versión ligera — sin panel del profesor no
+hay quien configure un PIN, así que dejarlo visible era un callejón sin
+salida silencioso (commit `c92ed1b`).
+
 **Pendiente de Fase 3** (no bloqueante — con `DEFAULT_API_URL` vacía,
 ningún envío de resultados llega a ningún sitio aunque el código todavía
 esté ahí, así que no es un riesgo de privacidad, solo pulido):
-- Login/examen con PIN de los demás módulos (compuestas, morfología,
-  fábrica, laboratorio) — comparten `handleStartAll()`, pero cada uno tiene
-  su propio flujo de PIN que no se ha revisado módulo a módulo.
 - Quitar (no solo dejar inerte) el HTML del panel del profesor de
   `index.html` — hoy sigue presente pero inalcanzable.
-- Fábrica y Laboratorio siguen totalmente activos en `dist-light/`; la
-  decisión de «botón visible, en preparación» (§2.1.2) no está implementada
-  todavía.
-- Fases 4-6 del plan técnico (itinerarios del alumno, idioma neutro, PWA a
-  punto) sin empezar.
+
+**Fase 4 (itinerarios del alumno) — por comprobar, puede que ya esté hecha
+en su mayor parte:** al probar en el navegador esta sesión, tanto simples
+como compuestas YA muestran filtros al alumno antes de practicar («🔍
+Filtros de funciones» en simples, pantalla completa de filtros en
+compuestas) — el informe original (1-sep) asumía que los filtros eran solo
+del profesor, pero el código ha evolucionado desde entonces. Antes de dar
+por hecha esta fase hace falta una revisión deliberada (no solo lo visto de
+pasada), y decidir si conviene envolverlo en itinerarios con nombre
+pedagógico («Empiezo por el sujeto»…) como proponía el informe, o si los
+filtros tal cual ya cumplen.
+
+**Fase 5 (idioma neutro) — sin empezar, necesita una decisión de diseño
+antes de tocar código:** 96 apariciones de «PAU»/«Murcia» (§11.8) piden un
+diccionario de términos con getter consciente de `LIGHT` — hay que decidir
+su forma exacta (¿un solo archivo `js/core/terminologia.js`? ¿qué términos
+además de «PAU» hace falta neutralizar?) antes de hacer la pasada.
 
 ## 12. Riesgos
 
