@@ -501,10 +501,18 @@ publicar**: el NIF y el email de contacto (`@tallerdesintaxis.com`, pendiente
 de crear con el alojamiento) — ambos marcados en amarillo en las propias
 páginas. **Términos de la licencia**, sin redactar aún a propósito: no tiene
 sentido cerrarlos mientras siga abierta la compatibilidad de funcionario
-(§11.1) y no haya nada que vender todavía. Falta además enlazar las dos
-páginas nuevas desde algún sitio (hoy no las referencia ni `index.html` ni la
-página de reenvío de `build-light.js`) y decidir si viajan también dentro de
-`dist-light/`.
+(§11.1) y no haya nada que vender todavía.
+
+**Enlazadas el 12-sep-2026, en los tres sitios donde las pone una webapp
+seria:** pie de la portada (copyright + enlaces, junto al manual), aviso de
+consentimiento pegado al botón "¡Empezar!" del formulario que pide nombre/
+correo ("Al continuar, aceptas..."), y pie de la página de reenvío de la
+raíz del dominio. `aviso-legal.html`/`privacidad.html` viven junto a
+`index.html` — en el repo para la versión completa, y añadidas a
+`ARCHIVOS_RAIZ` de `build-light.js` para que viajen dentro de `dist-light/
+app/` en la ligera — así el mismo enlace relativo sirve en las dos
+versiones sin parchear nada más. Verificado sirviendo `dist-light/` con
+`http-server` real (no `file://`): los tres enlaces cargan.
 
 ### 11.7 Repositorio
 

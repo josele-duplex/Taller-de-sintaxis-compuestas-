@@ -26,7 +26,7 @@ const urlApp = URL_PUBLICA + RUTA_APP;
 
 // Lista blanca a propósito: más segura que una lista negra para algo que
 // decide qué se publica al mundo. Lo que no está aquí, no se copia.
-const ARCHIVOS_RAIZ = ['index.html', 'manual-alumno.html', 'manifest.json', 'sw.js'];
+const ARCHIVOS_RAIZ = ['index.html', 'manual-alumno.html', 'aviso-legal.html', 'privacidad.html', 'manifest.json', 'sw.js'];
 const CARPETAS_COMPLETAS = ['css', 'assets', 'data'];
 // js/ se copia entero salvo esto (panel del profesor: ~2600 líneas que son
 // exactamente la capa de centro escolar que NO va en la versión gratuita).
@@ -143,6 +143,10 @@ const redirectHtml = `<!DOCTYPE html>
 </head>
 <body style="font-family:system-ui,sans-serif;padding:2rem;text-align:center">
 <p>Abriendo el <a href="app/">Taller de Sintaxis</a>…</p>
+<p style="font-size:.75rem;color:#6B7686;margin-top:2rem">
+  <a href="app/aviso-legal.html" style="color:inherit">Aviso legal</a> ·
+  <a href="app/privacidad.html" style="color:inherit">Privacidad</a>
+</p>
 </body>
 </html>
 `;
@@ -181,6 +185,7 @@ const okSinHtmlTeacher = !indexFinal.includes('screen-teacher');
 const okMeta = indexFinal.includes('<link rel="canonical" href="' + urlApp + '">') && !indexFinal.includes('github.io');
 const okIndexable = !/name="robots"/.test(indexFinal);
 const okRaiz = fs.existsSync(path.join(OUT_RAIZ, 'index.html')) && fs.existsSync(path.join(OUT, 'index.html'));
+const okLegal = fs.existsSync(path.join(OUT, 'aviso-legal.html')) && fs.existsSync(path.join(OUT, 'privacidad.html'));
 const okSeo = fs.existsSync(path.join(OUT_RAIZ, 'robots.txt')) && fs.readFileSync(path.join(OUT_RAIZ, 'sitemap.xml'), 'utf8').includes('<loc>' + urlApp + '</loc>');
 
 console.log('OK: dist-light/ generado (la app en dist-light/app/, publicable en ' + urlApp + ').');
@@ -190,6 +195,7 @@ console.log('  js/modules/teacher/ ausente:', okSinTeacher);
 console.log('  vendor/ ausente:', okSinVendor);
 console.log('  HTML del panel del profesor ausente en index.html:', okSinHtmlTeacher);
 console.log('  app/index.html + reenvío en la raíz:', okRaiz);
+console.log('  aviso-legal.html + privacidad.html en app/:', okLegal);
 console.log('  robots.txt + sitemap.xml en la raíz:', okSeo);
 console.log('  canonical/og:url al dominio de la ligera, sin rastro de github.io:', okMeta);
 console.log('  sin meta robots noindex (la ligera SÍ se indexa):', okIndexable);
