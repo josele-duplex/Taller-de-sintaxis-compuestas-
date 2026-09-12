@@ -490,6 +490,22 @@ Aviso legal, política de privacidad y términos de la licencia. Si la versión
 gratuita no recoge datos, la política de privacidad es breve y honesta — y eso es
 un argumento de venta ante un jefe de estudios, no un trámite.
 
+**Aviso legal y privacidad redactados el 12-sep-2026** (`aviso-legal.html` y
+`privacidad.html`, raíz del repo, mismo sistema visual que los manuales).
+Confirmado en el código antes de escribirlos: `DEFAULT_API_URL` queda vacía a
+propósito en la copia ligera (`build-light.js`), así que la versión gratuita
+de verdad no manda nada a ningún servidor — todo lo que el alumno introduce
+(nombre obligatorio, correo/clase opcionales) se queda en `localStorage` del
+propio dispositivo. **Quedan dos huecos a rellenar por Josele antes de
+publicar**: el NIF y el email de contacto (`@tallerdesintaxis.com`, pendiente
+de crear con el alojamiento) — ambos marcados en amarillo en las propias
+páginas. **Términos de la licencia**, sin redactar aún a propósito: no tiene
+sentido cerrarlos mientras siga abierta la compatibilidad de funcionario
+(§11.1) y no haya nada que vender todavía. Falta además enlazar las dos
+páginas nuevas desde algún sitio (hoy no las referencia ni `index.html` ni la
+página de reenvío de `build-light.js`) y decidir si viajan también dentro de
+`dist-light/`.
+
 ### 11.7 Repositorio
 
 Si el objetivo final es vender o licenciar, **el repositorio no debe ser
