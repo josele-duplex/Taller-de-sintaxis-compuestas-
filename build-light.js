@@ -91,6 +91,10 @@ indexSrc = indexSrc.replace(/<!-- TEACHER PASSWORD MODAL -->\n<div class="overla
 //     sentido cuando se sabe en qué URL vive la copia.
 const ORIGEN_COMPLETA = 'https://josele-duplex.github.io/Taller-de-sintaxis-compuestas-/';
 indexSrc = indexSrc.split(ORIGEN_COMPLETA).join(urlApp);
+//     El fuente lleva noindex (la versión completa no es para buscadores);
+//     la ligera es justo la que SÍ debe indexarse, así que se quita aquí —
+//     comentario incluido — y el autochequeo del final lo confirma.
+indexSrc = indexSrc.replace(/<!-- La versión completa \(GitHub Pages[\s\S]*?-->\n<meta name="robots" content="noindex">\n/, '');
 indexSrc = indexSrc.replace(
   '</title>\n',
   '</title>\n<link rel="canonical" href="' + urlApp + '">\n<meta property="og:url" content="' + urlApp + '">\n'
@@ -175,6 +179,7 @@ const okSinVendor = !fs.existsSync(path.join(OUT, 'vendor'));
 const indexFinal = fs.readFileSync(indexPath, 'utf8');
 const okSinHtmlTeacher = !indexFinal.includes('screen-teacher');
 const okMeta = indexFinal.includes('<link rel="canonical" href="' + urlApp + '">') && !indexFinal.includes('github.io');
+const okIndexable = !/name="robots"/.test(indexFinal);
 const okRaiz = fs.existsSync(path.join(OUT_RAIZ, 'index.html')) && fs.existsSync(path.join(OUT, 'index.html'));
 const okSeo = fs.existsSync(path.join(OUT_RAIZ, 'robots.txt')) && fs.readFileSync(path.join(OUT_RAIZ, 'sitemap.xml'), 'utf8').includes('<loc>' + urlApp + '</loc>');
 
@@ -187,6 +192,7 @@ console.log('  HTML del panel del profesor ausente en index.html:', okSinHtmlTea
 console.log('  app/index.html + reenvío en la raíz:', okRaiz);
 console.log('  robots.txt + sitemap.xml en la raíz:', okSeo);
 console.log('  canonical/og:url al dominio de la ligera, sin rastro de github.io:', okMeta);
-if (!okLight || !okUrl || !okSinTeacher || !okSinVendor || !okSinHtmlTeacher || !okRaiz || !okSeo || !okMeta) {
+console.log('  sin meta robots noindex (la ligera SÍ se indexa):', okIndexable);
+if (!okLight || !okUrl || !okSinTeacher || !okSinVendor || !okSinHtmlTeacher || !okRaiz || !okSeo || !okMeta || !okIndexable) {
   console.log('\n⚠ Algo no salió como se esperaba — revisa antes de publicar esto.');
 }

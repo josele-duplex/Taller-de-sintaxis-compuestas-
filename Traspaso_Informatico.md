@@ -392,10 +392,13 @@ puesto `dist-light/app`).
 ```bash
 curl -s BASE/app/ | grep -E 'rel="canonical"|og:url|og:image"'
 #   → canonical y og:url = https://tallerdesintaxis.com/app/ ; og:image bajo ese mismo dominio. Ningún "github.io".
+curl -s BASE/app/ | grep -c 'name="robots"'
+#   → 0  (el fuente lleva <meta name="robots" content="noindex"> para la versión completa; el build lo quita en la ligera)
 ```
 
-Si aquí aparece `github.io`, el build no ha reescrito los metadatos (la
-copia publicada no sale de `node build-light.js`).
+Si aquí aparece `github.io`, o el segundo comando da `1`, el build no ha
+parcheado los metadatos: la copia publicada no sale de `node build-light.js`
+y **la ligera no se indexaría**.
 
 ### 8.6 Datos locales
 
