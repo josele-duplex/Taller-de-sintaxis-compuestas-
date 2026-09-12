@@ -726,6 +726,9 @@ carpeta a publicar `dist-light/`. Así la copia ligera se regenera sola en
 cada despliegue y el repo sigue siendo uno. Pendiente de decidir; no
 bloquea el desarrollo, bloquea la publicación.
 
+> **Decidido el mismo día** — ver §11.15. Se conserva este apartado tal
+> cual por el historial de cómo se llegó.
+
 ### 11.14 Auditoría "primer usuario" pre-publicación (12-sep-2026)
 
 A petición expresa de Josele antes de publicar, sesión completa de
@@ -794,6 +797,57 @@ persistía entre módulos y nunca se disparaba la comprobación. Limpiar
 `localStorage` antes de cada módulo fue lo que los sacó a la luz.
 **Lección para futuras verificaciones de LIGHT: probar siempre con
 `localStorage.clear()` primero, no solo con clics reales.**
+
+### 11.15 Alojamiento decidido y traspaso al informático (12-sep-2026)
+
+Cierra la decisión pendiente de §11.13 y prepara la entrega a un
+informático externo, ya contratado, que se ocupará de dominio, DNS y
+alojamiento. Todo lo operativo vive en **`Traspaso_Informatico.md`** (raíz
+del repo): es el documento que se le entrega, y no se duplica aquí. Lo que
+sí conviene dejar anotado en el plan son las decisiones:
+
+- **Alojamiento con paso de build** (Netlify o Cloudflare Pages, plan
+  gratuito): comando `node build-light.js`, carpeta a publicar
+  `dist-light/`. La copia se regenera en cada despliegue; `dist-light/`
+  sigue fuera de git. Si el informático prefiere otra vía, debe respetar
+  «un repo, la copia se genera, no se edita a mano».
+- **La app ligera vive en `/app/` desde el primer día**, como ya decían §5
+  y §7, para no mover después una PWA instalada. `build-light.js` deja la
+  app en `dist-light/app/` y en la raíz una página de reenvío (`noindex`),
+  `robots.txt` y un `sitemap.xml` mínimo (solo `/app/`; las guías y
+  oraciones de §8 se añadirán cuando existan). Dos constantes al principio
+  del script (`URL_PUBLICA`, `RUTA_APP`) son lo único que se toca si el
+  dominio cambiara.
+- **Dominio `tallerdesintaxis.com`: sin registrar a esta fecha.** Se
+  registra a nombre de Josele; el informático opera. Mismo principio para
+  todas las cuentas (alojamiento, Search Console): titularidad de Josele,
+  el informático invitado. Acceso al repo **solo de lectura**; cualquier
+  cambio de código, por *pull request* — un push a `main` redespliega la
+  app de los alumnos.
+- **SEO básico hecho en el fuente** (vale para las dos versiones, texto
+  neutro sin «PAU»): `<title>` sin número de versión, meta description y
+  Open Graph. En la ligera, el build añade `canonical` y `og:url` al
+  dominio nuevo.
+- **La versión completa deja de ser indexable**: lleva `<meta
+  name="robots" content="noindex">` en el fuente y el build lo quita solo
+  en la ligera. Un `robots.txt` no valía: la app de los alumnos vive en una
+  subcarpeta de `josele-duplex.github.io` y los buscadores solo leen el de
+  la raíz. Razón: evitar que Google tome la copia de github.io por
+  «original» y la del dominio por duplicado. Para los alumnos no cambia
+  nada.
+- **Hallazgo:** el repositorio es **público**, cuando §11.7 lo quiere
+  privado. No se cambia ahora: GitHub Pages en plan gratuito exige repo
+  público y hacerlo privado tumbaría la versión completa. Queda como
+  decisión aparte para cuando la completa deje de servirse desde Pages (o
+  se pague el plan). El alojamiento de la ligera se configura vía app de
+  GitHub para que sobreviva a ese cambio.
+
+**Lo que sigue faltando para publicar la ligera** (sin cambios respecto a
+§11.12, salvo lo tachado): dominio registrado, ~~decidir alojamiento~~,
+marcar INCLUIR en la selección del banco (§2.1.1), revisión de fragmentos
+literarios (§11.5) y ~~las 4 cadenas~~ (hechas en Fase 5). Además, los
+manuales publicados en la web (§7) y las páginas legales (§11.6), que son
+trabajo de la web de captación, no de la app.
 
 ## 12. Riesgos
 
