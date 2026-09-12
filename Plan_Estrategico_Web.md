@@ -476,6 +476,14 @@ autoría reconocible piden verificar cita/atribución o sustituirlos por textos
 propios antes de publicarlos; los textos cortos generados para el banco no
 tienen este problema.
 
+**Cerrado el 12-sep-2026:** excluidos de la ligera los 5 fragmentos extensos
+de *Cien años de soledad* (García Márquez) más una cita corta de una frase
+del mismo autor (M48) — citarla bien exigiría un campo de atribución que hoy
+no existe en `Morfologia_Textos` y volver a etiquetar esas palabras en el
+`Tokens_JSON`, así que queda como tarea aparte si se retoma. El resto de la
+bolsa (88 de 94 textos, sin problema de derechos) se marcó INCLUIR — bolsa
+prácticamente completa, tal como decidía §2.1.1.
+
 ### 11.6 Documentos obligatorios de la web
 
 Aviso legal, política de privacidad y términos de la licencia. Si la versión
@@ -844,10 +852,13 @@ sí conviene dejar anotado en el plan son las decisiones:
 
 **Lo que sigue faltando para publicar la ligera** (sin cambios respecto a
 §11.12, salvo lo tachado): dominio registrado, ~~decidir alojamiento~~,
-marcar INCLUIR en la selección del banco (§2.1.1), revisión de fragmentos
-literarios (§11.5) y ~~las 4 cadenas~~ (hechas en Fase 5). Además, los
-manuales publicados en la web (§7) y las páginas legales (§11.6), que son
-trabajo de la web de captación, no de la app.
+~~marcar INCLUIR en la selección del banco (§2.1.1)~~ y
+~~revisión de fragmentos literarios (§11.5)~~ (cerradas 12-sep-2026:
+`data/banco-*.json` regenerado — 165 simples, 80 compuestas, 88 morfología;
+excluidos de Morfología los 6 fragmentos de *Cien años de soledad*, ver
+§11.5) y ~~las 4 cadenas~~ (hechas en Fase 5). Además, los manuales
+publicados en la web (§7) y las páginas legales (§11.6), que son trabajo de
+la web de captación, no de la app.
 
 ## 12. Riesgos
 
