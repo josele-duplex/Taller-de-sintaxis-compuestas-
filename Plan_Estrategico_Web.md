@@ -763,6 +763,21 @@ ligera sin que nadie los notara):**
    `script.google.com`). Solo era el texto: no anunciar lo que no se
    cumple.
 
+**Dos hallazgos más, de pulido, del mismo barrido:**
+
+4. **"PAU" también en el manifest.json instalable** (commit `7a1a0a8`):
+   la descripción que ve el alumno al añadir la app a la pantalla de
+   inicio (Android/iOS) decía "NGLE / PAU" — es metadato de instalación,
+   no solo texto de interfaz, así que aplica el mismo criterio de Fase 5.
+   `build-light.js` ahora la recorta también.
+5. **Solape móvil en Análisis Sintáctico, no específico de LIGHT**
+   (commit `e213767`), encontrado probando en 375×812: con una oración
+   corta, "Saltar esta oración" cae justo donde tiene su ancho la
+   píldora "📖 Glosario", solapándose de verdad (confirmado con
+   `getBoundingClientRect`). Afecta también a la versión completa —se
+   corrige en el CSS compartido, reduciendo el Glosario a icono circular
+   por debajo de 480px, igual que el botón de sonido.
+
 **Verificado sin incidencias** (clic real, consola sin errores, sin
 peticiones fallidas): las 6 rutas de módulo completas hasta terminar al
 menos un ejercicio real, el selector "Solo NP / NP+Sujeto / Análisis
