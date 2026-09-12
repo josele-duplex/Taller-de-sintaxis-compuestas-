@@ -134,6 +134,27 @@ const redirectHtml = `<!DOCTYPE html>
 `;
 fs.writeFileSync(path.join(OUT_RAIZ, 'index.html'), redirectHtml, 'utf8');
 
+// ── robots.txt y sitemap.xml (solo en la copia ligera) ────────────────────
+// La ligera es la versión que debe indexar el buscador; la completa se
+// comparte por enlace directo y no compite por posicionamiento
+// (Plan_Estrategico_Web.md §8). Los dos archivos van en la raíz del dominio
+// —es donde los buscadores los buscan—, nunca dentro de app/. El sitemap es
+// mínimo a propósito: solo la portada de la app. Las páginas de contenido
+// (/guias/, /oraciones/) son otra fase del plan y se añadirán cuando existan.
+fs.writeFileSync(
+  path.join(OUT_RAIZ, 'robots.txt'),
+  'User-agent: *\nAllow: /\n\nSitemap: ' + URL_PUBLICA + '/sitemap.xml\n',
+  'utf8'
+);
+fs.writeFileSync(
+  path.join(OUT_RAIZ, 'sitemap.xml'),
+  '<?xml version="1.0" encoding="UTF-8"?>\n' +
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+  '  <url><loc>' + urlApp + '</loc></url>\n' +
+  '</urlset>\n',
+  'utf8'
+);
+
 // ── Verificación básica antes de darlo por bueno ──────────────────────────
 const constantsFinal = fs.readFileSync(constantsPath, 'utf8');
 const okLight = /export const LIGHT = true;/.test(constantsFinal);
@@ -143,6 +164,7 @@ const okSinTeacher = !fs.existsSync(path.join(OUT, 'js', 'modules', 'teacher'));
 const okSinVendor = !fs.existsSync(path.join(OUT, 'vendor'));
 const okSinHtmlTeacher = !fs.readFileSync(indexPath, 'utf8').includes('screen-teacher');
 const okRaiz = fs.existsSync(path.join(OUT_RAIZ, 'index.html')) && fs.existsSync(path.join(OUT, 'index.html'));
+const okSeo = fs.existsSync(path.join(OUT_RAIZ, 'robots.txt')) && fs.readFileSync(path.join(OUT_RAIZ, 'sitemap.xml'), 'utf8').includes('<loc>' + urlApp + '</loc>');
 
 console.log('OK: dist-light/ generado (la app en dist-light/app/, publicable en ' + urlApp + ').');
 console.log('  LIGHT = true en la copia:', okLight);
@@ -151,6 +173,7 @@ console.log('  js/modules/teacher/ ausente:', okSinTeacher);
 console.log('  vendor/ ausente:', okSinVendor);
 console.log('  HTML del panel del profesor ausente en index.html:', okSinHtmlTeacher);
 console.log('  app/index.html + reenvío en la raíz:', okRaiz);
-if (!okLight || !okUrl || !okSinTeacher || !okSinVendor || !okSinHtmlTeacher || !okRaiz) {
+console.log('  robots.txt + sitemap.xml en la raíz:', okSeo);
+if (!okLight || !okUrl || !okSinTeacher || !okSinVendor || !okSinHtmlTeacher || !okRaiz || !okSeo) {
   console.log('\n⚠ Algo no salió como se esperaba — revisa antes de publicar esto.');
 }
