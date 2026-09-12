@@ -22,6 +22,7 @@ const RUTA_APP = '/app/';
 
 const OUT_RAIZ = path.join(DIR, 'dist-light');
 const OUT = path.join(OUT_RAIZ, 'app');
+const urlApp = URL_PUBLICA + RUTA_APP;
 
 // Lista blanca a propósito: más segura que una lista negra para algo que
 // decide qué se publica al mundo. Lo que no está aquí, no se copia.
@@ -84,6 +85,16 @@ let indexSrc = fs.readFileSync(indexPath, 'utf8');
 indexSrc = indexSrc.replace('<script defer src="js/modules/teacher/informe-excel.js"></script>\n', '');
 indexSrc = indexSrc.replace(/<!-- TEACHER PANEL -->\n<div id="screen-teacher"[\s\S]*?\n<\/div>\n\n\n/, '');
 indexSrc = indexSrc.replace(/<!-- TEACHER PASSWORD MODAL -->\n<div class="overlay" id="teacher-modal"[\s\S]*?\n<\/div>\n\n\n/, '');
+// 3b. Metadatos de página: la og:image del fuente apunta a la versión
+//     completa (única URL absoluta pública que existe hoy); aquí se reescribe
+//     al dominio de la ligera y se añaden canonical + og:url, que solo tienen
+//     sentido cuando se sabe en qué URL vive la copia.
+const ORIGEN_COMPLETA = 'https://josele-duplex.github.io/Taller-de-sintaxis-compuestas-/';
+indexSrc = indexSrc.split(ORIGEN_COMPLETA).join(urlApp);
+indexSrc = indexSrc.replace(
+  '</title>\n',
+  '</title>\n<link rel="canonical" href="' + urlApp + '">\n<meta property="og:url" content="' + urlApp + '">\n'
+);
 fs.writeFileSync(indexPath, indexSrc, 'utf8');
 
 // 4. sw.js: quitar del precache lo que esta copia ya no tiene (no es
@@ -116,7 +127,6 @@ fs.writeFileSync(
 // en cualquier alojamiento; si el servicio permite un reenvío 301 de / a
 // /app/, es preferible (lo dice Traspaso_Informatico.md) y esta página no
 // molesta.
-const urlApp = URL_PUBLICA + RUTA_APP;
 const redirectHtml = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -162,7 +172,9 @@ const urlMatch = constantsFinal.match(/DEFAULT_API_URL = '([^']*)'/);
 const okUrl = urlMatch && urlMatch[1] === '';
 const okSinTeacher = !fs.existsSync(path.join(OUT, 'js', 'modules', 'teacher'));
 const okSinVendor = !fs.existsSync(path.join(OUT, 'vendor'));
-const okSinHtmlTeacher = !fs.readFileSync(indexPath, 'utf8').includes('screen-teacher');
+const indexFinal = fs.readFileSync(indexPath, 'utf8');
+const okSinHtmlTeacher = !indexFinal.includes('screen-teacher');
+const okMeta = indexFinal.includes('<link rel="canonical" href="' + urlApp + '">') && !indexFinal.includes('github.io');
 const okRaiz = fs.existsSync(path.join(OUT_RAIZ, 'index.html')) && fs.existsSync(path.join(OUT, 'index.html'));
 const okSeo = fs.existsSync(path.join(OUT_RAIZ, 'robots.txt')) && fs.readFileSync(path.join(OUT_RAIZ, 'sitemap.xml'), 'utf8').includes('<loc>' + urlApp + '</loc>');
 
@@ -174,6 +186,7 @@ console.log('  vendor/ ausente:', okSinVendor);
 console.log('  HTML del panel del profesor ausente en index.html:', okSinHtmlTeacher);
 console.log('  app/index.html + reenvío en la raíz:', okRaiz);
 console.log('  robots.txt + sitemap.xml en la raíz:', okSeo);
-if (!okLight || !okUrl || !okSinTeacher || !okSinVendor || !okSinHtmlTeacher || !okRaiz || !okSeo) {
+console.log('  canonical/og:url al dominio de la ligera, sin rastro de github.io:', okMeta);
+if (!okLight || !okUrl || !okSinTeacher || !okSinVendor || !okSinHtmlTeacher || !okRaiz || !okSeo || !okMeta) {
   console.log('\n⚠ Algo no salió como se esperaba — revisa antes de publicar esto.');
 }

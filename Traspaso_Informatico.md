@@ -389,6 +389,14 @@ Los tres archivos de la raíz son de `dist-light/`, no de `app/`. Si
 `robots.txt` sale 404, la carpeta publicada no es `dist-light` (quizá has
 puesto `dist-light/app`).
 
+```bash
+curl -s BASE/app/ | grep -E 'rel="canonical"|og:url|og:image"'
+#   → canonical y og:url = https://tallerdesintaxis.com/app/ ; og:image bajo ese mismo dominio. Ningún "github.io".
+```
+
+Si aquí aparece `github.io`, el build no ha reescrito los metadatos (la
+copia publicada no sale de `node build-light.js`).
+
 ### 8.6 Datos locales
 
 ```bash
