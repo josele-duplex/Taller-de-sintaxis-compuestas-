@@ -9,7 +9,19 @@ const fs = require('fs');
 const path = require('path');
 
 const DIR = __dirname;
-const OUT = path.join(DIR, 'dist-light');
+
+// ── Dónde va a vivir la copia publicada (decidido el 12-sep-2026) ───────
+// La app ligera se sirve en <dominio>/app/ y la raíz del dominio queda
+// libre para la web de captación (Plan_Estrategico_Web.md §5 y §7). Por eso
+// dist-light/ reproduce la carpeta EXACTA que publica el alojamiento: la
+// app dentro de app/, y en la raíz una página que reenvía a app/ mientras
+// no exista la portada web. Si el dominio o la ruta cambiaran, este es el
+// ÚNICO sitio donde tocarlo (lo leen también el sitemap y los metadatos).
+const URL_PUBLICA = 'https://tallerdesintaxis.com';
+const RUTA_APP = '/app/';
+
+const OUT_RAIZ = path.join(DIR, 'dist-light');
+const OUT = path.join(OUT_RAIZ, 'app');
 
 // Lista blanca a propósito: más segura que una lista negra para algo que
 // decide qué se publica al mundo. Lo que no está aquí, no se copia.
@@ -34,7 +46,7 @@ function copiarDir(origen, destino, excluirRel, relBase) {
   }
 }
 
-if (fs.existsSync(OUT)) fs.rmSync(OUT, { recursive: true, force: true });
+if (fs.existsSync(OUT_RAIZ)) fs.rmSync(OUT_RAIZ, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
 ARCHIVOS_RAIZ.forEach(f => {
@@ -97,6 +109,31 @@ fs.writeFileSync(
 // vendor/ (xlsx.bundle.js) no está en la lista blanca de arriba, así que ya
 // no se ha copiado — el informe Excel es cosa del panel del profesor.
 
+// ── Raíz del dominio: reenvío a app/ ──────────────────────────────────────
+// Hasta que exista la web de captación, quien entre por la raíz debe acabar
+// en la app. La página lleva `noindex` para que el buscador no la tome por
+// contenido, y `canonical` apuntando a la app. Es un respaldo que funciona
+// en cualquier alojamiento; si el servicio permite un reenvío 301 de / a
+// /app/, es preferible (lo dice Traspaso_Informatico.md) y esta página no
+// molesta.
+const urlApp = URL_PUBLICA + RUTA_APP;
+const redirectHtml = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Taller de Sintaxis</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="${urlApp}">
+<meta http-equiv="refresh" content="0; url=app/">
+</head>
+<body style="font-family:system-ui,sans-serif;padding:2rem;text-align:center">
+<p>Abriendo el <a href="app/">Taller de Sintaxis</a>…</p>
+</body>
+</html>
+`;
+fs.writeFileSync(path.join(OUT_RAIZ, 'index.html'), redirectHtml, 'utf8');
+
 // ── Verificación básica antes de darlo por bueno ──────────────────────────
 const constantsFinal = fs.readFileSync(constantsPath, 'utf8');
 const okLight = /export const LIGHT = true;/.test(constantsFinal);
@@ -105,13 +142,15 @@ const okUrl = urlMatch && urlMatch[1] === '';
 const okSinTeacher = !fs.existsSync(path.join(OUT, 'js', 'modules', 'teacher'));
 const okSinVendor = !fs.existsSync(path.join(OUT, 'vendor'));
 const okSinHtmlTeacher = !fs.readFileSync(indexPath, 'utf8').includes('screen-teacher');
+const okRaiz = fs.existsSync(path.join(OUT_RAIZ, 'index.html')) && fs.existsSync(path.join(OUT, 'index.html'));
 
-console.log('OK: dist-light/ generado.');
+console.log('OK: dist-light/ generado (la app en dist-light/app/, publicable en ' + urlApp + ').');
 console.log('  LIGHT = true en la copia:', okLight);
 console.log('  DEFAULT_API_URL vacía en la copia:', okUrl);
 console.log('  js/modules/teacher/ ausente:', okSinTeacher);
 console.log('  vendor/ ausente:', okSinVendor);
 console.log('  HTML del panel del profesor ausente en index.html:', okSinHtmlTeacher);
-if (!okLight || !okUrl || !okSinTeacher || !okSinVendor || !okSinHtmlTeacher) {
+console.log('  app/index.html + reenvío en la raíz:', okRaiz);
+if (!okLight || !okUrl || !okSinTeacher || !okSinVendor || !okSinHtmlTeacher || !okRaiz) {
   console.log('\n⚠ Algo no salió como se esperaba — revisa antes de publicar esto.');
 }
