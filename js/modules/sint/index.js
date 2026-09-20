@@ -2234,13 +2234,9 @@ function renderPhase3(el,o){
             <button type="button" class="pvpn-card" id="pvpn-pn" onclick="selectPvPn('PN','${tipoPred}')">
               <span class="pvpn-icon">🔗</span>
               <div class="pvpn-title">PN — Predicado Nominal</div>
-              <div class="pvpn-desc">Verbo copulativo (ser, estar, parecer) + Atributo. El Atributo puede sustituirse por "lo".</div>
+              <div class="pvpn-desc">Verbo de estado (ser, estar, parecer y sus "primos" vaciados) + Atributo. El Atributo puede sustituirse por "lo" o por "así".</div>
             </button>
           </div>
-          <button type="button" class="pvpn-minor" id="pvpn-pns" onclick="selectPvPn('PNS','${tipoPred}')">
-            <span class="pvpn-minor-icon">🔁</span>
-            <span class="pvpn-minor-text"><b>PN·SC</b> — ¿el verbo no es ser/estar/parecer pero tampoco admite sustituir lo que sigue por "lo" (ponerse, quedarse, resultar, salir…)? También es predicado nominal, con Atributo.</span>
-          </button>
         </div>`
     )+
     `<div id="p3-blks" class="blk-grid" role="list" style="${locked}"></div>
@@ -2265,22 +2261,19 @@ function renderPhase3(el,o){
 }
 
 function pvpnLabel(code){
-  return code==='PV' ? 'Verbal (PV)' : code==='PNS' ? 'Nominal semicopulativo (PN·SC)' : 'Nominal (PN)';
+  return code==='PV' ? 'Verbal (PV)' : code==='PNS' ? 'Nominal (verbo semicopulativo)' : 'Nominal (PN)';
 }
 
+// Fase 3, paso 0, en dos tiempos (sep-2026): PV/PN primero; si es PN, un
+// segundo paso pregunta copulativo/semicopulativo. El segundo paso aparece
+// SIEMPRE que la respuesta es PN (también para PN "puro"), para que no
+// delate por sí solo que la oración es semicopulativa — ver
+// docs/Plan_Semicopulativos_2026-09.md §S1.
 function selectPvPn(selected, correct){
-  if(selected===correct){
-    G.pvpnDone=true;p3.pvpnDone=true;
-    const blk=document.getElementById('p3-blks'),pool=document.getElementById('p3-pool-wrap');
-    if(blk){blk.style.opacity='1';blk.style.pointerEvents='all';}
-    if(pool){pool.style.opacity='1';pool.style.pointerEvents='all';}
-    const grid=document.getElementById('pvpn-grid');
-    if(grid){
-      const badge=document.createElement('div');
-      badge.className='pvpn-done-badge';
-      badge.textContent=`✓ Predicado ${pvpnLabel(selected)} identificado`;
-      grid.replaceWith(badge);
-    }
+  if(selected==='PV' && correct==='PV'){
+    finishPvPn('PV');
+  }else if(selected==='PN' && (correct==='PN'||correct==='PNS')){
+    renderPvPnStep2(correct);
   }else{
     G.totalErrors++;G.sentenceErrors[G.idx].pvpnErrors++;
     const btn=document.getElementById('pvpn-'+selected.toLowerCase());
@@ -2290,6 +2283,54 @@ function selectPvPn(selected, correct){
       trackError('sintaxis',correct);
       showFeedback('error','Tipo de predicado incorrecto',scaffold.fijo,scaffold.pista,correct);
     }
+  }
+}
+
+function renderPvPnStep2(correct){
+  const grid=document.getElementById('pvpn-grid');
+  if(!grid)return;
+  grid.innerHTML=`<div class="pvpn-step2-title">¿Con qué tipo de verbo?</div>
+    <div class="pvpn-grid">
+      <button type="button" class="pvpn-card" id="pvpn-cop" onclick="selectPvPnTipo('copulativo','${correct}')">
+        <span class="pvpn-icon">🪞</span>
+        <div class="pvpn-title">Copulativo</div>
+        <div class="pvpn-desc">ser, estar, parecer</div>
+      </button>
+      <button type="button" class="pvpn-card" id="pvpn-semicop" onclick="selectPvPnTipo('semicopulativo','${correct}')">
+        <span class="pvpn-icon">🔁</span>
+        <div class="pvpn-title">Semicopulativo</div>
+        <div class="pvpn-desc">ponerse, quedarse, seguir, verse…</div>
+      </button>
+    </div>`;
+}
+
+function selectPvPnTipo(selected, correct){
+  const ok=(selected==='copulativo' && correct==='PN')||(selected==='semicopulativo' && correct==='PNS');
+  if(ok){
+    finishPvPn(correct);
+  }else{
+    G.totalErrors++;G.sentenceErrors[G.idx].pvpnErrors++;
+    const btn=document.getElementById(selected==='copulativo'?'pvpn-cop':'pvpn-semicop');
+    if(btn){btn.classList.add('pvpn-err');setTimeout(()=>btn?.classList.remove('pvpn-err'),600);}
+    if(G.mode==='practice'||G.mode==='projector'){
+      const scaffold=lookupScaffold(selected, correct, 'syntax');
+      trackError('sintaxis','PNS');
+      showFeedback('error','Tipo de verbo incorrecto',scaffold.fijo,scaffold.pista,correct==='PNS'?'Semicopulativo':'Copulativo');
+    }
+  }
+}
+
+function finishPvPn(finalType){
+  G.pvpnDone=true;p3.pvpnDone=true;
+  const blk=document.getElementById('p3-blks'),pool=document.getElementById('p3-pool-wrap');
+  if(blk){blk.style.opacity='1';blk.style.pointerEvents='all';}
+  if(pool){pool.style.opacity='1';pool.style.pointerEvents='all';}
+  const grid=document.getElementById('pvpn-grid');
+  if(grid){
+    const badge=document.createElement('div');
+    badge.className='pvpn-done-badge';
+    badge.textContent=`✓ Predicado ${pvpnLabel(finalType)} identificado`;
+    grid.replaceWith(badge);
   }
 }
 
