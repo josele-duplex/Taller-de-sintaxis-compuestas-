@@ -41,12 +41,12 @@ permanencia / manifestación).
 
 Filas 643-659 de `banco_export/Oraciones_Banco.tsv`, todas `Activo = Sí`,
 subfase `completo`, JSON válido, Atr. siempre presente, sintagma correcto.
-Dos dudas lingüísticas para Josele (no se tocan sin su decisión):
+Dos dudas lingüísticas para Josele — **resueltas el 20-sep-2026**:
 
-| Oración | Duda |
-| :-- | :-- |
-| El viaje se **me** hacía eterno. | «me» etiquetado CI. ¿Es CI o «Dativo» (de interés)? La app tiene ambas etiquetas. |
-| El candidato salió **elegido gobernador**. | Atr. = SAdj «elegido gobernador» (dif. 3). Correcto según NGLE, pero es el caso más duro del lote; valorar si conviene rebajarlo o dejarlo para «profundo». |
+| Oración | Duda | Decisión |
+| :-- | :-- | :-- |
+| El viaje se **me** hacía eterno. | «me» etiquetado CI. ¿Es CI o «Dativo» (de interés)? La app tiene ambas etiquetas. | Se queda como CI. |
+| El candidato salió **elegido gobernador**. | Atr. = SAdj «elegido gobernador» (dif. 3). Correcto según NGLE, pero es el caso más duro del lote. | Se elimina del banco (no se rebaja de nivel). |
 
 En compuestas hay 13 filas con semicopulativos (lote de jul-2026); el motor de
 compuestas no distingue PNS y no necesita hacerlo (Atr. dentro de la O).
@@ -154,14 +154,15 @@ hereda el cambio en la próxima build; avisar al informático si ya tiene copia.
     de prueba (`saveSesionPractica`, grupo `TEST_E2E_PNS`) → `{"ok":true}` →
     confirmado por Josele en el informe Excel real con la etiqueta correcta.
 
-### S4 · Datos: dudas del lote y ampliación — **Haiku o Sonnet**, cuando Josele decida
+### S4 · Datos: dudas del lote y ampliación — ✅ decisiones tomadas 20-sep-2026
 
-- Resolver las 2 dudas de §0.2 (Josele decide; Claude edita TSV + Sheet).
-- Opcional: ampliar de 17 a ~30 oraciones simples PNS cubriendo mejor
-  permanencia y manifestación (ahora dominan las de cambio), con 2-3 en
-  dificultad 3 y algún Atr. SP («en silencio», «de acuerdo», «en forma»).
-  Generar con el prompt maestro de simples v2.1 + validar con
-  `node scripts/validar-banco.mjs simples archivo.tsv`.
+- «El viaje se me hacía eterno.»: se queda como CI, sin cambios.
+- «El candidato salió elegido gobernador.»: se elimina del banco (fila 656 del
+  TSV local `banco_export/Oraciones_Banco.tsv`, ya borrada; **pendiente que
+  Josele borre la fila equivalente en la hoja `Oraciones_Banco` del Sheet**,
+  que es la fuente real — el TSV es solo un espejo local ignorado por git).
+- Ampliación a ~30 oraciones: descartada por ahora. El banco se queda en 16
+  oraciones PNS activas tras el borrado.
 
 ### S5 · Cierre — **Sonnet** (o al final de S3)
 
