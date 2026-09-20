@@ -10,6 +10,11 @@
 ## 0. Resumen del estado (lectura rápida)
 
 **Resueltas desde la creación del documento**:
+- 1.1 (oraciones embebidas) — resuelta sep-2026, ver roadmap 3.2.
+- 1.2 (cinco ejercicios viejos sin `analisis_interno`) — resuelta: verificado
+  contra el Sheet real (21-sep-2026), OC_0001–OC_0005 ya lo tienen completo.
+- 1.3 (diagnósticos con terminología "fase 4/5") — resuelta sep-2026, ver
+  roadmap 3.3.
 - 1.8 (mostrarToast duplicado) — resuelta con la modularización.
 - 1.9 (funciones sin micro-lección) — parcialmente: Sujeto, CC Finalidad,
   CC Causa, CC Cantidad y Vocat. ya tienen lección. Faltan NP, CC Compañía,
@@ -18,60 +23,64 @@
 - 2.1 (monolito de 16.000 líneas) — resuelta: proyecto modularizado.
 
 **Siguen pendientes (las importantes)**:
-- 1.1 embebidas, 1.2 cinco ejercicios viejos, 1.3 diagnósticos CP, 1.4
-  subtipos del banco, 2.9 tests automatizados, 2.10 telemetría.
+- 1.4 subtipos del banco (descartado ampliarlo por decisión de Josele,
+  sep-2026 — no se va a hacer, no es que falte), 2.9 tests automatizados,
+  2.10 telemetría.
 
 ---
 
 ## 1. Bugs conocidos pendientes
 
-### 1.1 Oraciones embebidas (3+ proposiciones)
+### 1.1 Oraciones embebidas (3+ proposiciones) — ✅ RESUELTA (sep-2026)
 
-**Estado**: identificado en OC_0022 ("Hay quien piensa que el examen será difícil"), no resuelto.
+Auditadas las 31 oraciones con 3+ proposiciones. Confirmado en vivo que el
+motor de fase 3 resuelve solo la mayoría de los solapamientos (mapa índice→
+proposición por orden de array, gana la más interna), salvo 5 ejercicios
+donde el nexo que introduce la proposición embebida quedaba huérfano en la
+proposición externa (OC_0022, OC_0165, OC_0195, OC_0201, OC_0202) — datos
+ya corregidos y verificados en el Sheet real. Ver roadmap 3.2 para el
+detalle completo.
 
-**Problema**: cuando una P3 está embebida dentro de P2 (subordinación recursiva), los tokens de P3 aparecen también en los `indices` de P2 (por inclusión natural en la jerarquía). El motor de fase 3 entonces no sabe a cuál asignar el token cuando el alumno hace click.
+### 1.2 Cinco ejercicios viejos sin `analisis_interno` — ✅ RESUELTA
 
-**Decisión pendiente**: el usuario indicó que "el nexo de P3 debe estar en P3, aunque P3 esté dentro de P2". Esto implica **auditar y reconstruir el JSON** de los ejercicios con 3+ proposiciones para que los `indices` de la P más externa **excluyan** los tokens que pertenecen a una P más interna. Es trabajo de datos, no de código.
+Verificado contra el Sheet real (21-sep-2026): OC_0001–OC_0005 (ya con ID
+de 4 dígitos) tienen `analisis_interno` completo en sus proposiciones. No
+hace falta ninguna acción.
 
-**Impacto**: medio. Afecta a pocos ejercicios pero los que afecta son los más complejos pedagógicamente.
+### 1.3 Diagnósticos del resumen interpretativo desactualizados — ✅ RESUELTA (sep-2026)
 
-### 1.2 Cinco ejercicios viejos sin `analisis_interno`
-
-OC_001, OC_002, OC_003, OC_004, OC_005 son del lote más antiguo y tienen un formato de ID no estandarizado (3 dígitos en vez de 4) y carecen del campo `analisis_interno` en sus proposiciones.
-
-**Impacto**: bloquea la Entrega 4 (análisis interno de proposiciones) para esos 5 ejercicios. El 92% restante del banco sí lo tiene.
-
-**Solución**: añadir `analisis_interno` manualmente o regenerarlos. Trabajo de una tarde.
-
-### 1.3 Diagnósticos del resumen interpretativo desactualizados
-
-**Estado: 🔴 PENDIENTE (verificado mayo 2026).** `construirDiagnosticos(ej)`
-sigue en `js/modules/compuestas/index.js:4566` y el código del módulo aún
-menciona "fase 4" / "fase 5" (líneas ~1085, 1195, 1996, 2540). El refactor
-fusionó esas fases en "Clasificar y relacionar" (paso 4 para el alumno) pero
-los mensajes pueden salir con terminología incoherente.
-
-**Impacto**: bajo. No rompe la app, solo confunde al alumno con terminología obsoleta.
+`construirDiagnosticos()` en `js/modules/compuestas/index.js` ya usaba
+mensajes correctos para el alumno (sin "fase 4"/"fase 5" visibles); lo que
+estaba desactualizado eran los nombres internos. Renombrado completo:
+`eng.fase` 5→4 y todas las variables/funciones `f5*`→`f4*`, para que la
+numeración interna coincida con el paso 4 "Clasificar y relacionar". Ver
+roadmap 3.3. **OJO**: esto invalida la nota de 4.4 más abajo sobre
+`if(eng.fase === 4)` — ya NO es código muerto, es el paso activo.
 
 ### 1.4 Banco con subtipos faltantes (~12)
 
-El banco de compuestas no tiene ejemplos de varios subtipos:
+**Decisión de Josele (sep-2026): NO se va a ampliar.** No es que falte
+hacer el trabajo — se descartó explícitamente (roadmap 3.4). Se deja esta
+entrada solo como registro de qué subtipos quedan cortos, por si en el
+futuro cambia la decisión:
 - Subordinadas sustantivas: aposición, atributo (poquísimos ejemplos).
 - Subordinadas adverbiales propias: temporal, final, locativa, modal.
 - Coordinadas: explicativa, distributiva, ilativa coord.
 - Relativas: semilibre.
 
-**Impacto**: pedagógico. El alumno no puede practicar esos subtipos.
+### 1.5 ~~La fase 0 fue eliminada pero queda código muerto~~ — OBSOLETA
 
-### 1.5 La fase 0 fue eliminada pero queda código muerto
+**Corregido sep-2026**: no queda ningún `fase === 0` en
+`js/modules/compuestas/index.js` (comprobado por búsqueda exhaustiva). Ya
+se limpió en algún momento sin que quedara registrado aquí.
 
-Tras eliminar la fase 0 ("Lectura") del flujo, quedaron varias condiciones en el código del estilo `if(fase === 0) {...}` que ya nunca se ejecutan. No causan errores pero confunden al leer.
+### 1.6 ~~La función `goResults()` tiene una rama legacy a `eng.fase === 4`~~ — OBSOLETA
 
-**Impacto**: nulo en runtime, alto en mantenibilidad. Hay que limpiarlas.
-
-### 1.6 La función `goResults()` tiene una rama legacy a `eng.fase === 4`
-
-Tras eliminar la fase 4 antigua de CP y mover todo a la fusionada (fase 5 interna mostrada como paso 4 al alumno), el código de `avanzarFase()` aún tiene un `case` para `fase === 4` que es código defensivo. No es bug pero sí ruido conceptual.
+**Corregido sep-2026**: `goResults()` no existe en el archivo actual (ya no
+aplica). Además, tras el renombrado de roadmap 3.3, `eng.fase === 4` dejó de
+ser una rama "legacy" — es el paso activo "Clasificar y relacionar" (antes
+`fase === 5`). Esta entrada entera queda obsoleta, se deja tachada como
+registro.
 
 ### 1.7 Falta auditar duplicación de subtipo en proposiciones coordinadas
 
@@ -214,16 +223,15 @@ lista y avise (misma familia que los validadores de banco).
 
 ### 2.9 No hay tests automatizados
 
-**Estado: 🔴 PENDIENTE.** Cero tests. Toda la verificación es manual. Sigue
-siendo deuda real, ahora sobre un proyecto de ~35.800 líneas, aunque la
-modularización lo ha hecho MÁS testable (cada módulo se puede importar y
-probar aislado, cosa imposible en el monolito).
+**Estado: 🟡 PARCIAL.** El punto 1 (validador del banco) ya existe y se usa
+activamente: `scripts/validar-banco.mjs` (Node, sin dependencias, NO Python
+— la referencia a `scripts/validate_compuesta.py` de más abajo es histórica,
+ese archivo nunca llegó a existir en el repo). Cubre `compuestas`, `simples`
+y, si ya existen los módulos nuevos, `laboratorio`/`formacion`. Sigue
+pendiente de verdad: tests de funciones puras (punto 2) y el runner (punto 3).
 
 **Enfoque sencillo recomendado** (sin frameworks, sin npm install):
-1. **Validador del banco** (Python, ampliando `scripts/validate_compuesta.py`):
-   recorrer `Oraciones_Banco` y `Compuestas_Banco` y avisar de etiquetas con
-   drift (`CCLugar`, `Aposición`, `CC Finalida`...) antes de que el alumno las
-   encuentre.
+1. ~~Validador del banco~~ — ✅ hecho, ver arriba.
 2. **Tests del motor** (Node + `node archivo.test.js`): para funciones puras
    como `GrammarRules.applyAll`, `normalizeOracion`, `ScoringEngine.toGrade`.
    Empezar por los bugs ya conocidos (la regla del "por"/"para"). Requiere
@@ -306,8 +314,8 @@ Completado en mayo 2026. Ver `estrategia_division.md` y `arquitectura.md`.
 
 ### 4.2 ALTA — Crear tests mínimos (ver 2.9)
 
-🔴 Pendiente. El enfoque sencillo (validador del banco + tests de funciones
-puras con Node, sin frameworks) está detallado en 2.9.
+🟡 Parcial — el validador del banco (`scripts/validar-banco.mjs`) ya existe.
+Faltan los tests de funciones puras con Node, sin frameworks (detallado en 2.9).
 
 ### 4.3 ALTA — Eliminar el CSS legacy
 
@@ -317,7 +325,11 @@ sí, mover a `css/theme/new-ui.css`. Requiere pruebas visuales por especificidad
 
 ### 4.4 MEDIA — Limpiar código muerto
 
-Eliminar las ramas `if(fase === 0)` y `if(eng.fase === 4)` que ya no se ejecutan, junto con las funciones que ya no se llaman.
+**Corregido sep-2026**: la rama `if(eng.fase === 4)` que mencionaba esta
+entrada YA NO es código muerto — desde el renombrado de roadmap 3.3 es el
+paso activo "Clasificar y relacionar" (antes era `fase === 5`). No tocar.
+`if(fase === 0)` tampoco existe ya en el archivo. Sigue pendiente, en
+general, revisar funciones que ya no se llaman en todo el módulo.
 
 ### 4.5 MEDIA — Centralizar constantes hardcoded
 

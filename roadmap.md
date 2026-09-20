@@ -86,9 +86,9 @@ Implementado: la API `CP` expone el flujo de análisis interno con drag & drop
 `onInternaFuncBtn`). Tras "Clasificar y relacionar" el alumno puede analizar
 cada proposición por dentro (NP → Sujeto → Funciones).
 
-**Deuda residual**: los 5 ejercicios viejos (OC_0001–OC_0005) siguen sin
-`analisis_interno` completo (ver `deuda_tecnica.md` 1.2). No se deben tocar
-sin avisar; se regenerarán en un lote futuro.
+**Deuda residual: ninguna.** Verificado contra el Sheet real (21-sep-2026):
+OC_0001–OC_0005 ya tienen `analisis_interno` completo (ver `deuda_tecnica.md`
+1.2, corregida). La nota anterior sobre estos 5 ejercicios estaba obsoleta.
 
 ### 3.2 Auditoría y reconstrucción de oraciones embebidas — ✅ HECHO (sep-2026)
 
@@ -130,9 +130,12 @@ del examen agregado (contrato con `Compuestas.gs`) — ambas son
 numeraciones externas independientes del motor. Probado en vivo (relación
 única, relación saltada, varias relaciones) sin errores. Commit `aaf2763`.
 
-### 3.4 Completar subtipos faltantes en el banco
+### 3.4 Completar subtipos faltantes en el banco — ❌ DESCARTADO (sep-2026)
 
-- **Estado**: Pendiente.
+Josele decidió explícitamente no ampliar más el banco de subtipos. Se deja
+documentado por si cambia de opinión, pero no es una tarea pendiente.
+
+- **Estado**: Descartado, no pendiente.
 - **Tipo**: Pedagógico / Datos.
 - **Estimación**: 1-2 días.
 - **Cómo implementarlo**: usar el prompt generador de oraciones compuestas v1.2 (que ya tiene el usuario) y pedirle a Claude que genere lotes específicos:
@@ -335,27 +338,24 @@ Trabajo paralelo de desarrollo de negocio:
 
 ---
 
-## 8. Qué queda por hacer (estado mayo 2026)
+## 8. Qué queda por hacer (revisado sep-2026)
 
-El calendario original de "semanas" quedó superado: casi todo lo que estaba
-planificado para las semanas 1-3 ya está hecho. Lo que sigue abierto, por
-orden de utilidad:
+El calendario original de "semanas" quedó superado hace tiempo. La sección 3
+(cerrar el módulo de compuestas) está cerrada del todo: 3.1, 3.2 y 3.3
+hechas; 3.4 descartada explícitamente por Josele (no va a ampliarse el banco
+de subtipos). Lo que sigue abierto de verdad, por orden de utilidad:
 
-**Contenido del banco de compuestas (sección 3)**
-- 3.4 Completar subtipos faltantes (lote nuevo de ejercicios).
-- Completar `analisis_interno` de OC_0001–OC_0005.
-
-**Limpieza pedagógica/técnica**
-- 1.9 (deuda) Micro-lecciones que faltan: NP, CC Tiempo/Lugar/Modo/Compañía/
-  Instrumento, Mod.Or., Conector.
-
-**Profesor / analítica**
-- 4.5 Vista de errores agregada por alumno.
-- Detección automática de ejercicios más fallados (mejora de 4.4).
+**Pedagógico (sección 4)**
+- 4.1 Plantillas de análisis discursivo Opción B (requiere ampliar schema).
+- 4.5 Vista de errores agregada por alumno (panel del profesor).
+- 1.9 (deuda, módulo **Sint**, no Compuestas) Micro-lecciones que faltan:
+  NP, CC Compañía, CC Instrumento, Mod.Or., Conector.
 
 **Infraestructura**
-- 5.1 / deuda 2.9 Tests mínimos (validador de banco + funciones puras).
-- 4.3 (deuda) Auditar y reducir el CSS legacy.
+- 2.9 / 4.2 (deuda) Tests de funciones puras + runner — el validador del
+  banco (`scripts/validar-banco.mjs`) ya existe y se usa, esto es lo que
+  falta de verdad.
+- 4.3 (deuda) Auditar y reducir el CSS legacy (`css/legacy.css`, ~1.220 líneas).
 
 **Producto / negocio (sección 6 y 7)**
 - Documentación para profesores, vídeos demostrativos, pilotaje en aula.
