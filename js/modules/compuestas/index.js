@@ -814,9 +814,9 @@
     if(state.sessionResults.some(r => r.id === ej.id)) return;
     const eng = state.engine;
     if(!eng) return;
-    const totalAciertos = eng.verbosAciertos + eng.nexosAciertos + eng.f3Aciertos + (eng.f5Aciertos||0)
+    const totalAciertos = eng.verbosAciertos + eng.nexosAciertos + eng.f3Aciertos + (eng.f4Aciertos||0)
                           + (eng.interna.activo ? eng.interna.aciertos : 0);
-    const totalErrores  = eng.verbosErrores + eng.nexosErrores + eng.f3Errores + (eng.f5Errores||0)
+    const totalErrores  = eng.verbosErrores + eng.nexosErrores + eng.f3Errores + (eng.f4Errores||0)
                           + (eng.interna.activo ? eng.interna.errores : 0);
     const nota = computeCompScore(eng, ej);
     state.sessionResults.push({
@@ -837,7 +837,7 @@
   // MOTOR PEDAGÓGICO INTERACTIVO
   //
   // Estado del motor (vive dentro de state.engine):
-  //   fase: 1 | 2 | 3 | 5 | 'interna_choice' | 'interna' | 'resumen'
+  //   fase: 1 | 2 | 3 | 4 | 'interna_choice' | 'interna' | 'resumen'
   //   verbosCorrectos: Set<int>  — índices que el alumno DEBE seleccionar
   //   verbosSeleccionados: Set<int>
   //   verbosConfirmados: Set<int> — los que ya validamos (correctos)
@@ -1004,21 +1004,21 @@
       f3Aciertos: 0,
       f3Errores: 0,
       pistaUsadaF3: false,
-      // ── Fase 5: relaciones entre oraciones ──────────────────────
-      f5IdxActual: 0,                      // qué relación se está respondiendo (0..N-1)
-      f5Respuestas: [],                    // [{tipo, tipoOk, origen, direccionOk, funcion, funcionOk, funcionSp, funcionSpOk}]
-      f5Aciertos: 0,
-      f5Errores: 0,
-      // Desglose de errores de F5 por categoría (para el Top de errores del
+      // ── Fase 4: relaciones entre oraciones (paso "Clasificar y relacionar") ──
+      f4IdxActual: 0,                      // qué relación se está respondiendo (0..N-1)
+      f4Respuestas: [],                    // [{tipo, tipoOk, origen, direccionOk, funcion, funcionOk, funcionSp, funcionSpOk}]
+      f4Aciertos: 0,
+      f4Errores: 0,
+      // Desglose de errores de F4 por categoría (para el Top de errores del
       // informe del profesor). Cada categoría se cuenta en su propia pregunta,
       // así que no hay doble cómputo función↔subtipo: si el motor no pregunta
       // la función (caso redundante), no se registra error de función.
-      f5ErrTipo: 0,        // tipo de composición (coord ↔ / subord → / yuxt ∥)
-      f5ErrFamilia: 0,     // familia de subordinada (sustantiva / relativa / construcción)
-      f5ErrSubtipo: 0,     // subtipo concreto (copulativa, sustantiva_cd, condicional…)
-      f5ErrDireccion: 0,   // cuál es la principal y cuál la subordinada
-      f5ErrFuncion: 0,     // función de la subordinada (solo cuando se pregunta)
-      f5ErrFuncionSp: 0,   // función del SP (término de preposición)
+      f4ErrTipo: 0,        // tipo de composición (coord ↔ / subord → / yuxt ∥)
+      f4ErrFamilia: 0,     // familia de subordinada (sustantiva / relativa / construcción)
+      f4ErrSubtipo: 0,     // subtipo concreto (copulativa, sustantiva_cd, condicional…)
+      f4ErrDireccion: 0,   // cuál es la principal y cuál la subordinada
+      f4ErrFuncion: 0,     // función de la subordinada (solo cuando se pregunta)
+      f4ErrFuncionSp: 0,   // función del SP (término de preposición)
       // ── Fase 6: análisis interno de oraciones (Entrega 4 / Fase 1.4) ─
       interna: {
         activo:     false,           // se activa cuando el alumno elige "Analizar por dentro"
@@ -1083,9 +1083,9 @@
         if(typeof playComplete === 'function') playComplete();
         // Calcular XP según porcentaje de aciertos
         const totalAciertos = (eng.verbosAciertos||0) + (eng.nexosAciertos||0) +
-                              (eng.f3Aciertos||0) + (eng.f5Aciertos||0);
+                              (eng.f3Aciertos||0) + (eng.f4Aciertos||0);
         const totalErrores  = (eng.verbosErrores||0) + (eng.nexosErrores||0) +
-                              (eng.f3Errores||0) + (eng.f5Errores||0);
+                              (eng.f3Errores||0) + (eng.f4Errores||0);
         const total = totalAciertos + totalErrores;
         const pct = total > 0 ? Math.round((totalAciertos/total)*100) : 0;
         let xp = 10;                              // XP base por completar
@@ -1113,14 +1113,14 @@
     const tieneRelaciones = (ej.relaciones||[]).length > 0;
     const unaSolaProp = (ej.proposiciones||[]).length === 1;
 
-    // Fase 5: relaciones entre oraciones. UI también especial.
-    if(eng.fase === 5){
+    // Fase 4: relaciones entre oraciones (paso "Clasificar y relacionar"). UI también especial.
+    if(eng.fase === 4){
       wrap.innerHTML = `
         ${renderProgressBar(eng.fase, tieneNexos, tieneRelaciones)}
         <div class="cp-oracion-recordatorio">${escHtml(ej.texto || '')}</div>
         ${renderInstruccion(eng.fase, ej)}
         ${renderResumenPropos(ej)}
-        ${renderRelaciones5(ej)}
+        ${renderRelaciones4(ej)}
         ${eng.mensajeFeedback ? renderFeedback(eng.mensajeFeedback) : ''}
         ${renderActions(eng.fase, ej, tieneNexos)}
         ${!state.modoExamen ? `<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap"><button type="button" class="cp-btn-secondary" onclick="CP.abandonar()">← Volver a filtros</button></div>` : ''}
@@ -1158,8 +1158,8 @@
 
   function renderProgressBar(faseActual, tieneNexos, tieneRelaciones){
     // s(faseInterna, label, numVisible). El numVisible es el que ve el alumno.
-    // Internamente seguimos usando fase 5 para "clasificar y relacionar", pero al
-    // alumno se lo presentamos como paso 4 (porque la antigua fase 4 ha desaparecido).
+    // Desde sep-2026 la numeración interna (eng.fase) y la que ve el alumno
+    // (el paso mostrado) coinciden 1:1 — ya no hay una "fase 4" fantasma.
     const s = (faseInt, lbl, numVis)=>{
       let cls='';
       if(faseActual === 'resumen' || faseActual > faseInt) cls='done';
@@ -1171,7 +1171,7 @@
     html += s(1, 'Verbos', visNum++);
     if(tieneNexos) html += s(2, 'Nexos', visNum++);
     html += s(3, 'Delimitar', visNum++);
-    if(tieneRelaciones) html += s(5, 'Clasificar y relacionar', visNum++);
+    if(tieneRelaciones) html += s(4, 'Clasificar y relacionar', visNum++);
     html += '</div>';
     return html;
   }
@@ -1213,13 +1213,13 @@
           </div>
         </div>`;
     }
-    if(fase === 5){
+    if(fase === 4){
       const eng = state.engine;
       const ej2 = state.filtered[state.idx];
-      const relIdx = eng.f5IdxActual;
+      const relIdx = eng.f4IdxActual;
       const totalRel = (ej2.relaciones||[]).length;
       const rel = (ej2.relaciones||[])[relIdx];
-      const resp = eng.f5Respuestas[relIdx] || {};
+      const resp = eng.f4Respuestas[relIdx] || {};
       // Calcular sub-paso: ahora incluye familia (si sub) y subtipo (siempre que aplique)
       let subPaso = 'tipo';
       if(resp.tipoOk === true){
@@ -1268,7 +1268,8 @@
         'funcion_sp': 'Cuando una oración subordinada va dentro de un sintagma preposicional («de que…», «en que…», «para que…»), no es ella misma quien hace de complemento de régimen, CI, etc., sino el SP completo.',
         'final':      ''
       };
-      // El alumno ve este como "Paso 4" (la antigua fase 4 ya no existe).
+      // Número de paso visible para el alumno: 4 si hubo paso de Nexos, si no 3
+      // (se salta "Nexos" cuando solo hay una oración, sin nexo que buscar).
       const numPasoVisible = (((ej2.proposiciones||[]).length > 1 && (ej2.nexos||[]).length > 0) ? 4 : 3);
       return `
         <div class="cp-instr cp-instr-grande">
@@ -1527,9 +1528,9 @@
           (r.entre && r.entre.includes(prop.id) && r.entre.includes(props[idx+1].id))
         );
         const relIdx = relaciones.indexOf(rel);
-        const f5r = relIdx >= 0 ? (eng.f5Respuestas && eng.f5Respuestas[relIdx]) : null;
+        const f4r = relIdx >= 0 ? (eng.f4Respuestas && eng.f4Respuestas[relIdx]) : null;
         let sym = '·', cls = 'cp-ctx-rel-pending', titulo = 'Por resolver';
-        if(rel && f5r && f5r.tipoOk){
+        if(rel && f4r && f4r.tipoOk){
           if(rel.tipo === 'subordinacion'){ sym = '→'; cls = 'cp-ctx-rel-sub';   titulo = 'Subordinación'; }
           else if(rel.tipo === 'coordinacion'){ sym = '↔'; cls = 'cp-ctx-rel-coord'; titulo = 'Coordinación';   }
           else { sym = '∥'; cls = 'cp-ctx-rel-yux'; titulo = 'Yuxtaposición'; }
@@ -1605,7 +1606,7 @@
     if(eng.fase === 1){ ok = eng.verbosAciertos; er = eng.verbosErrores; }
     else if(eng.fase === 2){ ok = eng.nexosAciertos; er = eng.nexosErrores; }
     else if(eng.fase === 3){ ok = eng.f3Aciertos; er = eng.f3Errores; }
-    else if(eng.fase === 5){ ok = eng.f5Aciertos; er = eng.f5Errores; }
+    else if(eng.fase === 4){ ok = eng.f4Aciertos; er = eng.f4Errores; }
     else return '';
     return `
       <div class="cp-tally">
@@ -1680,11 +1681,11 @@
         </div>`;
     }
 
-    if(fase === 5){
-      const relIdx = eng.f5IdxActual;
+    if(fase === 4){
+      const relIdx = eng.f4IdxActual;
       const ej2 = state.filtered[state.idx];
       const rel = (ej2.relaciones||[])[relIdx];
-      const resp = (eng.f5Respuestas[relIdx]) || {};
+      const resp = (eng.f4Respuestas[relIdx]) || {};
       // ¿La relación actual está completa? Ahora incluye familia y subtipo.
       let completo = false;
       let pendienteMsg = 'Elige el tipo de relación';
@@ -1722,7 +1723,7 @@
           <button type="button" class="cp-btn-secondary cp-btn-skip" onclick="CP.saltarFase()" title="Avanzar sin completar esta relación">Saltar relación →</button>
           <div class="cp-spacer"></div>
           ${completo
-            ? `<button type="button" class="cp-btn-primary" onclick="CP.avanzarRelacionF5()">${textoBoton}</button>`
+            ? `<button type="button" class="cp-btn-primary" onclick="CP.avanzarRelacionF4()">${textoBoton}</button>`
             : `<span style="color:var(--muted);font-size:.82rem;font-style:italic">${pendienteMsg}</span>`
           }
         </div>`;
@@ -2058,7 +2059,7 @@
         eng.fase = 3;
         preAsignarVerbosFase3();
       } else {
-        // Una sola oración: ir directamente a fase 5 (clasificar y relacionar)
+        // Una sola oración: ir directamente a fase 4 (clasificar y relacionar)
         irFaseClasificarYRelacionar(ej);
       }
       eng.mensajeFeedback = null;
@@ -2098,8 +2099,8 @@
     const eng = state.engine;
     const tieneRelaciones = (ej.relaciones||[]).length > 0;
     if(tieneRelaciones){
-      eng.fase = 5;
-      eng.f5IdxActual = 0;
+      eng.fase = 4;
+      eng.f4IdxActual = 0;
     } else {
       eng.fase = 'resumen';
     }
@@ -2130,11 +2131,11 @@
       avanzarFase();
       return;
     }
-    if(eng.fase === 5){
+    if(eng.fase === 4){
       // Saltar la relación actual y pasar a la siguiente o al final
-      eng.skippedFases.add('5_' + eng.f5IdxActual);
+      eng.skippedFases.add('4_' + eng.f4IdxActual);
       eng.mensajeFeedback = null;
-      avanzarRelacionF5();
+      avanzarRelacionF4();
       return;
     }
   }
@@ -2288,7 +2289,7 @@
   }
 
   // ═════════════════════════════════════════════════════════════════════
-  // FASE 5 — Relaciones entre oraciones
+  // FASE 4 — Relaciones entre oraciones (paso "Clasificar y relacionar")
   // ═════════════════════════════════════════════════════════════════════
 
   // Mini-resumen visual de las oraciones que el alumno acaba de delimitar.
@@ -2312,7 +2313,7 @@
     const tipoRevelado = new Set();
     const subtipoRevelado = new Set();
     (ej.relaciones||[]).forEach((rel,i)=>{
-      const resp = (eng && eng.f5Respuestas && eng.f5Respuestas[i]) || {};
+      const resp = (eng && eng.f4Respuestas && eng.f4Respuestas[i]) || {};
       const ids = Array.isArray(rel.proposiciones) ? rel.proposiciones : [];
       const tipoListo = resp.tipoOk === true &&
         (rel.tipo !== 'subordinacion' || resp.direccionOk === true);
@@ -2350,13 +2351,13 @@
                .replace(/\s+([,.;:!?])/g, '$1');
   }
 
-  function renderRelaciones5(ej){
+  function renderRelaciones4(ej){
     const eng = state.engine;
-    const relIdx = eng.f5IdxActual;
+    const relIdx = eng.f4IdxActual;
     const rel = (ej.relaciones||[])[relIdx];
     if(!rel) return '';
-    if(!eng.f5Respuestas[relIdx]) eng.f5Respuestas[relIdx] = {};
-    const resp = eng.f5Respuestas[relIdx];
+    if(!eng.f4Respuestas[relIdx]) eng.f4Respuestas[relIdx] = {};
+    const resp = eng.f4Respuestas[relIdx];
 
     // ¿Qué oraciones implica esta relación?
     const propIds = Array.isArray(rel.proposiciones) ? rel.proposiciones : [];
@@ -2436,7 +2437,7 @@
       (rel.tipo === 'coordinacion')
     ));
     if(mostrarSubtipo){
-      const opcionesSubtipo = obtenerOpcionesSubtipoF5(rel, resp.familia);
+      const opcionesSubtipo = obtenerOpcionesSubtipoF4(rel, resp.familia);
       const ordinal = (rel.tipo === 'coordinacion') ? '2' : '3';
       const labelSubtipo = (rel.tipo === 'coordinacion') ? 'Tipo de coordinación' : 'Subtipo concreto de subordinada';
       html += `
@@ -2603,7 +2604,7 @@
 
   // Opciones de subtipo para la fase fusionada (rel + subtipo). Coordinadas tienen
   // solo 3 (PAU Murcia). Subordinadas dependen de la familia elegida por el alumno.
-  function obtenerOpcionesSubtipoF5(rel, familiaElegida){
+  function obtenerOpcionesSubtipoF4(rel, familiaElegida){
     if(rel.tipo === 'coordinacion'){
       // 'ilativa_coord' añadida jul-2026: el banco tiene coordinadas ilativas
       // («así que», «luego», «por tanto») y no había botón para elegirlas, así
@@ -2704,18 +2705,18 @@
   function onRelacionClick(q, v){
     const eng = state.engine;
     const ej = state.filtered[state.idx];
-    const relIdx = eng.f5IdxActual;
+    const relIdx = eng.f4IdxActual;
     const rel = (ej.relaciones||[])[relIdx];
     if(!rel) return;
-    if(!eng.f5Respuestas[relIdx]) eng.f5Respuestas[relIdx] = {};
-    const resp = eng.f5Respuestas[relIdx];
+    if(!eng.f4Respuestas[relIdx]) eng.f4Respuestas[relIdx] = {};
+    const resp = eng.f4Respuestas[relIdx];
 
     if(q === 'tipo'){
       if(resp.tipoOk === true) return;
       resp.tipo = v;
       if(v === rel.tipo){
         resp.tipoOk = true;
-        eng.f5Aciertos += 1;
+        eng.f4Aciertos += 1;
         eng.mensajeFeedback = {
           tipo:'ok',
           html: `✓ Correcto. Es una <b>${escHtml(v)}</b>.`
@@ -2723,8 +2724,8 @@
         if(typeof playSuccess === 'function') playSuccess();
       } else {
         resp.tipoOk = false;
-        eng.f5Errores += 1;
-        eng.f5ErrTipo += 1;
+        eng.f4Errores += 1;
+        eng.f4ErrTipo += 1;
         // El helper ya llama a trackError internamente con el realId correcto
         // (rel.tipo). Sustituye al antiguo trackError('compuestas','tipo_relacion')
         // que no encajaba con FEEDBACK_COMPUESTAS ni con ERROR_TO_LECCION_CP.
@@ -2739,7 +2740,7 @@
         };
         if(typeof playError === 'function') playError();
         setTimeout(()=>{
-          if(eng.f5IdxActual === relIdx){ resp.tipoOk = null; renderFase(); }
+          if(eng.f4IdxActual === relIdx){ resp.tipoOk = null; renderFase(); }
         }, 4500);
       }
       renderFase();
@@ -2751,7 +2752,7 @@
       const familiaCorrecta = familiaDelSubtipo(rel.subtipo);
       if(v === familiaCorrecta){
         resp.familiaOk = true;
-        eng.f5Aciertos += 1;
+        eng.f4Aciertos += 1;
         const nombres = {'sustantiva':'sustantiva','relativa':'de relativo (adjetiva)','construccion':'construcción'};
         eng.mensajeFeedback = {
           tipo:'ok',
@@ -2760,8 +2761,8 @@
         if(typeof playSuccess === 'function') playSuccess();
       } else {
         resp.familiaOk = false;
-        eng.f5Errores += 1;
-        eng.f5ErrFamilia += 1;
+        eng.f4Errores += 1;
+        eng.f4ErrFamilia += 1;
         // El helper trackError con el realId correcto (familia correcta)
         eng.mensajeFeedback = {
           tipo:'err',
@@ -2774,7 +2775,7 @@
         };
         if(typeof playError === 'function') playError();
         setTimeout(()=>{
-          if(eng.f5IdxActual === relIdx){ resp.familiaOk = null; renderFase(); }
+          if(eng.f4IdxActual === relIdx){ resp.familiaOk = null; renderFase(); }
         }, 4500);
       }
       renderFase();
@@ -2787,7 +2788,7 @@
       // En subordinadas, también.
       if(v === rel.subtipo){
         resp.subtipoOk = true;
-        eng.f5Aciertos += 1;
+        eng.f4Aciertos += 1;
         eng.mensajeFeedback = {
           tipo:'ok',
           html: `✓ Correcto. Es <b>${escHtml(etiquetaSubtipoExtendida(v).toLowerCase())}</b>.`
@@ -2795,8 +2796,8 @@
         if(typeof playSuccess === 'function') playSuccess();
       } else {
         resp.subtipoOk = false;
-        eng.f5Errores += 1;
-        eng.f5ErrSubtipo += 1;
+        eng.f4Errores += 1;
+        eng.f4ErrSubtipo += 1;
         eng.mensajeFeedback = {
           tipo:'err',
           html: buildScaffoldFeedbackCP({
@@ -2808,7 +2809,7 @@
         };
         if(typeof playError === 'function') playError();
         setTimeout(()=>{
-          if(eng.f5IdxActual === relIdx){ resp.subtipoOk = null; renderFase(); }
+          if(eng.f4IdxActual === relIdx){ resp.subtipoOk = null; renderFase(); }
         }, 4500);
       }
       renderFase();
@@ -2820,7 +2821,7 @@
       const origenCorrecto = rel.direccion?.origen;
       if(v === origenCorrecto){
         resp.direccionOk = true;
-        eng.f5Aciertos += 1;
+        eng.f4Aciertos += 1;
         const propIdToNum = new Map();
         (ej.proposiciones||[]).forEach((p,i)=>propIdToNum.set(p.id, i+1));
         const nOrigen = propIdToNum.get(origenCorrecto);
@@ -2833,8 +2834,8 @@
         if(typeof playSuccess === 'function') playSuccess();
       } else {
         resp.direccionOk = false;
-        eng.f5Errores += 1;
-        eng.f5ErrDireccion += 1;
+        eng.f4Errores += 1;
+        eng.f4ErrDireccion += 1;
         eng.mensajeFeedback = {
           tipo:'err',
           html: `✗ La dependencia va al revés. La principal es la que «manda», la que no depende de ninguna otra.`
@@ -2851,7 +2852,7 @@
       resp.funcion = v;
       if(v === rel.funcion){
         resp.funcionOk = true;
-        eng.f5Aciertos += 1;
+        eng.f4Aciertos += 1;
         eng.mensajeFeedback = {
           tipo:'ok',
           html: `✓ Correcto. La subordinada funciona como <b>${escHtml(nombreLargoFuncion(v))}</b>.`
@@ -2859,8 +2860,8 @@
         if(typeof playSuccess === 'function') playSuccess();
       } else {
         resp.funcionOk = false;
-        eng.f5Errores += 1;
-        eng.f5ErrFuncion += 1;
+        eng.f4Errores += 1;
+        eng.f4ErrFuncion += 1;
         eng.mensajeFeedback = {
           tipo:'err',
           html: `✗ Esa no es la función correcta. Recuerda qué pregunta hace cada función: ¿qué? (CD), ¿a quién? (CI), ¿quién? (sujeto)…`
@@ -2877,7 +2878,7 @@
       resp.funcionSp = v;
       if(v === rel.funcion_sp){
         resp.funcionSpOk = true;
-        eng.f5Aciertos += 1;
+        eng.f4Aciertos += 1;
         eng.mensajeFeedback = {
           tipo:'ok',
           html: `✓ Correcto. El SP completo funciona como <b>${escHtml(nombreLargoFuncion(v))}</b>.`
@@ -2885,8 +2886,8 @@
         if(typeof playSuccess === 'function') playSuccess();
       } else {
         resp.funcionSpOk = false;
-        eng.f5Errores += 1;
-        eng.f5ErrFuncionSp += 1;
+        eng.f4Errores += 1;
+        eng.f4ErrFuncionSp += 1;
         eng.mensajeFeedback = {
           tipo:'err',
           html: `✗ El SP completo no funciona como ${escHtml(nombreLargoFuncion(v))}. Piensa qué pide el verbo o el sustantivo del que depende.`
@@ -2900,18 +2901,18 @@
     }
   }
 
-  function avanzarRelacionF5(){
+  function avanzarRelacionF4(){
     const eng = state.engine;
     const ej = state.filtered[state.idx];
     const totalRel = (ej.relaciones||[]).length;
-    if(eng.f5IdxActual < totalRel - 1){
-      const numCompletada = eng.f5IdxActual + 1;
+    if(eng.f4IdxActual < totalRel - 1){
+      const numCompletada = eng.f4IdxActual + 1;
       mostrarToast({
         titulo: `¡Relación ${numCompletada} resuelta!`,
         subtitulo: `Quedan ${totalRel - numCompletada} relacion${totalRel - numCompletada === 1 ? '' : 'es'} por analizar`,
         colorIdx: 2
       });
-      eng.f5IdxActual += 1;
+      eng.f4IdxActual += 1;
       eng.mensajeFeedback = null;
       renderFase();
     } else {
@@ -3942,7 +3943,7 @@
     if (fasesActivas.includes(3))
       addFase(3, eng.f3Aciertos||0, eng.f3Errores||0);
     if ((fasesActivas.includes(4) || fasesActivas.includes(5)) && tieneRelaciones)
-      addFase(4, eng.f5Aciertos||0, eng.f5Errores||0);
+      addFase(4, eng.f4Aciertos||0, eng.f4Errores||0);
     if (fasesActivas.includes(6) && eng.interna && eng.interna.activo)
       addFase(3, eng.interna.aciertos||0, eng.interna.errores||0);
 
@@ -3977,15 +3978,15 @@
       errores_nexos:        eng.nexosErrores || 0,
       aciertos_delimitar:   eng.f3Aciertos || 0,
       errores_delimitar:    eng.f3Errores || 0,
-      aciertos_clasificar:  (eng.f5Aciertos || 0),
-      errores_clasificar:   (eng.f5Errores || 0),
-      // Desglose de F5 por categoría (para el Top de errores del informe)
-      err_tipo:             eng.f5ErrTipo      || 0,
-      err_familia:          eng.f5ErrFamilia   || 0,
-      err_subtipo:          eng.f5ErrSubtipo   || 0,
-      err_direccion:        eng.f5ErrDireccion || 0,
-      err_funcion:          eng.f5ErrFuncion   || 0,
-      err_funcion_sp:       eng.f5ErrFuncionSp || 0,
+      aciertos_clasificar:  (eng.f4Aciertos || 0),
+      errores_clasificar:   (eng.f4Errores || 0),
+      // Desglose de F4 por categoría (para el Top de errores del informe)
+      err_tipo:             eng.f4ErrTipo      || 0,
+      err_familia:          eng.f4ErrFamilia   || 0,
+      err_subtipo:          eng.f4ErrSubtipo   || 0,
+      err_direccion:        eng.f4ErrDireccion || 0,
+      err_funcion:          eng.f4ErrFuncion   || 0,
+      err_funcion_sp:       eng.f4ErrFuncionSp || 0,
       // Fase 1.4: contadores del análisis interno (si el alumno lo hizo)
       aciertos_interna:     (eng.interna && eng.interna.activo) ? eng.interna.aciertos : 0,
       errores_interna:      (eng.interna && eng.interna.activo) ? eng.interna.errores : 0,
@@ -4271,8 +4272,8 @@
       return renderPreResumenHtml(ej);
     }
 
-    const totalAciertos = eng.verbosAciertos + eng.nexosAciertos + eng.f3Aciertos + (eng.f5Aciertos||0);
-    const totalErrores = eng.verbosErrores + eng.nexosErrores + eng.f3Errores + (eng.f5Errores||0);
+    const totalAciertos = eng.verbosAciertos + eng.nexosAciertos + eng.f3Aciertos + (eng.f4Aciertos||0);
+    const totalErrores = eng.verbosErrores + eng.nexosErrores + eng.f3Errores + (eng.f4Errores||0);
     const total = totalAciertos + totalErrores;
     const porcentaje = total > 0 ? Math.round((totalAciertos / total) * 100) : 0;
     let icono = '🎯', titulo = 'Buen trabajo';
@@ -4288,7 +4289,7 @@
       ['Verbos', eng.verbosAciertos, eng.verbosErrores],
       ['Nexos', eng.nexosAciertos, eng.nexosErrores],
       ['Delimitar', eng.f3Aciertos, eng.f3Errores],
-      ['Clasificar y relacionar', (eng.f5Aciertos||0), (eng.f5Errores||0)],
+      ['Clasificar y relacionar', (eng.f4Aciertos||0), (eng.f4Errores||0)],
       // Fase 1.4: análisis interno (solo si el alumno lo realizó)
       ...(eng.interna.activo ? [['Análisis interno', eng.interna.aciertos, eng.interna.errores]] : [])
     ].filter(([_, ok, er])=>(ok+er) > 0);
@@ -4902,15 +4903,15 @@
       }
     }
 
-    // ── FASE 5 — RELACIONES ────────────────────────────────────────────
-    if(Array.isArray(eng.f5Respuestas) && eng.f5Respuestas.length > 0){
-      const erroresTipoRel = eng.f5Respuestas.filter(r=>r && r.tipoOk === false).length;
-      const erroresDir = eng.f5Respuestas.filter(r=>r && r.direccionOk === false).length;
-      const erroresFunc = eng.f5Respuestas.filter(r=>r && r.funcionOk === false).length;
-      const erroresFSp = eng.f5Respuestas.filter(r=>r && r.funcionSpOk === false).length;
-      const totalErrF5 = erroresTipoRel + erroresDir + erroresFunc + erroresFSp;
+    // ── FASE 4 — RELACIONES (paso "Clasificar y relacionar") ───────────
+    if(Array.isArray(eng.f4Respuestas) && eng.f4Respuestas.length > 0){
+      const erroresTipoRel = eng.f4Respuestas.filter(r=>r && r.tipoOk === false).length;
+      const erroresDir = eng.f4Respuestas.filter(r=>r && r.direccionOk === false).length;
+      const erroresFunc = eng.f4Respuestas.filter(r=>r && r.funcionOk === false).length;
+      const erroresFSp = eng.f4Respuestas.filter(r=>r && r.funcionSpOk === false).length;
+      const totalErrF4 = erroresTipoRel + erroresDir + erroresFunc + erroresFSp;
 
-      if(totalErrF5 === 0 && eng.f5Respuestas.some(r=>r && r.tipoOk === true)){
+      if(totalErrF4 === 0 && eng.f4Respuestas.some(r=>r && r.tipoOk === true)){
         diags.push({
           tipo:'ok', emoji:'✅',
           titulo:'Identificaste todas las relaciones correctamente',
@@ -5125,7 +5126,7 @@
   // condicional, concesiva, ilativa). Es una distinción NGLE real, pero
   // NO es la que enseña la app: el paso interactivo (familiaDelSubtipo,
   // más abajo, y el texto de ayuda "construcciones — antes llamadas
-  // adverbiales" en renderRelaciones5) solo ofrece TRES familias al
+  // adverbiales" en renderRelaciones4) solo ofrece TRES familias al
   // alumno — sustantiva / relativo / construcción —, metiendo temporal
   // en 'construccion' igual que causal o final. Con las dos funciones
   // separadas, un alumno que acertaba "Construcción" en el paso 4 veía
@@ -5711,7 +5712,7 @@ export const CP = {
     iniciarPractica, iniciarLectura,
     limpiarFiltros, mostrarAyudaFiltros,
     siguiente, anterior, volverFiltros, toggleSolucion,
-    avanzarFase, avanzarRelacionF5, pedirPista, saltarFase,
+    avanzarFase, avanzarRelacionF4, pedirPista, saltarFase,
     abrirPistaFlotante,
     iniciarAnalisisInterno, irAResumen, saltarAnalisisInterno,
     iiddDragStart, iiddOver, iiddLeave, iiddDrop,
