@@ -122,6 +122,13 @@ export function getErrorHistoryCount(modo, funcion) {
 // ninguna oración ("Refuerza: PNS" no reforzaba nada — sep-2026).
 const CLAVES_NO_FILTRABLES = new Set(['PN', 'PV', 'PNS']);
 
+// Etiquetas legibles para claves de error que no se explican solas fuera
+// del código (PN/PV sí se entienden en contexto; PNS no, para un profesor
+// leyendo un informe). Reutilizada en el resumen de sesión (sint/index.js)
+// — ver docs/Plan_Semicopulativos_2026-09.md §S3.
+const ERROR_LABELS = { 'PNS': 'Tipo de predicado (semicopulativo)' };
+export function errorLabel(f) { return ERROR_LABELS[f] || f; }
+
 /**
  * Funciones más falladas de un modo, ordenadas de más a menos, listas para
  * usarse como filtro del banco (Refuerzo personalizado, "Practicar mis

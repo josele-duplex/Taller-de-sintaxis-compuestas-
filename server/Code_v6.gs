@@ -3050,7 +3050,7 @@ function _consumirTokenExamen_(token, pin, email) {
  * Endpoint 'saveResult'. Guarda un resultado de examen de sintaxis simple en
  * Alumnos_Resultados; dedup por email+PIN. Usa lock porque hace lectura de
  * dedup + escritura (dos alumnos terminando a la vez no deben pisarse fila).
- * @param {{email?,pin?,name?,grupo?,evaluacion?,examen?,nota?,completadas?,totalOraciones?,sujetoPts?,funcionesPts?,npPts?,elemFallados?,errCD?,errCI?,errAtr?,errCPvo?,errCReg?,errCC?,reflexionTotal?,reflexionCorrectas?,versionCalificacion?,subfase?}} p
+ * @param {{email?,pin?,name?,grupo?,evaluacion?,examen?,nota?,completadas?,totalOraciones?,sujetoPts?,funcionesPts?,npPts?,elemFallados?,errCD?,errCI?,errAtr?,errCPvo?,errCReg?,errCC?,errPNS?,reflexionTotal?,reflexionCorrectas?,versionCalificacion?,subfase?}} p
  * @return {{ok:true, duplicate?:boolean} | object} error (ERR.LOCK_TIMEOUT si el servidor está ocupado).
  */
 function saveResult_(p) {
@@ -3063,7 +3063,7 @@ function saveResult_(p) {
     const RESULT_HEADER = ['Fecha','Correo','Nombre','Grupo','Evaluacion','Examen','PIN',
                            'Nota','Completadas','Total_Oraciones',
                            'Sujeto_Pts','Funciones_Pts','NP_Pts','Elem_Fallados',
-                           'Err_CD','Err_CI','Err_Atr','Err_CPvo','Err_CReg','Err_CC',
+                           'Err_CD','Err_CI','Err_Atr','Err_CPvo','Err_CReg','Err_CC','Err_PNS',
                            'Reflexion_Total','Reflexion_Correctas','Email_Enviado',
                            'Version_Calificacion','Subfase'];
     let sheet = ss.getSheetByName(SHEET_RESULTS);
@@ -3141,6 +3141,7 @@ function saveResult_(p) {
       'Err_CPvo':   parseInt(p.errCPvo) ||0,
       'Err_CReg':   parseInt(p.errCReg) ||0,
       'Err_CC':     parseInt(p.errCC)   ||0,
+      'Err_PNS':    parseInt(p.errPNS)  ||0,
       'Reflexion_Total':     parseInt(p.reflexionTotal)     ||0,
       'Reflexion_Correctas': parseInt(p.reflexionCorrectas) ||0,
       'Version_Calificacion': p.versionCalificacion||'',
@@ -3177,7 +3178,7 @@ function saveResult_(p) {
 /**
  * Endpoint 'saveSesionPractica'. Analítica silenciosa de una sesión de
  * práctica libre (Sintaxis). Llamada por sendBeacon — tolera POST sin body.
- * @param {{email?,name?,grupo?,modulo?,subfase?,oracionesHechas?,totalOraciones?,nota?,errores?,tiempoMin?,funcPeor?,funcMejor?,errCD?,errCI?,errAtr?,errCPvo?,errCReg?,errCC?,reflexionTotal?,reflexionCorrectas?,versionCalificacion?}} p
+ * @param {{email?,name?,grupo?,modulo?,subfase?,oracionesHechas?,totalOraciones?,nota?,errores?,tiempoMin?,funcPeor?,funcMejor?,errCD?,errCI?,errAtr?,errCPvo?,errCReg?,errCC?,errPNS?,reflexionTotal?,reflexionCorrectas?,versionCalificacion?}} p
  * @return {{ok:true} | object} error (ERR.EXCEPTION) si falla el guardado.
  */
 function saveSesionPractica_(p) {
@@ -3185,7 +3186,7 @@ function saveSesionPractica_(p) {
     'Fecha', 'Correo', 'Nombre', 'Grupo', 'Modulo', 'Subfase',
     'Oraciones_Hechas', 'Total_Oraciones', 'Nota_Estimada', 'Errores_Totales',
     'Tiempo_Min', 'Func_Mas_Fallada', 'Func_Sin_Errores',
-    'Err_CD', 'Err_CI', 'Err_Atr', 'Err_CPvo', 'Err_CReg', 'Err_CC',
+    'Err_CD', 'Err_CI', 'Err_Atr', 'Err_CPvo', 'Err_CReg', 'Err_CC', 'Err_PNS',
     'Reflexion_Total', 'Reflexion_Correctas', 'Version_Calificacion'
   ];
   try {
@@ -3213,6 +3214,7 @@ function saveSesionPractica_(p) {
       'Err_CPvo':         parseInt(p.errCPvo)||0,
       'Err_CReg':         parseInt(p.errCReg)||0,
       'Err_CC':           parseInt(p.errCC)||0,
+      'Err_PNS':          parseInt(p.errPNS)||0,
       'Reflexion_Total':     parseInt(p.reflexionTotal)||0,
       'Reflexion_Correctas': parseInt(p.reflexionCorrectas)||0,
       'Version_Calificacion': p.versionCalificacion||''
@@ -5472,6 +5474,11 @@ function getInformeProfesor_(params) {
       if (!fecha) return;
       if (!al.ultima_actividad || fecha > al.ultima_actividad) al.ultima_actividad = fecha;
     }
+    // PNS = tipo de predicado semicopulativo (fase 3, sep-2026): no es una
+    // función de funciones_presentes como CD/CI, así que aquí se le da
+    // directamente la etiqueta legible que verá el profesor en el Excel
+    // (hoja Diagnóstico) — ver docs/Plan_Semicopulativos_2026-09.md §S3.
+    const ETIQUETA_PNS_ = 'Tipo de predicado (semicopulativo)';
     function sumErr_(al, funcion, n) {
       if (!funcion || !n) return;
       al.errores[funcion] = (al.errores[funcion] || 0) + n;
@@ -5495,6 +5502,7 @@ function getInformeProfesor_(params) {
       sumErr_(a, 'CPvo',   r.errCPvo);
       sumErr_(a, 'C.Rég.', r.errCReg);
       sumErr_(a, 'CC',     r.errCC);
+      sumErr_(a, ETIQUETA_PNS_, r.errPNS);
     });
 
     // Simples práctica (con desglose de errores por función)
@@ -5514,6 +5522,7 @@ function getInformeProfesor_(params) {
       sumErr_(a, 'CPvo',   r.errCPvo);
       sumErr_(a, 'C.Rég.', r.errCReg);
       sumErr_(a, 'CC',     r.errCC);
+      sumErr_(a, ETIQUETA_PNS_, r.errPNS);
     });
 
     // Compuestas (examen + práctica)
@@ -5890,6 +5899,7 @@ function leerSimplesExamen_(ss, from, to, grupoFilter) {
       errCPvo:    parseInt(row[col['Err_CPvo']]) || 0,
       errCReg:    parseInt(row[col['Err_CReg']]) || 0,
       errCC:      parseInt(row[col['Err_CC']])   || 0,
+      errPNS:     parseInt(row[col['Err_PNS']])  || 0,
       subfase:    String(row[col['Subfase']] || '').trim() || 'completo' // Fase 2 (jul-2026)
     });
   });
@@ -5924,7 +5934,8 @@ function leerSimplesPractica_(ss, from, to, grupoFilter) {
       errAtr:          parseInt(row[col['Err_Atr']])  || 0,
       errCPvo:         parseInt(row[col['Err_CPvo']]) || 0,
       errCReg:         parseInt(row[col['Err_CReg']]) || 0,
-      errCC:           parseInt(row[col['Err_CC']])   || 0
+      errCC:           parseInt(row[col['Err_CC']])   || 0,
+      errPNS:          parseInt(row[col['Err_PNS']])  || 0
     });
   });
   return out;

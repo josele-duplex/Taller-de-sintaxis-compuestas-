@@ -748,6 +748,7 @@ function computeErrByFunc_(){
     });
     if((se.npErrors||0)>0) errByFunc['NP']=(errByFunc['NP']||0)+se.npErrors;
     if((se.sujetoErrors||0)>0) errByFunc['Sujeto']=(errByFunc['Sujeto']||0)+se.sujetoErrors;
+    if((se.pnsErrors||0)>0) errByFunc['PNS']=(errByFunc['PNS']||0)+se.pnsErrors;
   });
   return errByFunc;
 }
@@ -786,6 +787,7 @@ function sendPracticeAnalytics(opts){
       errCPvo:String(errByFunc['CPvo']||0),
       errCReg:String(errByFunc['C.Rég.']||0),
       errCC:String(Object.entries(errByFunc).filter(([k])=>k.startsWith('CC ')).reduce((a,[,v])=>a+v,0)),
+      errPNS:String(errByFunc['PNS']||0),
       reflexionTotal:String((G.reflexionAnswers||[]).length),
       reflexionCorrectas:String((G.reflexionAnswers||[]).filter(a=>a.correcta).length),
     });
@@ -836,6 +838,7 @@ function initState(opts){
       npErrors:0,
       sujetoErrors:0,
       pvpnErrors:0,
+      pnsErrors:0,
       blockErrors:{},
       elemErrors:{}
     })),
@@ -2277,6 +2280,10 @@ function selectPvPn(selected, correct){
     renderPvPnStep2(correct);
   }else{
     G.totalErrors++;G.sentenceErrors[G.idx].pvpnErrors++;
+    // Contador aparte para el desglose por función (S3): solo cuenta cuando
+    // la oración real era semicopulativa, para que "PNS" refleje ese error
+    // concreto y no cualquier fallo PV/PN.
+    if(correct==='PNS') G.sentenceErrors[G.idx].pnsErrors=(G.sentenceErrors[G.idx].pnsErrors||0)+1;
     const btn=document.getElementById('pvpn-'+selected.toLowerCase());
     if(btn){btn.classList.add('pvpn-err');setTimeout(()=>btn?.classList.remove('pvpn-err'),600);}
     if(G.mode==='practice'||G.mode==='projector'){
@@ -2311,6 +2318,10 @@ function selectPvPnTipo(selected, correct){
     finishPvPn(correct);
   }else{
     G.totalErrors++;G.sentenceErrors[G.idx].pvpnErrors++;
+    // Este paso 2 siempre es confusión copulativo/semicopulativo, tanto si
+    // la oración real es PNS como si es PN puro (ver comentario de arriba
+    // sobre por qué trackError también usa 'PNS' en ambos casos).
+    G.sentenceErrors[G.idx].pnsErrors=(G.sentenceErrors[G.idx].pnsErrors||0)+1;
     const btn=document.getElementById(selected==='copulativo'?'pvpn-cop':'pvpn-semicop');
     if(btn){btn.classList.add('pvpn-err');setTimeout(()=>btn?.classList.remove('pvpn-err'),600);}
     if(G.mode==='practice'||G.mode==='projector'){
@@ -3152,7 +3163,14 @@ async function goResults(){
       else{funcCorrect[func]=(funcCorrect[func]||0)+1;}
     });
   });
-  
+  // PNS (tipo de predicado semicopulativo, S1) no sale de fase3.bloques:
+  // se cuenta aparte en pnsErrors (ver selectPvPn/selectPvPnTipo). Se
+  // añade aquí solo si hubo error, para que "aparezca" en el desglose
+  // (S3 — no hay aciertos trackeados para este contador, así que no entra
+  // en funcCorrect).
+  const pnsErrCount=(G.sentenceErrors||[]).reduce((a,se)=>a+(se.pnsErrors||0),0);
+  if(pnsErrCount>0) funcErrors['PNS']=(funcErrors['PNS']||0)+pnsErrCount;
+
   // Show function breakdown
   const allFuncs=[...new Set([...Object.keys(funcErrors),...Object.keys(funcCorrect)])];
   if(allFuncs.length>0){
@@ -3165,7 +3183,7 @@ async function goResults(){
       const icon=pct>=80?'✓':pct>=50?'△':'✗';
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.05)">
         <span style="font-size:.85rem;font-weight:800;color:${color};min-width:20px">${icon}</span>
-        <span style="flex:1;font-size:.85rem;font-weight:600">${escHtml(f)}</span>
+        <span style="flex:1;font-size:.85rem;font-weight:600">${escHtml(errorLabel(f))}</span>
         <div style="width:80px;height:6px;background:#E5E7EB;border-radius:3px;overflow:hidden">
           <div style="width:${pct}%;height:100%;background:${color};border-radius:3px"></div></div>
         <span style="font-size:.78rem;color:var(--muted);min-width:45px;text-align:right">${ok}/${total}</span></div>`;
@@ -3203,7 +3221,7 @@ async function goResults(){
         const histTag = (histN && histN >= 5)
           ? '<span style="display:inline-block;margin-left:6px;padding:1px 8px;background:#FEE2E2;color:#991B1B;border-radius:99px;font-size:.72rem;font-weight:700;letter-spacing:.02em">⚠ patrón recurrente</span>'
           : '';
-        return '<li style="margin-bottom:6px"><strong>'+escHtml(f)+'</strong> ('+n+' error'+(n>1?'es':'')+' en esta sesión)'+histTag
+        return '<li style="margin-bottom:6px"><strong>'+escHtml(errorLabel(f))+'</strong> ('+n+' error'+(n>1?'es':'')+' en esta sesión)'+histTag
           + (pista ? '<br><span style="color:#78350F;font-size:.82rem">'+pista+'</span>' : '')
           + '</li>';
       }).join('');
@@ -3225,7 +3243,7 @@ async function goResults(){
     if(historicalOnly.length > 0){
       const trendItems = historicalOnly.map(h => {
         const pista = DICCIONARIO_BASE_SINTAXIS[h.func]?.pista || '';
-        return '<li style="margin-bottom:4px"><strong>'+escHtml(h.func)+'</strong> '
+        return '<li style="margin-bottom:4px"><strong>'+escHtml(errorLabel(h.func))+'</strong> '
           + '<span style="color:#475569;font-size:.78rem">— '+h.count+' errores acumulados a lo largo del tiempo</span>'
           + (pista ? '<br><span style="color:#334155;font-size:.8rem">'+pista+'</span>' : '')
           + '</li>';
@@ -3409,6 +3427,7 @@ async function submitResult(score,totalAvail,totalEarned,totals){
     errCPvo:String(errByFunc['CPvo']||0),
     errCReg:String(errByFunc['C.Rég.']||0),
     errCC:String(Object.entries(errByFunc).filter(([k])=>k.startsWith('CC ')).reduce((a,[,v])=>a+v,0)),
+    errPNS:String(errByFunc['PNS']||0),
     reflexionTotal:String((G.reflexionAnswers||[]).length),
     reflexionCorrectas:String((G.reflexionAnswers||[]).filter(a=>a.correcta).length)
   };
@@ -3797,7 +3816,7 @@ function applyPracticeFilters(){
 
   const currentId = G.oraciones[G.idx]?.id;
   G.oraciones = filtered;
-  G.sentenceErrors = filtered.map(o=>({id:o.id,npErrors:0,sujetoErrors:0,pvpnErrors:0,blockErrors:{},elemErrors:{}}));
+  G.sentenceErrors = filtered.map(o=>({id:o.id,npErrors:0,sujetoErrors:0,pvpnErrors:0,pnsErrors:0,blockErrors:{},elemErrors:{}}));
   G.sentenceCompleted = filtered.map(()=>false);
   const keepIdx = filtered.findIndex(o=>o.id===currentId);
   G.idx = keepIdx >= 0 ? keepIdx : 0;
