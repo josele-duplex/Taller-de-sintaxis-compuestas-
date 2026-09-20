@@ -29,6 +29,19 @@ Trabajo completado que en su día estaba en este roadmap o surgió después:
   y `GUIA_SESIONES_Y_COMPARTIR.md` §3.
 - ✅ **Micro-lecciones nuevas**: CC Finalidad, CC Causa, CC Cantidad, Vocativo,
   ampliación de Sujeto. Normalización `Vocativo → Vocat.`.
+- ✅ **Verbos semicopulativos** (sep-2026, no estaba en el roadmap — ver
+  `docs/Plan_Semicopulativos_2026-09.md`): la fase 3 de oración simple tenía
+  un tercer botón «PN·SC» minoritario que penalizaba a un alumno que
+  razonaba bien (PN) sin haberlo visto. Rediseño en dos tiempos: PN → si el
+  verbo es semicopulativo, segundo paso «¿copulativo o semicopulativo?»
+  (`js/modules/sint/index.js`, `js/feedback/pistas-sint.js`). Micro-lección
+  nueva `semicopulativos` (`js/feedback/micro-lecciones.js`). Tubo completo
+  de analíticas para el error `PNS` (contador, columna `Err_PNS` en
+  `Alumnos_Resultados`/`Sesiones_Practica`, etiqueta legible en el informe
+  del profesor) — verificado end-to-end en producción. Excluido del filtro
+  de Refuerzo personalizado. Datos: 16 oraciones PNS activas en el banco
+  (se retiró «El candidato salió elegido gobernador», caso límite de
+  dificultad 3); orden aleatorio auditado y descartado como bug.
 
 Sigue pendiente lo de las secciones 3 (cerrar contenido del banco CP),
 4.5 (vista de errores por alumno) y 5 (nice-to-have, incluidos tests).
