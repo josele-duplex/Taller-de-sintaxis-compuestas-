@@ -5314,40 +5314,78 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // CASO SUBORDINADA (binaria principal + subordinada)
+  // CASO SUBORDINADA (principal + una o más subordinadas ENCADENADAS:
+  // P1 → P2 → P3..., cada una subordinada de la anterior — el caso de
+  // "oraciones embebidas", p.ej. "Hay quien piensa que el examen será
+  // difícil": pp → relativa libre → sustantiva_cd dentro de esta).
+  // Si la estructura no es una cadena lineal (p.ej. dos subordinadas
+  // colgando de la misma proposición), no arriesgamos prosa incorrecta:
+  // caemos al resumen genérico de construirPAUMixta, que al menos lista
+  // TODAS las proposiciones y nexos (antes: construirPAUSub solo cogía
+  // la primera subordinada con .find() y omitía el resto en silencio —
+  // bug detectado en la auditoría de 3.2, sep-2026).
   // ─────────────────────────────────────────────────────────────────────
   function construirPAUSub(ej, props){
     const principal = props.find(p => p.tipo === 'principal');
-    const subordinada = props.find(p => p.tipo === 'subordinada');
-    if(!principal || !subordinada){
+    const subordinadas = props.filter(p => p.tipo === 'subordinada');
+    if(!principal || subordinadas.length === 0){
       // Estructura no esperada — fallback genérico.
       return construirPAUMixta(ej, props);
     }
-    const fam = familiaPAU(subordinada.subtipo);
-    const esConstruccion = fam === 'construccion';
-    const titulo = esConstruccion ? '' : 'SUBORDINACIÓN';
 
-    const etiquetaSub = etiquetaSubordinadaPAU(subordinada.subtipo);
-    const labelSub = esConstruccion
-      ? `Construcción ${etiquetaSub}`
-      : `Oración subordinada ${etiquetaSub}`;
+    const relacionesSub = (ej.relaciones||[]).filter(r => r.tipo === 'subordinacion');
+    const porId = new Map(props.map(p => [p.id, p]));
 
-    // Orden textual: ¿quién aparece antes?
-    let cuerpo = '';
-    for(const p of props){
-      if(p === principal)        cuerpo += bloquePropPAU('•', 'Oración principal', principal, ej);
-      else if(p === subordinada) cuerpo += bloquePropPAU('↳', labelSub, subordinada, ej);
+    // Reconstruir la cadena origen→destino empezando en la principal.
+    const cadena = [{ prop: principal, rel: null }];
+    const usadas = new Set();
+    let actual = principal;
+    for(;;){
+      const rel = relacionesSub.find(r => !usadas.has(r.id) && r.direccion?.origen === actual.id);
+      if(!rel) break;
+      const siguiente = porId.get(rel.direccion?.destino);
+      if(!siguiente || siguiente.tipo !== 'subordinada') break;
+      usadas.add(rel.id);
+      cadena.push({ prop: siguiente, rel });
+      actual = siguiente;
     }
 
-    // Bloque nexo y función
-    const nexo = (ej.nexos||[]).find(n => n.categoria !== 'puntuacion') || (ej.nexos||[])[0];
-    const rel = (ej.relaciones||[]).find(r => r.tipo === 'subordinacion') || {};
-    cuerpo += construirBloqueNexoYFuncionPAU(nexo, rel, subordinada, esConstruccion);
+    // La cadena debe agotar TODAS las subordinadas del ejercicio; si alguna
+    // se queda fuera (estructura en árbol, no en cadena), no adivinamos.
+    if(cadena.length - 1 !== subordinadas.length){
+      return construirPAUMixta(ej, props);
+    }
+
+    const fam0 = familiaPAU(cadena[1].prop.subtipo);
+    const titulo = (fam0 === 'construccion') ? '' : 'SUBORDINACIÓN';
+
+    let cuerpo = '';
+    cadena.forEach((eslabon, i) => {
+      if(i === 0){
+        cuerpo += bloquePropPAU('•', 'Oración principal', eslabon.prop, ej);
+        return;
+      }
+      const fam = familiaPAU(eslabon.prop.subtipo);
+      const esConstruccion = fam === 'construccion';
+      const etiquetaSub = etiquetaSubordinadaPAU(eslabon.prop.subtipo);
+      const labelSub = esConstruccion
+        ? `Construcción ${etiquetaSub}`
+        : `Oración subordinada ${etiquetaSub}`;
+      cuerpo += bloquePropPAU('↳', labelSub, eslabon.prop, ej);
+
+      // Nexo y función de ESTE nivel: a qué se subordina no siempre es la
+      // principal — a partir del 2º eslabón es la subordinada anterior
+      // (p.ej. "que el examen será difícil" es CD de «piensa», no de «Hay»).
+      const nexo = (ej.nexos||[]).find(n => n.id === eslabon.rel.nexo);
+      const refLabel = (i === 1) ? 'la oración principal' : `«${escHtml(formaVerboPAU(cadena[i-1].prop, ej))}»`;
+      cuerpo += construirBloqueNexoYFuncionPAU(nexo, eslabon.rel, eslabon.prop, esConstruccion, refLabel);
+    });
 
     return tituloPAU(titulo) + cuerpo;
   }
 
-  function construirBloqueNexoYFuncionPAU(nexo, rel, subordinada, esConstruccion){
+  function construirBloqueNexoYFuncionPAU(nexo, rel, subordinada, esConstruccion, refLabel){
+    refLabel = refLabel || 'la oración principal';
     // Construcciones: solo nexo, sin función.
     if(esConstruccion){
       if(!nexo) return bloqueNexoPAU('Nexo', '<i>(sin nexo registrado)</i>');
@@ -5373,7 +5411,7 @@
       const lbl = etiquetaFuncionPAU(funcion);
       // Para relativas con antecedente expreso, la función es CN del antecedente.
       // Para relativas libres / semilibres, la función la hace la subordinada entera.
-      funcionTxt = `La subordinada funciona como <b>${escHtml(lbl)}</b> de la oración principal.`;
+      funcionTxt = `La subordinada funciona como <b>${escHtml(lbl)}</b> de ${refLabel}.`;
       if(familiaPAU(subordinada.subtipo) === 'relativa'){
         if(subordinada.subtipo === 'relativa_especificativa' || subordinada.subtipo === 'relativa_explicativa'){
           funcionTxt = `La subordinada funciona como <b>${escHtml(lbl)}</b> de su antecedente.`;
