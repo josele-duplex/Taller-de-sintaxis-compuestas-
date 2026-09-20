@@ -115,13 +115,20 @@ Auditoría completa. Dos hallazgos separados, los dos cerrados:
   en producción — 0 nexos huérfanos en las 30 oraciones de 3+ proposiciones
   del banco, flujo completo reprobado en el navegador).
 
-### 3.3 Adaptar `construirDiagnosticos()` a la fase fusionada
+### 3.3 Adaptar `construirDiagnosticos()` a la fase fusionada — ✅ HECHO (sep-2026)
 
-- **Estado**: 🔴 PENDIENTE (verificado mayo 2026: sigue en
-  `js/modules/compuestas/index.js:4566`).
-- **Tipo**: Limpieza tras refactor.
-- **Estimación**: 1 hora.
-- **Cómo implementarlo**: el resumen interpretativo todavía habla de "fase 4" y "fase 5" como si fueran pasos separados. Hay que reescribir los mensajes hablando de un solo paso "clasificar y relacionar" con sub-pasos.
+Limpieza puramente interna, no cambia nada de lo que ve el alumno (los
+mensajes de `construirDiagnosticos()` ya estaban bien redactados; lo
+desactualizado eran solo comentarios y nombres internos). Se hizo la
+versión completa (no solo comentarios): renombrado mecánico de `eng.fase`
+5→4 y de todas las variables/funciones `f5*`/`F5` a `f4*`/`F4` en
+`js/modules/compuestas/index.js`, para que la numeración interna del
+motor coincida por fin con el paso 4 "Clasificar y relacionar" que ve el
+alumno. Deliberadamente sin tocar `ej.metadatos.fases_activas` (numeración
+del schema de datos) ni las claves `f4`/`f5` de `fasesPts` en el payload
+del examen agregado (contrato con `Compuestas.gs`) — ambas son
+numeraciones externas independientes del motor. Probado en vivo (relación
+única, relación saltada, varias relaciones) sin errores. Commit `aaf2763`.
 
 ### 3.4 Completar subtipos faltantes en el banco
 
@@ -339,7 +346,6 @@ orden de utilidad:
 - Completar `analisis_interno` de OC_0001–OC_0005.
 
 **Limpieza pedagógica/técnica**
-- 3.3 Adaptar `construirDiagnosticos()` (terminología "fase 4/5" obsoleta).
 - 1.9 (deuda) Micro-lecciones que faltan: NP, CC Tiempo/Lugar/Modo/Compañía/
   Instrumento, Mod.Or., Conector.
 
