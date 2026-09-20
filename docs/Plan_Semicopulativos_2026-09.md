@@ -131,15 +131,28 @@ hereda el cambio en la próxima build; avisar al informático si ya tiene copia.
   otro en `atr_cpvo` (semicopulativo → Atributo obligatorio, no CPvo).
 - Terminología: «sintagma», «oración», PAU; nunca «grupo» ni casos latinos.
 
-### S3 · Rastro del error PNS en analíticas e informes — **Sonnet**, sesión nueva (corta)
+### S3 · Rastro del error PNS en analíticas e informes — ✅ HECHO (20-sep-2026)
 
-- Comprobar que `'PNS'` sale con etiqueta legible («Tipo de predicado
-  (semicopulativo)») en: resumen de sesión, panel del profesor, hoja
-  `Diagnóstico` / errores por función del GAS (`getInformeProfesor_`).
 - Excluir `'PN'`, `'PV'`, `'PNS'` del filtro de banco del «Refuerzo
-  personalizado» (`launchReinforcement`, `js/modules/teacher/index.js:1457`):
-  no son funciones de `funciones_presentes`.
-- Si toca GAS: redesplegar como **Nueva versión** de la implementación existente.
+  personalizado» — hecho en commits 38084db/9c6f176/9380580 (`CLAVES_NO_FILTRABLES`
+  en `js/feedback/tracking.js`).
+- Etiqueta legible («Tipo de predicado (semicopulativo)») para `'PNS'` —
+  commit `4e060cc`. Al auditar se descubrió que el dato ni siquiera llegaba
+  al backend (no había columna para PN/PV/PNS en `Alumnos_Resultados` ni
+  `Sesiones_Practica`), así que la tarea creció de "poner una etiqueta" a
+  tender el tubo completo:
+  - `sint/index.js`: contador `se.pnsErrors` (paralelo a `pvpnErrors`, solo
+    cuenta la confusión copulativo/semicopulativo) → `computeErrByFunc_` →
+    `submitResult`/`sendPracticeAnalytics` (`errPNS`).
+  - Resumen de sesión: desglose por función y "Tendencia general" usan
+    `errorLabel()` (`js/feedback/tracking.js`) en vez de la clave cruda.
+  - `Code_v6.gs`: columna nueva `Err_PNS` en ambos sheets; `getInformeProfesor_`
+    agrega directamente con la etiqueta legible (`ETIQUETA_PNS_`), así que
+    el informe Excel del profesor (hoja 🎯 Diagnóstico, top errores por
+    alumno/grupo/global) la hereda sin tocar `informe-excel.js`.
+  - Redesplegado como Nueva versión y verificado end-to-end: petición real
+    de prueba (`saveSesionPractica`, grupo `TEST_E2E_PNS`) → `{"ok":true}` →
+    confirmado por Josele en el informe Excel real con la etiqueta correcta.
 
 ### S4 · Datos: dudas del lote y ampliación — **Haiku o Sonnet**, cuando Josele decida
 
