@@ -238,8 +238,11 @@ app en el servidor.
 
 ## 5. Dominio y DNS
 
-- **Dominio:** `tallerdesintaxis.com`. **A 12-sep-2026 NO está registrado.**
-  Comprueba disponibilidad y regístralo (o guía a Josele para que lo haga).
+- **Dominio:** `tallerdesintaxis.com`. **Actualización 20-sep-2026: ya está
+  registrado** (lo hiciste tú). Sigue pendiente el resto de este apartado:
+  titularidad a confirmar, DNS sin configurar todavía (no apunta a ningún
+  alojamiento) y el `.es` sin registrar. Lo que falta ahora es exactamente
+  la parte de hospedaje del §4 — el dominio existe pero no sirve nada aún.
   Recomendación del plan del proyecto: registrar también el **`.es`** para
   proteger la marca y redirigirlo al `.com`.
 - **Titularidad:** el dominio se registra **a nombre de Josele**, con su
