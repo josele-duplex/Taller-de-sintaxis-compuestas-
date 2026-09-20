@@ -2315,7 +2315,9 @@ function selectPvPnTipo(selected, correct){
     if(G.mode==='practice'||G.mode==='projector'){
       const scaffold=lookupScaffold(selected, correct, 'syntax');
       trackError('sintaxis','PNS');
-      showFeedback('error','Tipo de verbo incorrecto',scaffold.fijo,scaffold.pista,correct==='PNS'?'Semicopulativo':'Copulativo');
+      // 'PNS' como 5.º arg: es la clave con la que trackError cuenta el fallo y
+      // la que ERROR_TO_LECCION mapea a la micro-lección 'semicopulativos'.
+      showFeedback('error','Tipo de verbo incorrecto',scaffold.fijo,scaffold.pista,'PNS');
     }
   }
 }

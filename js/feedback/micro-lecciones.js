@@ -86,7 +86,8 @@ export const MICRO_LECCIONES = {
           <div style="background:#EFF6FF;border:2px solid #93C5FD;border-radius:12px;padding:14px">
             <div style="font-size:1.3rem;margin-bottom:4px">🪞</div>
             <strong style="color:#1D4ED8">Atributo — El Espejo</strong>
-            <p style="font-size:.82rem;margin:6px 0 0;color:#1E40AF">Solo con <strong>ser, estar, parecer</strong>. Funciona como un «=» entre sujeto y cualidad. Se sustituye por <strong>lo</strong>.</p>
+            <p style="font-size:.82rem;margin:6px 0 0;color:#1E40AF">Con <strong>ser, estar, parecer</strong>. Funciona como un «=» entre sujeto y cualidad. Se sustituye por <strong>lo</strong>.</p>
+            <p style="font-size:.76rem;margin:6px 0 0;color:#3B82F6">También con los <strong>semicopulativos</strong> (<em>ponerse, quedarse, seguir…</em>): ahí el Atributo es <strong>obligatorio</strong> («*Se puso» queda cojo), así que nunca es CPvo.</p>
           </div>
           <div style="background:#FFF7ED;border:2px solid #FDBA74;border-radius:12px;padding:14px">
             <div style="font-size:1.3rem;margin-bottom:4px">📸</div>
@@ -236,6 +237,7 @@ export const MICRO_LECCIONES = {
             <strong style="color:#1D4ED8">PN — El Puente</strong>
             <p style="font-size:.82rem;margin:6px 0 0;color:#1E40AF">Verbos <strong>copulativos</strong> (<em>ser, estar, parecer</em>). No indican acción: conectan al sujeto con una cualidad o estado.</p>
             <p style="font-size:.78rem;color:#3B82F6;margin-top:4px">Lo esencial es el <strong>Atributo</strong>, no el verbo.</p>
+            <p style="font-size:.76rem;color:#3B82F6;margin-top:4px">También sus «primos» vaciados, los <strong>semicopulativos</strong> (<em>ponerse, quedarse, seguir, verse…</em>): «Ana <strong>se puso</strong> nerviosa» es PN.</p>
           </div>
           <div style="background:#FFF7ED;border:2px solid #FDBA74;border-radius:12px;padding:14px">
             <div style="font-size:1.3rem;margin-bottom:4px">⚡</div>
@@ -528,11 +530,103 @@ export const MICRO_LECCIONES = {
         correcta:1,
         explicacion:'Marina realiza la acción de peinar Y la recibe sobre sí misma. Si quitamos "se": *"Marina peina" queda incompleto sin objeto. El "se" es argumento obligatorio: reflexivo en función de CD.'},
     ]
+  },
+  // Verbos semicopulativos (sep-2026, docs/Plan_Semicopulativos_2026-09.md §S2).
+  // Se dispara desde el error 'PNS' (segundo paso de la fase 3: copulativo /
+  // semicopulativo) y desde PNS marcada como PV. Fuente: NGLE §37-38.
+  'semicopulativos': {
+    tag: 'Lección · Verbos semicopulativos',
+    titulo: 'El Verbo que se Vació',
+    bloques: [
+      {tipo:'concepto', html:`
+        <div style="background:#EFF6FF;border:2px solid #93C5FD;border-radius:12px;padding:14px;margin-bottom:12px">
+          <div style="font-size:1.3rem;margin-bottom:4px">🏺</div>
+          <strong style="color:#1D4ED8">Un verbo pleno que se ha vaciado</strong>
+          <p style="font-size:.82rem;margin:6px 0 0;color:#1E40AF"><em>Ponerse, quedarse, seguir, verse…</em> son verbos con significado propio (colocar, permanecer en un sitio, mirar). Pero en <em>«Ana <strong>se puso</strong> nerviosa»</em> ya no significan nada de eso: solo hacen de <strong>puente</strong> entre el sujeto y una cualidad, igual que <em>ser, estar, parecer</em>.</p>
+          <p style="font-size:.78rem;color:#3B82F6;margin-top:4px">Por eso construyen <strong>Predicado Nominal</strong> y lo que llevan detrás es <strong>Atributo</strong>. Se llaman <strong>semicopulativos</strong>: copulativos «a medias», porque conservan un matiz (cambio, duración, apariencia) que <em>ser/estar</em> no tienen.</p>
+        </div>
+        <div style="font-size:.82rem;font-weight:700;color:var(--ink);margin:0 0 6px">Las 3 pruebas — aplícalas juntas, ninguna vale sola:</div>
+        <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:12px">
+          <tr style="background:var(--paper2)">
+            <th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--border)">Prueba</th>
+            <th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--border)">ser / estar / parecer</th>
+            <th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--border)">semicopulativo</th>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border)"><strong>1. Suprimir</strong> lo que sigue al verbo</td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border)">Queda coja: <em>*Ana está</em></td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border)">Queda coja o el verbo recupera su sentido pleno: <em>Ana se puso</em> (¿dónde? ¿qué?)</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border)"><strong>2. Sustituir por «lo»</strong></td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border)">✅ <em>Ana <strong>lo</strong> está</em></td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border)">❌ <em>*Ana se <strong>lo</strong> puso</em> (cambia el sentido)</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px"><strong>3. Sustituir por «así»</strong></td>
+            <td style="padding:6px 8px">✅ <em>Ana está <strong>así</strong></em></td>
+            <td style="padding:6px 8px">✅ <em>Ana se puso <strong>así</strong></em></td>
+          </tr>
+        </table>
+        <div style="background:var(--paper2);border-radius:10px;padding:12px;font-size:.85rem;border-left:3px solid #6366F1">
+          La clave es la <strong>prueba 2</strong>: el Atributo de <em>ser/estar/parecer</em> se deja sustituir por «lo»; el de un semicopulativo, <strong>no</strong>. Y en las dos familias el Atributo es <strong>obligatorio</strong> y admite «así».
+        </div>
+      `},
+      {tipo:'concepto', html:`
+        <div style="font-size:.82rem;font-weight:700;color:var(--ink);margin:0 0 8px">Tres familias según el matiz que conserva el verbo (NGLE):</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">
+          <div style="background:#FFF7ED;border:2px solid #FDBA74;border-radius:12px;padding:12px">
+            <div style="font-size:1.2rem;margin-bottom:4px">🔄</div>
+            <strong style="color:#9A3412">Cambio</strong>
+            <p style="font-size:.78rem;margin:6px 0 0;color:#9A3412">El sujeto <strong>pasa a</strong> un estado nuevo.</p>
+            <p style="font-size:.78rem;margin:6px 0 0;color:#C2410C"><em>ponerse, hacerse, volverse, quedarse, salir, resultar</em></p>
+            <p style="font-size:.76rem;margin:6px 0 0;color:#9A3412">«El plan <strong>salió</strong> redondo.»</p>
+          </div>
+          <div style="background:#ECFDF5;border:2px solid #6EE7B7;border-radius:12px;padding:12px">
+            <div style="font-size:1.2rem;margin-bottom:4px">⏳</div>
+            <strong style="color:#065F46">Permanencia</strong>
+            <p style="font-size:.78rem;margin:6px 0 0;color:#065F46">El estado <strong>ya existía</strong> y se mantiene.</p>
+            <p style="font-size:.78rem;margin:6px 0 0;color:#047857"><em>seguir, permanecer, continuar, andar, mantenerse</em></p>
+            <p style="font-size:.76rem;margin:6px 0 0;color:#065F46">«Los precios <strong>siguen</strong> altos.»</p>
+          </div>
+          <div style="background:#F5F3FF;border:2px solid #C4B5FD;border-radius:12px;padding:12px">
+            <div style="font-size:1.2rem;margin-bottom:4px">👁️</div>
+            <strong style="color:#5B21B6">Manifestación</strong>
+            <p style="font-size:.78rem;margin:6px 0 0;color:#5B21B6">Cómo <strong>se percibe</strong> el estado desde fuera.</p>
+            <p style="font-size:.78rem;margin:6px 0 0;color:#6D28D9"><em>verse, encontrarse, mostrarse, lucir, presentarse</em></p>
+            <p style="font-size:.76rem;margin:6px 0 0;color:#5B21B6">«La biblioteca <strong>se veía</strong> vacía.»</p>
+          </div>
+        </div>
+        <div style="background:var(--paper2);border-radius:10px;padding:12px;font-size:.85rem;border-left:3px solid #6366F1">
+          <strong>Ojo con el mismo verbo en dos trajes.</strong> <em>«Salió <u>a la calle</u>»</em> → verbo pleno (movimiento), PV. <em>«Salió <u>redondo</u>»</em> → verbo vaciado, PN con Atributo.<br>
+          Y si el verbo es de acción y lo que sigue se puede quitar (<em>«Llegó <u>cansado</u>»</em> → «Llegó»), no es Atributo: es <strong>CPvo</strong>.
+        </div>
+      `},
+      {tipo:'quiz', pregunta:'«El público se quedó mudo tras la noticia.» ¿Qué tipo de predicado tiene?',
+        opciones:['PV — "quedarse" expresa una acción y "mudo" es CPvo','PN — "quedarse" está vaciado y "mudo" es el Atributo','PN — "tras la noticia" es el Atributo','PV — no aparece ser, estar ni parecer'],
+        correcta:1,
+        explicacion:'Aplica las pruebas: sin "mudo", "El público se quedó tras la noticia" pasa a significar "permaneció allí" (el verbo recupera su sentido pleno); "*El público se lo quedó" no vale; "El público se quedó así" sí. "Mudo" es obligatorio y admite «así»: es Atributo, y el predicado es Nominal con verbo semicopulativo de cambio.'},
+      {tipo:'quiz', pregunta:'Compara: «Marta salió abrigada a la calle» y «El examen salió redondo». ¿Qué función tiene "abrigada" y cuál "redondo"?',
+        opciones:['Las dos son Atributo: "salir" siempre es semicopulativo','Las dos son CPvo: "salir" es un verbo de movimiento','"abrigada" es CPvo (salir = moverse, se puede quitar) y "redondo" es Atributo (salir vaciado, obligatorio)','"abrigada" es Atributo y "redondo" es CC Modo'],
+        correcta:2,
+        explicacion:'En «Marta salió a la calle» el verbo conserva su significado de movimiento y "abrigada" se puede suprimir: es CPvo. En «El examen salió redondo» nadie se mueve: "salir" está vaciado, "*El examen salió" queda cojo y "salió así" funciona. "Redondo" es Atributo. El mismo verbo, dos trajes.'},
+      {tipo:'quiz', pregunta:'«Mi abuela está orgullosa» / «Mi abuela se puso orgullosa». ¿Cuál de estas dos sustituciones por «lo» es gramatical?',
+        opciones:['Las dos: «Mi abuela lo está» y «Mi abuela se lo puso»','Solo «Mi abuela lo está»: ser/estar/parecer admiten «lo»; los semicopulativos, no','Solo «Mi abuela se lo puso»','Ninguna: el Atributo nunca se sustituye por «lo»'],
+        correcta:1,
+        explicacion:'«Mi abuela lo está» es perfecta: el Atributo de estar se sustituye por «lo». En cambio «Mi abuela se lo puso» solo se entiende si "lo" es un CD (se puso el abrigo): el sentido cambia. Esa es la prueba del «lo»: separa los copulativos puros de los semicopulativos. Con «así» funcionan los dos: «lo está así», «se puso así».'},
+      {tipo:'quiz', pregunta:'«Los precios siguen altos.» ¿A qué familia de semicopulativos pertenece aquí "seguir"?',
+        opciones:['Cambio — los precios pasan a un estado nuevo','Permanencia — el estado ya existía y se mantiene','Manifestación — es cómo se perciben desde fuera','No es semicopulativo: "seguir" es un verbo de movimiento'],
+        correcta:1,
+        explicacion:'"Seguir" presupone que los precios ya estaban altos y continúan así: es un semicopulativo de permanencia (como permanecer, continuar, mantenerse). Comprueba que no es el "seguir" de movimiento: "*Los precios siguen" queda cojo y "siguen así" funciona. "Altos" es el Atributo.'},
+    ]
   }
 };
 
 // Map syntax function errors to micro-lessons
 export const ERROR_TO_LECCION = {
+  // 'PNS' = fallo en el segundo paso de la fase 3 (copulativo / semicopulativo)
+  // o PNS marcada como PV (sep-2026).
+  'PNS': 'semicopulativos',
   'CD': 'cd_ci', 'CI': 'cd_ci',
   'Sujeto': 'sujeto',
   // Vocativo tiene leccion propia desde mayo 2026 (antes iba a 'sujeto').
