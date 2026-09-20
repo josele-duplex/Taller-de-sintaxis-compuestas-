@@ -92,13 +92,29 @@ sin avisar; se regenerarán en un lote futuro.
 
 ### 3.2 Auditoría y reconstrucción de oraciones embebidas
 
-- **Estado**: Pendiente decisión final del usuario (ya aclaró: "el nexo debe estar en P3 aunque P3 esté dentro de P2").
-- **Tipo**: Pedagógico / Datos.
-- **Estimación**: 1 día.
-- **Cómo implementarlo**:
-  1. Auditar los ejercicios con 3+ proposiciones del banco (probablemente 5-10 ejercicios afectados).
-  2. Reconstruir los `indices` de cada P_n para que la P más externa **excluya** los tokens que pertenecen a P más internas.
-  3. Verificar que el motor de fase 3 funciona bien con la nueva estructura.
+- **Estado**: Auditoría completa (sep-2026). Dos hallazgos separados, uno ya
+  corregido y desplegado, el otro con los datos listos pendientes de pegar
+  en el Sheet:
+  - **Hallazgo B (motor, ✅ HECHO y en producción)**: `construirPAUSub()`
+    en `js/modules/compuestas/index.js` usaba `.find()` para localizar "la"
+    subordinada, así que en oraciones con 2+ subordinadas encadenadas
+    (embebidas) el resumen final ("Análisis completo de la oración") solo
+    describía la primera y omitía el resto en silencio. Corregido para
+    reconstruir la cadena completa; si la estructura no es una cadena
+    lineal (dos subordinadas colgando del mismo nodo) cae a un resumen más
+    plano pero completo en vez de omitir información. Commit `a40106c`.
+  - **Hallazgo A (datos, ✅ celdas listas, ⏳ pendiente que Josele las pegue
+    en el Sheet)**: de las 31 oraciones con 3+ proposiciones, en 5
+    (OC_0022, OC_0165, OC_0195, OC_0201, OC_0202) la proposición externa se
+    quedaba con la palabra-nexo ("que", "porque", "para que") que en
+    realidad introduce la proposición embebida — confirmado en vivo en
+    Fase 3 "Delimitar": el alumno podía tocar esa palabra y la app la daba
+    por buena, cerrando el paso antes de tiempo. En las demás 26 el
+    solapamiento de `indices` no causa error real porque el motor resuelve
+    la ambigüedad a favor de la proposición más interna (mapa índice→
+    proposición por orden de array). JSON corregido de las 5 entregado a
+    Josele; validado con `node scripts/validar-banco.mjs` (0 errores) y
+    reproducido en el navegador contra el motor real.
 
 ### 3.3 Adaptar `construirDiagnosticos()` a la fase fusionada
 
@@ -320,7 +336,7 @@ planificado para las semanas 1-3 ya está hecho. Lo que sigue abierto, por
 orden de utilidad:
 
 **Contenido del banco de compuestas (sección 3)**
-- 3.2 Auditar oraciones embebidas (3+ proposiciones) y reconstruir `indices`.
+- 3.2 Auditoría hecha; solo falta que Josele pegue las 5 celdas corregidas en el Sheet (ver detalle arriba).
 - 3.4 Completar subtipos faltantes (lote nuevo de ejercicios).
 - Completar `analisis_interno` de OC_0001–OC_0005.
 
