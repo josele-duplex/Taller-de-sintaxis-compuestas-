@@ -116,6 +116,29 @@ export function getErrorHistoryCount(modo, funcion) {
   return (hist[modo] && hist[modo][funcion]) || 0;
 }
 
+// Claves del histórico que NO son funciones sintácticas del banco
+// (funciones_presentes): son tipos de predicado de la fase 3. Sirven para
+// micro-lecciones y analíticas, pero como filtro del banco no casan con
+// ninguna oración ("Refuerza: PNS" no reforzaba nada — sep-2026).
+const CLAVES_NO_FILTRABLES = new Set(['PN', 'PV', 'PNS']);
+
+/**
+ * Funciones más falladas de un modo, ordenadas de más a menos, listas para
+ * usarse como filtro del banco (Refuerzo personalizado, "Practicar mis
+ * errores"). Excluye las claves que no son funciones del banco.
+ * @param {string} modo  'sintaxis' | 'compuesta' | ...
+ * @param {number} [n=3] cuántas devolver
+ * @returns {string[]}
+ */
+export function getTopErrorFunctions(modo, n = 3) {
+  const hist = _loadErrorHistory();
+  return Object.entries(hist[modo] || {})
+    .filter(([f]) => !CLAVES_NO_FILTRABLES.has(f))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, n)
+    .map(([f]) => f);
+}
+
 /**
  * Decide si proponer una micro-lección al alumno tras un error.
  *

@@ -1467,8 +1467,9 @@ async function handleStart(){
   // contempla compuestas/index.js con esta misma comprobación.
   if(selectedMode==='practice' && currentModule==='sint' && typeof getMisionesForMode === 'function'){
     const misiones=await getMisionesForMode('sintaxis');
-    const errorHist=_loadErrorHistory();
-    const hasErrors=Object.keys(errorHist.sintaxis||{}).length>0;
+    // Solo cuenta si hay errores en funciones filtrables del banco
+    // (PN/PV/PNS solos no dan pie a un Refuerzo personalizado).
+    const hasErrors=getTopErrorFunctions('sintaxis',1).length>0;
     if(misiones.length>0||hasErrors){
       showMissionSelector({modo:'sintaxis',_continue:()=>_doHandleStart(name,email,pin,examSubfase)});
       return;
@@ -3351,13 +3352,11 @@ async function goResults(){
 }
 
 function practiceMyErrors(){
-  const errorHist=_loadErrorHistory();
-  const sintErrors=errorHist.sintaxis||{};
-  const topErrors=Object.entries(sintErrors).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]);
+  const topErrors=getTopErrorFunctions('sintaxis',3);
   if(topErrors.length>0){
     localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:topErrors,dificultad:0}));
   }
-  window._activeMission={id:'REFUERZO',nombre:'Refuerzo: '+topErrors.join(', '),modo:'sintaxis',funciones:topErrors,nOraciones:5};
+  window._activeMission={id:'REFUERZO',nombre:'Refuerzo: '+(topErrors.join(', ')||'todas las funciones'),modo:'sintaxis',funciones:topErrors,nOraciones:5};
   goLogin();
   // Auto-select practice mode after a tick
   setTimeout(()=>{

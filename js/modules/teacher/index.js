@@ -1355,9 +1355,8 @@ async function showMissionSelector(launchParams){
   const modo = launchParams.modo || 'sintaxis';
   const misiones = await getMisionesForMode(modo);
   // Also add auto-generated reinforcement mission based on error history
-  const errorHist = _loadErrorHistory();
-  const modoErrors = errorHist[modo]||{};
-  const sortedErrors = Object.entries(modoErrors).sort((a,b)=>b[1]-a[1]);
+  // (solo funciones filtrables del banco: PN/PV/PNS quedan fuera).
+  const topErrors = getTopErrorFunctions(modo, 3);
 
   const cards = document.getElementById('mission-cards');
   let html = '';
@@ -1379,8 +1378,7 @@ async function showMissionSelector(launchParams){
   });
 
   // Auto reinforcement mission (if errors exist)
-  if(sortedErrors.length>0){
-    const topErrors = sortedErrors.slice(0,3).map(e=>e[0]);
+  if(topErrors.length>0){
     html += '<div style="background:#FFFBEB;border:2px solid #FDE68A;border-radius:14px;padding:16px;margin-bottom:10px;cursor:pointer;transition:all .15s" onclick="launchReinforcement()" onmouseover="this.style.borderColor=\'#D97706\'" onmouseout="this.style.borderColor=\'#FDE68A\'">'+
       '<div style="display:flex;justify-content:space-between;align-items:start">'+
       '<div><div style="font-size:1rem;font-weight:800">🎯 Refuerzo personalizado</div>'+
@@ -1459,9 +1457,7 @@ function launchReinforcement(){
   _capturarReflexionToggle();
   window._activeReto = null;
   const modo = window._pendingMissionLaunch?.modo||'sintaxis';
-  const errorHist = _loadErrorHistory();
-  const modoErrors = errorHist[modo]||{};
-  const topErrors = Object.entries(modoErrors).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]);
+  const topErrors = getTopErrorFunctions(modo, 3);
   window._activeMission = {id:'REFUERZO',nombre:'Refuerzo personalizado',modo,funciones:topErrors,nOraciones:5};
   if(topErrors.length>0){
     localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:topErrors,dificultad:0}));
