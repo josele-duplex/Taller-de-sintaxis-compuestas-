@@ -585,7 +585,7 @@ function buildOracionObject(row, rowIndex) {
       sujeto_tacito:   esTacito,
       sin_sujeto:      esImpersonal,
       nucleo_tacito:   esTacito ? extractPronoun(sujeto) : '',
-      consejo: 'Fíjate en la concordancia entre el verbo y el grupo nominal sujeto.'
+      consejo: 'Fíjate en la concordancia entre el verbo y el sintagma nominal sujeto.'
     },
     fase3: {
       // 'Predicado Nominal (Semicopulativo)' en Col D → PNS (verbos como

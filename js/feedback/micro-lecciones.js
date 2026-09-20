@@ -375,7 +375,7 @@ export const MICRO_LECCIONES = {
       {tipo:'quiz', pregunta:'En «Grita una barbaridad», ¿por qué "una barbaridad" es CC Cantidad y no CD?',
         opciones:['Porque es un SN definido','Porque concuerda en género con el sujeto','Porque indica un grado extremo de la acción y se puede eliminar: "Grita" sigue siendo correcto','Porque es el ejecutor de la acción'],
         correcta:2,
-        explicacion:'"Una barbaridad" funciona aquí como locución adverbial de sentido cuantitativo (≈ "muchísimo"). Es un grupo nominal que actúa como adjunto del verbo: prescindible y responde a "¿cuánto grita?".'},
+        explicacion:'"Una barbaridad" funciona aquí como locución adverbial de sentido cuantitativo (≈ "muchísimo"). Es un sintagma nominal que actúa como adjunto del verbo: prescindible y responde a "¿cuánto grita?".'},
     ]
   },
   'vocativo': {
