@@ -676,6 +676,45 @@ Verificado con clic real: el chip «Básico» sigue filtrando con normalidad
 sustancia pedagógica ya estaba construida, solo faltaba nombrarla en un
 sitio.
 
+**Reauditoría tras el plan de semicopulativos (20-sep-2026).** El plan
+`docs/Plan_Semicopulativos_2026-09.md` (S0-S5, cerrado hoy — ver
+[[project_semicopulativos]]) toca `sint/index.js`, `tracking.js`,
+`pistas-sint.js` y `micro-lecciones.js`: archivos que sí viajan en
+`dist-light/` (ninguno es `js/modules/teacher/`), así que merecía repasar
+si algo de eso afecta a Fase 4. Conclusión:
+
+- **No toca la sustancia de Fase 4.** `SUBFASE_CONFIGS` y los «🔍 Filtros
+  de funciones» de Simples, y el filtro Nivel de Compuestas, siguen
+  exactamente igual — el rediseño de semicopulativos es del *paso 3* de la
+  fase de análisis (tarjeta PN/PV → segundo paso copulativo/semicopulativo
+  dentro de la misma tarjeta), no de los itinerarios de entrada.
+- **Sí destapó una pieza de itinerario que la auditoría original no había
+  nombrado:** el botón «🎯 Practicar mis errores» (`practiceMyErrors()`,
+  `js/modules/sint/index.js`, visible tras una práctica con errores) es
+  autoservicio del alumno — lee `getTopErrorFunctions()` de
+  `tracking.js`, escribe `localStorage` y activa una misión local, todo
+  sin backend. Funciona ya en LIGHT (no depende de `teacher/index.js`
+  para nada: la única escritura de `_activeMission` que hace es
+  `window._activeMission=…`, ya cubierta por la guarda que se hizo al
+  excluir el panel del profesor). El fix de hoy en `tracking.js`
+  (`CLAVES_NO_FILTRABLES`) corrige además un bug real de este botón que
+  también afectaba a la versión ligera: si el error más repetido de un
+  alumno era PN/PV/PNS (etiquetas de tipo de predicado, no funciones
+  filtrables del banco), el botón generaba «Refuerzo: PNS» y no filtraba
+  ninguna oración; ahora cae a funciones reales del currículo.
+- **Asimetría preexistente, no introducida hoy:** este botón solo existe
+  en Simples. Compuestas no tiene un «Practicar mis errores» equivalente.
+  No bloquea nada — se apunta aquí como mejora futura, no como pendiente
+  de Fase 4.
+- **`dist-light/` ya estaba regenerado y sincronizado** (mismo `mtime`
+  que la fuente en los 4 archivos tocados; sin rastro de «PN·SC» residual;
+  `pnsErrors` presente en la copia). No hizo falta rebuild.
+- **Sin cadenas nuevas visibles con «PAU»/«Murcia»/«EBAU»** en la micro-
+  lección ni en las pistas nuevas — Fase 5 sigue cerrada sin cambios.
+
+Fase 4 sigue **CERRADA**; el plan de semicopulativos no le debe nada al
+build ligero.
+
 ### 11.12 Fase 5 (idioma neutro) — recuento real y efecto en la estrategia comercial (12-sep-2026)
 
 **El recuento de §11.8 (96 apariciones, 2 sesiones) estaba inflado por
