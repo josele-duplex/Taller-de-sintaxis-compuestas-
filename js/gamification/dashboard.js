@@ -140,9 +140,10 @@ export function addDashboardButton() {
   btn.id = 'dash-fab';
   btn.onclick = showStudentDashboard;
   btn.title = 'Tu progreso';
-  btn.style.cssText = 'position:fixed;bottom:16px;right:16px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#FCD34D,#F59E0B);border:none;cursor:pointer;box-shadow:0 4px 16px rgba(245,158,11,.4);z-index:100;font-size:1.5rem;display:flex;align-items:center;justify-content:center;transition:transform .2s';
-  btn.onmouseover = () => btn.style.transform = 'scale(1.1)';
+  btn.setAttribute('aria-label', 'Tu progreso');
+  btn.style.cssText = 'position:fixed;bottom:16px;right:16px;display:flex;align-items:center;gap:7px;padding:12px 18px 12px 14px;border-radius:999px;background:linear-gradient(135deg,#FCD34D,#F59E0B);border:none;cursor:pointer;box-shadow:0 4px 16px rgba(245,158,11,.4);z-index:100;font-size:1.2rem;transition:transform .2s';
+  btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
   btn.onmouseout = () => btn.style.transform = 'scale(1)';
-  btn.innerHTML = '📊';
+  btn.innerHTML = '<span aria-hidden="true">📊</span><span style="font-size:.8rem;font-weight:800;color:#78350F;font-family:inherit">Progreso</span>';
   document.body.appendChild(btn);
 }
