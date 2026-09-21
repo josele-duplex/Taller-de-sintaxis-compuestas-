@@ -163,25 +163,14 @@ function _startP3HesitationWatcher(){
       const target = emptySlots[0];
       const txt = (target.indices||[]).map(i=>o.palabras[i]||'').join(' ').trim();
       const msg = txt
-        ? '💡 ¿Te ayudo? Piensa qué hace «' + txt + '» en la oración: ¿completa al verbo o añade circunstancia?'
-        : '💡 ¿Necesitas un empujón? Arrastra una etiqueta al primer bloque vacío.';
-      showHesitationHint(msg);
+        ? 'Piensa qué hace «' + txt + '» en la oración: ¿completa al verbo o añade circunstancia?'
+        : '¿Necesitas un empujón? Arrastra una etiqueta al primer bloque vacío.';
+      showPistaFlotante({titulo:'¿Te ayudo?', html: escHtml(msg), tipo:'sint'});
+      clearTimeout(G.hesitHintCloseTimer);
+      G.hesitHintCloseTimer = setTimeout(()=>{ closePistaFlotante(); }, 6000);
       _resetP3Idle();  // que no machaque mientras lee la pista
     }catch(e){ /* silencioso: este watcher no debe romper la sesión */ }
   }, 1500);
-}
-function showHesitationHint(text){
-  let el = document.getElementById('hesit-hint');
-  if(!el){
-    el = document.createElement('div');
-    el.id = 'hesit-hint';
-    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);max-width:560px;padding:11px 18px;background:linear-gradient(135deg,#FFFBEB 0%,#FEF3C7 100%);border:1.5px solid #F59E0B;border-radius:14px;color:#92400E;font-weight:600;font-size:.86rem;line-height:1.45;z-index:120;box-shadow:0 6px 18px rgba(245,158,11,.25);pointer-events:none;text-align:center';
-    document.body.appendChild(el);
-  }
-  el.textContent = text;
-  el.style.opacity = '1';
-  clearTimeout(el._timer);
-  el._timer = setTimeout(()=>{ el.style.transition='opacity .5s'; el.style.opacity='0'; }, 4500);
 }
 
 /** Renders a visible error card when a render function throws */
