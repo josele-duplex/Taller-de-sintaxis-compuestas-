@@ -354,7 +354,6 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:17px 0}
 @keyframes succFadeIn{from{opacity:0}to{opacity:1}}
 .succ-card{background:linear-gradient(180deg,#FFFFFF 0%,#FFFBF0 100%);border-radius:24px;box-shadow:0 20px 60px rgba(180,83,9,.15),0 4px 12px rgba(0,0,0,.06);padding:42px 36px 32px;max-width:540px;width:100%;text-align:center;animation:succCardIn .55s cubic-bezier(.16,1,.3,1);border:1.5px solid rgba(180,83,9,.12);position:relative;overflow:hidden}
 @keyframes succCardIn{from{opacity:0;transform:translateY(20px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
-.succ-card::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#16A34A 0%,#65A30D 50%,#CA8A04 100%);border-radius:24px 24px 0 0}
 .succ-check{width:78px;height:78px;border-radius:50%;background:linear-gradient(135deg,#16A34A 0%,#15803D 100%);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;animation:checkPop .55s cubic-bezier(.16,1,.3,1) .15s both;box-shadow:0 8px 20px rgba(22,163,74,.32),inset 0 -2px 8px rgba(0,0,0,.08)}
 .succ-check svg{width:38px;height:38px}
 .succ-title{font-family:'Fraunces',serif;font-size:2rem;font-weight:900;color:#1F2937;margin-bottom:10px;line-height:1.1;letter-spacing:-.02em}
