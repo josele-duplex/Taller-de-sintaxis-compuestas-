@@ -374,10 +374,22 @@
     const cats = ['tipo', 'subtipo', 'nivel', 'n_props'];
 
     // Capa 1: exclusión dura (ejercicios con propiedades prohibidas → fuera)
+    //
+    // La categoría 'subtipo' es especial: un ejercicio puede tener varios
+    // subtipos reales a la vez (ver subtiposDelEjercicio), así que se
+    // excluye si CUALQUIERA de ellos está en la lista de excluidos — no
+    // solo el "principal" que devolvía getEjVal antes de sep-2026.
     let filtered = state.ejercicios;
     cats.forEach(cat=>{
       if(state.filtrosExcl[cat].size > 0){
-        filtered = filtered.filter(ej=>!state.filtrosExcl[cat].has(getEjVal(ej, cat)));
+        filtered = filtered.filter(ej=>{
+          if(cat === 'subtipo'){
+            const subs = subtiposDelEjercicio(ej);
+            for(const s of subs){ if(state.filtrosExcl[cat].has(s)) return false; }
+            return true;
+          }
+          return !state.filtrosExcl[cat].has(getEjVal(ej, cat));
+        });
       }
     });
 
@@ -399,7 +411,14 @@
     // lo dice ("No hay ejercicios con esos filtros") en vez de mentir.
     cats.forEach(cat=>{
       if(state.filtros[cat].size > 0){
-        filtered = filtered.filter(ej=>state.filtros[cat].has(getEjVal(ej, cat)));
+        filtered = filtered.filter(ej=>{
+          if(cat === 'subtipo'){
+            const subs = subtiposDelEjercicio(ej);
+            for(const s of subs){ if(state.filtros[cat].has(s)) return true; }
+            return false;
+          }
+          return state.filtros[cat].has(getEjVal(ej, cat));
+        });
       }
     });
 
@@ -419,6 +438,23 @@
     return '';
   }
 
+  // Todos los subtipos reales de un ejercicio (relaciones + proposiciones),
+  // no solo "el primero que se encuentra" como hace obtenerSubtipoPrincipal.
+  // En una oracion mixta o con subordinacion embebida puede haber mas de
+  // uno (p.ej. copulativa + condicional); antes esos ejercicios solo eran
+  // "cazables" por el filtro de subtipo a traves del primero, y el resto
+  // quedaba invisible. Se usa SOLO para filtrar (aplicarFiltros /
+  // calcularOpcionesFiltro). obtenerSubtipoPrincipal() sigue siendo la
+  // etiqueta unica que se muestra en el resumen de sesion y en la pastilla
+  // del ejercicio: eso es solo visual, cambiarlo es decision aparte (bug
+  // de filtrado detectado por Josele, sep-2026).
+  function subtiposDelEjercicio(ej){
+    const s = new Set();
+    (ej.relaciones||[]).forEach(function(r){ if(r.subtipo) s.add(r.subtipo); });
+    (ej.proposiciones||[]).forEach(function(p){ if(p.subtipo) s.add(p.subtipo); });
+    return s;
+  }
+
   function getEjVal(ej, cat){
     if(cat === 'tipo')    return ej.tipo_oracion || '';
     if(cat === 'subtipo') return obtenerSubtipoPrincipal(ej);
@@ -432,8 +468,7 @@
     const tipos = new Set(), subtipos = new Set(), niveles = new Set(), nprops = new Set();
     state.ejercicios.forEach(ej=>{
       if(ej.tipo_oracion) tipos.add(ej.tipo_oracion);
-      const sub = obtenerSubtipoPrincipal(ej);
-      if(sub) subtipos.add(sub);
+      subtiposDelEjercicio(ej).forEach(s=>subtipos.add(s));
       const nivel = (ej.metadatos && ej.metadatos.nivel) || '';
       if(nivel) niveles.add(nivel);
       nprops.add(String(ej.proposiciones?.length || 0));
@@ -447,11 +482,10 @@
       state.ejercicios.forEach(ej=>{
         const t = ej.tipo_oracion;
         if(!t || !tiposActivos.has(t)) return;
-        const s = obtenerSubtipoPrincipal(ej);
-        if(s){
+        subtiposDelEjercicio(ej).forEach(s=>{
           if(!subtiposPorTipo[t]) subtiposPorTipo[t] = new Set();
           subtiposPorTipo[t].add(s);
-        }
+        });
       });
       subtiposFiltrados = [];
       Object.values(subtiposPorTipo).forEach(set=>set.forEach(s=>{
