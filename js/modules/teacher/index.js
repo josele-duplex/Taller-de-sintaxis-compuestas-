@@ -3,8 +3,8 @@
    Lineas originales: 4137-4504, 368 lineas.
 
    26 declaraciones top-level. Incluye:
-   - Config: loadTeacherPanel, saveApiUrl, savePin, genPin, saveTimer,
-     saveExamFilters, activateExam, testApiUrl, testCurrentPin,
+   - Config: loadTeacherPanel, renderTpFuncChecks, saveApiUrl, savePin, genPin,
+     saveTimer, saveExamFilters, activateExam, testApiUrl, testCurrentPin,
      setExamSubfase, updateSubfaseBtns, updateFilterPreview, flashTp.
    - Misiones: createMision, viewMisiones, deleteMision,
      getMisionesForMode, showMissionSelector, closeMissionSelector,
@@ -16,7 +16,8 @@
    Paso 10): SUBFASE_CONFIGS, LS_API, LS_PIN, LS_TIMER, DEFAULT_API_URL,
    getApiUrl, fetchWithTimeout, fetchWithRetry, getTeacherPw,
    showScreen, _activateExamFilters, openOverlay, closeOverlay,
-   loadProgress, saveProgress, FUNC_ORAC, escHtml, awardXP, _doHandleStart,
+   loadProgress, saveProgress, FUNC_ORAC, FUNC_FILTRABLES, FUNC_FILTRO_LABEL,
+   escHtml, awardXP, _doHandleStart,
    _launchGame, normalizeOracion, etc. (Teacher Panel toca muchas cosas
    del resto de la app, por eso esta entrelazado en el original).*/
 
@@ -26,7 +27,30 @@ import { escCSV } from '../../core/escape.js';
 // ════════════════════════════════════════════════════════
 // TEACHER PANEL
 // ════════════════════════════════════════════════════════
+// sep-2026 (auditoría de filtros): #tp-func-checks/#tp-func-prohib se
+// pintan aquí a partir de FUNC_FILTRABLES (js/glosario/tags.js) en vez de
+// tener su propia lista fija en el HTML — esa lista se quedó con solo 12 de
+// las ~22 funciones reales (ver commit de esta auditoría). Si FUNC_FILTRABLES
+// no llegó (fallo de carga de módulos ES), se deja el panel vacío en vez de
+// romper el resto del panel del profesor.
+function renderTpFuncChecks(){
+  const deseadas = document.getElementById('tp-func-checks');
+  const prohibidas = document.getElementById('tp-func-prohib');
+  if(!deseadas || !prohibidas) return;
+  if(!Array.isArray(window.FUNC_FILTRABLES)){
+    log.warn('[teacher] FUNC_FILTRABLES no llegó desde app.js — filtros de funciones vacíos.');
+    return;
+  }
+  const label = f => (window.FUNC_FILTRO_LABEL && window.FUNC_FILTRO_LABEL[f]) || f;
+  const html = FUNC_FILTRABLES.map(f =>
+    `<label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="${f}" onchange="updateFilterPreview()"> ${label(f)}</label>`
+  ).join('');
+  deseadas.innerHTML = html;
+  prohibidas.innerHTML = html;
+}
+
 function loadTeacherPanel(){
+  renderTpFuncChecks();
   document.getElementById('tp-apiurl').value=localStorage.getItem(LS_API)||DEFAULT_API_URL||'';
   document.getElementById('tp-pin').value=localStorage.getItem(LS_PIN)||'';
   document.getElementById('tp-pin-display').textContent=localStorage.getItem(LS_PIN)||'—';
@@ -40,6 +64,15 @@ function loadTeacherPanel(){
   if(savedFilters.funciones){
     document.querySelectorAll('#tp-func-checks input').forEach(cb=>{
       cb.checked=savedFilters.funciones.includes(cb.value);
+    });
+  }
+  // sep-2026 (auditoría de filtros): faltaba restaurar las prohibidas —
+  // saveExamFilters() nunca las guardaba, así que un profesor que las
+  // marcara y pulsara "Guardar filtros" las veía desaparecer al volver a
+  // abrir el panel, aunque el mensaje decía "✓ Filtros guardados".
+  if(savedFilters.prohibidas){
+    document.querySelectorAll('#tp-func-prohib input').forEach(cb=>{
+      cb.checked=savedFilters.prohibidas.includes(cb.value);
     });
   }
   if(savedFilters.dificultad){
@@ -129,12 +162,16 @@ function updateSubfaseBtns(sf){
 }
 function updateFilterPreview(){
   const checks=[...document.querySelectorAll('#tp-func-checks input:checked')].map(c=>c.value);
+  const prohib=[...document.querySelectorAll('#tp-func-prohib input:checked')].map(c=>c.value);
   const dif=parseInt(document.getElementById('tp-dif-range').value)||0;
   const difLabel=document.getElementById('tp-dif-label');
   difLabel.textContent=dif===0?'Todas':dif+'';
   const preview=document.getElementById('tp-filter-preview');
   const parts=[];
   if(checks.length>0)parts.push('Funciones: '+checks.join(', '));
+  // sep-2026: la vista previa no decía nada de las prohibidas — el profesor
+  // no tenía ninguna confirmación visual de que se fueran a aplicar.
+  if(prohib.length>0)parts.push('🚫 '+prohib.join(', '));
   if(dif>0)parts.push('Dificultad ≤ '+dif);
   const ec=parseInt(document.getElementById('tp-exam-count')?.value)||0;
   if(ec>0)parts.push(ec+' oraciones');
@@ -144,9 +181,12 @@ function updateFilterPreview(){
 }
 function saveExamFilters(){
   const checks=[...document.querySelectorAll('#tp-func-checks input:checked')].map(c=>c.value);
+  // sep-2026 (auditoría de filtros): antes esta función no guardaba las
+  // prohibidas — se perdían al recargar el panel pese al mensaje de éxito.
+  const prohib=[...document.querySelectorAll('#tp-func-prohib input:checked')].map(c=>c.value);
   const dif=parseInt(document.getElementById('tp-dif-range').value)||0;
   const examCount=parseInt(document.getElementById('tp-exam-count').value)||0;
-  localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:checks,dificultad:dif,examCount}));
+  localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:checks,prohibidas:prohib,dificultad:dif,examCount}));
   flashTp('✓ Filtros guardados.','var(--green)');
 }
 function saveApiUrl(){
@@ -1443,12 +1483,15 @@ async function launchMission(misionId){
   window._activeReto = null;
   const misiones = await getMisionesForMode(window._pendingMissionLaunch?.modo||'sintaxis');
   window._activeMission = misiones.find(m=>m.id===misionId)||null;
-  if(window._activeMission){
-    // Override filters with mission constraints
-    if(window._activeMission.funciones?.length>0){
-      localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:window._activeMission.funciones,dificultad:window._activeMission.dificultad||0}));
-    }
-  }
+  // sep-2026: ya no se escribe taller_exam_filters aquí — ese localStorage
+  // es del panel del profesor (createExam), y nada de práctica lo leía para
+  // filtrar (de ahí el bug: la misión no aplicaba sus funciones). Ahora
+  // filtrarPorFunciones() en sint/index.js lee window._activeMission.funciones
+  // directamente en _doHandleStart.
+  // OJO: window._activeMission.dificultad (el tope de dificultad de la
+  // misión, si lo tiene) sigue sin aplicarse en ningún sitio — mismo bug,
+  // pendiente de arreglar aparte (dificultad_dinamica no sobrevive a
+  // normalizeOracion en el cliente, así que hace falta tocar eso primero).
   if(window._pendingMissionLaunch?._continue) window._pendingMissionLaunch._continue();
 }
 
@@ -1459,9 +1502,6 @@ function launchReinforcement(){
   const modo = window._pendingMissionLaunch?.modo||'sintaxis';
   const topErrors = getTopErrorFunctions(modo, 3);
   window._activeMission = {id:'REFUERZO',nombre:'Refuerzo personalizado',modo,funciones:topErrors,nOraciones:5};
-  if(topErrors.length>0){
-    localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:topErrors,dificultad:0}));
-  }
   if(window._pendingMissionLaunch?._continue) window._pendingMissionLaunch._continue();
 }
 
@@ -1613,7 +1653,13 @@ async function generarInformeProfesor(){
 
 if (typeof window !== 'undefined') {
   Object.assign(window, {
-    loadTeacherPanel, setExamSubfase, saveExamFilters, saveApiUrl, savePin,
+    // sep-2026 (auditoría de filtros): updateFilterPreview faltaba aquí pese a
+    // que el HTML lo llama por oninput/onchange (rango de dificultad, nº de
+    // oraciones, y ahora también los checkboxes de renderTpFuncChecks) — cada
+    // interacción tiraba un ReferenceError silencioso y la vista previa de
+    // filtros nunca se actualizaba tras el primer pintado del panel.
+    loadTeacherPanel, renderTpFuncChecks, updateFilterPreview,
+    setExamSubfase, saveExamFilters, saveApiUrl, savePin,
     genPin, saveTimer, testApiUrl, testCurrentPin, activateExam,
     createMision, viewMisiones, deleteMision, showMissionSelector,
     closeMissionSelector, launchMission, launchReinforcement, startFreePlay,

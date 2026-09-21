@@ -43,6 +43,7 @@ import * as dictMorf from './data/diccionario-morfologia.js';
 import * as dictSintax from './data/diccionario-sintaxis.js';
 import * as dictSintag from './data/diccionario-sintagmas.js';
 import * as haberForms from './data/haber-forms.js';
+import * as serForms from './data/ser-forms.js';
 
 // ─────────────────────────────────────────────────────────────
 // 3. Glosario
@@ -88,7 +89,7 @@ cuadernos.aplicarCuadernoDelEnlace();
 // ─────────────────────────────────────────────────────────────
 Object.assign(window,
   constants, auth, escape, storage, audio, api, cuadernos, navigation, profile, timers, logModule,
-  dictMorf, dictSintax, dictSintag, haberForms,
+  dictMorf, dictSintax, dictSintag, haberForms, serForms,
   glosTags, glosData, glosRender,
   gLevels, gMissions, gStreak, gXp, gDashboard,
   fMicro, fMicroCP, fPistasSint, fPistasCP, fTracking, fPistaUi,

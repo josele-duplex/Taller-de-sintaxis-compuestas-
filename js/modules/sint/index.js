@@ -29,7 +29,8 @@
    Paso 10): showScreen, getApiUrl, fetchWithTimeout/Retry, awardXP,
    trackError, onSentenceCompleted, playSuccess/Error/Complete/Click,
    showCombo, CC_SUBTIPOS, FUNC_ORAC, FUNC_SINT, funcTagCss, tagContent,
-   HABER_FORMS, lookupScaffold, MICRO_LECCIONES, etc.
+   HABER_FORMS, SER_FORMS, FUNC_FILTRABLES, FUNC_FILTRO_LABEL,
+   lookupScaffold, MICRO_LECCIONES, etc.
 
    AVISO: este archivo es grande (2965 lineas) porque es el complemento
    del monolito original. Refactor estructural mas fino queda para Fase B.
@@ -600,13 +601,36 @@ function gluePunctToNeighbors(container){
   }
 }
 
-// FIX: función para clasificar secuencia verbal (según informe técnico adjunto)
+// Clítico pronominal del propio verbo ("se" de jactarse, arrepentirse...),
+// nunca CD/CI: solo se aparta cuando NO queda solo (verbo pronominal, no
+// un pronombre suelto). El sujeto "usted"/"ustedes" no entra aquí.
+const CLITICOS_VERBALES = new Set(['me','te','se','nos','os']);
+// Participio con concordancia de género/número (voz pasiva: "sido pintada",
+// "sido construidos"...). Se usa también tras "haber" porque una pasiva en
+// tiempo compuesto ("ha sido preparadA") concuerda igual que la pasiva simple.
+const PARTICIPIO_CONCORDADO_RE = /^.+(ados|adas|ado|ada|idos|idas|ido|ida|tos|tas|to|ta|sos|sas|so|sa|chos|chas|cho|cha)$/i;
+
+// sep-2026 (auditoría de filtros): antes, cualquier NP de 2+ palabras que no
+// empezara por "haber" se llamaba "Perífrasis verbal" al alumno — así caían
+// ahí tanto la voz pasiva ("fue pintado") como los verbos pronominales
+// simples ("se jacta"), que NO son perífrasis en NGLE. Ahora se distinguen:
+// PRONOMINAL (verbo + clítico propio), PASIVA (ser + participio) y
+// PERIFRASIS de verdad (auxiliar/semiauxiliar + infinitivo/gerundio/
+// participio, sin ser "haber" ni "ser"). Ver también SER_FORMS.
 function clasificarVerbo(tokens, indices) {
   if (indices.length < 2) return 'SIMPLE';
-  const v1 = tokens[indices[0]].toLowerCase();
-  const v2 = tokens[indices[indices.length-1]].toLowerCase();
-  if (HABER_FORMS.has(v1) && /^.+(ado|ido|to|so|cho)$/i.test(v2)) return 'TIEMPO_COMPUESTO';
-  return 'PERIFRASIS';
+  const toks = indices.map(i => (tokens[i] || '').toLowerCase());
+  const pronominal = CLITICOS_VERBALES.has(toks[0]) && toks.length > 1;
+  const resto = pronominal ? toks.slice(1) : toks;
+  if (resto.length < 2) return pronominal ? 'PRONOMINAL' : 'SIMPLE';
+  const prefijo = pronominal ? 'PRONOMINAL_' : '';
+  const v1 = resto[0], v2 = resto[resto.length - 1];
+  // El participio tras "haber" también puede concordar (pasiva en tiempo
+  // compuesto: "ha sido preparadA"), así que se usa el mismo regex amplio
+  // que la pasiva simple en vez de exigir la forma invariable.
+  if (HABER_FORMS.has(v1) && PARTICIPIO_CONCORDADO_RE.test(v2)) return prefijo + 'TIEMPO_COMPUESTO';
+  if (SER_FORMS.has(v1) && PARTICIPIO_CONCORDADO_RE.test(v2)) return prefijo + 'PASIVA';
+  return prefijo + 'PERIFRASIS';
 }
 
 function genTraps3(correctLabels, n=3) {
@@ -1024,6 +1048,22 @@ function filtrarPorReto(oraciones, retoId){
   return (oraciones||[]).filter(reto.test);
 }
 
+// sep-2026 (auditoría de filtros): filtra por las funciones de una misión o
+// de un refuerzo personalizado (window._activeMission.funciones) — mismo
+// criterio "al menos una de las funciones pedidas" que usa el profesor al
+// crear un examen (getOracionesFiltradas_ en Code_v6.gs) y la barra de
+// filtros de práctica (applyPracticeFilters). Hasta ahora nada aplicaba
+// este filtro: practiceMyErrors(), launchReinforcement() y launchMission()
+// (teacher/index.js) guardaban la lista de funciones en window._activeMission
+// y en taller_exam_filters, pero _doHandleStart solo leía nOraciones — el
+// alumno recibía oraciones al azar de todo el banco, no de la función que
+// se suponía que iba a reforzar.
+function filtrarPorFunciones(oraciones, funcs){
+  if(!Array.isArray(funcs) || funcs.length===0) return oraciones;
+  const deseadas = new Set(funcs);
+  return (oraciones||[]).filter(o => (o.funciones_presentes||[]).some(f=>deseadas.has(f)));
+}
+
 // ════════════════════════════════════════════════════════
 // REFLEXIÓN METALINGÜÍSTICA (Fase C) — banco de pruebas NGLE por función.
 // Repertorio GENERAL (no por oración): una entrada por función, reutilizada
@@ -1250,28 +1290,23 @@ async function loadOraciones(mode, apiUrl, subfase) {
     return { oraciones: getMock().map(normalizeOracion).filter(Boolean), usingMock: true, apiError: '' };
   }
   try {
-    // For exam mode, check if there are saved filters (column G)
+    // sep-2026 (auditoría de filtros): loadOraciones() SOLO se llama para
+    // práctica/proyector — _doHandleStart() atiende el modo examen aparte
+    // (PIN → action=getExamConfig, más abajo en este archivo) y siempre
+    // hace `return` antes de llegar aquí. Hasta ahora había una rama entera
+    // para mode==='exam' que leía taller_exam_filters de localStorage y
+    // llamaba a getOracionesFiltradas — código muerto, nunca alcanzado, que
+    // sugería (falsamente) que el examen se filtraba desde el dispositivo
+    // del alumno. El filtrado real del examen ocurre en el servidor, al
+    // crearlo (createExam_ precalcula el pool con esos mismos filtros).
     let fetchUrl = `${apiUrl}?action=getOraciones&mode=${mode}`;
     // Fase 1.5 (jul-2026): en práctica, la subfase elegida por el alumno
     // filtra el banco en el GAS (columna Subfase). Solo se envía para las
     // subfases restringidas: con 'completo' NO se manda el parámetro, para
     // conservar el comportamiento de siempre (entra todo el banco, incluidas
     // las filas marcadas 'profundo').
-    if (mode !== 'exam' && (subfase === 'solo_np' || subfase === 'np_sujeto')) {
+    if (subfase === 'solo_np' || subfase === 'np_sujeto') {
       fetchUrl += `&subfase=${encodeURIComponent(subfase)}`;
-    }
-    if (mode === 'exam') {
-      const savedFilters = JSON.parse(localStorage.getItem('taller_exam_filters') || '{}');
-      const examSubfase = localStorage.getItem('taller_exam_subfase') || '';
-      const hasFilters = (savedFilters.funciones && savedFilters.funciones.length > 0) || savedFilters.dificultad || examSubfase;
-      if (hasFilters) {
-        const params = new URLSearchParams({ action: 'getOracionesFiltradas' });
-        if (savedFilters.funciones && savedFilters.funciones.length > 0) params.set('funciones', savedFilters.funciones.join(','));
-        if (savedFilters.dificultad) params.set('dificultad', String(savedFilters.dificultad));
-        if (examSubfase) params.set('subfase', examSubfase);
-        fetchUrl = `${apiUrl}?${params.toString()}`;
-        log.debug('[loadOraciones] Using filtered endpoint:', fetchUrl);
-      }
     }
     log.debug('[loadOraciones] Fetching:', fetchUrl);
     const r = await fetchWithRetry(fetchUrl, {}, {
@@ -1610,6 +1645,15 @@ async function _doHandleStart(name,email,pin,examSubfase){
     if(filtradas.length > 0) oraciones = filtradas;
     else log.warn('[reto] Banco insuficiente para', _activeReto.id, '— se usa el banco completo.');
   }
+  // Apply mission function filter (Refuerzo personalizado / Misiones con
+  // funciones concretas) — antes del recorte por nOraciones, igual que el
+  // reto. Los retos ya llegan con window._activeMission.funciones=[] (se
+  // filtran por su propio test arriba), así que no se solapan.
+  if(window._activeMission && window._activeMission.funciones?.length > 0){
+    const filtradas = filtrarPorFunciones(oraciones, window._activeMission.funciones);
+    if(filtradas.length > 0) oraciones = filtradas;
+    else log.warn('[mision] Banco insuficiente para', window._activeMission.funciones, '— se usa el banco completo.');
+  }
   // Apply mission nOraciones limit
   if(window._activeMission && window._activeMission.nOraciones > 0 && oraciones.length > window._activeMission.nOraciones){
     oraciones = oraciones.slice(0, window._activeMission.nOraciones);
@@ -1646,6 +1690,10 @@ function _launchGame({ name, email, pin, subfase, oraciones, usingMock, timerDur
   // Show/hide practice filters bar
   const pfBar=document.getElementById('practice-filters-bar');
   if(pfBar) pfBar.style.display = selectedMode==='practice' ? 'block' : 'none';
+  // Repinta los checkboxes de funciones al empezar cada sesión de práctica,
+  // con los valores por defecto (deseadas todas marcadas, prohibidas ninguna)
+  // — igual que antes, cuando eran HTML fijo; ver renderPfCheckboxes().
+  if(selectedMode==='practice') renderPfCheckboxes();
   // Update filter count
   const countEl=document.getElementById('pf-count');
   if(countEl && selectedMode==='practice') countEl.textContent='· Todas ('+oraciones.length+')';
@@ -1886,10 +1934,25 @@ function renderContextStrip(o,showBlocks=false){
 // ════════════════════════════════════════════════════════
 // PHASE 1 — NP (Verbo) — FIX: multi-word NP + compound vs perífrasis
 // ════════════════════════════════════════════════════════
+// Etiqueta + mensaje por categoría de verbo (ver clasificarVerbo). Las
+// variantes PRONOMINAL_* combinan el "se" propio del verbo (jactarse...)
+// con tiempo compuesto o perífrasis genuinos.
+const VERBO_CAT_LABELS = {
+  SIMPLE:                      { tip:'✦ Verbo simple',                    flash:'¡NP correcto!' },
+  TIEMPO_COMPUESTO:            { tip:'⚗️ Tiempo compuesto',                flash:'¡Tiempo compuesto correcto!', msg:' — Tiempo compuesto: haber + participio invariable' },
+  PERIFRASIS:                  { tip:'🔀 Perífrasis verbal',               flash:'¡Perífrasis correcta!',       msg:' — Perífrasis verbal' },
+  PASIVA:                      { tip:'🔄 Voz pasiva',                      flash:'¡Voz pasiva correcta!',       msg:' — Voz pasiva: ser + participio' },
+  PRONOMINAL:                  { tip:'↩️ Verbo pronominal',                flash:'¡Verbo pronominal correcto!', msg:' — Verbo pronominal: el "se" forma parte del verbo' },
+  PRONOMINAL_TIEMPO_COMPUESTO: { tip:'↩️ Verbo pronominal (tiempo compuesto)', flash:'¡Tiempo compuesto correcto!', msg:' — Verbo pronominal en tiempo compuesto' },
+  PRONOMINAL_PASIVA:           { tip:'↩️ Voz pasiva pronominal',           flash:'¡Voz pasiva correcta!',       msg:' — Voz pasiva pronominal' },
+  PRONOMINAL_PERIFRASIS:       { tip:'↩️ Perífrasis pronominal',           flash:'¡Perífrasis correcta!',       msg:' — Perífrasis pronominal' },
+};
+function _verboCatInfo(cat){ return VERBO_CAT_LABELS[cat] || VERBO_CAT_LABELS.SIMPLE; }
+
 function renderPhase1(el,o){
   const npIndices=o.fase1.nucleo_predicado_indices;
   const cat=o.fase1.tipo_verbo_categoria||'SIMPLE';
-  const tipLabel=cat==='TIEMPO_COMPUESTO'?'⚗️ Tiempo compuesto':cat==='PERIFRASIS'?'🔀 Perífrasis verbal':'✦ Verbo simple';
+  const tipLabel=_verboCatInfo(cat).tip;
 
   el.innerHTML=instCard(1,'① NP (Verbo)',
     'Identifica el Núcleo del Predicado',
@@ -1929,13 +1992,12 @@ function clickVerb(idx,o){
     G.verbIndices=[...npIndices];
     const msg=document.getElementById('p1-msg');
     const cat=o.fase1.tipo_verbo_categoria||'SIMPLE';
-    const catMsg=cat==='TIEMPO_COMPUESTO'?' — Tiempo compuesto: haber + participio invariable':cat==='PERIFRASIS'?' — Perífrasis verbal':'';
+    const catInfo=_verboCatInfo(cat);
     msg.style.display='block';msg.style.color='var(--green)';
-    msg.textContent=`✓ NP identificado${catMsg}`;
+    msg.textContent=`✓ NP identificado${catInfo.msg||''}`;
     // Visual feedback: toast
     playClick(); playSuccess();
-    const flashLabel = cat==='PERIFRASIS' ? '¡Perífrasis correcta!' : cat==='TIEMPO_COMPUESTO' ? '¡Tiempo compuesto correcto!' : '¡NP correcto!';
-    showCorrectFlash(flashLabel);
+    showCorrectFlash(catInfo.flash);
     setTimeout(()=>transitionPhase(2),500); // FIX: reduced wait time
   }else{
     G.totalErrors++;G.sentenceErrors[G.idx].npErrors++;
@@ -3360,9 +3422,10 @@ async function goResults(){
 
 function practiceMyErrors(){
   const topErrors=getTopErrorFunctions('sintaxis',3);
-  if(topErrors.length>0){
-    localStorage.setItem('taller_exam_filters',JSON.stringify({funciones:topErrors,dificultad:0}));
-  }
+  // sep-2026: ya no se escribe taller_exam_filters aquí — ese localStorage
+  // es del panel del profesor (createExam), y nada de práctica lo leía para
+  // filtrar (de ahí el bug). window._activeMission.funciones, más abajo, es
+  // lo que ahora usa filtrarPorFunciones() en _doHandleStart.
   window._activeMission={id:'REFUERZO',nombre:'Refuerzo: '+(topErrors.join(', ')||'todas las funciones'),modo:'sintaxis',funciones:topErrors,nOraciones:5};
   goLogin();
   // Auto-select practice mode after a tick
@@ -3742,6 +3805,28 @@ function skipCurrentSentence(){
 // PRACTICE FILTERS — Frontend-only, no backend calls
 // ═══════════════════════════════════════════════════════
 // G.oracionesFull holds the full pool; G.oraciones holds filtered subset
+
+// sep-2026 (auditoría de filtros): #pf-checkboxes/#pf-prohib se pintan aquí
+// a partir de FUNC_FILTRABLES (js/glosario/tags.js) en vez de tener su
+// propia lista fija en el HTML — esa lista se quedó con solo 12 de las ~22
+// funciones reales (mismo desfase que el panel del profesor, arreglado en
+// el mismo commit). Se llama una vez por sesión de práctica, en _launchGame.
+function renderPfCheckboxes(){
+  const deseadas = document.getElementById('pf-checkboxes');
+  const prohibidas = document.getElementById('pf-prohib');
+  if(!deseadas || !prohibidas) return;
+  if(!Array.isArray(window.FUNC_FILTRABLES)){
+    log.warn('[sint] FUNC_FILTRABLES no llegó desde app.js — filtros de práctica vacíos.');
+    return;
+  }
+  const label = f => (window.FUNC_FILTRO_LABEL && window.FUNC_FILTRO_LABEL[f]) || f;
+  deseadas.innerHTML = FUNC_FILTRABLES.map(f =>
+    `<label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="${f}" onchange="applyPracticeFilters()" checked> ${label(f)}</label>`
+  ).join('');
+  prohibidas.innerHTML = FUNC_FILTRABLES.map(f =>
+    `<label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="${f}" onchange="applyPracticeFilters()"> ${label(f)}</label>`
+  ).join('');
+}
 
 function togglePracticeFilters(){
   const panel=document.getElementById('pf-panel');

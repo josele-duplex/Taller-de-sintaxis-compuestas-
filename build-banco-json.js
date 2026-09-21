@@ -104,6 +104,13 @@ function generarBancoCompuestas() {
 // motor. Replicar esa lógica es la única forma de que la versión ligera
 // vea las mismas oraciones exactamente igual que la versión con backend.
 
+// sep-2026 (auditoría de filtros): un solo mapa para las dos columnas
+// (E → fase3.bloques, vía normalizeFuncOrac; G/Tags → funciones_presentes,
+// más abajo en este archivo) — antes eran dos listas separadas (FUNC_NORMALIZATION
+// y NORM_FUNC_ORAC) y la segunda nunca recibió los 17 alias de junio 2026
+// (CPred, CRég, CI (Dat. Ético), Morf. Verbal...), así que esas oraciones
+// se veían bien en el juego pero eran invisibles para cualquier filtro por
+// esa función. Espejo exacto de la unificación en Server/Code_v6.gs.
 const FUNC_NORMALIZATION = {
   'Modificador Oracional': 'Mod.Or.', 'Mod. Oracional': 'Mod.Or.',
   'Mod. Orac.': 'Mod.Or.', 'Mod.Orac.': 'Mod.Or.', 'Vocativo': 'Vocat.',
@@ -118,28 +125,15 @@ const FUNC_NORMALIZATION = {
   'CC': 'CC Modo',
   'Aposición': null, 'Dat.Et.': null,
   'N (V. Pronominal)': 'Marca.Pron.', 'N (V. Pasivo)': 'Marca.Pas.Ref.',
+  // ── Alias de junio 2026 (lotes nuevos), fusionados aquí sep-2026 ──
+  'CC Fin.': 'CC Finalidad', 'CC Final': 'CC Finalidad', 'CC Medio': 'CC Instrumento',
+  'CI (Dat. Ético)': 'Dativo', 'CI (Dat. Etico)': 'Dativo', 'Dat. Ético': 'Dativo',
+  'Dativo Ético': 'Dativo', 'Dat. Interés': 'Dativo', 'Dativo de Interés': 'Dativo',
+  'CPred': 'CPvo', 'CRég': 'C.Rég.', 'CRég.': 'C.Rég.',
+  'Atributo Locativo': 'Atr. Loc.', 'Atr.Loc.': 'Atr. Loc.', 'CC Beneficiario': 'CC Benef.',
+  'Morf. Verbal': 'Marca.Pron.', 'Morf. Pronominal': 'Marca.Pron.',
 };
-
-const NORM_FUNC_ORAC = {
-  'C.Agente':'C.Ag.', 'Complemento Agente':'C.Ag.', 'C. Agente':'C.Ag.',
-  'Complemento Directo':'CD', 'Complemento Indirecto':'CI',
-  'Complemento de Régimen':'C.Rég.', 'C. Régimen':'C.Rég.',
-  'Complemento Predicativo':'CPvo', 'C. Predicativo':'CPvo',
-  'Atributo':'Atr.', 'Marca de Pasiva Refleja':'Marca.Pas.Ref.',
-  'Marca de Impersonalidad':'Marca.Imp.', 'Marca.Pasiva.Ref.':'Marca.Pas.Ref.',
-  'Marca.Pas.Ref':'Marca.Pas.Ref.', 'Marca.Imp':'Marca.Imp.',
-  'C.Rég':'C.Rég.', 'C.Reg.':'C.Rég.', 'C.Reg':'C.Rég.', 'C.Ag':'C.Ag.', 'Atr':'Atr.',
-  'Modificador Oracional':'Mod.Or.', 'Mod. Oracional':'Mod.Or.', 'Vocativo':'Vocat.',
-  'CC Procedencia':'CC Lugar', 'CC Lugar/Origen':'CC Lugar',
-  'CC Fin.':'CC Finalidad', 'CC Final':'CC Finalidad', 'CC Medio':'CC Instrumento',
-  'CI (Dat. Ético)':'Dativo', 'CI (Dat. Etico)':'Dativo', 'Dat. Ético':'Dativo',
-  'Dativo Ético':'Dativo', 'Dat. Interés':'Dativo', 'Dativo de Interés':'Dativo',
-  'CPred':'CPvo', 'CRég':'C.Rég.', 'CRég.':'C.Rég.',
-  'Atributo Locativo':'Atr. Loc.', 'Atr.Loc.':'Atr. Loc.', 'CC Beneficiario':'CC Benef.',
-  'Morf. Verbal':'Marca.Pron.', 'Morf. Pronominal':'Marca.Pron.',
-  'N (V. Pronominal)':'Marca.Pron.', 'N (V. Pasivo)':'Marca.Pas.Ref.',
-};
-function normalizeFuncOrac(f) { return NORM_FUNC_ORAC[f] || f; }
+function normalizeFuncOrac(f) { return FUNC_NORMALIZATION[f] || f; }
 
 function normalizeSintagma_(s) {
   const map = {
@@ -244,12 +238,28 @@ function extractPronoun(sujeto) {
   return 'él';
 }
 
+// sep-2026: mismo criterio que detectarTipoVerbo en Server/Code_v6.gs y
+// clasificarVerbo en js/modules/sint/index.js — los tres deben ir juntos.
+const HABER_FORMS_ = /^(he|has|ha|hemos|habéis|han|había|habías|habíamos|habíais|habían|hube|hubiste|hubo|habré|habrás|habrá|habremos|habréis|habrán|habría|habrías|habríamos|habríais|habrían|haya|hayas|hayamos|hayáis|hayan|hubiera|hubieras|hubiéramos|hubierais|hubieran|hubiese|hubieses|hubiésemos|hubieseis|hubiesen)$/i;
+const SER_FORMS_ = /^(soy|eres|es|somos|sois|son|era|eras|éramos|erais|eran|fui|fuiste|fue|fuimos|fuisteis|fueron|seré|serás|será|seremos|seréis|serán|sería|serías|seríamos|seríais|serían|sea|seas|seamos|seáis|sean|fuera|fueras|fuéramos|fuerais|fueran|fuese|fueses|fuésemos|fueseis|fuesen)$/i;
+const CLITICOS_VERBALES_ = new Set(['me','te','se','nos','os']);
+// Participio con concordancia de género/número. Se usa tanto para la pasiva
+// simple ("fue pintadA") como tras "haber" ("ha sido preparadA" — pasiva en
+// tiempo compuesto): el participio de un "haber" activo normal también
+// concuerda con este patrón (es invariable, subconjunto del regex).
+const PARTICIPIO_CONCORDADO_RE_ = /^.+(ados|adas|ado|ada|idos|idas|ido|ida|tos|tas|to|ta|sos|sas|so|sa|chos|chas|cho|cha)$/i;
+
 function detectarTipoVerbo(verbo) {
-  const HABER = /^(he|has|ha|hemos|habéis|han|había|habías|habíamos|habíais|habían|hube|hubiste|hubo|habré|habrás|habrá|habremos|habréis|habrán|habría|habrías|habríamos|habríais|habrían|haya|hayas|hayamos|hayáis|hayan|hubiera|hubieras|hubiéramos|hubierais|hubieran|hubiese|hubieses|hubiésemos|hubieseis|hubiesen)$/i;
-  const parts = verbo.trim().split(/\s+/);
-  if (parts.length >= 2 && HABER.test(parts[0])) return 'TIEMPO_COMPUESTO';
-  if (parts.length >= 2) return 'PERIFRASIS';
-  return 'SIMPLE';
+  const toks = verbo.trim().split(/\s+/).map(t => t.toLowerCase());
+  if (toks.length < 2) return 'SIMPLE';
+  const pronominal = CLITICOS_VERBALES_.has(toks[0]) && toks.length > 1;
+  const resto = pronominal ? toks.slice(1) : toks;
+  if (resto.length < 2) return pronominal ? 'PRONOMINAL' : 'SIMPLE';
+  const prefijo = pronominal ? 'PRONOMINAL_' : '';
+  const v1 = resto[0], v2 = resto[resto.length - 1];
+  if (HABER_FORMS_.test(v1) && PARTICIPIO_CONCORDADO_RE_.test(v2)) return prefijo + 'TIEMPO_COMPUESTO';
+  if (SER_FORMS_.test(v1) && PARTICIPIO_CONCORDADO_RE_.test(v2)) return prefijo + 'PASIVA';
+  return prefijo + 'PERIFRASIS';
 }
 
 function generarConsejo(func) {
@@ -349,7 +359,7 @@ function _analizarDificultadOracion_(o) {
     .filter(f => f && f !== 'NP' && f !== 'Sujeto' && f !== 'Sujeto tácito');
   const tipoVerbo = (o.fase1 && o.fase1.tipo_verbo_categoria) || 'SIMPLE';
   const tieneCAg = funcs.includes('C.Ag.');
-  const npDificil = (tipoVerbo === 'PERIFRASIS') || tieneCAg;
+  const npDificil = /PERIFRASIS$/.test(tipoVerbo) || /PASIVA$/.test(tipoVerbo) || tieneCAg;
   const sujTacito = !!(o.fase2 && o.fase2.sujeto_tacito);
   const sujImpersonal = !!(o.fase2 && o.fase2.sin_sujeto);
   const sujIndices = (o.fase2 && o.fase2.sujeto_indices) || [];

@@ -397,33 +397,14 @@ if(window.location.protocol === 'file:') {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <div>
             <div style="font-size:.72rem;color:#059669;font-weight:700;margin-bottom:6px">✅ Funciones a practicar:</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px 10px" id="pf-checkboxes">
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="CD" onchange="applyPracticeFilters()" checked> CD</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="CI" onchange="applyPracticeFilters()" checked> CI</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="CC Tiempo" onchange="applyPracticeFilters()" checked> CC Tiempo</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="CC Lugar" onchange="applyPracticeFilters()" checked> CC Lugar</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="CC Modo" onchange="applyPracticeFilters()" checked> CC Modo</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="CC Causa" onchange="applyPracticeFilters()" checked> CC Causa</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="Atr." onchange="applyPracticeFilters()" checked> Atr.</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="CPvo" onchange="applyPracticeFilters()" checked> CPvo</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="C.Rég." onchange="applyPracticeFilters()" checked> C.Rég.</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="C.Ag." onchange="applyPracticeFilters()" checked> C.Ag.</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="Marca.Pas.Ref." onchange="applyPracticeFilters()" checked> Pas.Ref.</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="Marca.Imp." onchange="applyPracticeFilters()" checked> Imp.</label>
-            </div>
+            <!-- Rellenado por renderPfCheckboxes() (js/modules/sint/index.js) a
+                 partir de FUNC_FILTRABLES (js/glosario/tags.js) — no editar a mano
+                 aquí, o se repite el desfase que motivó este cambio (sep-2026). -->
+            <div style="display:flex;flex-wrap:wrap;gap:4px 10px" id="pf-checkboxes"></div>
           </div>
           <div>
             <div style="font-size:.72rem;color:#DC2626;font-weight:700;margin-bottom:6px">🚫 No quiero que aparezcan:</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px 10px" id="pf-prohib">
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="CD" onchange="applyPracticeFilters()"> CD</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="CI" onchange="applyPracticeFilters()"> CI</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="Atr." onchange="applyPracticeFilters()"> Atr.</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="CPvo" onchange="applyPracticeFilters()"> CPvo</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="C.Rég." onchange="applyPracticeFilters()"> C.Rég.</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="C.Ag." onchange="applyPracticeFilters()"> C.Ag.</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="Marca.Pas.Ref." onchange="applyPracticeFilters()"> Pas.Ref.</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="Marca.Imp." onchange="applyPracticeFilters()"> Imp.</label>
-            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px 10px" id="pf-prohib"></div>
           </div>
         </div>
         <div style="display:flex;gap:6px;margin-top:8px">
@@ -614,32 +595,13 @@ if(window.location.protocol === 'file:') {
     <div class="s-box" style="border-left:4px solid var(--purple)">
       <div class="s-title">🔍 Filtros de contenido <span style="font-size:.7rem;font-weight:500;color:var(--muted);margin-left:6px">(Columna G del Sheets)</span></div>
       <div class="s-desc">Selecciona qué funciones sintácticas <strong>deben aparecer</strong> en las oraciones del examen (al menos 1 de las marcadas).</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px 12px;margin:12px 0" id="tp-func-checks">
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="CD" onchange="updateFilterPreview()"> CD</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="CI" onchange="updateFilterPreview()"> CI</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="CC Tiempo" onchange="updateFilterPreview()"> CC Tiempo</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="CC Lugar" onchange="updateFilterPreview()"> CC Lugar</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="CC Modo" onchange="updateFilterPreview()"> CC Modo</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="CC Causa" onchange="updateFilterPreview()"> CC Causa</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="Atr." onchange="updateFilterPreview()"> Atr.</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="CPvo" onchange="updateFilterPreview()"> CPvo</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="C.Rég." onchange="updateFilterPreview()"> C.Rég.</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="C.Ag." onchange="updateFilterPreview()"> C.Ag.</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="Marca.Pas.Ref." onchange="updateFilterPreview()"> Pas.Ref.</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="Marca.Imp." onchange="updateFilterPreview()"> Imp.</label>
-      </div>
+      <!-- Rellenado por renderTpFuncChecks() (js/modules/teacher/index.js) a
+           partir de FUNC_FILTRABLES (js/glosario/tags.js) — no editar a mano
+           aquí, o se repite el desfase que motivó este cambio (sep-2026). -->
+      <div style="display:flex;flex-wrap:wrap;gap:6px 12px;margin:12px 0" id="tp-func-checks"></div>
       <div style="margin-bottom:10px">
         <label style="font-size:.78rem;font-weight:700;color:var(--red)">🚫 Funciones prohibidas <span style="font-weight:400;color:var(--muted)">(las oraciones que contengan estas NO aparecerán)</span></label>
-        <div style="display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:6px" id="tp-func-prohib">
-          <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="CD" onchange="updateFilterPreview()"> CD</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="CI" onchange="updateFilterPreview()"> CI</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="Atr." onchange="updateFilterPreview()"> Atr.</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="CPvo" onchange="updateFilterPreview()"> CPvo</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="C.Rég." onchange="updateFilterPreview()"> C.Rég.</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="C.Ag." onchange="updateFilterPreview()"> C.Ag.</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="Marca.Pas.Ref." onchange="updateFilterPreview()"> Pas.Ref.</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer"><input type="checkbox" value="Marca.Imp." onchange="updateFilterPreview()"> Imp.</label>
-        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:6px" id="tp-func-prohib"></div>
       </div>
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
         <div style="flex:1">

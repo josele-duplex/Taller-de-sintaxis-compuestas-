@@ -303,9 +303,12 @@ function safeParseJSON(raw) {
 //  depender de que alguien vuelva a etiquetar cada fila.
 //
 //  Subfase mínima (Solo NP / NP+Sujeto / Completo):
-//  - NP difícil    = perífrasis verbal, O hay C.Ag. (indicio de pasiva real).
+//  - NP difícil    = perífrasis verbal, O voz pasiva (ser + participio,
+//    incluida su variante pronominal), O hay C.Ag. (para pasivas con agente
+//    expreso que detectarTipoVerbo no capturara por algún motivo).
 //    (el tiempo compuesto NO cuenta como difícil: ya se presenta como una
-//    categoría propia y más sencilla en la Fase 1 del alumno).
+//    categoría propia y más sencilla en la Fase 1 del alumno; el verbo
+//    pronominal simple —"se jacta"— tampoco: es un solo núcleo léxico).
 //  - Sujeto difícil = tácito, O impersonal (sin sujeto), O pospuesto
 //    (aparece después del NP en la oración).
 //  - Si el sujeto es difícil → mínimo 'completo' (aunque el NP sea fácil:
@@ -327,7 +330,7 @@ function _analizarDificultadOracion_(o) {
 
   const tipoVerbo = (o.fase1 && o.fase1.tipo_verbo_categoria) || 'SIMPLE';
   const tieneCAg  = funcs.includes('C.Ag.');
-  const npDificil = (tipoVerbo === 'PERIFRASIS') || tieneCAg;
+  const npDificil = /PERIFRASIS$/.test(tipoVerbo) || /PASIVA$/.test(tipoVerbo) || tieneCAg;
 
   const sujTacito     = !!(o.fase2 && o.fase2.sujeto_tacito);
   const sujImpersonal = !!(o.fase2 && o.fase2.sin_sujeto);
@@ -712,12 +715,35 @@ function extractPronoun(sujeto) {
   return 'él';
 }
 
+// sep-2026 (auditoría de filtros): antes, cualquier NP de 2+ palabras que no
+// empezara por "haber" se clasificaba "PERIFRASIS" — así caían ahí tanto la
+// voz pasiva ("fue pintado por...") como los verbos pronominales simples
+// ("se jacta", "se arrepintió"), que NO son perífrasis en NGLE. Ahora se
+// distinguen PRONOMINAL (clítico propio del verbo), PASIVA (ser + participio)
+// y PERIFRASIS de verdad (auxiliar/semiauxiliar + infinitivo/gerundio/
+// participio, que no sea "haber" ni "ser"). Espejo exacto del cliente
+// (clasificarVerbo en sint/index.js) y de build-banco-json.js — los tres
+// deben evolucionar juntos si cambia el criterio.
+const HABER_FORMS_ = /^(he|has|ha|hemos|habéis|han|había|habías|habíamos|habíais|habían|hube|hubiste|hubo|habré|habrás|habrá|habremos|habréis|habrán|habría|habrías|habríamos|habríais|habrían|haya|hayas|hayamos|hayáis|hayan|hubiera|hubieras|hubiéramos|hubierais|hubieran|hubiese|hubieses|hubiésemos|hubieseis|hubiesen)$/i;
+const SER_FORMS_ = /^(soy|eres|es|somos|sois|son|era|eras|éramos|erais|eran|fui|fuiste|fue|fuimos|fuisteis|fueron|seré|serás|será|seremos|seréis|serán|sería|serías|seríamos|seríais|serían|sea|seas|seamos|seáis|sean|fuera|fueras|fuéramos|fuerais|fueran|fuese|fueses|fuésemos|fueseis|fuesen)$/i;
+const CLITICOS_VERBALES_ = new Set(['me','te','se','nos','os']);
+// Participio con concordancia de género/número. Se usa tanto para la pasiva
+// simple ("fue pintadA") como tras "haber" ("ha sido preparadA" — pasiva en
+// tiempo compuesto): el participio de un "haber" activo normal también
+// concuerda con este patrón (es invariable, subconjunto del regex).
+const PARTICIPIO_CONCORDADO_RE_ = /^.+(ados|adas|ado|ada|idos|idas|ido|ida|tos|tas|to|ta|sos|sas|so|sa|chos|chas|cho|cha)$/i;
+
 function detectarTipoVerbo(verbo) {
-  const HABER = /^(he|has|ha|hemos|habéis|han|había|habías|habíamos|habíais|habían|hube|hubiste|hubo|habré|habrás|habrá|habremos|habréis|habrán|habría|habrías|habríamos|habríais|habrían|haya|hayas|hayamos|hayáis|hayan|hubiera|hubieras|hubiéramos|hubierais|hubieran|hubiese|hubieses|hubiésemos|hubieseis|hubiesen)$/i;
-  const parts = verbo.trim().split(/\s+/);
-  if (parts.length >= 2 && HABER.test(parts[0])) return 'TIEMPO_COMPUESTO';
-  if (parts.length >= 2) return 'PERIFRASIS';
-  return 'SIMPLE';
+  const toks = verbo.trim().split(/\s+/).map(t => t.toLowerCase());
+  if (toks.length < 2) return 'SIMPLE';
+  const pronominal = CLITICOS_VERBALES_.has(toks[0]) && toks.length > 1;
+  const resto = pronominal ? toks.slice(1) : toks;
+  if (resto.length < 2) return pronominal ? 'PRONOMINAL' : 'SIMPLE';
+  const prefijo = pronominal ? 'PRONOMINAL_' : '';
+  const v1 = resto[0], v2 = resto[resto.length - 1];
+  if (HABER_FORMS_.test(v1) && PARTICIPIO_CONCORDADO_RE_.test(v2)) return prefijo + 'TIEMPO_COMPUESTO';
+  if (SER_FORMS_.test(v1) && PARTICIPIO_CONCORDADO_RE_.test(v2)) return prefijo + 'PASIVA';
+  return prefijo + 'PERIFRASIS';
 }
 
 function generarConsejo(func) {
@@ -820,60 +846,23 @@ function normalizeFuncSint(f) {
   return map[f] || f;
 }
 
-// Normaliza nombres de funciones sintácticas oracionales
-// para que coincidan con FUNC_ORAC del frontend
+// Normaliza nombres de funciones sintácticas oracionales para que coincidan
+// con FUNC_ORAC del frontend.
+//
+// sep-2026 (auditoría de filtros): esta función tenía su PROPIA copia del
+// mapa de alias, separada de FUNC_NORMALIZATION (§9, más abajo en este
+// archivo — el que usa el parseo de la columna G/Tags y las herramientas de
+// auditoría/reparación del banco). Las dos empezaron iguales pero
+// divergieron: en junio 2026 se añadieron aquí 17 alias nuevos (CPred,
+// CRég, CI (Dat. Ético), Morf. Verbal...) para que el alumno no se quedara
+// con oraciones bloqueadas — pero nadie las replicó en FUNC_NORMALIZATION,
+// así que esas mismas oraciones quedaban invisibles para CUALQUIER filtro
+// (examen del profesor, práctica del alumno, misiones/refuerzo): el alumno
+// veía "Dativo" correctamente en el juego, pero ningún filtro por "Dativo"
+// las encontraba. Ahora hay un solo mapa (FUNC_NORMALIZATION) y este
+// delega en él — no debe volver a crearse una copia separada aquí.
 function normalizeFuncOrac(f) {
-  const map = {
-    'C.Agente':         'C.Ag.',
-    'Complemento Agente':'C.Ag.',
-    'C. Agente':        'C.Ag.',
-    'Complemento Directo':'CD',
-    'Complemento Indirecto':'CI',
-    'Complemento de Régimen':'C.Rég.',
-    'C. Régimen':       'C.Rég.',
-    'Complemento Predicativo':'CPvo',
-    'C. Predicativo':   'CPvo',
-    'Atributo':         'Atr.',
-    'Marca de Pasiva Refleja':'Marca.Pas.Ref.',
-    'Marca de Impersonalidad':'Marca.Imp.',
-    'Marca.Pasiva.Ref.':'Marca.Pas.Ref.',
-    'Marca.Pas.Ref':   'Marca.Pas.Ref.',
-    'Marca.Imp':       'Marca.Imp.',
-    'C.Rég':           'C.Rég.',
-    'C.Reg.':          'C.Rég.',
-    'C.Reg':           'C.Rég.',
-    'C.Ag':            'C.Ag.',
-    'Atr':             'Atr.',
-    'Modificador Oracional':'Mod.Or.',
-    'Mod. Oracional':  'Mod.Or.',
-    'Vocativo':        'Vocat.',
-    'CC Procedencia':  'CC Lugar',
-    'CC Lugar/Origen': 'CC Lugar',
-    // ── Alias detectados en la auditoría de junio 2026 (lotes nuevos) ──
-    // Sin esta normalización, el frontend no reconoce la etiqueta, el bloque
-    // no aparece en ningún pool y la oración queda BLOQUEADA para el alumno.
-    'CC Fin.':          'CC Finalidad',
-    'CC Final':         'CC Finalidad',
-    'CC Medio':         'CC Instrumento',
-    'CI (Dat. Ético)':  'Dativo',
-    'CI (Dat. Etico)':  'Dativo',
-    'Dat. Ético':       'Dativo',
-    'Dativo Ético':     'Dativo',
-    'Dat. Interés':     'Dativo',
-    'Dativo de Interés':'Dativo',
-    'CPred':            'CPvo',
-    'CRég':             'C.Rég.',
-    'CRég.':            'C.Rég.',
-    'Atributo Locativo':'Atr. Loc.',
-    'Atr.Loc.':         'Atr. Loc.',
-    'CC Beneficiario':  'CC Benef.',
-    // Marca de verbo pronominal: etiqueta canónica del motor desde jun-2026.
-    'Morf. Verbal':     'Marca.Pron.',
-    'Morf. Pronominal': 'Marca.Pron.',
-    'N (V. Pronominal)':'Marca.Pron.',
-    'N (V. Pasivo)':    'Marca.Pas.Ref.',
-  };
-  return map[f] || f;
+  return FUNC_NORMALIZATION[f] || f;
 }
 
 // Normaliza el TIPO de sintagma a los 5 canónicos del motor (SN/SV/SP/SAdj/SAdv).
@@ -4563,10 +4552,37 @@ const FUNC_NORMALIZATION = {
   'CC':                    'CC Modo',  // bare CC → fallback to Modo (lo más frecuente)
   // Funciones que NO son del análisis sintáctico oracional → eliminar
   'Aposición':             null,        // función intra-sintagma, no oracional
-  'Dat.Et.':               null,        // dativo ético, no implementado
+  'Dat.Et.':               null,        // dativo ético abreviado — sin usar en el banco actual;
+                                         // si aparece algún día, sería 'Dativo' (ver alias de junio
+                                         // 2026 abajo), pero se deja en null hasta confirmarlo.
   // Marcas y núcleos que el motor lee de otra forma
   'N (V. Pronominal)':     'Marca.Pron.',
-  'N (V. Pasivo)':         'Marca.Pas.Ref.'
+  'N (V. Pasivo)':         'Marca.Pas.Ref.',
+  // ── Alias de junio 2026 (lotes nuevos), fusionados aquí sep-2026 ──
+  // Hasta ahora vivían SOLO en normalizeFuncOrac() (la limpieza de la
+  // columna E, la que ve el alumno): esta lista (columna G / Tags /
+  // funciones_presentes, la que usan TODOS los filtros) nunca las recibió,
+  // así que una oración con "CPred" en el Sheet aparecía correcta en el
+  // juego (normalizeFuncOrac la limpiaba) pero invisible para cualquier
+  // filtro por CPvo (esta lista no sabía traducirla). normalizeFuncOrac()
+  // ahora delega en este mismo objeto — no debe volver a haber dos listas.
+  'CC Fin.':               'CC Finalidad',
+  'CC Final':              'CC Finalidad',
+  'CC Medio':              'CC Instrumento',
+  'CI (Dat. Ético)':       'Dativo',
+  'CI (Dat. Etico)':       'Dativo',
+  'Dat. Ético':            'Dativo',
+  'Dativo Ético':          'Dativo',
+  'Dat. Interés':          'Dativo',
+  'Dativo de Interés':     'Dativo',
+  'CPred':                 'CPvo',
+  'CRég':                  'C.Rég.',
+  'CRég.':                 'C.Rég.',
+  'Atributo Locativo':     'Atr. Loc.',
+  'Atr.Loc.':              'Atr. Loc.',
+  'CC Beneficiario':       'CC Benef.',
+  'Morf. Verbal':          'Marca.Pron.',
+  'Morf. Pronominal':      'Marca.Pron.'
 };
 
 // Detección de CC compuestos que deben desglosarse

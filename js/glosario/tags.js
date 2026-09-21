@@ -14,6 +14,27 @@ export const FUNC_ORAC = ['Sujeto','PN','PV','NP','CD','CI','Dativo','C.Rég.','
 
 export const FUNC_SINT = ['N','N (enlace)','Mod/Det.','Mod/Cuant.','Mod.','SN/CN','SAdj/CN','SPrep/CN','CAdj','CAdv','SN/T','SAdj/T','SAdv/T','SP/T','Nexo','Aposición'];
 
+// sep-2026 (auditoría de filtros): funciones que tiene sentido "pedir" o
+// "prohibir" en los paneles de filtro (profesor y práctica del alumno).
+// Se excluyen de FUNC_ORAC los bloques estructurales pre-resueltos (Sujeto,
+// NP) y el tipo de predicado (PN/PV): no son funciones que el alumno
+// seleccione, están siempre presentes. ÚNICA fuente para ambos paneles —
+// antes cada uno tenía su propia lista de 8-12 funciones a mano, tocada la
+// última vez en mayo 2026, y se quedó atrás de las funciones añadidas a
+// FUNC_ORAC en junio 2026 (Dativo, Atr. Loc., Marca.Pron., CC Benef.) y de
+// las CC_SUBTIPOS que nunca llegaron a entrar (Cantidad, Compañía,
+// Finalidad, Instrumento). Si FUNC_ORAC cambia, los filtros se actualizan
+// solos — no hay una segunda lista que se pueda olvidar.
+export const FUNC_FILTRABLES = FUNC_ORAC.filter(f => !['Sujeto','PN','PV','NP'].includes(f));
+
+// Etiqueta corta para checkbox de filtro — solo las Marcas, que son largas;
+// el resto se muestra tal cual (su nombre canónico ya es corto).
+export const FUNC_FILTRO_LABEL = {
+  'Marca.Pas.Ref.': 'Pas.Ref.',
+  'Marca.Imp.': 'Imp.',
+  'Marca.Pron.': 'Pron.',
+};
+
 // Color CSS class based on FUNCTION (for phase 3 labels)
 export function funcTagCss(label) {
   // Labels can be "Tipo | Func" or just "Func" (for Marcas which have no sintagma type)
