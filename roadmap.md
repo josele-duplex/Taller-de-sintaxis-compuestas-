@@ -192,12 +192,23 @@ interno que existía (duplicado). El resultado se guarda en `Compuestas_Resultad
 - **Pendiente opcional (no bloqueante)**: detección automática de qué
   ejercicios fallan más (menor % medio de aciertos).
 
-### 4.5 Vista de errores agregada por alumno
+### 4.5 Vista de errores agregada por alumno — ✅ HECHO (código), ⏳ pendiente redespliegue (sep-2026)
 
-- **Estado**: Pendiente.
-- **Tipo**: Funcional para profesor.
-- **Estimación**: 4 horas.
-- **Cómo implementarlo**: en el panel del profesor, una vista que diga "el alumno X falla mayoritariamente en sustantivas de CD" usando los datos de `trackError` agregados.
+- **Estado**: código completo y verificado; falta que Josele pegue
+  `Code_v6.gs` en Apps Script y redespliegue como **Nueva versión** para que
+  el informe use el dato nuevo.
+- **Hallazgo al empezar**: la idea original ("usar `trackError` agregado")
+  no era viable — `trackError` solo escribe en el `localStorage` de cada
+  alumno, nunca llega al servidor. Se implementó la vía real: el motor ya
+  calculaba el valor correcto de cada fallo (tipo/familia/subtipo/función)
+  para la pista en pantalla; ahora también viaja al servidor dentro del
+  mismo JSON que ya se enviaba (`Errores_Categoria_JSON`), sin columnas
+  nuevas en el Sheet. `getInformeProfesor_` lo agrega por alumno (antes
+  solo existía la versión global, que se mantiene intacta). Nueva columna
+  "Top errores Compuestas" en la hoja Alumnos del informe Excel.
+- Verificado en vivo (motor cliente, payload real capturado) y con una
+  simulación en Node de la agregación por alumno del backend. Commit
+  `6dba764`.
 
 ---
 
