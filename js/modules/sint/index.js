@@ -3548,7 +3548,7 @@ const LOGIN_PANELS = {
           <span class="sel-icon">🌱</span><span class="sel-title">Aprendiz</span><span class="sel-desc">Solo categoría</span>
         </button>
         <button type="button" class="sel-card" id="mm-eso34-lvl" onclick="setMaestroNivel('eso34');setMorphTipoSilent('analisis')" role="radio" aria-checked="false">
-          <span class="sel-icon">📗</span><span class="sel-title">3.º–4.º ESO</span><span class="sel-desc">Atributos esenciales</span>
+          <span class="sel-icon">📗</span><span class="sel-title">Medio</span><span class="sel-desc">3.º–4.º ESO · Atributos esenciales</span>
         </button>
         <button type="button" class="sel-card" id="mm-maestro-lvl" onclick="setMaestroNivel('maestro');setMorphTipoSilent('analisis')" role="radio" aria-checked="false">
           <span class="sel-icon">🧬</span><span class="sel-title">Maestro</span><span class="sel-desc">Análisis ${NOMBRE_PRUEBA}</span>
