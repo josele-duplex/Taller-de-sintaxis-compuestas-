@@ -7,7 +7,11 @@
 
    Mantiene la estructura y la tipografía (Georgia) de la memoria original
    de abril de 2026, que es la que el Registro ya conoce. Los datos que
-   solo obran en poder del solicitante van RESALTADOS EN AMARILLO. */
+   solo obran en poder del solicitante van RESALTADOS EN AMARILLO.
+
+   Revisión del 21-sep-2026: incorpora lo crecido desde el 30-ago (edición
+   ligera sin servidor, verbos semicopulativos, textos legales, informe por
+   alumno, terminología PAU) y actualiza todas las métricas de código. */
 
 const path = require('path');
 const fs = require('fs');
@@ -194,7 +198,7 @@ A(
 // ── NOTA PRELIMINAR ────────────────────────────────────────────────
 A(
   h1('NOTA PRELIMINAR'),
-  p('Este documento describe con fidelidad el estado real del programa a fecha de 30 de agosto de 2026. Los únicos datos que no se han podido consignar son los que constan exclusivamente en la documentación de la inscripción originaria que obra en poder del solicitante; aparecen resaltados en amarillo y deben rellenarse antes de presentar la solicitud:'),
+  p('Este documento describe con fidelidad el estado real del programa a fecha de 21 de septiembre de 2026. Los únicos datos que no se han podido consignar son los que constan exclusivamente en la documentación de la inscripción originaria que obra en poder del solicitante; aparecen resaltados en amarillo y deben rellenarse antes de presentar la solicitud:'),
   bulletMix([t('Número de asiento registral o de expediente de la inscripción originaria: '), amarillo('  ______________________  ')]),
   bulletMix([t('Fecha de la resolución de la inscripción originaria: '), amarillo('  ______________________  ')]),
   bulletMix([t('Fecha y lugar de la firma de la presente solicitud: '), amarillo('  ______________________  ')]),
@@ -213,13 +217,14 @@ A(
     ['Tipo de obra', 'Programa de ordenador (software) con base de datos original y metodología pedagógica propia'],
     ['Ámbito de inscripción', 'Registro Territorial de la Propiedad Intelectual de la Región de Murcia'],
     ['Versión inscrita originariamente', 'v6 (abril de 2026)'],
-    ['Versión objeto de esta ampliación', 'v7 (agosto de 2026)'],
+    ['Versión objeto de esta ampliación', 'v7 (septiembre de 2026)'],
     ['Fecha de primera creación', 'Enero de 2026'],
-    ['Fecha de esta versión', '30 de agosto de 2026'],
-    ['Extensión del código fuente', 'Más de 46.000 líneas de código propio'],
+    ['Fecha de esta versión', '21 de septiembre de 2026'],
+    ['Extensión del código fuente', 'Más de 46.900 líneas de código propio'],
+    ['Ediciones', 'Dos, generadas desde el mismo código fuente: la edición completa (para el centro educativo, con servidor y panel del profesor) y la edición ligera (pública, funciona íntegramente en el navegador sin servidor)'],
     ['Ámbito de uso previsto', 'Educación Secundaria Obligatoria y Bachillerato (España y ámbito hispanohablante)'],
     ['Lengua del sistema', 'Español, con terminología conforme a RAE/NGLE'],
-    ['Estado', 'En explotación real en el aula; uso compartido con el departamento de Lengua Castellana y Literatura mediante cuadernos independientes por profesor'],
+    ['Estado', 'En explotación real en el aula; uso compartido con el departamento de Lengua Castellana y Literatura mediante cuadernos independientes por profesor; edición ligera preparada para su publicación en dominio propio'],
   ], [30, 70], false),
   new Paragraph({ spacing: { after: 160 }, children: [] }),
   pMix([t('Asiento registral de la inscripción originaria que se amplía: '), amarillo('  ______________________  '),
@@ -239,7 +244,7 @@ A(
   h1('1. OBJETO DE LA AMPLIACIÓN'),
   h2('1.1 Qué se amplía'),
   p('La versión inscrita en abril de 2026 (v6) era un único fichero HTML autocontenido de unas 7.800 líneas, con un backend de unas 2.000, que cubría tres módulos didácticos: análisis de la oración simple, análisis morfológico y análisis de sintagmas, más un modo de práctica gamificada.'),
-  p('Cuatro meses después, la obra ha multiplicado por seis su extensión y ha cambiado de naturaleza interna. Ya no es un fichero: es una aplicación modular de más de cuarenta y seis mil líneas de código propio, organizada en más de cincuenta módulos independientes, con siete módulos didácticos —dos de ellos completamente nuevos y de concepción original— y un sistema de evaluación con calificación verificada en servidor. La presente memoria documenta ese crecimiento a fin de ampliar la inscripción registral con la versión vigente del programa.'),
+  p('Cinco meses después, la obra ha multiplicado por seis su extensión y ha cambiado de naturaleza interna. Ya no es un fichero: es una aplicación modular de más de cuarenta y seis mil líneas de código propio, organizada en más de cincuenta módulos independientes, con siete módulos didácticos —dos de ellos completamente nuevos y de concepción original—, un sistema de evaluación con calificación verificada en servidor y dos ediciones generadas desde el mismo código: una completa para el centro educativo y una ligera, pública, que funciona sin servidor. La presente memoria documenta ese crecimiento a fin de ampliar la inscripción registral con la versión vigente del programa.'),
   p('Las novedades sustanciales son las siguientes:'),
   bullet('Dos módulos didácticos enteramente nuevos —«El Laboratorio de Oraciones» y «La Fábrica de Palabras»— que invierten el planteamiento de la obra original: en lugar de pedir al alumno que aplique etiquetas gramaticales que ya conoce, le hacen manipular la lengua para descubrir el comportamiento que esas etiquetas nombran, y solo después le entregan el nombre.'),
   bullet('Un motor nuevo de análisis de la oración compuesta, con esquema de datos propio, que no existía en la versión inscrita.'),
@@ -249,28 +254,32 @@ A(
   bullet('La ampliación del módulo Arcade de dos a cuatro submodalidades y la consolidación de la capa de gamificación pedagógica.'),
   bullet('Un sistema de cuadernos independientes por profesor que permite el uso departamental de la obra sin que los datos de un aula lleguen a otra.'),
   bullet('La reescritura completa de la arquitectura, del fichero monolítico a un sistema de módulos nativos de JavaScript, sin dependencias de terceros, con funcionamiento sin conexión.'),
+  bullet('Una edición ligera de la obra, generada automáticamente a partir del mismo código fuente mediante un constructor propio, que funciona íntegramente en el navegador —sin servidor, sin panel del profesor y sin registro de datos— gracias a bancos locales de oraciones simples, oraciones compuestas y textos morfológicos incorporados a la propia aplicación; incluye aviso legal y política de privacidad propios.'),
+  bullet('El tratamiento didáctico específico de los verbos semicopulativos en el módulo de la oración simple: decisión del tipo de predicado en dos tiempos, micro-lección propia con las tres pruebas de la NGLE y seguimiento del error correspondiente hasta el informe del profesor.'),
   bullet('Un cuerpo sustancial de contenidos didácticos originales de creación propia —bancos de retos, canon de aceptabilidad, micro-lecciones, criterios de evaluación, manuales— descrito en el apartado 7.'),
 
   h2('1.2 Resumen del crecimiento respecto de la versión inscrita'),
   tabla([
-    ['ELEMENTO', 'v6 (abril 2026, inscrita)', 'v7 (agosto 2026, esta ampliación)'],
+    ['ELEMENTO', 'v6 (abril 2026, inscrita)', 'v7 (septiembre 2026, esta ampliación)'],
     ['Arquitectura', 'Fichero HTML único autocontenido', 'Aplicación modular de página única, más de 50 módulos ES6 nativos'],
-    ['Código de cliente', '≈ 7.800 líneas (HTML+CSS+JS juntos)', '≈ 25.000 líneas de JavaScript + ≈ 10.400 de HTML y CSS'],
-    ['Backend', '≈ 2.000 líneas (un fichero)', '≈ 10.500 líneas en 13 ficheros de Google Apps Script'],
+    ['Código de cliente', '≈ 7.800 líneas (HTML+CSS+JS juntos)', '≈ 25.800 líneas de JavaScript + ≈ 10.200 de HTML y CSS'],
+    ['Backend', '≈ 2.000 líneas (un fichero)', '≈ 10.550 líneas en 13 ficheros de Google Apps Script'],
+    ['Ediciones', 'Una', 'Dos: completa (centro educativo, con servidor) y ligera (pública, sin servidor), generadas desde el mismo código'],
     ['Módulos didácticos', '3 (Simples, Morfología, Sintagmas)', '7 (Simples, Compuestas, Morfología, Sintagmas, Chispa, Laboratorio, Fábrica)'],
     ['Modos de práctica', 'Arcade con 2 submodos', 'Arcade con 4 submodos + gamificación transversal'],
     ['Banco de oraciones simples', 'Más de 240 oraciones analizadas', 'Más de 650 oraciones analizadas'],
-    ['Bancos nuevos', '—', 'Oración compuesta (≈ 250 ejercicios), Laboratorio (≈ 210 retos), Fábrica (122 retos), corpus morfológico por niveles'],
+    ['Bancos nuevos', '—', 'Oración compuesta (≈ 250 ejercicios), Laboratorio (≈ 210 retos), Fábrica (122 retos), corpus morfológico por niveles, y bancos locales de la edición ligera (165 simples, 80 compuestas, 88 textos morfológicos)'],
     ['Evaluación', 'Examen con PIN en el módulo de simples; nota calculada en el navegador', 'Examen con PIN en seis módulos; nota calculada y firmada en el servidor, con vale de entrega de un solo uso'],
-    ['Informes', 'Exportación CSV', 'Informe en hoja de cálculo con escala de color, ranking, errores por función, analíticas de evolución y envío por correo a cada alumno'],
+    ['Informes', 'Exportación CSV', 'Informe en hoja de cálculo con escala de color, ranking, errores por función y por alumno, analíticas de evolución y envío por correo a cada alumno'],
     ['Usuarios docentes', 'Un solo profesor', 'Cuadernos independientes por profesor (uso departamental)'],
     ['Funcionamiento sin red', 'No', 'Sí: aplicación web progresiva con caché propia y guardián de arranque'],
+    ['Textos legales', '—', 'Aviso legal y política de privacidad propios, enlazados desde la aplicación'],
   ], [22, 36, 42]),
 
   h2('1.3 Alineación normativa y curricular'),
-  bullet('Terminología estricta conforme a la Nueva Gramática de la Lengua Española (RAE/NGLE, 2009). En la versión 7 esta exigencia se ha llevado hasta el detalle de la interfaz: el programa no emplea nunca el término «grupo» (usa «sintagma»), no muestra al alumno los términos «proposición principal» ni «proposición subordinada» —cada cláusula se denomina «oración» y se numera O1, O2, O3—, y la preposición sigue siendo el núcleo del sintagma preposicional.'),
+  bullet('Terminología estricta conforme a la Nueva Gramática de la Lengua Española (RAE/NGLE, 2009). En la versión 7 esta exigencia se ha llevado hasta el detalle de la interfaz: el programa no emplea nunca el término «grupo» (usa «sintagma»), no muestra al alumno los términos «proposición principal» ni «proposición subordinada» —cada cláusula se denomina «oración» y se numera O1, O2, O3—, la preposición sigue siendo el núcleo del sintagma preposicional y la negación recibe su función propia de modificador oracional.'),
   bullet('Currículo LOMLOE. Además de los contenidos de sintaxis y morfología ya cubiertos, la versión 7 incorpora el bloque de formación de palabras (1.º y 3.º de ESO, 1.º de Bachillerato) y digitaliza el trabajo de reflexión metalingüística que el currículo formula como «formular generalizaciones a partir de la observación, la comparación y la transformación».'),
-  bullet('EBAU / PAU de la Región de Murcia. El flujo de análisis, las etiquetas de función y la pauta de respuesta modelo del nivel superior de morfología reproducen los criterios exigidos en la prueba de acceso a la universidad de la Región de Murcia.'),
+  bullet('PAU de la Región de Murcia. El flujo de análisis, las etiquetas de función, el resumen final del análisis de la oración compuesta y la pauta de respuesta modelo del nivel superior de morfología reproducen los criterios exigidos en la prueba de acceso a la universidad de la Región de Murcia. En la edición ligera, de ámbito general, esa referencia se expresa de forma neutra («prueba de acceso a la universidad») sin alterar el contenido.'),
   new Paragraph({ children: [new PageBreak()] }),
 );
 
@@ -306,7 +315,7 @@ A(
 
   h2('2.3 Motor de análisis de la oración compuesta'),
   p('La versión inscrita no analizaba la oración compuesta. La v7 incorpora un motor completo y un esquema de datos propio que representa cada ejercicio mediante sus unidades léxicas, sus oraciones constituyentes, sus nexos y las relaciones entre ellas; cada oración constituyente lleva además su propio análisis interno de sujeto, predicado y funciones.'),
-  p('El alumno recorre el análisis en cuatro pasos guiados —identificar los verbos, identificar los nexos, delimitar las oraciones y clasificar la relación entre ellas (coordinación con sus subtipos, subordinación con los suyos, y yuxtaposición)— con tres modalidades de uso: lectura comentada, práctica libre con retroalimentación escalonada y examen calificado. Dispone de retroalimentación propia (micro-lecciones y pistas específicas del módulo), banco propio y backend dedicado.'),
+  p('El alumno recorre el análisis en cuatro pasos guiados —identificar los verbos, identificar los nexos, delimitar las oraciones y clasificar la relación entre ellas (coordinación con sus subtipos, subordinación con los suyos, y yuxtaposición)— con tres modalidades de uso: lectura comentada, práctica libre con retroalimentación escalonada y examen calificado. Al cerrar cada ejercicio, el módulo redacta un resumen del análisis con la pauta de la prueba de acceso a la universidad, que recorre correctamente también las subordinadas encadenadas —una oración subordinada dentro de otra subordinada— y las oraciones embebidas. Dispone de retroalimentación propia (micro-lecciones y pistas específicas del módulo), banco propio y backend dedicado.'),
 
   h2('2.4 Análisis morfológico en tres niveles curriculares'),
   p('El módulo morfológico se ha reelaborado por completo en torno a tres niveles alineados con el currículo: identificación de categorías gramaticales (1.º y 2.º de ESO), análisis con atributos esenciales (3.º y 4.º de ESO) y pauta completa de la prueba de acceso a la universidad (Bachillerato).'),
@@ -318,7 +327,7 @@ A(
 
   h2('2.6 Sistema de evaluación, calificación e informes'),
   p('El profesor genera un examen desde su panel, fija sus parámetros —grupo, evaluación, funciones que deben aparecer, funciones prohibidas, dificultad, subfase, número de ejercicios y temporizador— y lo activa mediante un código PIN de cuatro dígitos que comunica oralmente al alumnado. Seis de los siete módulos didácticos disponen ya de modo examen. En modo examen la aplicación no ofrece pistas ni revela la solución, y aplica una curva de calificación más estricta que la de la práctica libre.'),
-  p('Los resultados se registran de forma persistente, con protección frente a envíos duplicados. El profesorado dispone de informes descargables en hoja de cálculo con notas por alumno, escala de cuatro colores, ranking, errores más frecuentes por función —ponderados por pilar, función y procedimiento—, minigráficos de evolución, tabla por grupo y una hoja de analítica evolutiva. El sistema permite además enviar automáticamente a cada alumno, por correo electrónico, su calificación y sus errores más frecuentes, mediante un diálogo que permite seleccionar grupo, intervalo de fechas y destinatarios uno a uno.'),
+  p('Los resultados se registran de forma persistente, con protección frente a envíos duplicados. El profesorado dispone de informes descargables en hoja de cálculo con notas por alumno, escala de cuatro colores, ranking, errores más frecuentes por función —ponderados por pilar, función y procedimiento—, minigráficos de evolución, tabla por grupo, una hoja de analítica evolutiva y, en el módulo de la oración compuesta, una vista de los errores concretos de cada alumno en cada examen. El sistema permite además enviar automáticamente a cada alumno, por correo electrónico, su calificación y sus errores más frecuentes, mediante un diálogo que permite seleccionar grupo, intervalo de fechas y destinatarios uno a uno.'),
 
   h2('2.7 Módulo Arcade y gamificación pedagógica'),
   p('El módulo Arcade pasa de dos a cuatro submodalidades: Supervivencia (un error termina la partida), Contrarreloj (120 segundos, cada acierto suma 5), Duelo Fantasma (competición contra el propio récord del alumno o contra la media de su clase, con barra de diferencia en tiempo real) y Radar de Errores (partida construida sobre las funciones que ese alumno concreto viene fallando). Conserva la música sintética generada en tiempo real sin ficheros de audio y el ranking compartido del aula.'),
@@ -328,12 +337,24 @@ A(
   p('El panel del profesor centraliza la gestión del aula: manuales de uso, descarga de informes, configuración de grupos, subfase del examen, filtros de contenido, gestión del PIN y del temporizador, activación de exámenes y cuadros de mando por módulo.'),
   p('La novedad estructural de la v7 es el sistema de cuadernos. Cada profesor que usa la obra tiene su propio cuaderno —su copia de la hoja de datos y su propio despliegue de servidor— y la aplicación reconoce a cuál debe dirigir los datos mediante un parámetro del enlace que el alumno abre. El sistema no acepta cualquier dirección escrita en el enlace: solo funcionan los cuadernos que figuran en una lista blanca cerrada dentro del propio código, de modo que nadie pueda desviar, mediante un enlace fabricado, las notas y los correos de una clase entera hacia un servidor ajeno. La aplicación muestra en pantalla a qué cuaderno está apuntando y avisa al alumno, con posibilidad de deshacer, cuando un enlace cambia su cuaderno.'),
 
-  h2('2.9 Otras mejoras funcionales'),
+  h2('2.9 Verbos semicopulativos en la oración simple'),
+  p('La versión de septiembre resuelve un problema didáctico detectado en el aula con oraciones como «La biblioteca se veía vacía»: el alumno que razonaba bien —«no expresa acción, es atributiva: predicado nominal»— era penalizado por no haber elegido una tercera opción secundaria («predicado nominal con verbo semicopulativo») que la interfaz mostraba en pequeño. No era un error del motor ni de los datos, sino de diseño, y se ha corregido en el diseño.'),
+  p('Ahora la decisión del tipo de predicado se toma en dos tiempos dentro de la misma tarjeta: primero, nominal o verbal; después, y solo si el verbo lo exige, copulativo o semicopulativo. Cada tiempo tiene su andamiaje propio. Acompaña al rediseño una micro-lección nueva, «Verbos semicopulativos», que expone las tres pruebas que separan al verbo semicopulativo del copulativo pleno —suprimir lo que sigue al verbo, sustituirlo por «lo» y sustituirlo por «así», aplicadas juntas y con la segunda como decisiva— y las tres clases semánticas de la NGLE (cambio, permanencia y manifestación), con el caso del mismo verbo «en dos trajes» («salió a la calle» frente a «salió redondo»). El error correspondiente se registra por primera vez de principio a fin —del navegador al servidor y de ahí al informe del profesor, con etiqueta legible «Tipo de predicado (semicopulativo)»— y el banco de oraciones cuenta con un subconjunto propio de dieciséis oraciones con verbo semicopulativo revisadas una a una.'),
+
+  h2('2.10 La edición ligera: la obra sin servidor'),
+  p('La novedad de mayor alcance de septiembre no es un módulo, sino una segunda forma de existir de la obra. A partir del mismo código fuente, un constructor propio genera una edición ligera destinada a su publicación en un dominio propio y de uso libre: funciona íntegramente en el navegador del usuario, sin servidor, sin panel del profesor, sin exámenes con PIN y sin registro de datos personales de ningún tipo.'),
+  p('Para que esto sea posible, los módulos de la oración simple, la oración compuesta, los sintagmas, el Arcade, Chispa y el análisis morfológico leen sus ejercicios de bancos locales incorporados a la propia aplicación —165 oraciones simples, 80 oraciones compuestas y 88 textos morfológicos, seleccionados del banco general y exportados a ficheros de datos—, y una bandera única de edición hace que el código sepa en qué edición está y se comporte en consecuencia: el inicio de sesión no exige correo, las referencias a la prueba de acceso de la Región de Murcia se expresan de forma neutra y los dos módulos de manipulación (Laboratorio y Fábrica) se anuncian como próximos.'),
+  p('El constructor trabaja por lista blanca —solo se publica lo que figura expresamente en ella—, elimina del todo el código y el marcado del panel del profesor, sustituye la dirección del servidor por una nula, retira la marca de no indexación que lleva la edición completa y genera los ficheros de descubrimiento para buscadores (robots.txt, sitemap.xml) y los metadatos de presentación en redes. La edición completa y la ligera comparten así el cien por cien de la lógica didáctica y difieren únicamente en la capa de centro educativo. La edición ligera va acompañada de una guía de despliegue redactada para el técnico que la publique.'),
+
+  h2('2.11 Otras mejoras funcionales'),
   bullet('Aplicación web progresiva: la obra funciona sin conexión gracias a una caché propia del armazón, con instalación fichero a fichero y reintento, y un guardián de arranque que detecta si la aplicación no se ha cargado entera y avisa al alumno en lugar de fallar en silencio.'),
+  bullet('Aviso legal y política de privacidad propios, enlazados desde la pantalla de inicio de la aplicación. La política describe qué datos trata la edición ligera —ninguno sale del dispositivo del usuario—, con qué finalidad, con qué base legal y cómo borrarlos, y anuncia la ampliación específica que acompañará a la edición de centro.'),
   bullet('Perfil de alumno persistente entre sesiones y entre dispositivos.'),
   bullet('Glosario de términos gramaticales con etiquetado propio, accesible desde cualquier módulo.'),
   bullet('Retos guiados y preguntas de reflexión metalingüística integrados en el flujo de práctica.'),
   bullet('Refuerzo de la seguridad y la integridad de los datos del alumnado, detallado en el apartado 5.5.'),
+  bullet('Auditoría de los filtros de contenido del panel del profesor: el clasificador del tipo de verbo y el detector de funciones presentes en cada oración se han revisado para que los exámenes generados contengan exactamente las funciones que el profesor pide, y el filtro de subtipo del módulo de compuestas considera todos los subtipos que aparecen en un ejercicio y no solo el primero.'),
+  bullet('Manuales del profesor y del alumno revisados por completo contra el estado real de la aplicación.'),
   bullet('Interfaz renovada, con sistema de tokens de diseño, identidad visual propia (monograma de pluma y doble hélice) y estética editorial cuidada.'),
   new Paragraph({ children: [new PageBreak()] }),
 );
@@ -414,20 +435,25 @@ A(
   ]),
 
   h2('3.4 Volumen y organización del código'),
-  p('El programa consta, en su versión vigente, de más de cuarenta y seis mil líneas de código fuente propio, repartidas del siguiente modo:'),
+  p('El programa consta, en su versión vigente, de más de cuarenta y seis mil setecientas líneas de código fuente propio, repartidas del siguiente modo:'),
   tabla([
     ['COMPONENTE', 'EXTENSIÓN'],
-    ['Lógica de cliente (JavaScript)', '25.025 líneas en más de 50 módulos'],
-    ['Backend (Google Apps Script)', '10.502 líneas en 13 ficheros'],
-    ['Estilos (CSS)', '6.765 líneas'],
-    ['Interfaz y manuales (HTML)', '3.445 líneas'],
+    ['Lógica de cliente (JavaScript)', '25.791 líneas en 51 módulos'],
+    ['Backend (Google Apps Script)', '10.562 líneas en 13 ficheros'],
+    ['Estilos (CSS)', '6.767 líneas'],
+    ['Interfaz, manuales y textos legales (HTML)', '3.440 líneas'],
     ['Armazón sin conexión (Service Worker)', '192 líneas'],
-    ['TOTAL DE CÓDIGO FUENTE PROPIO', 'Más de 45.900 líneas, sin contar la documentación técnica ni los bancos de datos'],
+    ['Constructor de la edición ligera', '204 líneas'],
+    ['TOTAL DE CÓDIGO FUENTE PROPIO', 'Más de 46.900 líneas, sin contar la documentación técnica ni los bancos de datos'],
   ], [55, 45]),
-  p('Los módulos didácticos de mayor extensión son el de la oración compuesta (5.658 líneas), el de la oración simple (4.186), el Laboratorio de Oraciones (1.878), la Fábrica de Palabras (1.652), el panel del profesor (1.646, más 968 de su generador de informes), la morfología (1.388) y el Arcade (1.141).'),
+  p('Los módulos didácticos de mayor extensión son el de la oración compuesta (5.817 líneas), el de la oración simple (4.366), el Laboratorio de Oraciones (1.878), el panel del profesor (1.688, más 1.027 de su generador de informes), la Fábrica de Palabras (1.652), la morfología (1.453) y el Arcade (1.135).'),
 
   h2('3.5 Ausencia deliberada de dependencias'),
   p('Es una seña de identidad de la obra su práctica ausencia de dependencias externas. No emplea ningún marco de trabajo (React, Vue, Angular), ninguna biblioteca de terceros para su lógica, ningún empaquetador, ningún preprocesador y ningún lenguaje transpilado. Se apoya exclusivamente en las interfaces de programación nativas del navegador: módulos ES6, Web Audio API para el sonido generado por síntesis, almacenamiento local para la persistencia de cliente, Service Worker para el funcionamiento sin conexión y las funciones de red estándar. La única biblioteca de terceros utilizada —la que escribe los ficheros de hoja de cálculo del informe del profesor— está incorporada al propio repositorio con licencia libre, en lugar de cargarse desde un servidor ajeno, precisamente para que la obra no dependa de nadie.'),
+
+  h2('3.6 Una sola fuente, dos ediciones'),
+  p('La edición ligera no es una copia mantenida aparte, sino el resultado de una transformación automática del código fuente único. Un constructor propio lee el repositorio y escribe en una carpeta independiente la copia publicable, aplicando en el camino un conjunto cerrado de ajustes: activa la bandera de edición, vacía la dirección del servidor, excluye por completo el módulo del panel del profesor y su marcado, retira la biblioteca de hojas de cálculo que solo ese panel necesita, elimina la marca de no indexación y genera los ficheros de descubrimiento y los metadatos de presentación. Al terminar, el constructor verifica cada una de esas condiciones sobre el resultado y se niega a dar por buena la copia si alguna falla.'),
+  p('El código didáctico no se toca: son los propios módulos los que, al consultar la bandera de edición, deciden si leen los ejercicios del servidor o de los bancos locales, si exigen correo en el inicio de sesión o si muestran u ocultan el modo examen. De este modo cualquier mejora del motor pedagógico llega a las dos ediciones con una sola escritura, y la diferencia entre ambas queda reducida, de forma verificable, a la capa de centro educativo.'),
   new Paragraph({ children: [new PageBreak()] }),
 );
 
@@ -581,9 +607,9 @@ A(
     ['Banco de reflexión metalingüística', 'Ítems autocorregibles con enfoque metodológico propio (se evalúa la prueba y no la etiqueta; manipulación sintáctica frente a heurísticos) y distractores diseñados pedagógicamente.'],
     ['Modelo de análisis morfológico en tres niveles', 'Diseño, secuenciación y criterios de los niveles Categorías, Análisis y modelo PAU, tal como se expresan en el programa y en su documentación.'],
     ['Criterios de evaluación y calificación', 'Rúbrica que pondera los rasgos discriminantes, curvas diferenciadas de práctica y examen, y su fundamentación escrita.'],
-    ['Micro-lecciones y retroalimentación escalonada', 'Textos explicativos propios asociados a cada tipo de error, con pistas contextuales graduadas, en los módulos de simples, compuestas, sintagmas, morfología, Laboratorio y Fábrica.'],
-    ['Secuencias didácticas guiadas', 'Los pasos de análisis (simple, compuesta, sintagma), las cascadas morfológicas y las tres estaciones de los módulos nuevos, como itinerario didáctico.'],
-    ['Bancos de oraciones y corpus propios', 'Más de 650 oraciones simples analizadas, el banco de oración compuesta y los corpus morfológicos de los tres niveles, todos de elaboración propia.'],
+    ['Micro-lecciones y retroalimentación escalonada', 'Textos explicativos propios asociados a cada tipo de error, con pistas contextuales graduadas, en los módulos de simples, compuestas, sintagmas, morfología, Laboratorio y Fábrica. Incluye la micro-lección «El verbo que se vació», sobre los verbos semicopulativos, con sus tres pruebas y sus tres familias.'],
+    ['Secuencias didácticas guiadas', 'Los pasos de análisis (simple, compuesta, sintagma), la decisión en dos tiempos del tipo de predicado, las cascadas morfológicas y las tres estaciones de los módulos nuevos, como itinerario didáctico.'],
+    ['Bancos de oraciones y corpus propios', 'Más de 650 oraciones simples analizadas —entre ellas un subconjunto revisado de dieciséis con verbo semicopulativo—, el banco de oración compuesta y los corpus morfológicos de los tres niveles, todos de elaboración propia, además de la selección exportada a los bancos locales de la edición ligera (165 simples, 80 compuestas y 88 textos morfológicos).'],
     ['Material de aula y modelo de respuesta', 'Tarjetas didácticas del módulo de compuestas, respuesta modelo del formato de la prueba de acceso y glosario de términos gramaticales.'],
     ['Manuales y guías', 'Manual del profesor, manual del alumno, guía de sesiones y protocolo de uso compartido con el departamento.'],
   ], [32, 68]),
@@ -599,10 +625,11 @@ A(
   h1('8. COMPONENTES INCLUIDOS EN LA AMPLIACIÓN'),
   tabla([
     ['COMPONENTE', 'DESCRIPCIÓN Y EXTENSIÓN'],
-    ['Código fuente del cliente', 'Más de 50 módulos de JavaScript ES6 (25.025 líneas), el documento de pantallas y los manuales en HTML (3.445 líneas), las hojas de estilo (6.765 líneas) y el armazón sin conexión (192 líneas).'],
-    ['Código fuente del backend', 'Trece ficheros de Google Apps Script (10.502 líneas): núcleo, compuestas, Laboratorio, Fábrica, informes, envío de correo y analíticas.'],
+    ['Código fuente del cliente', '51 módulos de JavaScript ES6 (25.791 líneas), el documento de pantallas, los manuales y los textos legales en HTML (3.440 líneas), las hojas de estilo (6.767 líneas) y el armazón sin conexión (192 líneas).'],
+    ['Código fuente del backend', 'Trece ficheros de Google Apps Script (10.562 líneas): núcleo, compuestas, Laboratorio, Fábrica, informes, envío de correo y analíticas.'],
+    ['Edición ligera y su constructor', 'El constructor que genera la edición ligera a partir del código fuente único (204 líneas), la copia generada, los bancos locales de datos que la alimentan y la guía de despliegue para el técnico que la publique.'],
     ['Base de datos estructurada', 'Exportación de la hoja de cálculo con sus hojas de bancos, configuraciones, resultados, rankings y analíticas.'],
-    ['Bancos de contenido propios', 'Más de 650 oraciones simples analizadas, el banco de oración compuesta, los corpus morfológicos de tres niveles, cerca de 210 retos del Laboratorio y 122 retos de la Fábrica.'],
+    ['Bancos de contenido propios', 'Más de 650 oraciones simples analizadas, el banco de oración compuesta, los corpus morfológicos de tres niveles, cerca de 210 retos del Laboratorio, 122 retos de la Fábrica y los tres bancos locales de la edición ligera.'],
     ['Sistema de retroalimentación', 'Matrices de error específico y diccionarios base de sintaxis, morfología, sintagmas y compuestas, más las micro-lecciones y las pistas contextuales de cada módulo.'],
     ['Metodología pedagógica propia', 'Modelo de tres fases del análisis sintáctico, cuatro pasos de la oración compuesta, tres estaciones bloqueadas de los módulos nuevos, cascadas condicionales morfológicas, canon de aceptabilidad y criterios de calificación ponderada.'],
     ['Documentación de diseño', 'Documentos normativos de esquema y de canon, planes de producto de los dos módulos nuevos, criterios de ponderación, arquitectura y auditoría técnica.'],
@@ -619,7 +646,7 @@ A(
     ['v6 (INSCRITA)', 'Abril 2026', 'Tres niveles morfológicos con cascadas condicionales. Motor de feedback escalonado completo. Micro-lecciones. Panel del profesor. Gamificación educativa. Versión objeto de la inscripción originaria.'],
     ['v6.1', 'Mayo – junio 2026', 'Reescritura modular de la arquitectura. Motor de oración compuesta. Informes del profesor y envío de calificaciones por correo. Rediseño del sistema de calificación.'],
     ['v6.2', 'Julio 2026', 'Modo Chispa. Morfología con ponderación por rasgos discriminantes. Examen con PIN en los módulos secundarios. Retos y reflexión metalingüística. Identidad visual propia.'],
-    ['v7', 'Agosto 2026', 'El Laboratorio de Oraciones y La Fábrica de Palabras (módulos nuevos). Cuadernos independientes por profesor. Calificación verificada en servidor con vale de un solo uso. Funcionamiento sin conexión y arranque resistente. Versión objeto de esta ampliación.'],
+    ['v7', 'Agosto – septiembre 2026', 'El Laboratorio de Oraciones y La Fábrica de Palabras (módulos nuevos). Cuadernos independientes por profesor. Calificación verificada en servidor con vale de un solo uso. Funcionamiento sin conexión y arranque resistente. Edición ligera sin servidor generada desde el mismo código. Tratamiento de los verbos semicopulativos. Aviso legal y política de privacidad. Versión objeto de esta ampliación.'],
   ], [16, 20, 64]),
   new Paragraph({ children: [new PageBreak()] }),
 );
@@ -656,8 +683,15 @@ A(
   h2('Interfaz y estilos'),
   bullet('index.html — documento de pantallas de la aplicación.'),
   bullet('manual-profesor.html, manual-alumno.html — manuales de uso.'),
+  bullet('aviso-legal.html, privacidad.html — aviso legal y política de privacidad.'),
   bullet('css/tokens.css, css/legacy.css, css/theme/new-ui.css — hojas de estilo.'),
   bullet('sw.js, manifest.json — armazón de funcionamiento sin conexión.'),
+
+  h2('Edición ligera'),
+  bullet('build-light.js — constructor que genera la edición ligera a partir del código fuente único.'),
+  bullet('data/banco-simple.json, data/banco-compuestas.json, data/banco-morfologia.json — bancos locales que alimentan la edición ligera.'),
+  bullet('dist-light/ — copia de la edición ligera tal como se publica (aplicación, robots.txt y sitemap.xml), regenerable en cualquier momento con el constructor.'),
+  bullet('Traspaso_Informatico.md — guía de despliegue de la edición ligera.'),
 
   h2('Módulos didácticos (js/modules)'),
   bullet('sint/index.js — motor de la oración simple.'),
@@ -692,6 +726,7 @@ A(
   bullet('docs/Laboratorio_Oraciones_Plan_Producto.md, docs/Fabrica_Palabras_Plan_Producto.md — planes de producto y especificación de los dos módulos nuevos.'),
   bullet('docs/propuesta_niveles_morfologia.md — diseño del modelo morfológico en tres niveles.'),
   bullet('docs/f9_ponderacion_morfologia.md — criterios de evaluación y calificación ponderada.'),
+  bullet('docs/Plan_Semicopulativos_2026-09.md — diagnóstico y diseño del tratamiento de los verbos semicopulativos.'),
   bullet('docs/corpus_textos_n1_morfologia.md, docs/f8_corpus_n2n3_tokens.md — corpus morfológicos de elaboración propia.'),
   bullet('docs/TARJETAS_DIDACTICAS_CP.md — material de aula del módulo de compuestas.'),
   bullet('banco_export/ — exportación de los bancos de retos del Laboratorio y de la Fábrica y del banco de oraciones simples.'),
