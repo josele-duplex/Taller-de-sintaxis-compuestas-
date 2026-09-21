@@ -1019,6 +1019,17 @@
       f4ErrDireccion: 0,   // cuál es la principal y cuál la subordinada
       f4ErrFuncion: 0,     // función de la subordinada (solo cuando se pregunta)
       f4ErrFuncionSp: 0,   // función del SP (término de preposición)
+      // Mismo desglose que arriba pero por VALOR CORRECTO concreto, no solo
+      // contador (roadmap 4.5, sep-2026): permite que el informe del profesor
+      // diga "este alumno falla en sustantivas de CD", no solo "falla en
+      // subtipo". Cada mapa es valor_correcto → nº de veces que el alumno
+      // falló teniendo que responder eso. `direccion` no tiene un "valor"
+      // de contenido (es binario, quién manda), así que no lleva detalle.
+      f4ErrTipoDetalle: {},
+      f4ErrFamiliaDetalle: {},
+      f4ErrSubtipoDetalle: {},
+      f4ErrFuncionDetalle: {},
+      f4ErrFuncionSpDetalle: {},
       // ── Fase 6: análisis interno de oraciones (Entrega 4 / Fase 1.4) ─
       interna: {
         activo:     false,           // se activa cuando el alumno elige "Analizar por dentro"
@@ -2702,6 +2713,15 @@
     return [];
   }
 
+  // Acumula en `mapa` (uno de los f4Err*Detalle) el valor CORRECTO que el
+  // alumno falló, para el desglose por categoría del informe del profesor
+  // (roadmap 4.5, sep-2026). `valor` puede venir vacío/undefined si el
+  // ejercicio no lo trae (p.ej. funcion_sp sin rel.funcion_sp) — se ignora.
+  function sumErrDetalle_(mapa, valor){
+    if(!valor) return;
+    mapa[valor] = (mapa[valor] || 0) + 1;
+  }
+
   function onRelacionClick(q, v){
     const eng = state.engine;
     const ej = state.filtered[state.idx];
@@ -2726,6 +2746,7 @@
         resp.tipoOk = false;
         eng.f4Errores += 1;
         eng.f4ErrTipo += 1;
+        sumErrDetalle_(eng.f4ErrTipoDetalle, rel.tipo);
         // El helper ya llama a trackError internamente con el realId correcto
         // (rel.tipo). Sustituye al antiguo trackError('compuestas','tipo_relacion')
         // que no encajaba con FEEDBACK_COMPUESTAS ni con ERROR_TO_LECCION_CP.
@@ -2763,6 +2784,7 @@
         resp.familiaOk = false;
         eng.f4Errores += 1;
         eng.f4ErrFamilia += 1;
+        sumErrDetalle_(eng.f4ErrFamiliaDetalle, familiaCorrecta);
         // El helper trackError con el realId correcto (familia correcta)
         eng.mensajeFeedback = {
           tipo:'err',
@@ -2798,6 +2820,7 @@
         resp.subtipoOk = false;
         eng.f4Errores += 1;
         eng.f4ErrSubtipo += 1;
+        sumErrDetalle_(eng.f4ErrSubtipoDetalle, rel.subtipo);
         eng.mensajeFeedback = {
           tipo:'err',
           html: buildScaffoldFeedbackCP({
@@ -2862,6 +2885,7 @@
         resp.funcionOk = false;
         eng.f4Errores += 1;
         eng.f4ErrFuncion += 1;
+        sumErrDetalle_(eng.f4ErrFuncionDetalle, rel.funcion);
         eng.mensajeFeedback = {
           tipo:'err',
           html: `✗ Esa no es la función correcta. Recuerda qué pregunta hace cada función: ¿qué? (CD), ¿a quién? (CI), ¿quién? (sujeto)…`
@@ -2888,6 +2912,7 @@
         resp.funcionSpOk = false;
         eng.f4Errores += 1;
         eng.f4ErrFuncionSp += 1;
+        sumErrDetalle_(eng.f4ErrFuncionSpDetalle, rel.funcion_sp);
         eng.mensajeFeedback = {
           tipo:'err',
           html: `✗ El SP completo no funciona como ${escHtml(nombreLargoFuncion(v))}. Piensa qué pide el verbo o el sustantivo del que depende.`
@@ -3987,6 +4012,14 @@
       err_direccion:        eng.f4ErrDireccion || 0,
       err_funcion:          eng.f4ErrFuncion   || 0,
       err_funcion_sp:       eng.f4ErrFuncionSp || 0,
+      // Mismo desglose de F4 pero por valor correcto concreto (roadmap 4.5).
+      // Va DENTRO del payload por ejercicio para que, en examen, se pueda
+      // fusionar entre todos los ejercicios en construirPayloadExamenAgregado.
+      err_tipo_detalle:       eng.f4ErrTipoDetalle,
+      err_familia_detalle:    eng.f4ErrFamiliaDetalle,
+      err_subtipo_detalle:    eng.f4ErrSubtipoDetalle,
+      err_funcion_detalle:    eng.f4ErrFuncionDetalle,
+      err_funcion_sp_detalle: eng.f4ErrFuncionSpDetalle,
       // Fase 1.4: contadores del análisis interno (si el alumno lo hizo)
       aciertos_interna:     (eng.interna && eng.interna.activo) ? eng.interna.aciertos : 0,
       errores_interna:      (eng.interna && eng.interna.activo) ? eng.interna.errores : 0,
@@ -4157,6 +4190,17 @@
     // errores del informe del profesor. Agrupado luego en el informe con pesos
     // Pilar×3 / Función×2 / Procedimental×1 (decisión Josele 2026-06-15).
     const sumKey = k => ress.reduce((a, r) => a + (r[k] || 0), 0);
+    // Fusiona un mapa {valor_correcto: count} de cada ejercicio del examen
+    // en uno solo (roadmap 4.5). Ej.: dos ejercicios donde el alumno falló
+    // "sustantiva_cd" dan {sustantiva_cd: 2} en vez de dos entradas sueltas.
+    const mergeMapKey = k => {
+      const out = {};
+      ress.forEach(r => {
+        const mapa = r[k] || {};
+        Object.keys(mapa).forEach(v => { out[v] = (out[v] || 0) + mapa[v]; });
+      });
+      return out;
+    };
     const erroresCP = {
       // Pilar (×3): clasificación de la relación
       tipo:       sumKey('err_tipo'),
@@ -4169,7 +4213,16 @@
       verbos:     sumKey('errores_verbos'),
       nexos:      sumKey('errores_nexos'),
       delimitar:  sumKey('errores_delimitar'),
-      direccion:  sumKey('err_direccion')
+      direccion:  sumKey('err_direccion'),
+      // Desglose por valor correcto concreto (roadmap 4.5): lo que permite
+      // al informe decir "sustantivas de CD" en vez de solo "subtipo".
+      detalle: {
+        tipo:       mergeMapKey('err_tipo_detalle'),
+        familia:    mergeMapKey('err_familia_detalle'),
+        subtipo:    mergeMapKey('err_subtipo_detalle'),
+        funcion:    mergeMapKey('err_funcion_detalle'),
+        funcion_sp: mergeMapKey('err_funcion_sp_detalle')
+      }
     };
 
     return {

@@ -295,6 +295,63 @@
     return ws;
   }
 
+  // ── Etiquetas legibles del desglose de errores de Compuestas (roadmap 4.5,
+  //    sep-2026). Copia reducida de etiquetaSubtipoExtendida/nombreLargoFuncion
+  //    de compuestas/index.js — módulos IIFE independientes sin imports
+  //    compartidos, mismo patrón de duplicación que el resto del proyecto. ──
+  const ETIQUETA_TIPO_CP = {
+    subordinacion:'Subordinación', coordinacion:'Coordinación', yuxtaposicion:'Yuxtaposición'
+  };
+  const ETIQUETA_FAMILIA_CP = {
+    sustantiva:'Sustantiva', relativa:'De relativo', construccion:'Construcción'
+  };
+  const ETIQUETA_SUBTIPO_CP = {
+    copulativa:'Copulativa', adversativa:'Adversativa', disyuntiva:'Disyuntiva',
+    distributiva:'Distributiva', explicativa:'Explicativa', ilativa_coord:'Ilativa',
+    sustantiva_sujeto:'Sustantiva de sujeto',
+    sustantiva_cd:'Sustantiva de CD',
+    sustantiva_atributo:'Sustantiva de atributo',
+    sustantiva_termino_preposicion:'Sustantiva término de prep.',
+    sustantiva_aposicion:'Sustantiva en aposición',
+    relativa_especificativa:'Relativa especificativa',
+    relativa_explicativa:'Relativa explicativa',
+    relativa_libre:'Relativa libre',
+    relativa_semilibre:'Relativa semilibre',
+    condicional:'Condicional', final:'Final', causal:'Causal',
+    concesiva:'Concesiva', ilativa_constr:'Ilativa',
+    temporal:'Temporal', locativa:'Locativa',
+    modal:'Modal', comparativa:'Comparativa'
+  };
+  const ETIQUETA_FUNCION_CP = {
+    sujeto:'sujeto', cd:'CD', ci:'CI', atributo:'atributo', cpvo:'CPvo',
+    c_regimen:'C.Rég.', c_agente:'C.Ag.', marca_pas_ref:'marca pas. refleja',
+    mod_oracional:'mod. oracional', vocativo:'vocativo',
+    atributo_locativo:'atributo locativo', dativo:'dativo', cc:'CC',
+    termino_preposicion:'término de prep.', aposicion:'aposición',
+    cn:'CN', c_adj:'C. del adjetivo', c_adv:'C. del adverbio', incidental:'incidental'
+  };
+  function etiquetaErrorCP_(dim, valor){
+    const mapa = { tipo:ETIQUETA_TIPO_CP, familia:ETIQUETA_FAMILIA_CP,
+                   subtipo:ETIQUETA_SUBTIPO_CP, funcion:ETIQUETA_FUNCION_CP,
+                   funcion_sp:ETIQUETA_FUNCION_CP }[dim];
+    return (mapa && mapa[valor]) || valor;
+  }
+  // errores_cp_top viene del GAS ya troceado por dimensión (top 3 de cada
+  // una); aquí se junta todo, se ordena por frecuencia y se muestran los 3
+  // fallos más repetidos del alumno en Compuestas, sea cual sea el paso.
+  const DIM_SUFIJO_CP = { tipo:' (tipo)', familia:' (familia)', subtipo:'', funcion:' (función)', funcion_sp:' (función SP)' };
+  function formatErroresCpTop(errCpTop){
+    if (!errCpTop) return '';
+    const flat = [];
+    ['subtipo','tipo','familia','funcion','funcion_sp'].forEach(dim => {
+      (errCpTop[dim] || []).forEach(e => {
+        flat.push({ label: etiquetaErrorCP_(dim, e.valor) + (DIM_SUFIJO_CP[dim] || ''), count: e.count });
+      });
+    });
+    flat.sort((a, b) => b.count - a.count);
+    return flat.slice(0, 3).map(e => e.label + ' (' + e.count + ')').join(', ');
+  }
+
   // ════════════════════════════════════════════════════════════════════════
   //  HOJA — ALUMNOS (todos o de un grupo)
   // ════════════════════════════════════════════════════════════════════════
@@ -324,7 +381,7 @@
     aoa.push([cell('')]);
 
     // Fila 3: cabecera de tabla
-    const headers = ['Grupo','Nombre','Correo','Sesiones','Ejercicios','Nota media','Tiempo (min)','Última actividad','Top errores','Examen por subfase'];
+    const headers = ['Grupo','Nombre','Correo','Sesiones','Ejercicios','Nota media','Tiempo (min)','Última actividad','Top errores','Top errores Compuestas','Examen por subfase'];
     aoa.push(headers.map(h => cell(h, S_cabeceraTabla())));
     const headerRow = aoa.length;  // 0-indexed: 3
 
@@ -340,6 +397,7 @@
       const sesiones   = (sp.sesiones || 0);
       const ejercicios = (sp.ejercicios || 0) + (ce.intentos || 0) + (cp.intentos || 0) + (lab.intentos || 0);
       const topErr     = (a.errores_top || []).slice(0,3).map(e => e.funcion + ' (' + e.count + ')').join(', ');
+      const topErrCP   = formatErroresCpTop(a.errores_cp_top);
       // Solo se rellena cuando el alumno ha hecho exámenes de más de una
       // profundidad — evita ruido en el caso normal (todo 'completo').
       const porSubfase = (ce.por_subfase || [])
@@ -355,20 +413,21 @@
         cell(a.tiempo_min_total || 0, S_celdaCentro()),
         cell(a.ultima_actividad ? fechaCorta(a.ultima_actividad) : '—', S_celdaCentro()),
         cell(topErr || '—', S_celda({ font:{sz:9, color:{rgb:C.muted}} })),
+        cell(topErrCP || '—', S_celda({ font:{sz:9, color:{rgb:C.muted}} })),
         cell(porSubfase || '—', S_celda({ font:{sz:9, color:{rgb:C.muted}} }))
       ]);
     });
     if (!alumnos.length){
       aoa.push([
         cell('(sin alumnos en el rango)', S_celda()),
-        cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell('')
+        cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell(''),cell('')
       ]);
     }
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = [
       { wch:12 }, { wch:26 }, { wch:32 }, { wch:9 }, { wch:11 },
-      { wch:11 }, { wch:11 }, { wch:14 }, { wch:36 }, { wch:32 }
+      { wch:11 }, { wch:11 }, { wch:14 }, { wch:36 }, { wch:36 }, { wch:32 }
     ];
     ws['!rows'] = [ { hpt:28 }, { hpt:18 } ];
     ws['!merges'] = merges;
@@ -376,7 +435,7 @@
     if (alumnos.length){
       const lastRow = headerRow + alumnos.length;
       // Autofiltro sobre la cabecera + filas
-      ws['!autofilter'] = { ref: 'A' + (headerRow) + ':J' + (lastRow) };
+      ws['!autofilter'] = { ref: 'A' + (headerRow) + ':K' + (lastRow) };
     }
     return ws;
   }

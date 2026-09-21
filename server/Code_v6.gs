@@ -5461,7 +5461,13 @@ function getInformeProfesor_(params) {
           simples_examen:   { intentos: 0, notas: [], porSubfase: {} },
           compuestas:       { intentos: 0, notas: [] },
           laboratorio:      { intentos: 0, notas: [] },
-          errores: {}   // funcion → count
+          errores: {},   // funcion → count (Simples)
+          // Errores de Compuestas por categoría, ESTE alumno (roadmap 4.5,
+          // sep-2026). Separado de `errores` (Simples) porque el vocabulario
+          // de etiquetas es distinto (aquí "sustantiva_cd", "causal"… no
+          // "CD"/"CI"). erroresGlobalCP sigue existiendo aparte para el
+          // Top global del informe; esto es el desglose POR ALUMNO.
+          errores_cp: { tipo: {}, familia: {}, subtipo: {}, funcion: {}, funcion_sp: {} }
         };
       } else {
         // Actualizar nombre/grupo si llegan vacíos antes y completos ahora
@@ -5538,7 +5544,18 @@ function getInformeProfesor_(params) {
       // la práctica y las filas antiguas envían {} → no suman nada).
       const ecp = r.erroresCP || {};
       Object.keys(ecp).forEach(k => {
+        if (k === 'detalle') return; // se procesa aparte, no es un contador
         erroresGlobalCP[k] = (erroresGlobalCP[k] || 0) + (parseInt(ecp[k]) || 0);
+      });
+      // Desglose por ALUMNO y por valor correcto concreto (roadmap 4.5).
+      // ecp.detalle = { tipo:{}, familia:{}, subtipo:{}, funcion:{}, funcion_sp:{} }.
+      // Filas antiguas (sin este campo) no aportan nada, sin romper nada.
+      const detalleCP = ecp.detalle || {};
+      ['tipo', 'familia', 'subtipo', 'funcion', 'funcion_sp'].forEach(dim => {
+        const mapa = detalleCP[dim] || {};
+        Object.keys(mapa).forEach(valor => {
+          a.errores_cp[dim][valor] = (a.errores_cp[dim][valor] || 0) + (parseInt(mapa[valor]) || 0);
+        });
       });
     });
 
@@ -5564,6 +5581,21 @@ function getInformeProfesor_(params) {
         .map(f => ({ funcion: f, count: a.errores[f] }))
         .sort((x, y) => y.count - x.count)
         .slice(0, 5);
+      // Top de errores de Compuestas de ESTE alumno, por dimensión (roadmap
+      // 4.5). `subtipo` es la dimensión que da el dato más útil al profesor
+      // ("sustantiva_cd", "causal"…); las demás se incluyen para el detalle
+      // completo si hace falta profundizar.
+      const topDeMapa_ = mapa => Object.keys(mapa)
+        .map(valor => ({ valor: valor, count: mapa[valor] }))
+        .sort((x, y) => y.count - x.count)
+        .slice(0, 3);
+      const erroresCpTop = {
+        tipo:       topDeMapa_(a.errores_cp.tipo),
+        familia:    topDeMapa_(a.errores_cp.familia),
+        subtipo:    topDeMapa_(a.errores_cp.subtipo),
+        funcion:    topDeMapa_(a.errores_cp.funcion),
+        funcion_sp: topDeMapa_(a.errores_cp.funcion_sp)
+      };
       return {
         correo: a.correo,
         nombre: a.nombre,
@@ -5600,7 +5632,8 @@ function getInformeProfesor_(params) {
           intentos:   a.laboratorio.intentos,
           nota_media: media_(a.laboratorio.notas)
         },
-        errores_top: erroresTop
+        errores_top: erroresTop,
+        errores_cp_top: erroresCpTop
       };
     });
 
