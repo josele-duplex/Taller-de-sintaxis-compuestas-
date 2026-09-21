@@ -40,7 +40,7 @@ Estas convenciones son **decisiones tomadas con base pedagógica y NGLE**. Nunca
 - Sujetos tácitos: `tipo: "tacito"`, `indices: []`. NO se añade token Ø.
 - Pasiva refleja: `se` se etiqueta como `marca_pas_ref` separado.
 - Conjunción completiva en PS: NO va en `indices` de la PS. Pronombre relativo en PS: SÍ va en `indices`.
-- «no» de negación: no se etiqueta como función separada.
+- «no» de negación: SÍ lleva función propia, `mod_oracional` (nunca `cc`). Un solo índice, el del propio token «no» (NGLE).
 
 ### Niveles (morfología y compuestas)
 - `basico` / `medio` / `avanzado`

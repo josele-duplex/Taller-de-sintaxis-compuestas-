@@ -109,7 +109,7 @@ Para casos de término de preposición + `funcion_sp`:
 - **Pronombre relativo `que/quien/donde/cuyo`**: SÍ va en `indices` de la PS, porque cumple una función interna dentro de ella.
 
 ### Negación
-La palabra `no` de negación NO se etiqueta como función separada en `analisis_interno.funciones`. Se incluye en los `indices` del predicado o del CC correspondiente sin función propia.
+La palabra `no` de negación SÍ se etiqueta como función separada en `analisis_interno.funciones`: `tipo: "mod_oracional"` (nunca `"cc"`), con `indices` conteniendo solo el índice del propio token «no» (NGLE, criterio fijado sept-2026).
 
 ## 8. Listas cerradas de subtipos y funciones (compuestas v1.2)
 
