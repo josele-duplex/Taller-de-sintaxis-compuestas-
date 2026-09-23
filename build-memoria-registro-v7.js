@@ -636,6 +636,8 @@ A(
     ['Diseño de interfaz', 'Sistema de tokens de diseño, paleta semántica de funciones sintácticas, tipografía y identidad visual propia (monograma de pluma y doble hélice).'],
   ], [30, 70]),
 
+  p('Ausencia de ejecutable: por tratarse de una aplicación web escrita en JavaScript, HTML y CSS, el programa no se compila a un fichero ejecutable independiente; es el propio código fuente aportado el que el navegador interpreta y ejecuta directamente, tanto en la edición completa como en la edición ligera. El backend (carpeta server/) se ejecuta igualmente sin compilación, como aplicación web de Google Apps Script. Por este motivo no se acompaña ejecutable alguno, de acuerdo con la posibilidad prevista para estos casos.', { after: 240 }),
+
   h2('8.1 Historial de versiones'),
   p('Esta ampliación registra la versión 7 como versión vigente y completa de la obra. A efectos probatorios de antigüedad se deja constancia del histórico de desarrollo, con indicación de la versión inscrita originariamente:'),
   tabla([
